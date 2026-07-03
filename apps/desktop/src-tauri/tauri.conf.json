@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Loopwire",
+  "version": "0.0.0",
+  "identifier": "farm.sandwich.loopwire",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "pnpm build:web",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Loopwire",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 900,
+        "minHeight": 640,
+        "decorations": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Utility",
+    "icon": ["icons/icon.png", "icons/icon.svg"],
+    "targets": ["appimage", "deb", "rpm"],
+    "shortDescription": "Linux virtual audio routing workspace",
+    "longDescription": "Loopwire is a Linux virtual audio routing workspace for configurations, app capture, monitors, and backend diagnostics."
+  }
+}

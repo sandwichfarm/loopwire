@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@loopwire/audio-host/detectors": ["../../packages/audio-host/src/detectors.ts"],
+      "@loopwire/audio-host/runtime": ["../../packages/audio-host/src/runtime-browser.ts"],
+      "@loopwire/core": ["../../packages/core/src/index.ts"]
+    },
+    "rootDir": "../..",
+    "types": ["svelte", "vite/client"]
+  },
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "svelte.config.js",
+    "vite.config.ts",
+    "../../packages/core/src/**/*.ts",
+    "../../packages/audio-host/src/**/*.ts"
+  ]
+}

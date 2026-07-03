@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 760" role="img" aria-labelledby="title desc">
+  <title id="title">Loopwire desktop shell screenshot</title>
+  <desc id="desc">A dark Loopwire app shell with configuration buttons, backend controls, routes, and monitors.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#191a1a"/>
+      <stop offset="0.45" stop-color="#211a14"/>
+      <stop offset="1" stop-color="#101113"/>
+    </linearGradient>
+  </defs>
+  <rect width="1180" height="760" rx="22" fill="url(#bg)"/>
+  <rect x="24" y="24" width="268" height="712" rx="8" fill="#171817" stroke="#3c3830"/>
+  <text x="52" y="70" fill="#f7b74a" font-family="Arial" font-size="18" font-weight="700">LOOPWIRE</text>
+  <text x="52" y="128" fill="#f4efe2" font-family="Georgia" font-size="58">Route</text>
+  <text x="52" y="186" fill="#f4efe2" font-family="Georgia" font-size="58">with</text>
+  <text x="52" y="244" fill="#f4efe2" font-family="Georgia" font-size="58">intent.</text>
+  <rect x="52" y="310" width="212" height="92" rx="8" fill="#bde84f"/>
+  <text x="72" y="350" fill="#101113" font-family="Arial" font-size="25" font-weight="700">Studio</text>
+  <text x="72" y="378" fill="#30351f" font-family="Arial" font-size="16">Mic, browser, monitor</text>
+  <rect x="52" y="420" width="212" height="92" rx="8" fill="#20201d" stroke="#3c3830"/>
+  <text x="72" y="460" fill="#f4efe2" font-family="Arial" font-size="25" font-weight="700">Call</text>
+  <text x="72" y="488" fill="#b9b0a2" font-family="Arial" font-size="16">Clean meeting mix</text>
+  <rect x="52" y="530" width="212" height="92" rx="8" fill="#20201d" stroke="#3c3830"/>
+  <text x="72" y="570" fill="#f4efe2" font-family="Arial" font-size="25" font-weight="700">Stream</text>
+  <text x="72" y="598" fill="#b9b0a2" font-family="Arial" font-size="16">Broadcast split</text>
+
+  <rect x="314" y="24" width="842" height="712" rx="8" fill="#171817" stroke="#3c3830"/>
+  <text x="346" y="78" fill="#f7b74a" font-family="Arial" font-size="17" font-weight="700">RESTORED CONFIGURATION</text>
+  <text x="346" y="130" fill="#f4efe2" font-family="Arial" font-size="48" font-weight="700">Studio</text>
+  <rect x="820" y="56" width="132" height="42" rx="6" fill="#24211c" stroke="#494235"/>
+  <text x="842" y="84" fill="#f4efe2" font-family="Arial" font-size="18">PipeWire</text>
+  <rect x="970" y="56" width="120" height="42" rx="6" fill="#24211c" stroke="#494235"/>
+  <text x="992" y="84" fill="#f4efe2" font-family="Arial" font-size="18">Native</text>
+
+  <rect x="346" y="158" width="774" height="56" rx="8" fill="#bde84f"/>
+  <rect x="364" y="173" width="72" height="27" rx="13" fill="#101113"/>
+  <text x="383" y="193" fill="#f4efe2" font-family="Arial" font-size="14" font-weight="700">AUTO</text>
+  <text x="454" y="193" fill="#101113" font-family="Arial" font-size="21" font-weight="700">The previously selected backend is still available.</text>
+
+  <rect x="346" y="246" width="232" height="300" rx="8" fill="#20201d" stroke="#403a32"/>
+  <text x="370" y="286" fill="#f4efe2" font-family="Arial" font-size="24" font-weight="700">Inputs</text>
+  <rect x="370" y="322" width="184" height="72" rx="8" fill="#282820" stroke="#42cfc2" stroke-width="4"/>
+  <text x="392" y="352" fill="#f4efe2" font-family="Arial" font-size="20" font-weight="700">Studio Mic</text>
+  <text x="392" y="378" fill="#b9b0a2" font-family="Arial" font-size="15">2 channels</text>
+  <rect x="370" y="414" width="184" height="72" rx="8" fill="#282820" stroke="#42cfc2" stroke-width="4"/>
+  <text x="392" y="444" fill="#f4efe2" font-family="Arial" font-size="20" font-weight="700">Browser Audio</text>
+  <text x="392" y="470" fill="#b9b0a2" font-family="Arial" font-size="15">2 channels</text>
+
+  <rect x="600" y="246" width="286" height="300" rx="8" fill="#20201d" stroke="#403a32"/>
+  <text x="624" y="286" fill="#f4efe2" font-family="Arial" font-size="24" font-weight="700">Routes</text>
+  <rect x="624" y="326" width="238" height="58" rx="8" fill="#282820" stroke="#3c3830"/>
+  <text x="644" y="362" fill="#f4efe2" font-family="Arial" font-size="18">mic</text>
+  <text x="728" y="362" fill="#bde84f" font-family="Arial" font-size="18" font-weight="700">86%</text>
+  <text x="796" y="362" fill="#f4efe2" font-family="Arial" font-size="18">bus</text>
+  <rect x="624" y="404" width="238" height="58" rx="8" fill="#282820" stroke="#3c3830"/>
+  <text x="644" y="440" fill="#f4efe2" font-family="Arial" font-size="18">browser</text>
+  <text x="728" y="440" fill="#bde84f" font-family="Arial" font-size="18" font-weight="700">62%</text>
+  <text x="796" y="440" fill="#f4efe2" font-family="Arial" font-size="18">bus</text>
+
+  <rect x="908" y="246" width="212" height="300" rx="8" fill="#20201d" stroke="#403a32"/>
+  <text x="932" y="286" fill="#f4efe2" font-family="Arial" font-size="24" font-weight="700">Outputs</text>
+  <rect x="932" y="322" width="164" height="72" rx="8" fill="#282820" stroke="#e85b36" stroke-width="4"/>
+  <text x="954" y="352" fill="#f4efe2" font-family="Arial" font-size="20" font-weight="700">Recorder Bus</text>
+  <text x="954" y="378" fill="#b9b0a2" font-family="Arial" font-size="15">2 channels</text>
+
+  <text x="346" y="610" fill="#f7b74a" font-family="Arial" font-size="17" font-weight="700">MONITORS</text>
+  <text x="346" y="656" fill="#f4efe2" font-family="Arial" font-size="32" font-weight="700">2 visible</text>
+  <rect x="602" y="598" width="230" height="78" rx="8" fill="#20201d" stroke="#3c3830"/>
+  <text x="626" y="632" fill="#f4efe2" font-family="Arial" font-size="21" font-weight="700">Headphones</text>
+  <text x="626" y="658" fill="#b9b0a2" font-family="Arial" font-size="15">Visible</text>
+  <rect x="852" y="598" width="230" height="78" rx="8" fill="#20201d" stroke="#3c3830"/>
+  <text x="876" y="632" fill="#f4efe2" font-family="Arial" font-size="21" font-weight="700">Meter Bridge</text>
+  <text x="876" y="658" fill="#b9b0a2" font-family="Arial" font-size="15">Visible</text>
+</svg>

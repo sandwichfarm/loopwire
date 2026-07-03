@@ -1,0 +1,59 @@
+name: VM Matrix
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/vm-matrix.yml"
+      - "scripts/collect-vm-evidence.sh"
+      - "scripts/vm-matrix.sh"
+      - "scripts/verify-support-matrix.mjs"
+      - "scripts/verify-vm-evidence.sh"
+      - "vm/**"
+      - "apps/docs/docs/guide/support-matrix.md"
+      - "apps/docs/docs/developer/vm-matrix.md"
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - ".github/workflows/vm-matrix.yml"
+      - "scripts/collect-vm-evidence.sh"
+      - "scripts/vm-matrix.sh"
+      - "scripts/verify-support-matrix.mjs"
+      - "scripts/verify-vm-evidence.sh"
+      - "vm/**"
+      - "apps/docs/docs/guide/support-matrix.md"
+      - "apps/docs/docs/developer/vm-matrix.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-vm-matrix:
+    name: Validate VM matrix metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+
+      - name: Validate shell syntax
+        run: bash -n scripts/vm-matrix.sh
+
+      - name: Validate VM target matrix
+        run: bash scripts/vm-matrix.sh validate
+
+      - name: Validate rendered cloud-init handoffs
+        run: bash scripts/vm-matrix.sh verify-cloud-init
+
+      - name: Validate support matrix contract
+        run: node scripts/verify-support-matrix.mjs
+
+      - name: Print target plan
+        run: bash scripts/vm-matrix.sh plan

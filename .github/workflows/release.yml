@@ -1,0 +1,278 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-linux:
+    name: Build Linux release artifacts (${{ matrix.release_arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - release_arch: x86_64
+            runner: ubuntu-22.04
+          - release_arch: aarch64
+            runner: ubuntu-22.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        run: |
+          set -euo pipefail
+          release_tag="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            release_tag="${{ inputs.tag }}"
+          fi
+          case "$release_tag" in
+            v*) ;;
+            *)
+              echo "Release tag must start with v: ${release_tag}" >&2
+              exit 1
+              ;;
+          esac
+          printf 'LOOPWIRE_RELEASE_TAG=%s\n' "$release_tag" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_RELEASE_VERSION=%s\n' "${release_tag#v}" >>"$GITHUB_ENV"
+
+      - name: Require versioned release notes
+        run: |
+          set -euo pipefail
+          release_notes="apps/docs/docs/release-notes/${LOOPWIRE_RELEASE_VERSION}.md"
+          if [ ! -f "$release_notes" ]; then
+            echo "::error::Missing versioned release notes: ${release_notes}"
+            exit 1
+          fi
+          bash scripts/verify-release-readiness.sh \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --skip-gh \
+            --skip-tag \
+            --skip-public-key
+          printf 'LOOPWIRE_RELEASE_NOTES_FILE=%s\n' "$release_notes" >>"$GITHUB_ENV"
+
+      - name: Install Tauri Linux dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            openssl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run workspace checks
+        run: pnpm check
+
+      - name: Check Tauri crate graph
+        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Build Tauri Linux bundles
+        run: pnpm --filter @loopwire/desktop tauri:build
+
+      - name: Package release artifacts
+        env:
+          LOOPWIRE_RELEASE_PRIVATE_KEY: ${{ secrets.LOOPWIRE_RELEASE_PRIVATE_KEY }}
+          LOOPWIRE_RELEASE_ARCH: ${{ matrix.release_arch }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LOOPWIRE_RELEASE_PRIVATE_KEY:-}" ]; then
+            echo "Missing LOOPWIRE_RELEASE_PRIVATE_KEY repository secret." >&2
+            exit 1
+          fi
+          private_key_file="$RUNNER_TEMP/loopwire-release-private.pem"
+          public_key_file="$RUNNER_TEMP/loopwire-release-public.pem"
+          printf '%s\n' "$LOOPWIRE_RELEASE_PRIVATE_KEY" >"$private_key_file"
+          chmod 0600 "$private_key_file"
+          openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null
+          printf 'LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=%s\n' "$public_key_file" >>"$GITHUB_ENV"
+          source_epoch="$(git log -1 --format=%ct "$LOOPWIRE_RELEASE_TAG")"
+          SOURCE_DATE_EPOCH="$source_epoch" bash scripts/stage-release-artifacts.sh \
+            --binary apps/desktop/src-tauri/target/release/loopwire \
+            --version "$LOOPWIRE_RELEASE_VERSION" \
+            --arch "$LOOPWIRE_RELEASE_ARCH" \
+            --bundle-dir apps/desktop/src-tauri/target/release/bundle \
+            --private-key "$private_key_file" \
+            --output-dir "dist/release-${LOOPWIRE_RELEASE_ARCH}"
+
+      - name: Smoke install generated tarball
+        run: >
+          bash scripts/install.sh
+          --base-url "file://${PWD}/dist/release-${{ matrix.release_arch }}"
+          --prefix "$RUNNER_TEMP/loopwire-bin"
+          --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE"
+
+      - name: Prepare architecture release upload
+        run: |
+          set -euo pipefail
+          upload_dir="dist/release-upload-${{ matrix.release_arch }}"
+          mkdir -p "$upload_dir"
+          find "dist/release-${{ matrix.release_arch }}" \
+            -maxdepth 1 \
+            -type f \
+            ! -name SHA256SUMS \
+            ! -name SHA256SUMS.sig \
+            -exec cp {} "$upload_dir/" \;
+
+      - name: Upload architecture release artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-release-${{ matrix.release_arch }}
+          path: dist/release-upload-${{ matrix.release_arch }}/*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub release
+    needs: build-linux
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        run: |
+          set -euo pipefail
+          release_tag="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            release_tag="${{ inputs.tag }}"
+          fi
+          case "$release_tag" in
+            v*) ;;
+            *)
+              echo "Release tag must start with v: ${release_tag}" >&2
+              exit 1
+              ;;
+          esac
+          release_notes="apps/docs/docs/release-notes/${release_tag#v}.md"
+          if [ ! -f "$release_notes" ]; then
+            echo "::error::Missing versioned release notes: ${release_notes}"
+            exit 1
+          fi
+          printf 'LOOPWIRE_RELEASE_TAG=%s\n' "$release_tag" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_RELEASE_VERSION=%s\n' "${release_tag#v}" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_RELEASE_NOTES_FILE=%s\n' "$release_notes" >>"$GITHUB_ENV"
+
+      - name: Download architecture artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: loopwire-release-*
+          path: dist/release-input
+          merge-multiple: true
+
+      - name: Sign combined release manifest
+        env:
+          LOOPWIRE_RELEASE_PRIVATE_KEY: ${{ secrets.LOOPWIRE_RELEASE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LOOPWIRE_RELEASE_PRIVATE_KEY:-}" ]; then
+            echo "Missing LOOPWIRE_RELEASE_PRIVATE_KEY repository secret." >&2
+            exit 1
+          fi
+          private_key_file="$RUNNER_TEMP/loopwire-release-private.pem"
+          public_key_file="$RUNNER_TEMP/loopwire-release-public.pem"
+          printf '%s\n' "$LOOPWIRE_RELEASE_PRIVATE_KEY" >"$private_key_file"
+          chmod 0600 "$private_key_file"
+          openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null
+          printf 'LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=%s\n' "$public_key_file" >>"$GITHUB_ENV"
+          mkdir -p dist/release
+          find dist/release-input -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig \
+            -exec cp {} dist/release/ \;
+          for asset in loopwire-linux-x86_64.tar.gz loopwire-linux-aarch64.tar.gz; do
+            if [ ! -f "dist/release/${asset}" ]; then
+              echo "Missing canonical release artifact: ${asset}" >&2
+              exit 1
+            fi
+          done
+          (
+            cd dist/release
+            find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%f\n' \
+              | sort \
+              | xargs sha256sum >SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
+          bash scripts/sign-release-artifacts.sh \
+            --release-dir dist/release \
+            --private-key "$private_key_file"
+          bash scripts/verify-release-signature.sh \
+            --release-dir dist/release \
+            --public-key "$public_key_file"
+
+      - name: Smoke install generated tarball
+        run: >
+          bash scripts/install.sh
+          --base-url "file://${PWD}/dist/release"
+          --prefix "$RUNNER_TEMP/loopwire-bin"
+          --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$LOOPWIRE_RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$LOOPWIRE_RELEASE_TAG" dist/release/* --clobber
+            gh release edit "$LOOPWIRE_RELEASE_TAG" --notes-file "$LOOPWIRE_RELEASE_NOTES_FILE"
+          else
+            gh release create "$LOOPWIRE_RELEASE_TAG" dist/release/* \
+              --verify-tag \
+              --notes-file "$LOOPWIRE_RELEASE_NOTES_FILE"
+          fi
+
+      - name: Smoke install published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          published_dir="$RUNNER_TEMP/published-release"
+          mkdir -p "$published_dir"
+          gh release download "$LOOPWIRE_RELEASE_TAG" \
+            --dir "$published_dir" \
+            --pattern "loopwire-linux-*.tar.gz" \
+            --pattern "SHA256SUMS" \
+            --pattern "SHA256SUMS.sig" \
+            --clobber
+          bash scripts/install.sh \
+            --base-url "file://${published_dir}" \
+            --prefix "$RUNNER_TEMP/loopwire-published-bin" \
+            --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE"

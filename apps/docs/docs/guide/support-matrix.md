@@ -1,0 +1,71 @@
+# Support Matrix
+
+This matrix separates detection, local validation, and public support. A working source checkout is not the same thing
+as a published package or a live audio-routing guarantee.
+
+## Status Vocabulary
+
+| Status | Meaning |
+|--------|---------|
+| Verified | Covered by local automated validation in this repo. |
+| Manual VM | Covered by a VM target and ready for operator-run guest evidence. |
+| Planned | Designed in the contract but not implemented or validated yet. |
+| Unsupported | Intentionally not a target for this milestone. |
+
+## Host Targets
+
+Target metadata is stored in `vm/targets.tsv` and validated by `pnpm verify:vm`, which also renders and checks
+cloud-init handoffs for every target.
+Rows marked `Verified` must have a passing target evidence bundle under `.vm/evidence/<target>`.
+Rows with passing evidence must be promoted to `Verified`; otherwise they stay `Manual VM`.
+Use `scripts/collect-vm-evidence-ssh.sh` after a VM is reachable over SSH to run guest validation, copy the target
+bundle back, and verify it locally before changing a row to `Verified`. Guest evidence includes a redacted support
+bundle plus a desktop launch smoke so maintainers can inspect backend diagnostics without relying only on screenshot or
+pass/fail status. It also includes `environment.json`, which must match the target distro, desktop/session, audio
+stack, and architecture before a row can be promoted.
+After evidence verifies, promote the row with `pnpm vm:promote-evidence -- --target <target>`. Use `--dry-run` first
+to preview the docs change without editing the matrix.
+Run `pnpm vm:host-plan` for cross-distro host setup hints and target-specific image, cloud-init, launch, and evidence
+handoff commands.
+
+| Target | Desktop/session | Audio stack | Current status |
+|--------|-----------------|-------------|----------------|
+| `arch-hyprland-pipewire` | Hyprland on Wayland | PipeWire/WirePlumber | Manual VM |
+| `fedora-kde-pipewire` | KDE Plasma on Wayland | PipeWire/WirePlumber | Manual VM |
+| `fedora-kde-jack` | KDE Plasma on Wayland | JACK | Manual VM |
+| `ubuntu-gnome-pipewire` | GNOME on Wayland | PipeWire/PulseAudio compatibility | Manual VM |
+| `debian-xfce-pulseaudio` | Xfce on X11 | PulseAudio | Manual VM |
+| `nixos-gnome-pipewire` | GNOME on Wayland | PipeWire/WirePlumber | Manual VM |
+| `fedora-sway-pipewire` | Sway on Wayland | PipeWire/WirePlumber | Manual VM |
+
+## Audio Backends
+
+| Backend | Detection | Host mutation | Notes |
+|---------|-----------|---------------|-------|
+| PipeWire native | Verified probes and port listing | Virtual sinks, routes, mute, monitor links | Per-edge gain planned. |
+| PulseAudio compatibility | Verified read-only probes | Verified with fake runners | Sinks, monitor loopbacks, and stream routes. |
+| Native PulseAudio | Verified read-only probes | Same `pactl` adapter path | Needs manual VM proof on a non-PipeWire PulseAudio host. |
+| JACK | Verified probes and port listing | Existing-port routes, route mute, and monitor links | Virtual ports and gain still planned. |
+| ALSA | Playback-device detection | Not a routing backend | Used for diagnostics and hardware visibility. |
+
+Host adapters are dry-run by default. Live apply is session-local and requires the desktop `Host apply` control plus
+the Tauri shell command bridge.
+
+## Install Channels
+
+| Channel | Current validation | Public status |
+|---------|--------------------|---------------|
+| Source checkout | `pnpm check` | Supported for contributors. |
+| Signed curl installer | `pnpm verify:install`, `pnpm verify:release` | Blocked on tagged artifacts and public key. |
+| AppImage, deb, rpm | Local Tauri bundle smoke | Blocked on release publishing. |
+| AUR `loopwire-bin` | `pnpm verify:aur` on Arch with `makepkg` | Blocked on tagged artifacts. |
+| Nix package template | `pnpm verify:packaging` | Needs Nix VM or Nix-enabled CI proof. |
+
+## Desktop Integration
+
+| Area | Current behavior |
+|------|------------------|
+| Window chrome | Native chrome by default; custom mode persists and requests an undecorated Tauri window with Loopwire controls. |
+| Autostart | XDG desktop autostart can be installed and removed with `scripts/manage-autostart.sh`. |
+| Background restore | Source checkout and packaged user-scoped systemd restore paths are verified locally. |
+| Screenshots | `product-screenshot.svg` is the current docs asset and must be refreshed through the screenshot procedure. |

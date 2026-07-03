@@ -1,0 +1,370 @@
+#!/usr/bin/env node
+import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const validBackends = new Set(["pipewire", "pulseaudio", "jack"]);
+const validModes = new Set(["preview", "live"]);
+
+function usage() {
+  console.log(`Restore the persisted Loopwire configuration without opening the UI.
+
+Usage:
+  restore-background.mjs [--state-file FILE] [--backend pipewire|pulseaudio|jack] [--mode preview|live]
+                         [--retry-pending-ms MS] [--retry-interval-ms MS] [--pretty]
+
+Defaults:
+  --state-file  $XDG_CONFIG_HOME/loopwire/state.json or ~/.config/loopwire/state.json
+  --mode        preview
+  --retry-pending-ms
+                Live PulseAudio-only window for refreshing pending app-stream routes, default 0
+  --retry-interval-ms
+                PulseAudio pending refresh interval, default 1000
+
+Preview mode runs the same startup plan through dry-run host adapters. Live mode mutates host audio through the
+selected backend adapter and should only be used from an explicit user startup decision.`);
+}
+
+function parseArgs(argv) {
+  const parsed = {
+    stateFile: defaultStateFile(),
+    backend: undefined,
+    mode: "preview",
+    retryPendingMs: 0,
+    retryIntervalMs: 1000,
+    pretty: false
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+
+    switch (arg) {
+      case "--":
+        break;
+      case "--state-file":
+        parsed.stateFile = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--backend":
+        parsed.backend = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--mode":
+        parsed.mode = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--retry-pending-ms":
+        parsed.retryPendingMs = parseNonNegativeInteger(requiredValue(argv, index, arg), arg);
+        index += 1;
+        break;
+      case "--retry-interval-ms":
+        parsed.retryIntervalMs = parsePositiveInteger(requiredValue(argv, index, arg), arg);
+        index += 1;
+        break;
+      case "--pretty":
+        parsed.pretty = true;
+        break;
+      case "-h":
+      case "--help":
+        usage();
+        process.exit(0);
+        break;
+      default:
+        throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+
+  if (parsed.backend !== undefined && !validBackends.has(parsed.backend)) {
+    throw new Error(`Unsupported backend for background restore: ${parsed.backend}`);
+  }
+
+  if (!validModes.has(parsed.mode)) {
+    throw new Error(`Unsupported restore mode: ${parsed.mode}`);
+  }
+
+  if (parsed.retryPendingMs > 0 && parsed.mode !== "live") {
+    throw new Error("--retry-pending-ms requires --mode live");
+  }
+
+  return parsed;
+}
+
+function requiredValue(argv, index, flag) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`${flag} requires a value`);
+  }
+
+  return value;
+}
+
+function parseNonNegativeInteger(value, flag) {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`${flag} must be a non-negative integer`);
+  }
+
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${flag} is too large`);
+  }
+
+  return parsed;
+}
+
+function parsePositiveInteger(value, flag) {
+  const parsed = parseNonNegativeInteger(value, flag);
+  if (parsed === 0) {
+    throw new Error(`${flag} must be greater than zero`);
+  }
+
+  return parsed;
+}
+
+function defaultStateFile() {
+  const configHome = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
+  return join(configHome, "loopwire", "state.json");
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const [{ getActiveConfiguration, restoreState, selectBackend, verifyStartupConfiguration }, audioHost] = await Promise.all([
+    import("../packages/core/dist/index.js"),
+    import("../packages/audio-host/dist/index.js")
+  ]);
+
+  const rawState = await readFile(args.stateFile, "utf8");
+  const restored = restoreState(rawState);
+
+  if (!restored.ok) {
+    throw new Error(`Could not restore persisted Loopwire state: ${restored.reason}`);
+  }
+
+  const runner = audioHost.createNodeCommandRunner();
+  const detection = await audioHost.detectAudioBackends(runner);
+  const selectedBackend = selectRestoreBackend({
+    requestedBackend: args.backend,
+    persistedBackend: restored.state.selectedBackend,
+    detection,
+    selectBackend,
+    mode: args.mode
+  });
+  const adapter = createRuntimeAdapter(audioHost, runner, selectedBackend, args.mode);
+  const result = await verifyStartupConfiguration(restored.state, adapter, new Date().toISOString());
+  const pendingStreamRefresh = await refreshPendingPulseAudioRoutes({
+    adapter,
+    backend: selectedBackend,
+    configuration: getActiveConfiguration(result.state),
+    mode: args.mode,
+    retryIntervalMs: args.retryIntervalMs,
+    retryPendingMs: args.retryPendingMs,
+    result
+  });
+  const ok = result.ok && !pendingStreamRefresh.failure;
+  const failureReason = pendingStreamRefresh.failure ?? (result.ok ? undefined : result.reason);
+  const payload = {
+    ok,
+    status: pendingStreamRefresh.failure ? "failed" : result.status,
+    mode: args.mode,
+    backend: selectedBackend,
+    stateFile: args.stateFile,
+    activeConfigurationId: result.state.activeConfigurationId,
+    appliedAt: result.state.appliedAt,
+    plan: result.plan,
+    log: result.log,
+    ...(pendingStreamRefresh.attempts.length > 0
+      ? {
+          pendingStreamRefresh: {
+            windowMs: args.retryPendingMs,
+            intervalMs: args.retryIntervalMs,
+            cleared: pendingStreamRefresh.cleared,
+            attempts: pendingStreamRefresh.attempts
+          }
+        }
+      : {}),
+    ...(failureReason ? { reason: failureReason } : {})
+  };
+
+  console.log(JSON.stringify(payload, null, args.pretty ? 2 : 0));
+
+  if (!ok) {
+    process.exitCode = 1;
+  }
+}
+
+function selectRestoreBackend({ requestedBackend, persistedBackend, detection, selectBackend, mode }) {
+  const backend = requestedBackend ?? persistedBackend;
+
+  if (backend) {
+    if (mode === "preview") {
+      return backend;
+    }
+
+    const candidate = detection.candidates.find((item) => item.kind === backend);
+    if (!candidate || candidate.availability !== "available") {
+      throw new Error(`Selected backend is not available for background restore: ${backend}`);
+    }
+
+    return backend;
+  }
+
+  const decision = selectBackend(detection.candidates);
+  if (decision.mode === "auto") {
+    return decision.backend.kind;
+  }
+
+  if (decision.mode === "prompt") {
+    throw new Error("Multiple backends are available; choose and persist one before enabling background restore.");
+  }
+
+  throw new Error(decision.reason);
+}
+
+function createRuntimeAdapter(audioHost, runner, backend, mode) {
+  const hostMode = mode === "live" ? "apply" : "dry-run";
+  const adapter = createHostAdapter(audioHost, runner, backend, hostMode);
+  const runtimeAdapter = {
+    unload: (configuration) => adapter.unload(toHostRuntimeConfiguration(configuration)),
+    apply: (configuration) => adapter.apply(toHostRuntimeConfiguration(configuration)),
+    verify: (configuration) => adapter.verify(toHostRuntimeConfiguration(configuration)),
+    rollback: (configuration) => adapter.rollback(toHostRuntimeConfiguration(configuration))
+  };
+
+  if (typeof adapter.refreshRoutes === "function") {
+    return {
+      ...runtimeAdapter,
+      refreshRoutes: (configuration) => adapter.refreshRoutes(toHostRuntimeConfiguration(configuration))
+    };
+  }
+
+  return runtimeAdapter;
+}
+
+function createHostAdapter(audioHost, runner, backend, mode) {
+  if (backend === "pipewire") {
+    return audioHost.createPipeWireGraphRuntimeAdapter(runner, { mode });
+  }
+
+  if (backend === "pulseaudio") {
+    return audioHost.createPactlVirtualSinkRuntimeAdapter(runner, {
+      mode,
+      missingStreamVerification: "pending"
+    });
+  }
+
+  if (backend === "jack") {
+    return audioHost.createJackGraphRuntimeAdapter(runner, { mode });
+  }
+
+  throw new Error(`Background restore does not support backend: ${backend}`);
+}
+
+function toHostRuntimeConfiguration(configuration) {
+  return {
+    id: configuration.id,
+    name: configuration.name,
+    inputs: configuration.inputs,
+    outputs: configuration.outputs,
+    monitors: configuration.monitors,
+    routes: configuration.routes
+  };
+}
+
+async function refreshPendingPulseAudioRoutes({
+  adapter,
+  backend,
+  configuration,
+  mode,
+  retryIntervalMs,
+  retryPendingMs,
+  result
+}) {
+  if (
+    !result.ok ||
+    backend !== "pulseaudio" ||
+    mode !== "live" ||
+    retryPendingMs === 0 ||
+    !logHasPendingPulseAudioStreams(result.log)
+  ) {
+    return { attempts: [], cleared: false };
+  }
+
+  if (typeof adapter.refreshRoutes !== "function") {
+    return {
+      attempts: [],
+      cleared: false,
+      failure: "PulseAudio pending stream retry is unavailable for this adapter."
+    };
+  }
+
+  const attempts = [];
+  const startedAt = Date.now();
+  const deadline = startedAt + retryPendingMs;
+
+  while (Date.now() < deadline) {
+    const remainingMs = Math.max(0, deadline - Date.now());
+    const waitMs = Math.min(retryIntervalMs, remainingMs);
+    if (waitMs > 0) {
+      await sleep(waitMs);
+    }
+
+    const attempt = attempts.length + 1;
+    const refreshed = await adapter.refreshRoutes(configuration);
+    const verified = refreshed.ok ? await adapter.verify(configuration) : undefined;
+    attempts.push({
+      attempt,
+      waitedMs: Date.now() - startedAt,
+      refreshed: operationSummary(refreshed),
+      ...(verified ? { verified: operationSummary(verified) } : {})
+    });
+
+    if (!refreshed.ok) {
+      return {
+        attempts,
+        cleared: false,
+        failure: refreshed.message ?? "PulseAudio pending stream route refresh failed."
+      };
+    }
+
+    if (verified && !verified.ok) {
+      return {
+        attempts,
+        cleared: false,
+        failure: verified.message ?? "PulseAudio pending stream verification failed."
+      };
+    }
+
+    if (verified && !operationHasPendingPulseAudioStreams(verified)) {
+      return { attempts, cleared: true };
+    }
+  }
+
+  return { attempts, cleared: false };
+}
+
+function logHasPendingPulseAudioStreams(log) {
+  return log.some((entry) => entry.ok && typeof entry.message === "string" && entry.message.includes(pendingStreamPrefix));
+}
+
+function operationHasPendingPulseAudioStreams(result) {
+  return result.ok && typeof result.message === "string" && result.message.includes(pendingStreamPrefix);
+}
+
+function operationSummary(result) {
+  return {
+    ok: result.ok,
+    ...(result.message ? { message: result.message } : {})
+  };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+const pendingStreamPrefix = "Pending matching PulseAudio stream(s)";
+
+main().catch((error) => {
+  console.error(`restore-background: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+});

@@ -1,0 +1,8 @@
+# id	distro	family	desktop	session	audio	arch	tier	notes
+arch-hyprland-pipewire	Arch Linux	pacman	Hyprland	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Reference rolling WM path.
+fedora-kde-pipewire	Fedora	dnf	KDE Plasma	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Mainstream Wayland desktop path with PipeWire defaults.
+fedora-kde-jack	Fedora	dnf	KDE Plasma	Wayland	JACK	x86_64	manual-vm	Professional-audio session target for native JACK port routing.
+ubuntu-gnome-pipewire	Ubuntu LTS	apt	GNOME	Wayland	PipeWire/PulseAudio compatibility	x86_64	manual-vm	LTS desktop and installer smoke target.
+debian-xfce-pulseaudio	Debian stable	apt	Xfce	X11	PulseAudio	x86_64	manual-vm	Conservative X11 native PulseAudio target.
+nixos-gnome-pipewire	NixOS	nix	GNOME	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Declarative system path and flake/package smoke target.
+fedora-sway-pipewire	Fedora	dnf	Sway	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Minimal Wayland compositor target for non-full-DE coverage.

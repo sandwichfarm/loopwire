@@ -1,0 +1,12 @@
+{
+  "commit_docs": true,
+  "context_window": 200000,
+  "workflow": {
+    "code_review": true,
+    "plan_checker_enabled": true,
+    "skip_discuss": true,
+    "tdd_mode": true,
+    "ui_phase": true,
+    "ui_review": true
+  }
+}

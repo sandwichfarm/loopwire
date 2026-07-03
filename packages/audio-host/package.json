@@ -1,0 +1,30 @@
+{
+  "name": "@loopwire/audio-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime-browser.d.ts",
+      "import": "./dist/runtime-browser.js"
+    },
+    "./detectors": {
+      "types": "./dist/detectors.d.ts",
+      "import": "./dist/detectors.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

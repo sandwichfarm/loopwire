@@ -1,0 +1,124 @@
+name: Deploy Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-docs
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    name: Build VitePress site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify docs contract
+        run: pnpm verify:docs
+
+      - name: Build docs
+        run: pnpm build:docs
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-docs
+          path: apps/docs/docs/.vitepress/dist
+
+  deploy-bunny:
+    name: Deploy to Bunny.net
+    needs: build-docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: docs-production
+    if: >
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        github.ref == 'refs/heads/main' ||
+        github.ref == 'refs/heads/master' ||
+        startsWith(github.ref, 'refs/tags/v')
+      }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify docs contract
+        run: pnpm verify:docs
+
+      - name: Build docs
+        run: pnpm build:docs
+
+      - name: Check Bunny.net secrets
+        id: bunny
+        env:
+          BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE }}
+          BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
+          BUNNY_STORAGE_ENDPOINT: ${{ secrets.BUNNY_STORAGE_ENDPOINT }}
+          BUNNY_PULL_ZONE_HOSTNAME: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BUNNY_STORAGE_ZONE:-}" ] && [ -n "${BUNNY_ACCESS_KEY:-}" ]; then
+            echo "deploy=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "::notice::Bunny.net secrets are not configured; skipping deployment."
+            echo "deploy=false" >>"$GITHUB_OUTPUT"
+          fi
+          if [ -n "${BUNNY_PULL_ZONE_HOSTNAME:-}" ]; then
+            echo "hostname=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "hostname=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload files to Bunny.net storage
+        if: ${{ steps.bunny.outputs.deploy == 'true' }}
+        env:
+          BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE }}
+          BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
+          BUNNY_STORAGE_ENDPOINT: ${{ secrets.BUNNY_STORAGE_ENDPOINT }}
+        run: bash scripts/deploy-docs-bunny.sh --dist apps/docs/docs/.vitepress/dist
+
+      - name: Report pull-zone hostname
+        if: ${{ steps.bunny.outputs.deploy == 'true' && steps.bunny.outputs.hostname == 'true' }}
+        env:
+          BUNNY_PULL_ZONE_HOSTNAME: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}
+        run: echo "Docs deployed to https://${BUNNY_PULL_ZONE_HOSTNAME}"

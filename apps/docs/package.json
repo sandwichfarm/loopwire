@@ -1,0 +1,19 @@
+{
+  "name": "@loopwire/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vitepress build docs",
+    "docs:build": "vitepress build docs",
+    "docs:dev": "vitepress dev docs --host 127.0.0.1",
+    "docs:preview": "vitepress preview docs --host 127.0.0.1",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitepress": "1.6.4",
+    "vitest": "4.1.9"
+  }
+}
