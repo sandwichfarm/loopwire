@@ -253,6 +253,7 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
   release_evidence_asset='loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
   vm_evidence_asset='loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
   if grep -F -- "scripts/verify-final-release-proof.sh" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "DeterminateSystems/determinate-nix-action@v3.21.2" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/validate-release-asset-name.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/verify-release-asset-checksum.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/extract-safe-tar.sh" "$final_proof_workflow" >/dev/null &&
@@ -262,6 +263,13 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     echo "ok: final release proof workflow verifies release and VM evidence archives"
   else
     echo "invalid: final release proof workflow is missing release or VM evidence verification" >&2
+    failed=1
+  fi
+  if grep -F -- "scripts/verify-nix-release-package.sh" scripts/verify-final-release-proof.sh >/dev/null &&
+    grep -F -- "DeterminateSystems/determinate-nix-action@v3.21.2" "$final_proof_workflow" >/dev/null; then
+    echo "ok: final release proof workflow installs Nix for package proof"
+  else
+    echo "invalid: final release proof workflow is missing Nix setup or package proof" >&2
     failed=1
   fi
 fi

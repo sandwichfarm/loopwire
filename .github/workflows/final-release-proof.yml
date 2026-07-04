@@ -58,6 +58,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Nix
+        uses: DeterminateSystems/determinate-nix-action@v3.21.2
+
       - name: Resolve release tag
         run: |
           set -euo pipefail

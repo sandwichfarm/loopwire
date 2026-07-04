@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:53:37+02:00"
-last_activity: 2026-07-04 - Final release proof now includes published-release Nix package verification
+last_updated: "2026-07-04T16:02:25+02:00"
+last_activity: 2026-07-04 - Final release proof runner installs pinned Nix before package proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-nix-release-package.sh` can now download signed assets from
-`--repo OWNER/REPO --tag vX.Y.Z`, and `scripts/verify-final-release-proof.sh` now runs that published-release Nix
-package proof before accepting final release evidence. Phase 12 remains gated on a public release, configured Bunny
-secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now installs pinned Determinate Nix before
+running `scripts/verify-final-release-proof.sh`, so the final GitHub runner can execute the published-release Nix
+package proof. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
+QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -2018,6 +2018,10 @@ secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM
   `pnpm check`, `git diff --check`, added-line length scan, and GSD roadmap/phase queries passed. Codebase-memory MCP
   `index_status` reported ready with 2,616 nodes and 5,447 edges. No non-skipped `nix build`, GitHub release, tag
   push, Bunny deployment, VM launch, or support-matrix promotion was performed.
+- 2026-07-04 final proof Nix runner setup: `.github/workflows/final-release-proof.yml` now installs
+  `DeterminateSystems/determinate-nix-action@v3.21.2` before the release proof script runs. Release readiness and
+  workflow contract verification now require that pinned Nix setup so the final GitHub runner cannot reach the Nix
+  package proof step without `nix`.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

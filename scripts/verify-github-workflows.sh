@@ -100,6 +100,8 @@ assert_contains "package.json" '"verify:docs-live": "bash scripts/verify-docs-li
 
 assert_contains ".github/workflows/final-release-proof.yml" "workflow_dispatch:"
 assert_contains ".github/workflows/final-release-proof.yml" "Verify final release proof"
+assert_contains ".github/workflows/final-release-proof.yml" "Set up Nix"
+assert_contains ".github/workflows/final-release-proof.yml" "DeterminateSystems/determinate-nix-action@v3.21.2"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_hostname"
 assert_contains ".github/workflows/final-release-proof.yml" "release_evidence_asset"

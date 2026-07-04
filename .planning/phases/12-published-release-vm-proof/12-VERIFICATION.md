@@ -2297,6 +2297,13 @@
   `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because
   `jack_lsp` is missing. No non-skipped `nix build`, GitHub release, tag push, Bunny deployment, VM launch, or
   support-matrix promotion was performed.
+- `.github/workflows/final-release-proof.yml` now installs pinned Determinate Nix with
+  `DeterminateSystems/determinate-nix-action@v3.21.2` before invoking `scripts/verify-final-release-proof.sh`, so the
+  hosted final proof runner can execute the non-skipped Nix package gate.
+- `scripts/verify-github-workflows.sh`, `scripts/verify-release-readiness.sh`, and `scripts/verify-scripts.sh` now
+  guard that final proof Nix setup. The action version was checked live with `gh release list --repo
+  DeterminateSystems/determinate-nix-action --limit 5`, which reported `v3.21.2` as the latest release on
+  2026-06-20.
 
 ## Evidence Missing
 

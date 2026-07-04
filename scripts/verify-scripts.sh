@@ -110,7 +110,10 @@ printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest v
   exit 1
 }
 printf '%s\n' "$release_readiness_help" |
-  grep -F -- "final release proof workflow, asset-name validator" >/dev/null || {
+  grep -F -- "final release proof workflow, asset-name validator" >/dev/null ||
+  printf '%s\n' "$release_readiness_help" |
+    grep -F -- "final release proof workflow, asset-name validator, asset checksum verifier, Nix package verifier" \
+      >/dev/null || {
     echo "verify-scripts: release readiness help is missing final proof wiring check" >&2
     exit 1
   }
@@ -3060,6 +3063,11 @@ grep -F "ok: docs deployment workflow verifies manifest before artifact upload" 
 grep -F "ok: final release proof workflow verifies release and VM evidence archives" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify final release proof workflow wiring" >&2
+    exit 1
+  }
+grep -F "ok: final release proof workflow installs Nix for package proof" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+    echo "verify-scripts: release readiness did not verify final release Nix setup" >&2
     exit 1
   }
 bad_public_installer="$tmp_dir/bad-public-install.sh"
