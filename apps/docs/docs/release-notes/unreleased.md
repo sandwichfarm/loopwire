@@ -57,6 +57,8 @@ These notes describe source-tree progress. They are not a public release announc
   `aplay`, and `arecord`; browser preview keeps packaged fallback candidates.
 - First-run backend selection now prompts when multiple detected backends are available instead of treating PipeWire as
   an already persisted choice.
+- The desktop backend chooser now renders a first-run callout that names multiple detected backend candidates, keeps
+  live apply in preview, and asks the user to save the backend for startup restore.
 - Desktop backend selection now has a dedicated chooser panel that shows selected, available, and unavailable backends,
   explains that the choice is persisted for startup restore, and keeps the active workspace ahead of the sidebar on
   mobile.

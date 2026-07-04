@@ -116,6 +116,8 @@ assert_contains "apps/docs/docs/guide/backends.md" 'ALSA path is read-only diagn
 assert_contains "apps/docs/docs/guide/backends.md" '`arecord -l`'
 assert_contains "apps/docs/docs/guide/backends.md" "ALSA reports unavailable controls because it is diagnostics-only"
 assert_contains "apps/docs/docs/guide/backends.md" "desktop consumes detected backend mixing semantics"
+assert_contains "apps/docs/docs/guide/backends.md" "first-run backend choice callout"
+assert_contains "apps/docs/docs/guide/backends.md" "saved for live apply and startup restore"
 assert_contains "apps/docs/docs/guide/backends.md" "no matching live stream"
 assert_contains "apps/docs/docs/guide/backends.md" "pending during startup and background restore"
 assert_contains "apps/docs/docs/guide/backends.md" "refresh pending stream routes"
@@ -471,6 +473,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "mute as implemente
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "live-apply preflight now lists every blocker"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "configuration-switch guard now"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Changing the selected backend now disarms live host apply"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "first-run callout"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "runtime activity ledger"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "names routes blocked by non-100% gain"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`Reset gains` action'

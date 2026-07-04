@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { describeBackendChoiceCallout } from "./backend-choice";
   import {
     describeConfigurationSwitchPreflight,
     describeLiveApplyPreflight,
@@ -302,6 +303,7 @@
   $: selectedBackend = state.selectedBackend ?? "";
   $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
   $: backendSelectionSummary = describeBackendSelectionSummary();
+  $: backendChoiceCallout = describeBackendChoiceCallout(backendDecision, selectedBackendName);
   $: selectedBackendCapability = backendCapabilityFor(state.selectedBackend);
   $: routeControlSemantics = describeSelectedRouteControlSemantics(
     state.selectedBackend,
@@ -1941,6 +1943,14 @@
           <span>{backendSelectionSummary}</span>
         </div>
 
+        <div class="backend-choice-callout" data-tone={backendChoiceCallout.tone}>
+          <div>
+            <strong>{backendChoiceCallout.title}</strong>
+            <p>{backendChoiceCallout.message}</p>
+          </div>
+          <span>{backendChoiceCallout.action}</span>
+        </div>
+
         <div class="backend-choice-grid">
           {#each backendCandidates as candidate}
             <button
@@ -2790,6 +2800,54 @@
     text-align: right;
   }
 
+  .backend-choice-callout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 72px;
+    padding: 12px;
+    color: #101113;
+    background: #46d6c8;
+    border-radius: 8px;
+  }
+
+  .backend-choice-callout[data-tone="prompt"] {
+    background: #c9f05a;
+  }
+
+  .backend-choice-callout[data-tone="blocked"] {
+    color: #f4efe2;
+    background: #eb532f;
+  }
+
+  .backend-choice-callout strong,
+  .backend-choice-callout p,
+  .backend-choice-callout span {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .backend-choice-callout strong {
+    font-size: 0.98rem;
+  }
+
+  .backend-choice-callout p {
+    margin-top: 4px;
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+
+  .backend-choice-callout span {
+    max-width: 22ch;
+    font-size: 0.74rem;
+    font-weight: 900;
+    line-height: 1.2;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
   .backend-choice-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -3597,6 +3655,15 @@
     }
 
     .backend-choice-panel .section-heading > span {
+      max-width: none;
+      text-align: left;
+    }
+
+    .backend-choice-callout {
+      grid-template-columns: 1fr;
+    }
+
+    .backend-choice-callout span {
       max-width: none;
       text-align: left;
     }

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:07:28+02:00"
-last_activity: 2026-07-04 - Docs deployment manifests now bind to the release git head
+last_updated: "2026-07-04T20:14:54+02:00"
+last_activity: 2026-07-04 - Desktop multi-backend detection now renders an explicit first-run choice callout
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Docs deployment manifests now record the source git head, the deployment workflow verifies
-that binding against `GITHUB_SHA`, and final release proof passes its required release commit into
-`pnpm verify:docs-deployment` before accepting the docs deployment artifact. Phase 12 remains gated on a public release,
-configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
-evidence.
+Last activity: 2026-07-04 - Desktop multi-backend prompt mode now renders an explicit first-run backend choice callout
+that names detected viable backends, keeps live apply in preview, and tells the user the selection will be saved for
+live apply and startup restore. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
+deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,15 @@ evidence.
 
 ## Verification Log
 
+- 2026-07-04 First-run backend choice callout: the desktop backend chooser now maps core `prompt`/`auto`/`none`
+  decisions into a tested callout above the backend cards, so multi-backend detection asks the user to choose before
+  live apply while single-backend and no-backend states explain automatic selection or diagnostics. Docs now describe
+  the first-run callout and keep release notes aligned. Validation passed: codebase-memory MCP listed
+  `home-sandwich-Develop-loopwire` ready with 3,143 nodes and 6,090 edges, and `search_graph`/`trace_path` showed
+  `selectBackend` prompt rules were implemented in core but not called by desktop outside the Svelte chooser; `pnpm
+  --filter @loopwire/desktop test -- backend-choice.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm
+  --filter @loopwire/desktop build`, `pnpm verify:docs`, `git diff --check`, Chromium screenshots at 1440x900 and
+  390x844, and `pnpm check` passed.
 - 2026-07-04 Docs deployment source-commit binding: `scripts/deploy-docs-bunny.sh` now writes
   `source.gitHead` into `loopwire.docs-deployment.v1` manifests, `scripts/verify-docs-deployment-manifest.mjs` requires
   a valid manifest git head and rejects `--git-head` mismatches, the docs deploy workflow checks the manifest against
