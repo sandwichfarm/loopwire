@@ -275,6 +275,16 @@
 - `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:autostart`, `pnpm check`,
   `pnpm detect:audio`, shell syntax checks, touched-file line-length check, and `git diff --check` passed after the
   JACK provider wrapper packaging/docs update.
+- DSP background restore now requires `--dsp-provider-mode live` when `--backend dsp --mode live` is used. The bundled
+  `loopwire-dsp-provider` remains a file-backed preflight provider by default, so live restore cannot silently treat
+  seeded JSON buffers as real PipeWire/JACK capture and playback.
+- `scripts/manage-autostart.sh` now accepts and renders `--dsp-provider-mode`; it rejects live DSP restore when a DSP
+  provider command is configured without an explicit live provider mode.
+- `node --check scripts/restore-background.mjs`,
+  `bash -n scripts/manage-autostart.sh scripts/verify-autostart.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:autostart`, and a direct restore CLI smoke passed for the new live-DSP trust-boundary gate.
+- `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, GSD roadmap/phase queries,
+  touched-file line-length check, and `git diff --check` passed after the DSP provider mode update.
 - `pnpm verify:aur` passed on this Arch host and confirmed the generated package archive contains `usr/bin/loopwire`,
   `usr/lib/loopwire/loopwire-gui`, and `usr/lib/loopwire/scripts/restore-background.mjs`.
 - `pnpm verify:install`, `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`,

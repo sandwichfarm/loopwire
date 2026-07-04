@@ -30,6 +30,11 @@ dsp_restore_output="$tmp_dir/dsp-restore-output.json"
 dsp_provider="$tmp_dir/dsp-provider.sh"
 dsp_provider_log="$tmp_dir/dsp-provider.log"
 
+bash scripts/manage-autostart.sh --help | grep -F -- "LOOPWIRE_DSP_PROVIDER_MODE" >/dev/null || {
+  echo "manage-autostart help is missing DSP provider mode." >&2
+  exit 1
+}
+
 bash scripts/manage-autostart.sh render --mode desktop --binary /tmp/loopwire >"$desktop_render"
 bash scripts/manage-autostart.sh render --mode systemd --binary /tmp/loopwire >"$systemd_render"
 bash scripts/manage-autostart.sh render \
@@ -60,6 +65,7 @@ bash scripts/manage-autostart.sh render \
   --restore-mode live \
   --dsp-provider-command loopwire-dsp-provider \
   --dsp-provider-timeout-ms 7000 \
+  --dsp-provider-mode live \
   --dsp-frame-count 2 >"$source_dsp_systemd_render"
 bash scripts/manage-autostart.sh render \
   --mode systemd \
@@ -68,6 +74,7 @@ bash scripts/manage-autostart.sh render \
   --restore-mode live \
   --dsp-provider-command loopwire-dsp-provider \
   --dsp-provider-timeout-ms 7000 \
+  --dsp-provider-mode live \
   --dsp-frame-count 2 >"$packaged_dsp_systemd_render"
 
 assert_contains "$desktop_render" "Exec=\"/tmp/loopwire\""
@@ -80,10 +87,10 @@ assert_contains "$packaged_jack_systemd_render" "ExecStart=\"/tmp/loopwire\" --b
 assert_contains "$packaged_jack_systemd_render" "--jack-provider-command \"loopwire-jack-ports\" --jack-provider-timeout-ms 7000"
 assert_contains "$source_dsp_systemd_render" "ExecStart=pnpm --dir \"/tmp/loopwire-source\" restore:background"
 assert_contains "$source_dsp_systemd_render" "--backend dsp --dsp-provider-command \"loopwire-dsp-provider\""
-assert_contains "$source_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-frame-count 2"
+assert_contains "$source_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-provider-mode live --dsp-frame-count 2"
 assert_contains "$packaged_dsp_systemd_render" "ExecStart=\"/tmp/loopwire\" --background --state-file \"$state_file\" --mode live"
 assert_contains "$packaged_dsp_systemd_render" "--backend dsp --dsp-provider-command \"loopwire-dsp-provider\""
-assert_contains "$packaged_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-frame-count 2"
+assert_contains "$packaged_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-provider-mode live --dsp-frame-count 2"
 if bash scripts/manage-autostart.sh render \
   --mode systemd \
   --source-dir /tmp/loopwire-source \
@@ -111,6 +118,14 @@ if bash scripts/manage-autostart.sh render \
   --source-dir /tmp/loopwire-source \
   --dsp-frame-count 2 >/dev/null 2>&1; then
   echo "manage-autostart accepted DSP frame count without DSP provider command." >&2
+  exit 1
+fi
+if bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --restore-mode live \
+  --dsp-provider-command loopwire-dsp-provider >/dev/null 2>&1; then
+  echo "manage-autostart accepted live DSP provider without explicit live provider mode." >&2
   exit 1
 fi
 
@@ -176,6 +191,7 @@ pnpm restore:background -- \
   --backend dsp \
   --mode live \
   --dsp-provider-command "$dsp_provider" \
+  --dsp-provider-mode live \
   --dsp-frame-count 2 \
   --pretty >"$dsp_restore_output"
 assert_contains "$dsp_restore_output" '"status": "verified"'

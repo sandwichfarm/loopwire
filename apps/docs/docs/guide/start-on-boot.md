@@ -166,7 +166,7 @@ configuration transaction, per-edge gain/mute math, and verification sequence:
 pnpm restore:background -- \
   --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json" \
   --backend dsp \
-  --mode live \
+  --mode preview \
   --dsp-provider-command loopwire-dsp-provider \
   --dsp-frame-count 480 \
   --pretty
@@ -174,13 +174,14 @@ pnpm restore:background -- \
 
 The provider command receives `read-source` as stable arguments and returns JSON channel buffers on stdout. Loopwire
 sends rendered output buffers to `write-output` and `verify-output` as JSON stdin. The source checkout and packaged
-systemd helpers can pass the same `--backend dsp`, `--dsp-provider-command`, `--dsp-provider-timeout-ms`, and
-`--dsp-frame-count` flags. Run `pnpm dsp:plan` first to inspect the bounded provider operations, then run
+systemd helpers can pass the same `--backend dsp`, `--dsp-provider-command`, `--dsp-provider-timeout-ms`,
+`--dsp-provider-mode`, and `--dsp-frame-count` flags. Run `pnpm dsp:plan` first to inspect the bounded provider operations, then run
 `pnpm dsp:verify` with the provider command before enabling boot restore. Release artifacts install
 `loopwire-dsp-provider`, a bundled file-backed provider for contract smoke and local restore preflight. It stores
 seeded source buffers and rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
-provider.
+provider. `--mode live --backend dsp` now requires `--dsp-provider-mode live`, which should only be used with a real
+provider that captures from and writes to the host audio graph.
 
 Seed every source your configuration routes before running execute-mode preflight:
 
@@ -196,8 +197,22 @@ bash scripts/manage-autostart.sh render \
   --mode systemd \
   --source-dir "$PWD" \
   --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json" \
-  --restore-mode live \
+  --restore-mode preview \
   --dsp-provider-command loopwire-dsp-provider \
+  --dsp-provider-timeout-ms 5000 \
+  --dsp-frame-count 480
+```
+
+For a real live DSP provider, use the provider command supplied by that integration and declare the trust boundary:
+
+```bash
+bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir "$PWD" \
+  --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json" \
+  --restore-mode live \
+  --dsp-provider-command loopwire-live-dsp-provider \
+  --dsp-provider-mode live \
   --dsp-provider-timeout-ms 5000 \
   --dsp-frame-count 480
 ```
@@ -235,7 +250,8 @@ For JACK boot restore, the helper appends the same `--jack-provider-command` and
 the generated `ExecStart` line. For DSP provider restore, the helper appends `--backend dsp` plus the DSP provider
 flags. Packaged services pass those flags after `loopwire --background`; source-checkout services pass them after
 `pnpm restore:background --`, so both boot paths keep the same runtime contract. The packaged JACK wrapper is a
-preflight/delegation surface, not a native JACK client creator.
+preflight/delegation surface, not a native JACK client creator. The packaged DSP provider is likewise a file-backed
+preflight provider unless a separate live provider is configured with `--dsp-provider-mode live`.
 
 The helper supports both the packaged launcher path through `--binary "$HOME/.local/bin/loopwire"` and the source
 checkout path through `--source-dir "$PWD"`.

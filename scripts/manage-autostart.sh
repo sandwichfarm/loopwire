@@ -18,6 +18,7 @@ jack_provider_command="${LOOPWIRE_JACK_PROVIDER_COMMAND:-}"
 jack_provider_timeout_ms="${LOOPWIRE_JACK_PROVIDER_TIMEOUT_MS:-5000}"
 dsp_provider_command="${LOOPWIRE_DSP_PROVIDER_COMMAND:-}"
 dsp_provider_timeout_ms="${LOOPWIRE_DSP_PROVIDER_TIMEOUT_MS:-5000}"
+dsp_provider_mode="${LOOPWIRE_DSP_PROVIDER_MODE:-file-backed}"
 dsp_frame_count="${LOOPWIRE_DSP_FRAME_COUNT:-}"
 
 usage() {
@@ -55,6 +56,7 @@ Environment:
                                DSP provider command for --backend dsp background restore
   LOOPWIRE_DSP_PROVIDER_TIMEOUT_MS
                                DSP provider operation timeout, default 5000
+  LOOPWIRE_DSP_PROVIDER_MODE   DSP provider trust mode, file-backed or live, default file-backed
   LOOPWIRE_DSP_FRAME_COUNT     Optional DSP source frame count
   LOOPWIRE_XDG_AUTOSTART_DIR   Override XDG autostart directory
   LOOPWIRE_SYSTEMD_USER_DIR    Override systemd user unit directory
@@ -118,6 +120,10 @@ while [ "$#" -gt 0 ]; do
       dsp_provider_timeout_ms="${2:?missing value for --dsp-provider-timeout-ms}"
       shift 2
       ;;
+    --dsp-provider-mode)
+      dsp_provider_mode="${2:?missing value for --dsp-provider-mode}"
+      shift 2
+      ;;
     --dsp-frame-count)
       dsp_frame_count="${2:?missing value for --dsp-frame-count}"
       shift 2
@@ -161,6 +167,13 @@ esac
 [[ "$retry_interval_ms" =~ ^[1-9][0-9]*$ ]] || fail "--retry-interval-ms must be greater than zero"
 [[ "$jack_provider_timeout_ms" =~ ^[1-9][0-9]*$ ]] || fail "--jack-provider-timeout-ms must be greater than zero"
 [[ "$dsp_provider_timeout_ms" =~ ^[1-9][0-9]*$ ]] || fail "--dsp-provider-timeout-ms must be greater than zero"
+case "$dsp_provider_mode" in
+  file-backed | live)
+    ;;
+  *)
+    fail "--dsp-provider-mode must be file-backed or live"
+    ;;
+esac
 if [ "$retry_pending_ms" != "0" ] && [ "$restore_mode" != "live" ]; then
   fail "--retry-pending-ms requires --restore-mode live"
 fi
@@ -169,6 +182,12 @@ if [ -n "$dsp_frame_count" ] && ! [[ "$dsp_frame_count" =~ ^[1-9][0-9]*$ ]]; the
 fi
 if [ -n "$dsp_frame_count" ] && [ -z "$dsp_provider_command" ]; then
   fail "--dsp-frame-count requires --dsp-provider-command"
+fi
+if [ "$dsp_provider_mode" != "file-backed" ] && [ -z "$dsp_provider_command" ]; then
+  fail "--dsp-provider-mode requires --dsp-provider-command"
+fi
+if [ -n "$dsp_provider_command" ] && [ "$restore_mode" = "live" ] && [ "$dsp_provider_mode" != "live" ]; then
+  fail "--dsp-provider-command with --restore-mode live requires --dsp-provider-mode live"
 fi
 if [ -n "$dsp_provider_command" ] && [ -n "$jack_provider_command" ]; then
   fail "--dsp-provider-command cannot be combined with --jack-provider-command"
@@ -202,9 +221,10 @@ restore_args() {
 
   if [ -n "$dsp_provider_command" ]; then
     reject_unsafe_path "$dsp_provider_command"
-    printf ' --backend dsp --dsp-provider-command "%s" --dsp-provider-timeout-ms %s' \
+    printf ' --backend dsp --dsp-provider-command "%s" --dsp-provider-timeout-ms %s --dsp-provider-mode %s' \
       "$dsp_provider_command" \
-      "$dsp_provider_timeout_ms"
+      "$dsp_provider_timeout_ms" \
+      "$dsp_provider_mode"
 
     if [ -n "$dsp_frame_count" ]; then
       printf ' --dsp-frame-count %s' "$dsp_frame_count"

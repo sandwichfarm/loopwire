@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:16:57+02:00"
-last_activity: 2026-07-04 - fail-closed JACK provider wrapper packaging
+last_updated: "2026-07-04T13:25:11+02:00"
+last_activity: 2026-07-04 - explicit live DSP provider trust boundary
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `loopwire-jack-ports` is now a bundled fail-closed JACK virtual-port provider wrapper for
-source checkout, release tarball, curl installer, AUR, and Nix package paths. It records the exact JACK provision plan,
-delegates to an operator-supplied live JACK client provider when configured, and exits nonzero without a delegate so
-background restore cannot claim uncreated ports. Phase 12 remains gated on real signing key material, a public release,
-configured GitHub/Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - DSP background restore now distinguishes bundled file-backed preflight providers from real
+live capture/playback providers. `--backend dsp --mode live` requires `--dsp-provider-mode live`, and the systemd
+helper renders the same trust-boundary flag, so the packaged file-backed provider cannot be mistaken for live host
+audio mutation. Phase 12 remains gated on real signing key material, a public release, configured GitHub/Bunny secrets,
+host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -49,7 +49,8 @@ configured GitHub/Bunny secrets, host QEMU/Nix tooling, and operator-run VM evid
   is driven by detected backend mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local
   restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook and bundled
   `loopwire-jack-ports` wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client
-  creation, and native host graph-edge gain implementation remain planned.
+  creation, and native host graph-edge gain implementation remain planned. DSP live restore now requires the operator
+  to declare a live provider explicitly with `--dsp-provider-mode live`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before artifacts exist.
 - A real project release public key has not been generated or committed yet. `pnpm release:prepare-key` now provides
@@ -228,6 +229,12 @@ configured GitHub/Bunny secrets, host QEMU/Nix tooling, and operator-run VM evid
   `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:autostart`, `pnpm verify:aur`,
   `pnpm check`, `pnpm detect:audio`, shell syntax checks, touched-file line-length check, and `git diff --check`
   passed after adding the packaged `loopwire-jack-ports` wrapper.
+
+- 2026-07-04 Phase 12 DSP trust boundary: `node --check scripts/restore-background.mjs`,
+  `bash -n scripts/manage-autostart.sh scripts/verify-autostart.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:autostart`, a direct restore CLI smoke for the `--dsp-provider-mode live` requirement,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, GSD roadmap/phase queries,
+  touched-file line-length check, and `git diff --check` passed.
 - 2026-07-03 physical monitor binding full check: `pnpm check`, `pnpm detect:audio`, Rust `cargo check`, workflow
   YAML parse, GSD queries, line checks, `git diff --check`, and Playwright desktop/mobile smoke passed. No live host
   audio mutation was performed.

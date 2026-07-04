@@ -13,7 +13,7 @@ Usage:
   restore-background.mjs [--state-file FILE] [--backend pipewire|pulseaudio|jack|dsp] [--mode preview|live]
                          [--jack-provider-command COMMAND] [--jack-provider-timeout-ms MS]
                          [--dsp-provider-command COMMAND] [--dsp-provider-timeout-ms MS]
-                         [--dsp-frame-count FRAMES]
+                         [--dsp-provider-mode file-backed|live] [--dsp-frame-count FRAMES]
                          [--retry-pending-ms MS] [--retry-interval-ms MS] [--pretty]
 
 Defaults:
@@ -31,6 +31,9 @@ Defaults:
                 Command-backed DSP provider used when --backend dsp is selected
   --dsp-provider-timeout-ms
                 Timeout for DSP provider operations, default 5000
+  --dsp-provider-mode
+                DSP provider trust mode. Use file-backed for bundled preflight providers and live for real capture
+                and playback providers. Live DSP restore requires live, default file-backed
   --dsp-frame-count
                 Optional source frame count requested from the DSP provider
 
@@ -46,6 +49,7 @@ function parseArgs(argv) {
     jackProviderTimeoutMs: 5000,
     dspProviderCommand: undefined,
     dspProviderTimeoutMs: 5000,
+    dspProviderMode: "file-backed",
     dspFrameCount: undefined,
     mode: "preview",
     retryPendingMs: 0,
@@ -85,6 +89,10 @@ function parseArgs(argv) {
         break;
       case "--dsp-provider-timeout-ms":
         parsed.dspProviderTimeoutMs = parsePositiveInteger(requiredValue(argv, index, arg), arg);
+        index += 1;
+        break;
+      case "--dsp-provider-mode":
+        parsed.dspProviderMode = requiredValue(argv, index, arg);
         index += 1;
         break;
       case "--dsp-frame-count":
@@ -128,8 +136,20 @@ function parseArgs(argv) {
     throw new Error("--dsp-provider-command requires --backend dsp");
   }
 
+  if (!new Set(["file-backed", "live"]).has(parsed.dspProviderMode)) {
+    throw new Error("--dsp-provider-mode must be file-backed or live");
+  }
+
   if (parsed.backend === "dsp" && !parsed.dspProviderCommand) {
     throw new Error("--backend dsp requires --dsp-provider-command");
+  }
+
+  if (parsed.dspProviderMode !== "file-backed" && !parsed.dspProviderCommand) {
+    throw new Error("--dsp-provider-mode requires --dsp-provider-command");
+  }
+
+  if (parsed.backend === "dsp" && parsed.mode === "live" && parsed.dspProviderMode !== "live") {
+    throw new Error("--backend dsp --mode live requires --dsp-provider-mode live");
   }
 
   if (parsed.dspFrameCount !== undefined && !parsed.dspProviderCommand) {
@@ -224,6 +244,7 @@ async function main() {
     ...(selectedBackend === "dsp"
       ? {
           dspProviderCommand: args.dspProviderCommand,
+          dspProviderMode: args.dspProviderMode,
           ...(args.dspFrameCount !== undefined ? { dspFrameCount: args.dspFrameCount } : {})
         }
       : {}),

@@ -99,7 +99,8 @@ These notes describe source-tree progress. They are not a public release announc
   output buffers are sent as JSON stdin for provider write and verify commands.
 - Background restore now supports explicit `--backend dsp` with `--dsp-provider-command`, and release artifacts now
   install `loopwire-dsp-provider`, a bundled file-backed provider for local preflight and restore-contract smoke. It
-  does not yet capture or inject live PipeWire/JACK streams.
+  does not yet capture or inject live PipeWire/JACK streams. Live DSP restore now requires `--dsp-provider-mode live`,
+  so file-backed preflight cannot be mistaken for a live audio provider.
 - `pnpm dsp:plan` and `pnpm dsp:verify` now describe and exercise the command-backed DSP provider contract before a
   user enables provider-backed boot restore.
 - `pnpm jack:ports` can print JACK port requirements from a configuration export or persisted state as JSON or TSV,

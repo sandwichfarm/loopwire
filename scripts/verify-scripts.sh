@@ -605,6 +605,10 @@ node scripts/restore-background.mjs --help | grep -F -- "--dsp-provider-command"
   echo "verify-scripts: restore background help is missing DSP provider options" >&2
   exit 1
 }
+node scripts/restore-background.mjs --help | grep -F -- "--dsp-provider-mode" >/dev/null || {
+  echo "verify-scripts: restore background help is missing DSP provider mode option" >&2
+  exit 1
+}
 if node scripts/restore-background.mjs --mode preview --retry-pending-ms 1 >/dev/null 2>&1; then
   echo "verify-scripts: restore background accepted pending retries outside live mode" >&2
   exit 1
@@ -626,6 +630,20 @@ if node scripts/restore-background.mjs \
   --dsp-provider-command loopwire-dsp-provider \
   --dsp-provider-timeout-ms 0 >/dev/null 2>&1; then
   echo "verify-scripts: restore background accepted invalid DSP provider timeout" >&2
+  exit 1
+fi
+if node scripts/restore-background.mjs \
+  --backend dsp \
+  --dsp-provider-command loopwire-dsp-provider \
+  --dsp-provider-mode banana >/dev/null 2>&1; then
+  echo "verify-scripts: restore background accepted invalid DSP provider mode" >&2
+  exit 1
+fi
+if node scripts/restore-background.mjs \
+  --backend dsp \
+  --mode live \
+  --dsp-provider-command loopwire-dsp-provider >/dev/null 2>&1; then
+  echo "verify-scripts: restore background accepted live DSP without explicit live provider mode" >&2
   exit 1
 fi
 if node scripts/restore-background.mjs \
