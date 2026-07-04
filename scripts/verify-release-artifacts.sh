@@ -36,6 +36,7 @@ bundle_dir="$tmp_dir/bundles"
 prefix="$tmp_dir/prefix"
 private_key="$tmp_dir/release-private.pem"
 public_key="$tmp_dir/release-public.pem"
+provider_store="$tmp_dir/provider-store"
 
 pnpm --filter @loopwire/core build >/dev/null
 pnpm --filter @loopwire/audio-host build >/dev/null
@@ -102,6 +103,10 @@ if [ "$("$check_dir/loopwire")" != "loopwire release smoke" ]; then
   echo "Packaged Loopwire binary did not run as expected." >&2
   exit 1
 fi
+if [ ! -x "$check_dir/loopwire-dsp-provider" ]; then
+  echo "Packaged Loopwire artifact is missing loopwire-dsp-provider." >&2
+  exit 1
+fi
 if [ ! -x "$check_dir/libexec/loopwire/loopwire-gui" ]; then
   echo "Packaged Loopwire artifact is missing libexec/loopwire/loopwire-gui." >&2
   exit 1
@@ -114,11 +119,34 @@ fi
   echo "Packaged Loopwire background restore help did not run." >&2
   exit 1
 }
+"$check_dir/loopwire-dsp-provider" --help | grep -F -- "seed-source" >/dev/null || {
+  echo "Packaged Loopwire DSP provider help did not run." >&2
+  exit 1
+}
+"$check_dir/loopwire-dsp-provider" \
+  seed-source \
+  --source-id mic \
+  --channels 2 \
+  --frames 2 \
+  --store-dir "$provider_store" >/dev/null
+"$check_dir/loopwire-dsp-provider" \
+  read-source \
+  --source-id mic \
+  --channels 2 \
+  --frames 2 \
+  --store-dir "$provider_store" | grep -F -- '"channels"' >/dev/null || {
+  echo "Packaged Loopwire DSP provider source read failed." >&2
+  exit 1
+}
 
 bash scripts/install.sh --base-url "file://$release_dir" --prefix "$prefix" --public-key "$public_key" >/dev/null
 
 if [ "$("$prefix/loopwire")" != "loopwire release smoke" ]; then
   echo "Installer did not install the generated release artifact correctly." >&2
+  exit 1
+fi
+if [ ! -x "$prefix/loopwire-dsp-provider" ]; then
+  echo "Installer did not install loopwire-dsp-provider." >&2
   exit 1
 fi
 if [ ! -x "$(dirname "$prefix")/lib/loopwire/loopwire-gui" ]; then
@@ -127,6 +155,25 @@ if [ ! -x "$(dirname "$prefix")/lib/loopwire/loopwire-gui" ]; then
 fi
 "$prefix/loopwire" --background --help | grep -F -- "--state-file" >/dev/null || {
   echo "Installed Loopwire background restore help did not run." >&2
+  exit 1
+}
+"$prefix/loopwire-dsp-provider" --help | grep -F -- "seed-source" >/dev/null || {
+  echo "Installed Loopwire DSP provider help did not run." >&2
+  exit 1
+}
+"$prefix/loopwire-dsp-provider" \
+  seed-source \
+  --source-id browser \
+  --channels 2 \
+  --frames 2 \
+  --store-dir "$provider_store" >/dev/null
+"$prefix/loopwire-dsp-provider" \
+  read-source \
+  --source-id browser \
+  --channels 2 \
+  --frames 2 \
+  --store-dir "$provider_store" | grep -F -- '"channels"' >/dev/null || {
+  echo "Installed Loopwire DSP provider source read failed." >&2
   exit 1
 }
 

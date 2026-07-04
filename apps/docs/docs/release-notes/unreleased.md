@@ -97,9 +97,9 @@ These notes describe source-tree progress. They are not a public release announc
 - `@loopwire/audio-host` now also exposes a command-backed DSP provider helper with stable `read-source`,
   `write-output`, `verify-output`, and `clear-output` operations. Source buffers are read as JSON stdout, and rendered
   output buffers are sent as JSON stdin for provider write and verify commands.
-- Background restore now supports explicit `--backend dsp` with `--dsp-provider-command`, so a future provider binary
-  can drive startup re-apply through the same DSP graph adapter without claiming native PipeWire/JACK link adapters
-  have live per-edge gain.
+- Background restore now supports explicit `--backend dsp` with `--dsp-provider-command`, and release artifacts now
+  install `loopwire-dsp-provider`, a bundled file-backed provider for local preflight and restore-contract smoke. It
+  does not yet capture or inject live PipeWire/JACK streams.
 - `pnpm dsp:plan` and `pnpm dsp:verify` now describe and exercise the command-backed DSP provider contract before a
   user enables provider-backed boot restore.
 - `pnpm jack:ports` can print JACK port requirements from a configuration export or persisted state as JSON or TSV,
@@ -194,6 +194,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Release evidence collection now records a read-only `dsp-provider-plan` row in the full profile, and final release
   proof requires `--require-dsp-provider-plan` so the command-backed DSP provider contract cannot disappear from the
   public evidence bundle.
+- Release tarballs, the curl installer, AUR metadata, and Nix metadata now expose `loopwire-dsp-provider` beside the
+  main `loopwire` launcher.
 - Release evidence collection and verification can now require live docs smoke with `--require-live-docs`, binding final
   release evidence to the deployed homepage and public installer.
 - Final live-docs evidence now must match the `docsLive` base URL or hostname plus remote prefix recorded in

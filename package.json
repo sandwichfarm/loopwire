@@ -18,6 +18,7 @@
     "collect:support": "node scripts/collect-support-bundle.mjs",
     "jack:ports": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs",
     "jack:verify": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs --verify",
+    "dsp:provider": "pnpm --filter @loopwire/audio-host build && node packages/audio-host/dist/dsp-provider-cli.js",
     "dsp:plan": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-dsp-provider.mjs",
     "dsp:verify": "pnpm dsp:plan -- --execute",
     "deploy:docs:bunny": "bash scripts/deploy-docs-bunny.sh",

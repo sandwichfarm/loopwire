@@ -69,6 +69,8 @@ assert_contains "README.md" "pnpm jack:ports"
 assert_contains "README.md" "pnpm jack:verify"
 assert_contains "README.md" "pnpm dsp:plan"
 assert_contains "README.md" "pnpm dsp:verify"
+assert_contains "README.md" "loopwire-dsp-provider"
+assert_contains "README.md" "does not yet capture or inject live PipeWire/JACK audio streams"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "arch-hyprland-pipewire"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "fedora-kde-jack"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "debian-xfce-pulseaudio"
@@ -125,7 +127,9 @@ assert_contains "apps/docs/docs/guide/backends.md" "first-class configuration ru
 assert_contains "apps/docs/docs/guide/backends.md" "command-backed DSP provider helper"
 assert_contains "apps/docs/docs/guide/backends.md" '`read-source`, `write-output`, `verify-output`, and `clear-output`'
 assert_contains "apps/docs/docs/guide/backends.md" "JSON stdin"
-assert_contains "apps/docs/docs/guide/backends.md" "live backend DSP still needs a host adapter"
+assert_contains "apps/docs/docs/guide/backends.md" 'ship `loopwire-dsp-provider`'
+assert_contains "apps/docs/docs/guide/backends.md" "seed-source"
+assert_contains "apps/docs/docs/guide/backends.md" "live backend DSP still needs"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:plan"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:verify"
 assert_contains "apps/docs/docs/guide/backends.md" "explicit execute mode"
@@ -189,10 +193,13 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-timeout-
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-frame-count"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm dsp:plan"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm dsp:verify"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "Release artifacts install"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "LOOPWIRE_DSP_PROVIDER_DIR"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "same runtime contract"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pendingStreamRefresh.cleared"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "status check remains non-destructive"
 assert_contains "apps/docs/docs/guide/install.md" 'packages.<system>.loopwire-bin'
+assert_contains "apps/docs/docs/guide/install.md" "loopwire-dsp-provider"
 assert_contains "apps/docs/docs/guide/install.md" "fake"
 assert_contains "apps/docs/docs/guide/install.md" "VitePress public asset"
 assert_contains "apps/docs/docs/guide/install.md" "/install.sh"
@@ -317,6 +324,7 @@ assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-vm-eviden
 assert_contains "apps/docs/docs/developer/release.md" "dsp-provider-plan.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-dsp-provider-plan.sh"
 assert_contains "apps/docs/docs/developer/release.md" 'scripts/fixtures/dsp-provider-configuration.json'
+assert_contains "apps/docs/docs/developer/release.md" "loopwire-dsp-provider"
 assert_contains "apps/docs/docs/developer/release.md" "read-source, write-output"
 assert_contains "apps/docs/docs/developer/release.md" "verify-output operation rows"
 assert_contains "apps/docs/docs/developer/release.md" "must invoke the expected script directly"
@@ -456,6 +464,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm jack:ports`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm jack:verify`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm dsp:plan`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm dsp:verify`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`loopwire-dsp-provider`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Support bundles can include read-only JACK readiness"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "injected JACK virtual port provider"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--jack-provider-command"

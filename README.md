@@ -55,7 +55,9 @@ disconnect muted links, and target existing host-backed outputs or physical moni
 to existing-port `jack_connect`/`jack_disconnect` routes and existing physical monitor sinks. PulseAudio compatibility
 live apply covers Loopwire-owned null sinks, monitor loopbacks, and matched stream controls.
 Command-backed DSP providers can be inspected with `pnpm dsp:plan` and explicitly exercised with `pnpm dsp:verify`
-before they are wired into background restore.
+before they are wired into background restore. Release artifacts install `loopwire-dsp-provider`, a bundled file-backed
+provider for local preflight and restore-contract smoke. It persists seeded source buffers and rendered outputs, but it
+does not yet capture or inject live PipeWire/JACK audio streams.
 
 Cross-system validation is tracked in `vm/targets.tsv` and operated through `scripts/vm-matrix.sh`. It currently covers
 manual VM targets for Arch, Fedora, Ubuntu LTS, Debian stable, NixOS, Hyprland, KDE Plasma, GNOME, Xfce, Sway, Wayland,
@@ -65,6 +67,7 @@ User-scoped startup can be managed from the desktop sidebar. **Open on boot** ma
 **Restore on boot** manages a user systemd unit for packaged background restore. The CLI fallback is
 `scripts/manage-autostart.sh`; source-checkout systemd restore is rendered and tested through `pnpm restore:background`.
 Release tarballs and package templates install a `loopwire --background` entrypoint for packaged background restore.
+They also install `loopwire-dsp-provider` for provider-backed DSP restore preflight.
 
 Installer and package metadata smoke tests are local-only for now: `verify:install` builds a fake release artifact and
 proves checksum rejection, while `verify:packaging` checks that AUR and flake package templates point at the same

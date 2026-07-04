@@ -63,7 +63,8 @@ declared VM target, deterministic SSH port, dry-run launch command, and paired e
 The DSP provider plan command runs `scripts/collect-dsp-provider-plan.sh` against
 `scripts/fixtures/dsp-provider-configuration.json` without `--execute`, records the expected read-source, write-output,
 and verify-output operation rows, and binds the configuration path plus frame count in `release-evidence.json`. It proves
-the release still exposes the provider contract without mutating host audio.
+the release still exposes the provider contract without mutating host audio. Release tarballs must also expose
+`loopwire-dsp-provider` beside `loopwire`; the provider is file-backed smoke infrastructure, not live backend capture.
 
 The tag release workflow collects the published-release portion automatically after `gh release create` or upload
 finishes. It runs `pnpm collect:evidence` with `--require-published-release --require-dsp-provider-plan`, verifies the
@@ -113,8 +114,8 @@ With `--require-vm-launch-plan`, the verifier also requires a successful `vm-lau
 `vm-launch-plan.tsv` header and one row for every target, and checks that each row pairs the rendered
 `scripts/vm-matrix.sh launch` command with the matching `scripts/collect-vm-evidence-ssh.sh --execute` command.
 With `--require-dsp-provider-plan`, the verifier also requires a successful `dsp-provider-plan` command row that invokes
-`pnpm dsp:plan` in read-only mode and validates `dsp-provider-plan.tsv` contains read-source, write-output, and
-verify-output rows for the manifest-bound frame count.
+`bash scripts/collect-dsp-provider-plan.sh` in read-only mode and validates `dsp-provider-plan.tsv` contains
+read-source, write-output, and verify-output rows for the manifest-bound frame count.
 When `--require-live-docs` is present, the verifier requires a successful `docs-live-smoke` command row that executed
 `bash scripts/verify-docs-live.sh` against the public installer and the same deployed docs base URL or hostname plus
 remote prefix recorded in `release-evidence.json`.

@@ -17,6 +17,9 @@
       "import": "./dist/detectors.js"
     }
   },
+  "bin": {
+    "loopwire-dsp-provider": "./dist/dsp-provider-cli.js"
+  },
   "scripts": {
     "build": "pnpm --filter @loopwire/core build && tsc -p tsconfig.json",
     "test": "pnpm --filter @loopwire/core build && vitest run",

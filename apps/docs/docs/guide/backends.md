@@ -156,17 +156,20 @@ through a supplied verifier, clear outputs during unload, and restore the rollba
 switch transaction contract. It also ships a first-class configuration runtime adapter wrapper for startup re-apply and
 configuration switch transactions.
 
-`@loopwire/audio-host` also exposes a command-backed DSP provider helper for future live host integrations. The helper
-calls a provider command with stable `read-source`, `write-output`, `verify-output`, and `clear-output` operations.
+`@loopwire/audio-host` also exposes a command-backed DSP provider helper for host integrations. The helper calls a
+provider command with stable `read-source`, `write-output`, `verify-output`, and `clear-output` operations.
 `read-source` returns JSON channel buffers on stdout, while rendered output buffers are passed to `write-output` and
-`verify-output` as JSON stdin so provider implementations do not need unsafe shell argument payloads. This is still a
-provider contract: live backend DSP still needs a host adapter that can capture source streams and inject the rendered
-outputs into PipeWire or JACK.
+`verify-output` as JSON stdin so provider implementations do not need unsafe shell argument payloads. Release artifacts
+ship `loopwire-dsp-provider`, a bundled file-backed provider that can seed source buffers, persist rendered outputs,
+verify stored outputs, and clear outputs. This is still not native live host DSP: live backend DSP still needs a host
+adapter that can capture source streams and inject the rendered outputs into PipeWire or JACK.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 
 ```bash
 pnpm dsp:plan -- --configuration exported-loopwire-config.json --frame-count 480 --format tsv
+pnpm dsp:provider -- seed-source --source-id mic --channels 2 --frames 480 --value 1
+pnpm dsp:provider -- seed-source --source-id browser --channels 2 --frames 480 --value 0.25
 pnpm dsp:verify -- \
   --configuration exported-loopwire-config.json \
   --provider-command loopwire-dsp-provider \
@@ -176,4 +179,5 @@ pnpm dsp:verify -- \
 
 `pnpm dsp:plan` is read-only and prints the `read-source`, `write-output`, and `verify-output` operations Loopwire
 will need for a configuration. `pnpm dsp:verify` is explicit execute mode: it calls the provider, writes rendered
-output buffers, verifies them, and exits nonzero if provider apply or verification fails.
+output buffers, verifies them, and exits nonzero if provider apply or verification fails. The bundled provider returns
+`{"missing":true}` for unseeded sources, so seed or connect source buffers before expecting execute mode to pass.

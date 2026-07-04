@@ -13,8 +13,9 @@ workflow emits real artifacts.
 
 `scripts/package-release.sh` is the canonical tarball producer. It writes `loopwire-linux-${arch}.tar.gz` and updates
 `SHA256SUMS` with reproducible tar metadata controlled by `SOURCE_DATE_EPOCH`. The tarball contains a launcher at
-`loopwire`, the Tauri GUI binary at `libexec/loopwire/loopwire-gui`, and bundled background restore assets under
-`libexec/loopwire/scripts` and `libexec/loopwire/packages`.
+`loopwire`, a file-backed DSP provider launcher at `loopwire-dsp-provider`, the Tauri GUI binary at
+`libexec/loopwire/loopwire-gui`, and bundled background restore/provider assets under `libexec/loopwire/scripts` and
+`libexec/loopwire/packages`.
 
 `scripts/stage-release-artifacts.sh` is the canonical release attachment staging command. It packages the binary
 tarball, copies Tauri AppImage/deb/rpm bundle files, rewrites `SHA256SUMS` for every staged attachment, and signs the
@@ -74,7 +75,8 @@ through `scripts/install.sh`, and proves `loopwire --background --help` works fr
 launcher.
 
 `verify:aur` renders the AUR template from generated local artifacts, runs `makepkg --nodeps` in a temp directory, and
-checks the package archive contains `usr/bin/loopwire`. It skips cleanly on hosts without `makepkg`.
+checks the package archive contains `usr/bin/loopwire` and `usr/bin/loopwire-dsp-provider`. It skips cleanly on hosts
+without `makepkg`.
 
 `verify:packaging` statically checks that package metadata points at the same release artifact names as the installer
 and that the flake exposes the binary package template without replacing fake hashes with unverified values.

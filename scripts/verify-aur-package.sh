@@ -58,6 +58,10 @@ if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/bin/loopwire$'; then
   echo "AUR package archive does not contain usr/bin/loopwire." >&2
   exit 1
 fi
+if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/bin/loopwire-dsp-provider$'; then
+  echo "AUR package archive does not contain usr/bin/loopwire-dsp-provider." >&2
+  exit 1
+fi
 if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/lib/loopwire/loopwire-gui$'; then
   echo "AUR package archive does not contain usr/lib/loopwire/loopwire-gui." >&2
   exit 1

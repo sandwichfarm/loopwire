@@ -21,6 +21,7 @@ The generated artifact name matches scripts/install.sh:
 
 The tarball includes:
   loopwire                         Launcher for GUI and background restore
+  loopwire-dsp-provider            File-backed command DSP provider
   libexec/loopwire/loopwire-gui    Tauri desktop binary
   libexec/loopwire/scripts         Background restore runner
   libexec/loopwire/packages        Compiled core/audio-host runtime assets
@@ -135,6 +136,12 @@ if [ ! -f "$core_dist/index.js" ] || [ ! -f "$audio_host_dist/index.js" ]; then
   exit 1
 fi
 
+if [ ! -f "$audio_host_dist/dsp-provider-cli.js" ]; then
+  echo "Compiled DSP provider CLI is missing." >&2
+  echo "Run: pnpm --filter @loopwire/audio-host build" >&2
+  exit 1
+fi
+
 asset="${name}-linux-${arch}.tar.gz"
 artifact_path="${output_dir%/}/${asset}"
 checksums_path="${output_dir%/}/SHA256SUMS"
@@ -201,6 +208,37 @@ EOF
 sed -i "s/@LOOPWIRE_NAME@/$name/g" "$tmp_dir/payload/$name"
 chmod 0755 "$tmp_dir/payload/$name"
 
+cat >"$tmp_dir/payload/${name}-dsp-provider" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+script_dir="$(CDPATH= cd "$(dirname "$0")" && pwd -P)"
+archive_libexec="$script_dir/libexec/@LOOPWIRE_NAME@"
+installed_libexec="$script_dir/../lib/@LOOPWIRE_NAME@"
+
+if [ -d "$archive_libexec/packages/audio-host/dist" ]; then
+  libexec_dir="${LOOPWIRE_LIBEXEC_DIR:-$archive_libexec}"
+else
+  libexec_dir="${LOOPWIRE_LIBEXEC_DIR:-$installed_libexec}"
+fi
+
+provider="$libexec_dir/packages/audio-host/dist/dsp-provider-cli.js"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "@LOOPWIRE_NAME@-dsp-provider: node is required on PATH" >&2
+  exit 127
+fi
+
+if [ ! -f "$provider" ]; then
+  echo "@LOOPWIRE_NAME@-dsp-provider: bundled provider is missing: $provider" >&2
+  exit 1
+fi
+
+exec node "$provider" "$@"
+EOF
+sed -i "s/@LOOPWIRE_NAME@/$name/g" "$tmp_dir/payload/${name}-dsp-provider"
+chmod 0755 "$tmp_dir/payload/${name}-dsp-provider"
+
 cat >"$tmp_dir/payload/RELEASE" <<EOF
 name=$name
 version=$version
@@ -216,13 +254,18 @@ tar \
   --numeric-owner \
   -C "$tmp_dir/payload" \
   -cf - \
-  RELEASE "$name" libexec | gzip -n >"$artifact_path"
+  RELEASE "$name" "${name}-dsp-provider" libexec | gzip -n >"$artifact_path"
 
 mkdir -p "$tmp_dir/check"
 tar -xzf "$artifact_path" -C "$tmp_dir/check"
 
 if [ ! -x "$tmp_dir/check/$name" ]; then
   echo "Generated artifact does not contain executable ${name}." >&2
+  exit 1
+fi
+
+if [ ! -x "$tmp_dir/check/${name}-dsp-provider" ]; then
+  echo "Generated artifact does not contain executable ${name}-dsp-provider." >&2
   exit 1
 fi
 

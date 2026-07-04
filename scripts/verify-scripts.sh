@@ -44,6 +44,18 @@ node --check scripts/describe-dsp-provider.mjs
 node --check scripts/promote-vm-evidence.mjs
 node --check scripts/restore-background.mjs
 node --check scripts/verify-support-matrix.mjs
+node -e '
+const root = require("./package.json");
+const audioHost = require("./packages/audio-host/package.json");
+if (!root.scripts["dsp:provider"]) {
+  console.error("verify-scripts: root package is missing dsp:provider");
+  process.exit(1);
+}
+if (audioHost.bin?.["loopwire-dsp-provider"] !== "./dist/dsp-provider-cli.js") {
+  console.error("verify-scripts: audio-host package is missing loopwire-dsp-provider bin");
+  process.exit(1);
+}
+'
 node scripts/promote-vm-evidence.mjs --help | grep -F -- "--require-published-release" >/dev/null || {
   echo "verify-scripts: VM evidence promotion help is missing published release requirement support" >&2
   exit 1

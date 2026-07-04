@@ -43,6 +43,7 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
     install -Dm755 loopwire "$out/bin/loopwire"
+    install -Dm755 loopwire-dsp-provider "$out/bin/loopwire-dsp-provider"
     mkdir -p "$out/lib/loopwire"
     cp -R libexec/loopwire/. "$out/lib/loopwire/"
     find "$out/lib/loopwire" -type d -exec chmod 0755 {} +
@@ -50,6 +51,8 @@ stdenv.mkDerivation {
     chmod 0755 "$out/lib/loopwire/loopwire-gui"
     wrapProgram "$out/bin/loopwire" \
       --prefix PATH : ${lib.makeBinPath [ nodejs pipewire wireplumber alsa-utils ]}
+    wrapProgram "$out/bin/loopwire-dsp-provider" \
+      --prefix PATH : ${lib.makeBinPath [ nodejs ]}
     runHook postInstall
   '';
 

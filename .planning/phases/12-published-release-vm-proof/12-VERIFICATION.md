@@ -2018,6 +2018,31 @@
 - No VM was launched, no SSH guest was contacted, no image was downloaded, no public release was created, no release key
   was generated, no GitHub secret was written, no Bunny deployment was performed, and no support matrix row was
   promoted.
+- `packages/audio-host/src/dsp-provider-cli.ts` now provides a bundled file-backed `loopwire-dsp-provider` CLI with
+  `seed-source`, `read-source`, `write-output`, `verify-output`, and `clear-output` commands. The audio-host package
+  exposes it as a package `bin`, and release tarballs now include a top-level `loopwire-dsp-provider` launcher beside
+  `loopwire`.
+- `scripts/install.sh`, `packaging/aur/PKGBUILD.in`, and `packaging/nix/loopwire-bin.nix` now install
+  `loopwire-dsp-provider`. `scripts/package-release.sh`, `scripts/verify-release-artifacts.sh`,
+  `scripts/verify-install.sh`, `scripts/verify-packaging.sh`, and `scripts/verify-aur-package.sh` guard the new
+  provider artifact path.
+- README, install docs, backend docs, start-on-boot docs, release docs, packaging docs, unreleased notes, and
+  `scripts/verify-docs.sh` now describe the bundled provider while keeping the live PipeWire/JACK capture/injection gap
+  explicit.
+- Focused validation passed: `pnpm --filter @loopwire/audio-host test -- dsp-provider-cli.test.ts`,
+  `pnpm --filter @loopwire/audio-host typecheck`, `bash -n scripts/package-release.sh scripts/install.sh
+  scripts/verify-release-artifacts.sh scripts/verify-packaging.sh scripts/verify-aur-package.sh scripts/verify-docs.sh
+  scripts/verify-scripts.sh`, a temp wrapper `pnpm dsp:verify` smoke against
+  `scripts/fixtures/dsp-provider-configuration.json`, `pnpm verify:release`, `pnpm verify:packaging`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:autostart`, `pnpm verify:install`, and
+  `pnpm verify:requirements`.
+- Final validation passed: full `pnpm check`, `pnpm detect:audio`, `git diff --check`, and touched-file line-length
+  checks.
+- `pnpm detect:audio` still reports native PipeWire as link-only with `supportsPerEdgeGain: false`, PulseAudio
+  compatibility as stream-level, ALSA as diagnostics-only, and JACK unavailable because `jack_lsp` is missing.
+- No public release, tag push, release key generation, GitHub secret write, Bunny deployment, live URL smoke, VM launch,
+  `.vm/run` write, image download, support matrix promotion, live host DSP capture/injection, live JACK provider, or
+  real host audio mutation was performed.
 
 ## Evidence Missing
 
@@ -2034,12 +2059,13 @@
   reports missing `qemu-system-x86_64`, `qemu-system-aarch64`, `qemu-img`, and `cloud-localds`.
 - Nix package output is statically wired, but this host lacks `nix`; real `nix build` proof still needs a Nix-enabled
   host or VM target after real release hashes exist.
-- A bundled JACK virtual port provider/client and live backend graph-edge gain/DSP insertion remain unimplemented, but
-  the pure core DSP gain/mute mix math, the injected audio-host DSP graph adapter, the injected JACK virtual-port
-  provider hook, the command-backed DSP provider port helper, explicit background DSP provider restore, and provider
-  plan/verify tooling now exist. The DSP adapter now follows core rollback semantics, and the desktop now consumes
-  backend mixing reports for route-control UX, but current live PipeWire/JACK reports still remain link-only and the
-  desktop still blocks unbound JACK live-apply attempts before arming.
+- A bundled JACK virtual port provider/client, live backend graph-edge gain, and live host DSP capture/injection remain
+  unimplemented, but the pure core DSP gain/mute mix math, the injected audio-host DSP graph adapter, the injected JACK
+  virtual-port provider hook, the command-backed DSP provider port helper, explicit background DSP provider restore,
+  provider plan/verify tooling, and bundled file-backed `loopwire-dsp-provider` now exist. The DSP adapter now follows
+  core rollback semantics, and the desktop now consumes backend mixing reports for route-control UX, but current live
+  PipeWire/JACK reports still remain link-only and the desktop still blocks unbound JACK live-apply attempts before
+  arming.
 - The codebase-memory MCP transport is currently closed, so the code graph could not be refreshed in the latest
   verification passes.
 

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T12:44:55+02:00"
-last_activity: 2026-07-04 - strict all-target VM matrix collection
+last_updated: "2026-07-04T13:02:09+02:00"
+last_activity: 2026-07-04 - bundled file-backed DSP provider packaging
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/collect-vm-matrix-evidence.sh` now supports `--require-all-targets` and validates
-the whole SSH plan before printing collector commands or running SSH. Final-release VM collection dry-runs now fail
-fast when a hand-edited plan omits any `vm/targets.tsv` target.
+Last activity: 2026-07-04 - `loopwire-dsp-provider` is now a bundled file-backed DSP provider for source checkout,
+release tarball, curl installer, AUR, and Nix package paths. It can seed/read source buffers, persist rendered outputs,
+verify stored outputs, and clear outputs for provider-backed DSP restore preflight without mutating host audio.
 Phase 12 remains gated on real signing key material, a public release, configured GitHub/Bunny secrets, host QEMU/Nix
 tooling, and operator-run VM evidence.
 
@@ -46,9 +46,10 @@ tooling, and operator-run VM evidence.
   the DSP adapter now exposes an explicit core configuration runtime wrapper for startup/switch transactions, the
   audio-host DSP adapter now has a command-backed provider port helper, background restore can drive an explicit DSP
   provider command, `pnpm dsp:plan`/`pnpm dsp:verify` can preflight that provider command, and desktop route-control UX
-  is driven by detected backend mixing semantics. Native JACK now has an injected virtual-port provider hook, but a
-  bundled live backend DSP provider, a bundled JACK virtual port provider/client, and native host graph-edge gain
-  implementation remain planned.
+  is driven by detected backend mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local
+  restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook, but live host
+  DSP capture/injection, a bundled JACK virtual port provider/client, and native host graph-edge gain implementation
+  remain planned.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before artifacts exist.
 - A real project release public key has not been generated or committed yet. `pnpm release:prepare-key` now provides
@@ -57,8 +58,8 @@ tooling, and operator-run VM evidence.
   `packaging/release-signing-public.pem` exists and a tagged release workflow has passed.
 
 - Nix package metadata is smoke-tested structurally, but Nix build proof still needs a Nix-enabled host or VM target.
-- JACK virtual ports, live backend DSP insertion/graph-edge gain, and published release proof remain the major product
-  gaps for a fully functional Loopback-class app.
+- JACK virtual ports, live backend DSP capture/injection, native graph-edge gain, and published release proof remain
+  the major product gaps for a fully functional Loopback-class app.
 - Packaged background restore is now release-shaped through `loopwire --background`, but public release proof still
   requires signed published artifacts.
 - Public release proof is gated on an explicit versioned release decision, real signing key material, tag push, and VM

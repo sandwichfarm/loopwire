@@ -173,7 +173,18 @@ The provider command receives `read-source` as stable arguments and returns JSON
 sends rendered output buffers to `write-output` and `verify-output` as JSON stdin. The source checkout and packaged
 systemd helpers can pass the same `--backend dsp`, `--dsp-provider-command`, `--dsp-provider-timeout-ms`, and
 `--dsp-frame-count` flags. Run `pnpm dsp:plan` first to inspect the bounded provider operations, then run
-`pnpm dsp:verify` with the provider command before enabling boot restore. No DSP provider binary is bundled yet.
+`pnpm dsp:verify` with the provider command before enabling boot restore. Release artifacts install
+`loopwire-dsp-provider`, a bundled file-backed provider for contract smoke and local restore preflight. It stores
+seeded source buffers and rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
+`${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
+provider.
+
+Seed every source your configuration routes before running execute-mode preflight:
+
+```bash
+loopwire-dsp-provider seed-source --source-id mic --channels 2 --frames 480 --value 1
+loopwire-dsp-provider seed-source --source-id browser --channels 2 --frames 480 --value 0.25
+```
 
 Preview the service:
 
