@@ -168,8 +168,8 @@ default, reports `status=missing`, `status=invalid`, or `status=verified`, and p
 collector handoff for missing targets. Use `--target <target>` to inspect one row, `--evidence-root DIR` for copied
 bundles, and `--require-published-release --release-tag <tag>` for final public release proof. Missing evidence is
 reported without failing the command; invalid evidence exits nonzero because the bundle exists but does not satisfy the
-verifier. Screenshot evidence must be a decodable, non-interlaced PNG with image data and desktop-sized dimensions;
-header-only or truncated PNG placeholders are rejected.
+verifier. Screenshot evidence must be a decodable, non-interlaced PNG with valid chunk CRCs, image data, and
+desktop-sized dimensions; header-only, truncated, or CRC-corrupt PNG placeholders are rejected.
 
 `pnpm vm:host-setup` is the focused local setup surface. It prints `package-family=*`, a single `install-command=*`,
 the required VM host tools, and the `verify-command=*` to run after package setup. Use `pnpm vm:host-setup -- --all`

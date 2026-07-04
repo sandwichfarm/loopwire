@@ -4182,6 +4182,32 @@ if bash scripts/verify-vm-evidence.sh \
   echo "verify-scripts: verify-vm-evidence accepted a truncated screenshot" >&2
   exit 1
 fi
+bad_crc_screenshot_dir="$tmp_dir/vm-evidence-bad-crc-screenshot"
+cp -R "$evidence_dir" "$bad_crc_screenshot_dir"
+node -e '
+const fs = require("node:fs");
+const path = process.argv[1];
+const data = fs.readFileSync(path);
+let offset = 8;
+while (offset < data.length) {
+  const length = data.readUInt32BE(offset);
+  const type = data.toString("ascii", offset + 4, offset + 8);
+  const crcOffset = offset + 8 + length;
+  if (type === "IDAT") {
+    data[crcOffset + 3] ^= 0xff;
+    fs.writeFileSync(path, data);
+    process.exit(0);
+  }
+  offset = crcOffset + 4;
+}
+throw new Error("test PNG did not contain an IDAT chunk");
+' "$bad_crc_screenshot_dir/screenshot.png"
+if bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$bad_crc_screenshot_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted a screenshot with a bad PNG CRC" >&2
+  exit 1
+fi
 matrix_release_copy="$tmp_dir/support-matrix-release-required.md"
 cp apps/docs/docs/guide/support-matrix.md "$matrix_release_copy"
 if node scripts/promote-vm-evidence.mjs \

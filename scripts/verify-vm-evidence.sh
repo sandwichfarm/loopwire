@@ -407,6 +407,17 @@ if (data.length < signature.length || !signature.every((byte, index) => data[ind
   throw new Error("screenshot.png must be a PNG file");
 }
 
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
 let offset = signature.length;
 let width = 0;
 let height = 0;
@@ -429,6 +440,11 @@ while (offset < data.length) {
 
   if (chunkEnd > data.length || nextOffset > data.length) {
     throw new Error(`screenshot.png has a truncated ${type} chunk`);
+  }
+  const expectedCrc = data.readUInt32BE(chunkEnd);
+  const actualCrc = crc32(data.subarray(offset + 4, chunkEnd));
+  if (actualCrc !== expectedCrc) {
+    throw new Error(`screenshot.png has an invalid ${type} chunk CRC`);
   }
 
   if (!sawIhdr && type !== "IHDR") {
@@ -453,6 +469,9 @@ while (offset < data.length) {
   } else if (type === "IDAT") {
     idatChunks.push(data.subarray(chunkStart, chunkEnd));
   } else if (type === "IEND") {
+    if (length !== 0) {
+      throw new Error("screenshot.png IEND chunk must be empty");
+    }
     sawIend = true;
     break;
   }

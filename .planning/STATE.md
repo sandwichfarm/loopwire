@@ -2360,3 +2360,11 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and full `pnpm check` passed. No VM launch,
   public release, Bunny deployment, secret write, tag push, host audio mutation, or support-matrix promotion was
   performed.
+- 2026-07-04 VM screenshot CRC evidence hardening: `scripts/verify-vm-evidence.sh` now validates every PNG chunk CRC
+  before accepting VM screenshot evidence, and rejects corrupt IDAT CRCs even when the image dimensions and zlib stream
+  otherwise look plausible.
+- 2026-07-04 VM screenshot CRC evidence hardening validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located the VM evidence verifier and PNG test fixture.
+  `bash -n scripts/verify-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and full `pnpm check` passed. No VM launch, public release, Bunny deployment, secret write, tag
+  push, host audio mutation, or support-matrix promotion was performed.
