@@ -174,8 +174,10 @@ These notes describe source-tree progress. They are not a public release announc
   upload, including file inventory, SHA-256 checksums, remote-prefix paths, and secret-like key rejection.
 - Release readiness now fails if the docs deployment manifest verifier is missing, unparsable, absent from
   `package.json`, or not wired into the docs deploy workflow before the manifest artifact upload.
-- Release readiness now fails if the final release proof workflow, `pnpm verify:final-release`, or
-  `pnpm vm:package-evidence` wiring disappears before the release handoff.
+- Release readiness now fails if the final release proof workflow, `pnpm verify:final-release`,
+  `pnpm vm:package-evidence`, or `pnpm vm:prepare-release-evidence` wiring disappears before the release handoff.
+- The v0.1.0 release notes are now publishable release notes instead of candidate notes, so release readiness no
+  longer needs the candidate-wording override when GitHub/tag checks are intentionally skipped.
 - The GitHub secret helper now rejects Bunny storage zones, endpoints, pull-zone hostnames, and remote prefixes that
   would later fail the docs deploy or live-smoke helpers.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or

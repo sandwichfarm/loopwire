@@ -127,11 +127,23 @@ printf '%s\n' "$release_readiness_help" |
     echo "verify-scripts: release readiness help is missing final proof checksum verifier check" >&2
     exit 1
   }
+printf '%s\n' "$release_readiness_help" |
+  grep -F -- "VM signed-release helper" >/dev/null || {
+    echo "verify-scripts: release readiness help is missing VM signed-release helper check" >&2
+    exit 1
+  }
 pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git \
-  --allow-candidate-notes | grep -F -- "ok: final release proof workflow passes GitHub token to proof step" \
+  | grep -F -- "ok: final release proof workflow passes GitHub token to proof step" \
   >/dev/null || {
     echo "verify-scripts: release readiness output is missing final proof GitHub token check" >&2
+    exit 1
+  }
+pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git \
+  | grep -F -- "ok: package script vm:prepare-release-evidence is wired" \
+  >/dev/null || {
+    echo "verify-scripts: release readiness output is missing VM signed-release helper check" >&2
     exit 1
   }
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
@@ -3168,6 +3180,11 @@ grep -F "ok: package script vm:package-evidence is wired" "$tmp_dir/release-read
   echo "verify-scripts: release readiness did not verify VM evidence package script" >&2
   exit 1
 }
+grep -F "ok: package script vm:prepare-release-evidence is wired" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+    echo "verify-scripts: release readiness did not verify VM signed-release helper package script" >&2
+    exit 1
+  }
 grep -F "ok: docs deployment workflow verifies manifest before artifact upload" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify docs deployment workflow wiring" >&2
@@ -3210,6 +3227,7 @@ cp scripts/verify-release-asset-checksum.sh "$release_tag_repo/scripts/verify-re
 cp scripts/verify-nix-release-package.sh "$release_tag_repo/scripts/verify-nix-release-package.sh"
 cp scripts/extract-safe-tar.sh "$release_tag_repo/scripts/extract-safe-tar.sh"
 cp scripts/package-vm-evidence.sh "$release_tag_repo/scripts/package-vm-evidence.sh"
+cp scripts/prepare-vm-evidence-release-asset.sh "$release_tag_repo/scripts/prepare-vm-evidence-release-asset.sh"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"
 cp scripts/install.sh "$release_tag_repo/apps/docs/docs/public/install.sh"
 cp package.json "$release_tag_repo/package.json"

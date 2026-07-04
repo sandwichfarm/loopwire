@@ -29,7 +29,7 @@ Checks:
   - public docs installer stays synchronized with the canonical installer,
   - docs deployment manifest verifier is present, parseable, and wired into the deploy workflow,
   - final release proof workflow, asset-name validator, asset checksum verifier, Nix package verifier, safe archive
-    extractor, and VM evidence packager are present, parseable, and wired,
+    extractor, VM evidence packager, and VM signed-release helper are present, parseable, and wired,
   - release public key exists and parses,
   - git checkout is clean unless --skip-clean-git is passed,
   - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
@@ -167,6 +167,7 @@ check_file "scripts/verify-release-asset-checksum.sh" "release evidence asset ch
 check_file "scripts/verify-nix-release-package.sh" "Nix release package verifier"
 check_file "scripts/extract-safe-tar.sh" "safe release archive extractor"
 check_file "scripts/package-vm-evidence.sh" "VM evidence packager"
+check_file "scripts/prepare-vm-evidence-release-asset.sh" "VM signed-release asset helper"
 check_file "package.json" "package manifest"
 check_file ".github/workflows/deploy-docs.yml" "docs deployment workflow"
 check_file ".github/workflows/final-release-proof.yml" "final release proof workflow"
@@ -196,10 +197,11 @@ if [ -s "scripts/verify-final-release-proof.sh" ] && [ -s "scripts/validate-rele
   [ -s "scripts/verify-release-asset-checksum.sh" ] &&
   [ -s "scripts/verify-nix-release-package.sh" ] &&
   [ -s "scripts/extract-safe-tar.sh" ] &&
-  [ -s "scripts/package-vm-evidence.sh" ]; then
+  [ -s "scripts/package-vm-evidence.sh" ] &&
+  [ -s "scripts/prepare-vm-evidence-release-asset.sh" ]; then
   if bash -n scripts/verify-final-release-proof.sh scripts/validate-release-asset-name.sh \
     scripts/verify-release-asset-checksum.sh scripts/verify-nix-release-package.sh scripts/extract-safe-tar.sh \
-    scripts/package-vm-evidence.sh; then
+    scripts/package-vm-evidence.sh scripts/prepare-vm-evidence-release-asset.sh; then
     echo "ok: final proof scripts parse"
   else
     echo "invalid: final proof scripts have shell syntax errors" >&2
@@ -237,6 +239,7 @@ process.exit(pkg.scripts?.[scriptName] === expected ? 0 : 1);
 check_package_script "verify:docs-deployment" "node scripts/verify-docs-deployment-manifest.mjs"
 check_package_script "verify:final-release" "bash scripts/verify-final-release-proof.sh"
 check_package_script "vm:package-evidence" "bash scripts/package-vm-evidence.sh"
+check_package_script "vm:prepare-release-evidence" "bash scripts/prepare-vm-evidence-release-asset.sh"
 
 if [ -s ".github/workflows/deploy-docs.yml" ]; then
   if grep -F -- "pnpm verify:docs-deployment" .github/workflows/deploy-docs.yml >/dev/null &&

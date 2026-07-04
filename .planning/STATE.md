@@ -2180,3 +2180,17 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
   packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
   core, audio-host, and desktop builds.
+- 2026-07-04 publishable release notes and readiness guard: `apps/docs/docs/release-notes/0.1.0.md` is now framed as
+  publishable v0.1.0 release notes instead of candidate notes, and `scripts/verify-release-readiness.sh` now requires
+  the VM signed-release asset helper plus `pnpm vm:prepare-release-evidence` wiring before a release can be considered
+  ready.
+- 2026-07-04 publishable release notes validation: live GitHub checks showed no `v*` tags on `origin`, no
+  `v0.1.0` release, and only `LOOPWIRE_RELEASE_PRIVATE_KEY` configured as a repository secret. `pnpm
+  verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git` now passes without
+  `--allow-candidate-notes`, and `pnpm verify:scripts` plus `pnpm verify:docs` passed. No release tag, public release,
+  Bunny deployment, secret write, VM launch, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 publishable release notes full validation: full `pnpm check` passed after the change, including
+  requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
+  packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
+  core, audio-host, and desktop builds.

@@ -2386,6 +2386,21 @@
   scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds.
+- `apps/docs/docs/release-notes/0.1.0.md` is now publishable release-note prose rather than candidate wording, so
+  release readiness no longer needs `--allow-candidate-notes` when GitHub, tag, and clean-checkout checks are
+  intentionally skipped.
+- `scripts/verify-release-readiness.sh` now requires `scripts/prepare-vm-evidence-release-asset.sh` and
+  `pnpm vm:prepare-release-evidence` wiring in the final-proof preflight, protecting the signed VM evidence
+  release-asset handoff before a tag is cut.
+- Focused validation passed: live GitHub checks showed no `v*` tags on `origin`, no `v0.1.0` release, and only
+  `LOOPWIRE_RELEASE_PRIVATE_KEY` configured as a repository secret. `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git`, `pnpm verify:scripts`, and `pnpm verify:docs` passed. No release tag, public release, Bunny
+  deployment, secret write, VM launch, host audio mutation, or support-matrix promotion was performed.
+- Full validation passed: `pnpm check` passed after the change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds.
 
 ## Evidence Missing
 

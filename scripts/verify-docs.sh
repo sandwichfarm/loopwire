@@ -419,9 +419,9 @@ assert_contains "apps/docs/docs/developer/architecture.md" "first-class configur
 assert_contains "apps/docs/docs/developer/architecture.md" "consume detected backend mixing semantics"
 assert_contains "apps/docs/docs/developer/architecture.md" "typed execution contract"
 assert_contains "apps/docs/docs/developer/architecture.md" "does not yet connect live host capture streams"
-assert_contains "apps/docs/docs/release-notes/0.1.0.md" "v0.1.0 Release Candidate"
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" "# v0.1.0"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "ALSA playback/capture visibility"
-assert_contains "apps/docs/docs/release-notes/0.1.0.md" "not proof that signed artifacts"
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Artifact, package-channel, and VM compatibility claims"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Native PipeWire virtual output sink creation"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Native PipeWire virtual monitor sink creation"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Unreleased"
@@ -472,7 +472,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness 
 assert_contains \
   "apps/docs/docs/release-notes/unreleased.md" \
   "Release readiness now fails if the final release proof workflow"
-assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:package-evidence` wiring disappears'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:prepare-release-evidence` wiring disappears'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "publishable release notes instead of candidate notes"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_REMOTE_PREFIX"
@@ -512,7 +513,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the p
 assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
-assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Required Bunny.net docs deployment secrets"
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'Bunny.net docs deployment requires `BUNNY_STORAGE_ZONE`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop JACK live-apply preflight"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "shared audio-host helper"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm jack:ports`'
