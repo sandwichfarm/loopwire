@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:55:19+02:00"
-last_activity: 2026-07-04 - Final release status now validates the release signing public key
+last_updated: "2026-07-04T22:08:34+02:00"
+last_activity: 2026-07-04 - Final release status now validates docs deployment manifest proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:status` now audits the release signing public key before accepting the
-remaining final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
-Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:status` now audits non-dry-run docs deployment manifest proof before
+accepting the remaining final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
+install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,19 @@ Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Docs deployment manifest status gate: `scripts/audit-final-release-state.sh` now accepts
+  `--docs-deployment-manifest` and `--docs-dist`, then verifies the manifest with
+  `scripts/verify-docs-deployment-manifest.mjs --expected-dry-run false --git-head <expected>` before accepting final
+  release status. `scripts/verify-scripts.sh` now generates a deterministic docs dist and non-dry-run manifest fixture
+  so release status proves the manifest gate can pass, while live status blocks when the default manifest artifact is
+  absent. Release docs and unreleased notes now describe docs deployment manifest proof as a release-status surface.
+  Validation passed: codebase-memory MCP `index_status` reported `home-sandwich-Develop-loopwire` ready with 3,251
+  nodes and 6,322 edges; `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
+  Live `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  9e48aea7d6000eee671950fdf070d7b5e4d80686` now reports `blocked: docs deployment manifest` because
+  `dist/docs-deployment/deployment-manifest.json` is absent, while still accepting Deploy Docs run `28717875224` for
+  the expected commit.
 - 2026-07-04 Release signing public-key status gate: `scripts/audit-final-release-state.sh` now validates that the
   configured release signing public key exists and parses before accepting final release status evidence, while
   `scripts/verify-scripts.sh` rejects an invalid public key and confirms a generated valid key is reported as parsed.

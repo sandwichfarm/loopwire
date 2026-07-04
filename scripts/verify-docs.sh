@@ -547,6 +547,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'names-only `--secr
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:handoff`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:status`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "parseable release signing public key"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "non-dry-run docs deployment manifest proof"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "smaller required-secret"
 assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
@@ -566,6 +567,9 @@ assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file releas
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"
+assert_contains "apps/docs/docs/developer/release.md" "docs deployment manifest"
+assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifest"
+assert_contains "apps/docs/docs/developer/release.md" "--docs-dist"
 assert_contains "apps/docs/docs/developer/release.md" "<docs-deployment-run-id>"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"

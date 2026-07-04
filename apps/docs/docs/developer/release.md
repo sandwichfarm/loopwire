@@ -191,14 +191,16 @@ pnpm release:status -- \
 ```
 
 The status command checks required GitHub secrets, the release signing public key, the GitHub Release object and
-required release assets, completed successful Deploy Docs and Final Release Proof workflow runs, published-release-bound
-VM evidence, support-matrix claims, and the local handoff plan. It exits nonzero until every final proof surface is
-present. Draft releases, prereleases, mismatched release tags, and releases missing canonical tarballs, signed checksums,
-release evidence, or VM evidence archives are blockers. Empty, failed, cancelled, or still-running workflow lists are
-release blockers, even when the GitHub API call itself succeeds. The workflow run `headSha` must match `--git-head`,
-which defaults to the current checkout when omitted, so a successful docs or proof run for an older commit cannot satisfy
-final status. Use `--secret-list-file release-secret-names.tsv` to replay a saved names-only secret audit, or `--skip-gh`
-when you only want local evidence checks.
+required release assets, completed successful Deploy Docs and Final Release Proof workflow runs, the docs deployment
+manifest, published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It exits nonzero until
+every final proof surface is present. Draft releases, prereleases, mismatched release tags, and releases missing
+canonical tarballs, signed checksums, release evidence, or VM evidence archives are blockers. Empty, failed, cancelled,
+or still-running workflow lists are release blockers, even when the GitHub API call itself succeeds. The workflow run
+`headSha` and docs deployment manifest source commit must match `--git-head`, which defaults to the current checkout
+when omitted, so a successful docs or proof run for an older commit cannot satisfy final status. The docs deployment
+manifest must be non-dry-run proof for the built docs dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
+downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
+saved names-only secret audit, or `--skip-gh` when you only want local evidence checks.
 
 Parse an existing release-readiness log without rerunning release checks:
 

@@ -6,6 +6,8 @@ tag=""
 expected_git_head=""
 public_key="packaging/release-signing-public.pem"
 secret_list_file=""
+docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-dist/docs-deployment/deployment-manifest.json}"
+docs_dist="${LOOPWIRE_DOCS_DIST:-apps/docs/docs/.vitepress/dist}"
 vm_evidence_root=".vm/evidence"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
 skip_gh="false"
@@ -21,6 +23,9 @@ Options:
   --public-key FILE           Release public key, default packaging/release-signing-public.pem
   --git-head SHA              Expected release/source commit, default current checkout HEAD
   --secret-list-file FILE     Names-only `gh secret list` artifact for deterministic secret checks
+  --docs-deployment-manifest FILE
+                              Docs deployment manifest, default dist/docs-deployment/deployment-manifest.json
+  --docs-dist DIR             Built docs dist directory, default apps/docs/docs/.vitepress/dist
   --vm-evidence-root DIR      VM evidence root, default .vm/evidence
   --support-matrix FILE       Support matrix path, default apps/docs/docs/guide/support-matrix.md
   --skip-gh                   Skip live GitHub release/workflow lookups
@@ -328,6 +333,14 @@ while [ "$#" -gt 0 ]; do
       secret_list_file="${2:?missing value for --secret-list-file}"
       shift 2
       ;;
+    --docs-deployment-manifest)
+      docs_deployment_manifest="${2:?missing value for --docs-deployment-manifest}"
+      shift 2
+      ;;
+    --docs-dist)
+      docs_dist="${2:?missing value for --docs-dist}"
+      shift 2
+      ;;
     --vm-evidence-root)
       vm_evidence_root="${2:?missing value for --vm-evidence-root}"
       shift 2
@@ -357,6 +370,8 @@ validate_tag
 reject_unsafe_value "$public_key" "public key"
 reject_unsafe_value "$expected_git_head" "git head"
 reject_unsafe_value "$secret_list_file" "secret-list file"
+reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest"
+reject_unsafe_value "$docs_dist" "docs dist"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
 reject_unsafe_value "$support_matrix" "support matrix"
 
@@ -392,6 +407,14 @@ run_workflow_probe \
   "$expected_git_head" \
   gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
+
+run_gate \
+  "docs deployment manifest" \
+  node scripts/verify-docs-deployment-manifest.mjs \
+    --manifest "$docs_deployment_manifest" \
+    --dist "$docs_dist" \
+    --git-head "$expected_git_head" \
+    --expected-dry-run false || failed=1
 
 run_workflow_probe \
   "latest Final Release Proof workflow run" \

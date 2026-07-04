@@ -268,6 +268,14 @@ printf '%s\n' "$release_status_help" | grep -F -- "--secret-list-file FILE" >/de
   echo "verify-scripts: release status help is missing secret-list artifact support" >&2
   exit 1
 }
+printf '%s\n' "$release_status_help" | grep -F -- "--docs-deployment-manifest FILE" >/dev/null || {
+  echo "verify-scripts: release status help is missing docs deployment manifest support" >&2
+  exit 1
+}
+printf '%s\n' "$release_status_help" | grep -F -- "--docs-dist DIR" >/dev/null || {
+  echo "verify-scripts: release status help is missing docs dist support" >&2
+  exit 1
+}
 printf '%s\n' "$release_status_help" | grep -F -- "--git-head SHA" >/dev/null || {
   echo "verify-scripts: release status help is missing expected git head support" >&2
   exit 1
@@ -3487,9 +3495,49 @@ printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secre
 release_status_private_key="$tmp_dir/release-status-private.pem"
 release_status_public_key="$tmp_dir/release-status-public.pem"
 release_status_bad_public_key="$tmp_dir/release-status-bad-public.pem"
+release_status_docs_dist="$tmp_dir/release-status-docs-dist"
+release_status_docs_manifest="$tmp_dir/release-status-docs-manifest.json"
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$release_status_private_key" >/dev/null 2>&1
 openssl pkey -in "$release_status_private_key" -pubout -out "$release_status_public_key" >/dev/null 2>&1
 printf '%s\n' "not a public key" >"$release_status_bad_public_key"
+mkdir -p "$release_status_docs_dist"
+printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$release_status_docs_dist/index.html"
+printf '%s\n' "#!/usr/bin/env bash" "echo install loopwire" >"$release_status_docs_dist/install.sh"
+node - "$release_status_docs_dist" "$release_status_docs_manifest" <<'NODE'
+const { createHash } = require("node:crypto");
+const { readdirSync, readFileSync, writeFileSync } = require("node:fs");
+const { join } = require("node:path");
+
+const [distDir, manifestPath] = process.argv.slice(2);
+const uploads = readdirSync(distDir)
+  .sort()
+  .map((relativePath) => {
+    const bytes = readFileSync(join(distDir, relativePath));
+    return {
+      relativePath,
+      remotePath: relativePath,
+      checksumSha256: createHash("sha256").update(bytes).digest("hex").toUpperCase()
+    };
+  });
+
+writeFileSync(manifestPath, `${JSON.stringify({
+  schema: "loopwire.docs-deployment.v1",
+  generatedAt: "2026-07-04T00:00:00.000Z",
+  dryRun: false,
+  distDir,
+  storage: {
+    zone: "loopwire-docs",
+    endpoint: "https://storage.bunnycdn.com",
+    remotePrefix: ""
+  },
+  source: {
+    gitHead: "0123456789abcdef0123456789abcdef01234567"
+  },
+  requiredFiles: ["index.html", "install.sh"],
+  fileCount: uploads.length,
+  uploads
+}, null, 2)}\n`);
+NODE
 release_status_bad_public_key_log="$tmp_dir/release-status-bad-public-key.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
@@ -3509,8 +3557,11 @@ release_status_log="$tmp_dir/release-status-blocked.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
   --public-key "$release_status_public_key" \
   --secret-list-file "$secret_list_release_key_only" \
+  --docs-deployment-manifest "$release_status_docs_manifest" \
+  --docs-dist "$release_status_docs_dist" \
   --skip-gh >"$release_status_log" 2>&1; then
   echo "verify-scripts: release status accepted missing final proof surfaces" >&2
   exit 1
@@ -3525,6 +3576,10 @@ grep -F "blocked: required GitHub secrets" "$release_status_log" >/dev/null || {
 }
 grep -F "ok: release signing public key parses: $release_status_public_key" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status did not report a valid release signing public key" >&2
+  exit 1
+}
+grep -F "Docs deployment manifest verified: $release_status_docs_manifest" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not verify the docs deployment manifest" >&2
   exit 1
 }
 grep -F "published-release-bound VM evidence" "$release_status_log" >/dev/null || {
