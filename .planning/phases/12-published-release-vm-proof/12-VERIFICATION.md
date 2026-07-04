@@ -2369,6 +2369,23 @@
   scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds.
+- `scripts/prepare-vm-evidence-release-asset.sh` and `pnpm vm:prepare-release-evidence` now turn collected VM evidence
+  into a signed release asset by rerunning the VM evidence packager, regenerating `SHA256SUMS`, signing the refreshed
+  manifest, verifying `loopwire-vm-evidence-<tag>.tar.gz` with `scripts/verify-release-asset-checksum.sh`, and printing
+  the exact `gh release upload --clobber` command for the archive plus manifest files.
+- `scripts/verify-final-release-proof.sh --dry-run` now runs that helper in dry-run mode, so final proof handoff plans
+  include the package, signed manifest refresh, signed-checksum verification, and upload command instead of only a raw
+  archive upload.
+- Focused validation passed: codebase-memory MCP `index_status` reported the graph ready before implementation, graph
+  search located the final proof, release checksum, VM evidence, and release docs surfaces, and `bash -n
+  scripts/prepare-vm-evidence-release-asset.sh scripts/verify-final-release-proof.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, direct helper and final proof dry-run smokes, `pnpm verify:scripts`, and `pnpm verify:docs`
+  passed. No VM launch, public release, Bunny deployment, secret write, tag push, host audio mutation, or support-matrix
+  promotion was performed.
+- Full validation passed: `pnpm check` passed after the change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds.
 
 ## Evidence Missing
 

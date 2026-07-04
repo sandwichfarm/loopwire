@@ -147,9 +147,10 @@ final release-evidence verification, every target-specific VM evidence verifier 
 support-matrix verification with installed-release smoke required for `Verified` rows, read-only DSP provider plan
 evidence, and the docs contract. Use `--dry-run` first to print the exact command plan without touching network,
 release assets, docs URLs, or VM evidence. Add `--plan-output dist/release/final-release-proof-plan.txt` to dry-run
-mode when you need a durable handoff artifact for release review or CI logs. The dry-run handoff also prints the VM
-evidence archive packaging command and the matching `gh release upload` command, so the operator can attach
-`loopwire-vm-evidence-<tag>.tar.gz` before running the manual final proof workflow.
+mode when you need a durable handoff artifact for release review or CI logs. The dry-run handoff also prints the
+`pnpm vm:prepare-release-evidence` command plan, including the VM evidence archive packaging step, signed
+`SHA256SUMS` refresh, signed-checksum verification, and matching `gh release upload --clobber` command, so the
+operator can attach `loopwire-vm-evidence-<tag>.tar.gz` before running the manual final proof workflow.
 
 The manual final release proof workflow defaults to `loopwire-release-evidence-<tag>.tar.gz` and
 `loopwire-vm-evidence-<tag>.tar.gz`. If custom asset inputs are supplied, they are validated with
@@ -336,8 +337,23 @@ pnpm vm:package-evidence -- \
 The packager re-runs `scripts/verify-vm-evidence.sh --require-published-release` for each selected target before
 writing `vm-evidence/<target>` entries into the archive. After writing, it validates the archive with
 `scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
-After attaching the archive, regenerate and re-sign `SHA256SUMS` so final proof can prove the VM evidence archive is a
-signed release asset before extraction.
+Prepare the archive as a signed release asset with the release private key:
+
+```bash
+pnpm vm:prepare-release-evidence -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir dist/release \
+  --private-key "$LOOPWIRE_RELEASE_PRIVATE_KEY_FILE" \
+  --public-key packaging/release-signing-public.pem \
+  --evidence-root .vm/evidence \
+  --all
+```
+
+The helper reruns the packager, regenerates and re-signs `SHA256SUMS`, verifies
+`loopwire-vm-evidence-<tag>.tar.gz` with `scripts/verify-release-asset-checksum.sh`, and prints the exact
+`gh release upload --clobber` command for the archive plus refreshed manifest files. Final proof can then prove the VM
+evidence archive is a signed release asset before extraction.
 
 This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
 release evidence archive, and VM evidence archive all exist.

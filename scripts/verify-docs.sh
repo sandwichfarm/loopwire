@@ -395,6 +395,8 @@ assert_contains "apps/docs/docs/developer/release.md" "to the current checkout c
 assert_contains "apps/docs/docs/developer/release.md" "verifies that `pnpm verify:docs-deployment` is present"
 assert_contains "apps/docs/docs/developer/release.md" 'verifies that `pnpm verify:final-release`'
 assert_contains "apps/docs/docs/developer/release.md" '`pnpm vm:package-evidence`'
+assert_contains "apps/docs/docs/developer/release.md" '`pnpm vm:prepare-release-evidence` command plan'
+assert_contains "apps/docs/docs/developer/release.md" '`gh release upload --clobber` command'
 assert_contains "apps/docs/docs/developer/release.md" "--skip-clean-git"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
@@ -494,12 +496,15 @@ assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
 assert_contains "apps/docs/docs/developer/release.md" "workflow_dispatch"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:package-evidence"
+assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:prepare-release-evidence"
+assert_contains "apps/docs/docs/developer/release.md" "scripts/verify-release-asset-checksum.sh"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:package-evidence"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "vm-evidence/<target>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'manual `Final Release Proof` workflow'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof dry-runs can now write"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--plan-output` file'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:package-evidence` command'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:prepare-release-evidence` command'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"

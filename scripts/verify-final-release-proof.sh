@@ -80,14 +80,6 @@ run_step() {
   "$@"
 }
 
-dry_run_handoff_step() {
-  local label="$1"
-  shift
-
-  [ "$dry_run" = "true" ] || return
-  emit_line "dry-run: ${label}: $(quote_command "$@")"
-}
-
 validate_release_tag() {
   local value="$1"
   local pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
@@ -313,15 +305,21 @@ run_step "release evidence" \
   --require-no-release-blockers \
   --require-clean-git
 
-dry_run_handoff_step "package VM evidence archive" \
-  bash scripts/package-vm-evidence.sh \
-  --tag "$tag" \
-  --evidence-root "$vm_evidence_root" \
-  --output "dist/release/loopwire-vm-evidence-${tag}.tar.gz" \
-  --all \
-  --require-published-release
-dry_run_handoff_step "upload VM evidence archive" \
-  gh release upload "$tag" "dist/release/loopwire-vm-evidence-${tag}.tar.gz" --repo "$repo"
+if [ "$dry_run" = "true" ]; then
+  while IFS= read -r line; do
+    emit_line "$line"
+  done < <(
+    bash scripts/prepare-vm-evidence-release-asset.sh \
+      --repo "$repo" \
+      --tag "$tag" \
+      --release-dir dist/release \
+      --private-key "\${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}" \
+      --public-key "$public_key" \
+      --evidence-root "$vm_evidence_root" \
+      --all \
+      --dry-run
+  )
+fi
 
 while IFS= read -r target; do
   [ -n "$target" ] || continue

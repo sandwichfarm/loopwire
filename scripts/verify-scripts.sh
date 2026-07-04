@@ -32,6 +32,7 @@ bash -n \
   scripts/extract-safe-tar.sh \
   scripts/collect-dsp-provider-plan.sh \
   scripts/package-vm-evidence.sh \
+  scripts/prepare-vm-evidence-release-asset.sh \
   scripts/verify-vm-evidence.sh \
   scripts/collect-vm-evidence.sh \
   scripts/collect-vm-evidence-ssh.sh \
@@ -72,6 +73,10 @@ if (root.scripts["verify:final-release"] !== "bash scripts/verify-final-release-
 }
 if (root.scripts["vm:package-evidence"] !== "bash scripts/package-vm-evidence.sh") {
   console.error("verify-scripts: root package is missing vm:package-evidence");
+  process.exit(1);
+}
+if (root.scripts["vm:prepare-release-evidence"] !== "bash scripts/prepare-vm-evidence-release-asset.sh") {
+  console.error("verify-scripts: root package is missing vm:prepare-release-evidence");
   process.exit(1);
 }
 if (audioHost.bin?.["loopwire-jack-ports"] !== "./dist/jack-ports-cli.js") {
@@ -243,8 +248,8 @@ grep -F "dry-run: package VM evidence archive:" "$final_release_plan_output" >/d
   echo "verify-scripts: final release plan output is missing VM evidence archive packaging" >&2
   exit 1
 }
-grep -F "dry-run: upload VM evidence archive:" "$final_release_plan_output" >/dev/null || {
-  echo "verify-scripts: final release plan output is missing VM evidence archive upload" >&2
+grep -F "dry-run: upload VM evidence release assets:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing VM evidence release asset upload" >&2
   exit 1
 }
 grep -F "Final release proof dry-run complete." "$final_release_plan_output" >/dev/null || {
@@ -938,6 +943,38 @@ printf '%s\n' "$package_vm_evidence_help" | grep -F -- "--require-published-rele
 }
 printf '%s\n' "$package_vm_evidence_help" | grep -F -- "vm-evidence/<target>" >/dev/null || {
   echo "verify-scripts: VM evidence packager help is missing archive layout" >&2
+  exit 1
+}
+prepare_vm_release_help="$(bash scripts/prepare-vm-evidence-release-asset.sh --help)"
+printf '%s\n' "$prepare_vm_release_help" | grep -F -- "regenerates SHA256SUMS" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper help is missing manifest refresh behavior" >&2
+  exit 1
+}
+printf '%s\n' "$prepare_vm_release_help" | grep -F -- "gh release upload --clobber" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper help is missing upload handoff behavior" >&2
+  exit 1
+}
+prepare_vm_release_dry_run="$(
+  bash scripts/prepare-vm-evidence-release-asset.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --release-dir dist/release \
+    --private-key '${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}' \
+    --public-key packaging/release-signing-public.pem \
+    --evidence-root .vm/evidence \
+    --all \
+    --dry-run
+)"
+printf '%s\n' "$prepare_vm_release_dry_run" | grep -F -- "dry-run: package VM evidence archive:" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper dry-run is missing package step" >&2
+  exit 1
+}
+printf '%s\n' "$prepare_vm_release_dry_run" | grep -F -- "dry-run: refresh signed release manifest:" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper dry-run is missing manifest refresh step" >&2
+  exit 1
+}
+printf '%s\n' "$prepare_vm_release_dry_run" | grep -F -- "dry-run: upload VM evidence release assets:" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper dry-run is missing upload step" >&2
   exit 1
 }
 single_ssh_plan="$(
@@ -3739,6 +3776,33 @@ tar -tzf "$vm_evidence_archive" "vm-evidence/arch-hyprland-pipewire/command-resu
   echo "verify-scripts: VM evidence packager archive is missing target command ledger" >&2
   exit 1
 }
+vm_release_dir="$tmp_dir/vm-evidence-release-dir"
+mkdir -p "$vm_release_dir"
+printf '%s\n' "fake release payload" >"$vm_release_dir/loopwire-linux-x86_64.tar.gz"
+refresh_published_release_manifest "$vm_release_dir" "$private_key_file"
+vm_release_prepare_output="$(
+  bash scripts/prepare-vm-evidence-release-asset.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --release-dir "$vm_release_dir" \
+    --private-key "$private_key_file" \
+    --public-key "$public_key_file" \
+    --evidence-root "$status_root" \
+    --target arch-hyprland-pipewire
+)"
+printf '%s\n' "$vm_release_prepare_output" | grep -F "Prepared signed VM evidence release asset:" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper did not report prepared asset" >&2
+  exit 1
+}
+printf '%s\n' "$vm_release_prepare_output" | grep -F "gh release upload v0.1.0" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper did not print upload command" >&2
+  exit 1
+}
+bash scripts/verify-release-asset-checksum.sh \
+  --release-dir "$vm_release_dir" \
+  --asset loopwire-vm-evidence-v0.1.0.tar.gz \
+  --public-key "$public_key_file" \
+  --label "VM evidence archive" >/dev/null
 unsafe_vm_evidence_root="$tmp_dir/unsafe-vm-evidence-root"
 mkdir -p "$unsafe_vm_evidence_root"
 cp -R "$evidence_dir" "$unsafe_vm_evidence_root/arch-hyprland-pipewire"

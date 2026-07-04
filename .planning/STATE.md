@@ -2164,3 +2164,19 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
   packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
   core, audio-host, and desktop builds.
+- 2026-07-04 VM evidence signed-release asset preparation: `scripts/prepare-vm-evidence-release-asset.sh` and
+  `pnpm vm:prepare-release-evidence` now package verified VM evidence into `dist/release`, regenerate and sign the
+  release `SHA256SUMS`, verify `loopwire-vm-evidence-<tag>.tar.gz` with the signed-checksum verifier, and print the
+  exact `gh release upload --clobber` command for the archive plus refreshed manifest files. Final proof dry-runs now
+  execute that helper in dry-run mode so handoff plans include packaging, signed manifest refresh, and upload steps
+  instead of a raw tarball upload.
+- 2026-07-04 VM evidence signed-release asset validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready before implementation, and graph search located the final proof, release
+  checksum, VM evidence, and release docs surfaces. `bash -n scripts/prepare-vm-evidence-release-asset.sh
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct helper and final
+  proof dry-run smokes, `pnpm verify:scripts`, and `pnpm verify:docs` passed. No VM launch, public release, Bunny
+  deployment, secret write, tag push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 VM evidence signed-release asset full validation: full `pnpm check` passed after the change, including
+  requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
+  packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
+  core, audio-host, and desktop builds.

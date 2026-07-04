@@ -67,7 +67,8 @@
     "vm:render-cloud-init": "bash scripts/vm-matrix.sh render-cloud-init",
     "vm:collect-ssh": "bash scripts/collect-vm-evidence-ssh.sh",
     "vm:collect-matrix": "bash scripts/collect-vm-matrix-evidence.sh",
-    "vm:package-evidence": "bash scripts/package-vm-evidence.sh"
+    "vm:package-evidence": "bash scripts/package-vm-evidence.sh",
+    "vm:prepare-release-evidence": "bash scripts/prepare-vm-evidence-release-asset.sh"
   },
   "devDependencies": {
     "@types/node": "26.1.0",
