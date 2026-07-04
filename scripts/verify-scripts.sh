@@ -2912,6 +2912,11 @@ case "$1 ${2:-}" in
       printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
       exit 0
     fi
+    if [ "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" = "missing-release-key" ]; then
+      printf '%s\t%s\n' "BUNNY_STORAGE_ZONE" "2026-07-04T00:00:00Z"
+      printf '%s\t%s\n' "BUNNY_ACCESS_KEY" "2026-07-04T00:00:00Z"
+      exit 0
+    fi
     printf '%s\t%s\n' "BUNNY_STORAGE_ZONE" "2026-07-04T00:00:00Z"
     printf '%s\t%s\n' "BUNNY_ACCESS_KEY" "2026-07-04T00:00:00Z"
     printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
@@ -2981,10 +2986,29 @@ grep -F "next: set Bunny.net deployment secrets without printing values" "$secre
   echo "verify-scripts: GitHub secret check did not print Bunny next step" >&2
   exit 1
 }
-grep -F "next: set release signing secret from a local private key" "$secret_missing_required_log" >/dev/null || {
+if grep -F "next: set release signing secret from a local private key" "$secret_missing_required_log" >/dev/null; then
+  echo "verify-scripts: GitHub secret check printed release key next step when only Bunny secrets were missing" >&2
+  exit 1
+fi
+secret_missing_release_log="$tmp_dir/setup-github-secrets-missing-release.log"
+if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-release-key \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check >"$secret_missing_release_log" 2>&1; then
+  echo "verify-scripts: GitHub secret check accepted missing release signing secret" >&2
+  exit 1
+fi
+grep -F "missing: GitHub secret: LOOPWIRE_RELEASE_PRIVATE_KEY" "$secret_missing_release_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not report missing release signing secret" >&2
+  exit 1
+}
+grep -F "next: set release signing secret from a local private key" "$secret_missing_release_log" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not print release key next step" >&2
   exit 1
 }
+if grep -F "next: set Bunny.net deployment secrets without printing values" "$secret_missing_release_log" >/dev/null; then
+  echo "verify-scripts: GitHub secret check printed Bunny next step when only release key was missing" >&2
+  exit 1
+fi
 secret_check_failure_log="$tmp_dir/setup-github-secrets-check-failure.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
   PATH="$fake_gh_dir:$PATH" \

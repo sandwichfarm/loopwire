@@ -767,8 +767,11 @@ mod tests {
     use std::{
         fs,
         path::{Path, PathBuf},
+        sync::atomic::{AtomicU64, Ordering},
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    static TEMP_DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     #[test]
     fn allows_expected_audio_probe_commands() {
@@ -1132,11 +1135,15 @@ mod tests {
     }
 
     fn unique_temp_dir() -> PathBuf {
-        let suffix = SystemTime::now()
+        let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("system clock")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("loopwire-startup-test-{suffix}"));
+        let sequence = TEMP_DIR_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "loopwire-startup-test-{}-{sequence}-{timestamp}",
+            std::process::id()
+        ));
         fs::create_dir_all(&path).expect("create temp dir");
         path
     }

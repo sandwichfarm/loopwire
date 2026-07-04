@@ -186,6 +186,8 @@ These notes describe source-tree progress. They are not a public release announc
   `--body-file` flag while keeping secret values out of command arguments and logs.
 - The GitHub secret helper check now prints no-value next steps when required release/docs secrets are missing and
   explains when the docs workflow can upload to Bunny.net but will skip live-docs smoke.
+- The GitHub secret helper check now scopes missing-secret next steps to the actual missing class, so a repository that
+  already has `LOOPWIRE_RELEASE_PRIVATE_KEY` but lacks Bunny.net secrets no longer gets release-key reset guidance.
 - The Bunny.net docs deploy helper now fails closed when the built dist omits `index.html` or the public `install.sh`,
   and rejects unsafe remote-prefix path segments before upload planning.
 - The docs deployment workflow now runs a live pull-zone smoke with `scripts/verify-docs-live.sh` when

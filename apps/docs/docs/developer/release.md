@@ -400,8 +400,10 @@ key, parses the public key, derives the public key from the private key, and fai
 does not match. If the GitHub CLI cannot read repository secret names, `--check` and the release readiness preflight
 fail with the underlying `gh secret list` error instead of reporting those secrets as missing.
 When required secrets are missing, `--check` prints next-step commands with placeholders rather than values. If
-`BUNNY_PULL_ZONE_HOSTNAME` is absent, `--check` also explains that the docs workflow can still upload to Bunny.net but
-will skip the post-upload live docs smoke.
+only Bunny.net secrets are missing, it prints only the Bunny secret setup command; if only
+`LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. If `BUNNY_PULL_ZONE_HOSTNAME` is
+absent, `--check` also explains that the docs workflow can still upload to Bunny.net but will skip the post-upload live
+docs smoke.
 The helper rejects Bunny values that would fail deployment: storage zones cannot contain slashes, storage endpoints
 cannot contain newlines, pull-zone hostnames must be hostnames rather than URLs or paths, and remote prefixes cannot
 contain `.` or `..` path segments.

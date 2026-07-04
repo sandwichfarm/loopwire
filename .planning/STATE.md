@@ -2194,3 +2194,18 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
   packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
   core, audio-host, and desktop builds.
+- 2026-07-04 scoped GitHub secret guidance: `scripts/setup-github-secrets.sh --check` now prints only the next-step
+  command for the missing secret class. The current live repository has `LOOPWIRE_RELEASE_PRIVATE_KEY` but lacks
+  `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`, so the check now prints only the Bunny.net setup command instead of
+  also telling the operator to reset the release signing key.
+- 2026-07-04 scoped GitHub secret validation: live `setup-github-secrets.sh --check` against `sandwichfarm/loopwire`
+  reported missing Bunny secrets, present `LOOPWIRE_RELEASE_PRIVATE_KEY`, and only the Bunny setup next step.
+  `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  and `pnpm verify:docs` passed. No secret write, Bunny deployment, tag push, public release, VM launch, host audio
+  mutation, or support-matrix promotion was performed.
+- 2026-07-04 scoped GitHub secret full validation and Tauri test stability: full `pnpm check` initially exposed a
+  parallel Rust test race in the packaged background launcher preflight tests. The Tauri startup tests now use temp
+  directories with process id, atomic counter, and timestamp suffixes instead of timestamp-only names. `pnpm
+  verify:tauri` and full `pnpm check` then passed, including requirements verification, scripts/workflows/runtime/Tauri
+  verification, install and release-artifact smokes, packaging metadata smoke, VM target/cloud-init validation, docs
+  contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop builds.

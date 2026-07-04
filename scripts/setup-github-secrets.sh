@@ -152,6 +152,8 @@ resolve_repo() {
 
 check_secret_presence() {
   local docs_live_smoke_ready="false"
+  local missing_bunny="false"
+  local missing_release_key="false"
 
   if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
     echo "unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
@@ -167,6 +169,14 @@ check_secret_presence() {
     else
       echo "missing: GitHub secret: $secret" >&2
       missing=1
+      case "$secret" in
+        BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
+          missing_bunny="true"
+          ;;
+        LOOPWIRE_RELEASE_PRIVATE_KEY)
+          missing_release_key="true"
+          ;;
+      esac
     fi
   done
 
@@ -191,14 +201,20 @@ check_secret_presence() {
   fi
 
   if [ "$missing" -ne 0 ]; then
-    cat >&2 <<EOF
+    if [ "$missing_bunny" = "true" ]; then
+      cat >&2 <<EOF
 next: set Bunny.net deployment secrets without printing values:
   bash scripts/setup-github-secrets.sh --repo ${repo} --storage-zone <zone> --access-key <key>
+EOF
+    fi
+    if [ "$missing_release_key" = "true" ]; then
+      cat >&2 <<EOF
 next: set release signing secret from a local private key:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --release-private-key-file <private-key> \\
     --release-public-key-file packaging/release-signing-public.pem
 EOF
+    fi
     exit 1
   fi
 

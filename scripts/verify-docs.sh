@@ -402,7 +402,9 @@ assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
 assert_contains "apps/docs/docs/developer/release.md" 'underlying `gh secret list` error'
 assert_contains "apps/docs/docs/developer/release.md" "prints next-step commands with placeholders"
-assert_contains "apps/docs/docs/developer/release.md" "will skip the post-upload live docs smoke"
+assert_contains "apps/docs/docs/developer/release.md" "only Bunny.net secrets are missing"
+assert_contains "apps/docs/docs/developer/release.md" "it prints only the release signing command"
+assert_contains "apps/docs/docs/developer/release.md" "post-upload live"
 assert_contains "apps/docs/docs/developer/release.md" 'storage-zone password in the `AccessKey` header'
 assert_contains "apps/docs/docs/developer/architecture.md" "pw-cli create-node adapter"
 assert_contains "apps/docs/docs/developer/architecture.md" "minimize, maximize/restore"
@@ -512,6 +514,7 @@ assert_contains "apps/docs/docs/developer/release.md" "contains the project rele
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
 assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "no longer gets release-key reset guidance"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'Bunny.net docs deployment requires `BUNNY_STORAGE_ZONE`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop JACK live-apply preflight"

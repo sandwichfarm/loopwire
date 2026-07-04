@@ -2401,6 +2401,20 @@
   scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds.
+- `scripts/setup-github-secrets.sh --check` now tracks missing Bunny deployment secrets separately from the release
+  signing secret. When only Bunny secrets are missing, it prints only the Bunny setup command; when only
+  `LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release key setup command.
+- Focused validation passed: live `setup-github-secrets.sh --check` against `sandwichfarm/loopwire` reported missing
+  `BUNNY_STORAGE_ZONE`/`BUNNY_ACCESS_KEY`, present `LOOPWIRE_RELEASE_PRIVATE_KEY`, and only the Bunny setup next step.
+  `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  and `pnpm verify:docs` passed. No secret write, Bunny deployment, tag push, public release, VM launch, host audio
+  mutation, or support-matrix promotion was performed.
+- Full validation initially found a parallel Rust test race in the packaged background launcher preflight tests. The
+  Tauri startup test temp directories now include the process id, an atomic counter, and timestamp suffix so parallel
+  tests cannot collide. `pnpm verify:tauri` and full `pnpm check` then passed, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds.
 
 ## Evidence Missing
 
