@@ -214,6 +214,8 @@ These notes describe source-tree progress. They are not a public release announc
   explains when the docs workflow can upload to Bunny.net but will skip live-docs smoke.
 - The GitHub secret helper check now scopes missing-secret next steps to the actual missing class, so a repository that
   already has `LOOPWIRE_RELEASE_PRIVATE_KEY` but lacks Bunny.net secrets no longer gets release-key reset guidance.
+- The GitHub secret helper check is now split into smaller required-secret, optional-secret, missing-class, and
+  next-step helpers while preserving the same no-value check output.
 - Release readiness now prints no-value next steps for missing Bunny secrets and missing release tags, including the
   guarded `git tag -a <tag>` and `git push origin <tag>` commands only after required secrets are configured.
 - Release readiness and the GitHub secret helper now require `BUNNY_PULL_ZONE_HOSTNAME` for final proof, because the

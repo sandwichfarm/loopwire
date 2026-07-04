@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:48:32+02:00"
-last_activity: 2026-07-04 - Release readiness rejects candidate-gated v0.1.0 notes by default
+last_updated: "2026-07-04T20:54:27+02:00"
+last_activity: 2026-07-04 - GitHub secrets helper check-mode logic is split into smaller helpers
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Release readiness now rejects the candidate-gated v0.1.0 release notes by default, while
-offline wiring audits can opt into `--allow-candidate-notes` explicitly. Phase 12 remains gated on a public release,
-configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
-evidence.
+Last activity: 2026-07-04 - The GitHub secrets helper check-mode path now splits required-secret selection,
+optional-secret reporting, missing-secret classification, and no-value next-step guidance into smaller helpers while
+preserving the same checked output. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
+deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ evidence.
 
 ## Verification Log
 
+- 2026-07-04 GitHub secrets helper maintainability: `scripts/setup-github-secrets.sh --check` now delegates required
+  secret selection, presence checks, optional secret reporting, missing-secret classification, and no-value guidance to
+  smaller helpers while preserving the existing deploy/final scope behavior. This keeps the requested GitHub secrets
+  helper easier to maintain as Phase 12 release proof evolves. Validation passed: codebase-memory MCP `index_status`
+  reported `home-sandwich-Develop-loopwire` ready with 3,182 nodes and 6,181 edges, and `search_graph` identified
+  `check_secret_presence` as the target helper; behavior was locked before editing with `pnpm verify:scripts`; after
+  the refactor, `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 Candidate-gated release-note readiness: the v0.1.0 release notes now restore the explicit
   candidate-gated disclaimer, and `verify-release-readiness.sh` rejects that wording unless
   `--allow-candidate-notes` is provided. `verify-scripts.sh` keeps positive offline wiring probes on the explicit

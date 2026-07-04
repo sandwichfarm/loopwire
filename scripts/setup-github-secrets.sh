@@ -169,16 +169,104 @@ resolve_repo() {
   fi
 }
 
+required_secrets_for_scope() {
+  if [ "$scope" = "final" ]; then
+    printf '%s\n' "BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY"
+    return
+  fi
+
+  printf '%s\n' "BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY"
+}
+
+has_secret() {
+  secret_name="$1"
+  printf '%s\n' "$secret_names" | grep -Fxq "$secret_name"
+}
+
+classify_missing_secret() {
+  secret_name="$1"
+
+  case "$secret_name" in
+    BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
+      missing_bunny="true"
+      ;;
+    BUNNY_PULL_ZONE_HOSTNAME)
+      missing_docs_live="true"
+      ;;
+    LOOPWIRE_RELEASE_PRIVATE_KEY)
+      missing_release_key="true"
+      ;;
+  esac
+}
+
+report_required_secret() {
+  secret_name="$1"
+
+  if has_secret "$secret_name"; then
+    echo "ok: GitHub secret present: $secret_name"
+    if [ "$secret_name" = "BUNNY_PULL_ZONE_HOSTNAME" ]; then
+      docs_live_smoke_ready="true"
+    fi
+    return
+  fi
+
+  echo "missing: GitHub secret: $secret_name" >&2
+  missing=1
+  classify_missing_secret "$secret_name"
+}
+
+report_optional_secret() {
+  secret_name="$1"
+  ready_flag="${2:-false}"
+
+  if has_secret "$secret_name"; then
+    echo "ok: optional GitHub secret present: $secret_name"
+    if [ "$ready_flag" = "docs-live-smoke" ]; then
+      docs_live_smoke_ready="true"
+    fi
+  else
+    echo "optional: GitHub secret not set: $secret_name"
+  fi
+}
+
+print_missing_secret_next_steps() {
+  if [ "$missing_bunny" = "true" ]; then
+    if [ "$scope" = "deploy" ]; then
+      cat >&2 <<EOF
+next: set Bunny.net deployment secrets without printing values:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --storage-zone <zone> --access-key <key>
+EOF
+    else
+      cat >&2 <<EOF
+next: set Bunny.net deployment secrets without printing values:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
+EOF
+    fi
+  fi
+  if [ "$missing_bunny" != "true" ] && [ "$missing_docs_live" = "true" ]; then
+    cat >&2 <<EOF
+next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
+EOF
+  fi
+  if [ "$missing_release_key" = "true" ]; then
+    cat >&2 <<EOF
+next: set release signing secret from a local private key:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --release-private-key-file <private-key> \\
+    --release-public-key-file packaging/release-signing-public.pem
+EOF
+  fi
+}
+
 check_secret_presence() {
   local docs_live_smoke_ready="false"
   local missing_bunny="false"
   local missing_docs_live="false"
   local missing_release_key="false"
-  local required_secrets="BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY"
-
-  if [ "$scope" = "final" ]; then
-    required_secrets="${required_secrets} BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY"
-  fi
+  local required_secrets
 
   if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
     echo "unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
@@ -187,81 +275,21 @@ check_secret_presence() {
 
   secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
   missing=0
+  required_secrets="$(required_secrets_for_scope)"
 
   for secret in $required_secrets; do
-    if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
-      echo "ok: GitHub secret present: $secret"
-      if [ "$secret" = "BUNNY_PULL_ZONE_HOSTNAME" ]; then
-        docs_live_smoke_ready="true"
-      fi
-    else
-      echo "missing: GitHub secret: $secret" >&2
-      missing=1
-      case "$secret" in
-        BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
-          missing_bunny="true"
-          ;;
-        BUNNY_PULL_ZONE_HOSTNAME)
-          missing_docs_live="true"
-          ;;
-        LOOPWIRE_RELEASE_PRIVATE_KEY)
-          missing_release_key="true"
-          ;;
-      esac
-    fi
+    report_required_secret "$secret"
   done
 
   if [ "$scope" = "deploy" ]; then
-    if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_PULL_ZONE_HOSTNAME; then
-      echo "ok: optional GitHub secret present: BUNNY_PULL_ZONE_HOSTNAME"
-      docs_live_smoke_ready="true"
-    else
-      echo "optional: GitHub secret not set: BUNNY_PULL_ZONE_HOSTNAME"
-    fi
+    report_optional_secret "BUNNY_PULL_ZONE_HOSTNAME" "docs-live-smoke"
   fi
 
-  if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_STORAGE_ENDPOINT; then
-    echo "ok: optional GitHub secret present: BUNNY_STORAGE_ENDPOINT"
-  else
-    echo "optional: GitHub secret not set: BUNNY_STORAGE_ENDPOINT"
-  fi
-
-  if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_REMOTE_PREFIX; then
-    echo "ok: optional GitHub secret present: BUNNY_REMOTE_PREFIX"
-  else
-    echo "optional: GitHub secret not set: BUNNY_REMOTE_PREFIX"
-  fi
+  report_optional_secret "BUNNY_STORAGE_ENDPOINT"
+  report_optional_secret "BUNNY_REMOTE_PREFIX"
 
   if [ "$missing" -ne 0 ]; then
-    if [ "$missing_bunny" = "true" ]; then
-      if [ "$scope" = "deploy" ]; then
-        cat >&2 <<EOF
-next: set Bunny.net deployment secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
-    --storage-zone <zone> --access-key <key>
-EOF
-      else
-        cat >&2 <<EOF
-next: set Bunny.net deployment secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
-    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
-EOF
-      fi
-    fi
-    if [ "$missing_bunny" != "true" ] && [ "$missing_docs_live" = "true" ]; then
-      cat >&2 <<EOF
-next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
-  bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
-EOF
-    fi
-    if [ "$missing_release_key" = "true" ]; then
-      cat >&2 <<EOF
-next: set release signing secret from a local private key:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
-    --release-private-key-file <private-key> \\
-    --release-public-key-file packaging/release-signing-public.pem
-EOF
-    fi
+    print_missing_secret_next_steps
     exit 1
   fi
 

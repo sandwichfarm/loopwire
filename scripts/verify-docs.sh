@@ -542,6 +542,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the relea
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret set` stdin contract'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints no-value next steps"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-docs smoke"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "smaller required-secret"
 assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
 assert_contains "apps/docs/docs/developer/release.md" "workflow_dispatch"
