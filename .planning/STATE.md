@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:22:45+02:00"
-last_activity: 2026-07-04 - Landing-page hero now surfaces release-gated curl install instructions
+last_updated: "2026-07-04T20:29:40+02:00"
+last_activity: 2026-07-04 - Hidden monitors now move into a recoverable tray
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - The VitePress landing-page hero now includes both current source install instructions and
-release-gated curl installer instructions for `/install.sh`, plus a background-restore preview command and explicit
-candidate gating copy. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
-proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Desktop hidden monitors now leave the main monitor grid and move into a compact recovery
+tray with `Show` actions, preserving each monitor and its host sink binding without keeping hidden devices visually
+present. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
+QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Recoverable hidden monitor tray: the desktop now groups monitors by visibility, renders only visible
+  monitors in the main monitor grid, and lists hidden monitors in a compact recovery tray with per-monitor `Show`
+  actions. The core hidden-monitor persistence contract is unchanged; the new desktop helper is covered by focused
+  tests that prove hidden monitors leave the visible group and remain scoped to the active configuration. Validation
+  passed: codebase-memory MCP listed `home-sandwich-Develop-loopwire` ready with 3,157 nodes and 6,135 edges, and
+  `search_graph`/`trace_path` showed hidden monitor primitives existed in core but needed desktop recovery polish;
+  `pnpm --filter @loopwire/desktop test -- monitor-visibility.test.ts`, `pnpm --filter @loopwire/desktop typecheck`,
+  `pnpm --filter @loopwire/desktop build`, `pnpm verify:docs`, `git diff --check`, Chromium desktop render smoke, and
+  `pnpm check` passed.
 - 2026-07-04 Landing-page curl installer hero: the public VitePress first viewport now shows current source install,
   release-gated `curl ... /install.sh | sh`, and `loopwire --background --mode preview` instructions without claiming
   public release availability before signed artifacts, Bunny deploy, and VM proof exist. The hero install cards now wrap

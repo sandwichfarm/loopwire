@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { describeBackendChoiceCallout } from "./backend-choice";
+  import { groupMonitorsByVisibility } from "./monitor-visibility";
   import {
     describeConfigurationSwitchPreflight,
     describeLiveApplyPreflight,
@@ -47,7 +48,6 @@
     duplicateConfiguration,
     exportConfiguration,
     getActiveConfiguration,
-    getVisibleMonitors,
     importConfiguration,
     isMonitorHidden,
     removeInputSourceFromConfiguration,
@@ -297,8 +297,10 @@
   });
 
   $: activeConfiguration = getActiveConfiguration(state);
-  $: visibleMonitors = getVisibleMonitors(state, activeConfiguration);
-  $: hiddenMonitorCount = activeConfiguration.monitors.length - visibleMonitors.length;
+  $: monitorVisibilityGroups = groupMonitorsByVisibility(state, activeConfiguration);
+  $: visibleMonitors = monitorVisibilityGroups.visible;
+  $: hiddenMonitors = monitorVisibilityGroups.hidden;
+  $: hiddenMonitorCount = hiddenMonitors.length;
   $: backendDecision = selectBackend(backendCandidates, state.selectedBackend);
   $: selectedBackend = state.selectedBackend ?? "";
   $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
@@ -2331,12 +2333,12 @@
         <p class="monitor-target-note">{monitorTargetNote}</p>
 
         <div class="monitor-grid">
-          {#each activeConfiguration.monitors as monitor}
-            <article class:hidden={isMonitorHidden(state, activeConfiguration, monitor.id)}>
+          {#each visibleMonitors as monitor}
+            <article>
               <div class="monitor-card-top">
                 <button type="button" class="monitor-toggle" on:click={() => toggleMonitor(monitor.id)}>
                   <span>{monitor.label}</span>
-                  <small>{isMonitorHidden(state, activeConfiguration, monitor.id) ? "Hidden" : "Visible"}</small>
+                  <small>Visible</small>
                 </button>
                 <button
                   type="button"
@@ -2375,6 +2377,23 @@
             </article>
           {/each}
         </div>
+
+        {#if hiddenMonitors.length > 0}
+          <div class="hidden-monitor-tray" aria-label="Hidden monitors">
+            <div>
+              <strong>{hiddenMonitors.length} hidden monitor{hiddenMonitors.length === 1 ? "" : "s"}</strong>
+              <small>Hidden monitors stay saved in this configuration and can be restored without re-adding them.</small>
+            </div>
+            <div class="hidden-monitor-actions">
+              {#each hiddenMonitors as monitor}
+                <button type="button" on:click={() => toggleMonitor(monitor.id)}>
+                  <span>{monitor.label}</span>
+                  <small>Show</small>
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </section>
     </section>
   </section>
@@ -3554,11 +3573,6 @@
     border-radius: 8px;
   }
 
-  .monitor-grid article.hidden {
-    color: #6d665b;
-    background: rgba(28, 27, 24, 0.52);
-  }
-
   .monitor-card-top {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3606,6 +3620,57 @@
     color: #9f9789;
     line-height: 1.35;
     text-transform: none;
+  }
+
+  .hidden-monitor-tray {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    color: #d8d0bf;
+    background: rgba(16, 17, 19, 0.68);
+    border: 1px dashed rgba(244, 239, 226, 0.22);
+    border-radius: 8px;
+  }
+
+  .hidden-monitor-tray strong,
+  .hidden-monitor-tray small,
+  .hidden-monitor-actions span,
+  .hidden-monitor-actions small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hidden-monitor-tray strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #f4efe2;
+  }
+
+  .hidden-monitor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .hidden-monitor-actions button {
+    display: grid;
+    gap: 2px;
+    min-width: 92px;
+    padding: 8px 10px;
+    color: #101113;
+    text-align: left;
+    background: #c9f05a;
+    border: 0;
+    border-radius: 8px;
+  }
+
+  .hidden-monitor-actions small {
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   @media (max-width: 860px) {
@@ -3666,6 +3731,18 @@
     .backend-choice-callout span {
       max-width: none;
       text-align: left;
+    }
+
+    .hidden-monitor-tray {
+      grid-template-columns: 1fr;
+    }
+
+    .hidden-monitor-actions {
+      justify-content: stretch;
+    }
+
+    .hidden-monitor-actions button {
+      flex: 1 1 120px;
     }
 
     .cables {

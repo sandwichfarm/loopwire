@@ -142,6 +142,8 @@ These notes describe source-tree progress. They are not a public release announc
   tokens that are not listed by backend enumeration.
 - Monitor visibility is now scoped per configuration, so hiding a monitor in one workspace does not hide same-id
   monitors in other workspaces.
+- Hidden monitor cards now move into a compact recovery tray with `Show` actions instead of staying dimmed in the main
+  monitor grid.
 - Desktop custom chrome now persists as a preference and requests an undecorated Tauri window before showing
   Loopwire-owned drag, minimize, maximize/restore, and close controls.
 - Desktop sidebar start-on-boot control for XDG autostart status, enable, and disable, plus CLI helper fallback.
