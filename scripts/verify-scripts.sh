@@ -163,6 +163,10 @@ printf '%s\n' "$verify_final_release_help" | grep -F -- "--support-matrix FILE" 
   echo "verify-scripts: final release verifier help is missing support matrix path support" >&2
   exit 1
 }
+printf '%s\n' "$verify_final_release_help" | grep -F -- "--plan-output FILE" >/dev/null || {
+  echo "verify-scripts: final release verifier help is missing dry-run plan output support" >&2
+  exit 1
+}
 final_release_dry_run="$(
   bash scripts/verify-final-release-proof.sh \
     --repo sandwichfarm/loopwire \
@@ -176,6 +180,32 @@ final_release_dry_run="$(
     --support-matrix apps/docs/docs/guide/support-matrix.md \
     --dry-run
 )"
+final_release_plan_output="$(mktemp)"
+bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-hostname docs.example.test \
+  --docs-remote-prefix preview \
+  --vm-evidence-root .vm/evidence \
+  --support-matrix apps/docs/docs/guide/support-matrix.md \
+  --dry-run \
+  --plan-output "$final_release_plan_output" >/dev/null
+grep -F "dry-run: release evidence:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing release evidence command" >&2
+  exit 1
+}
+grep -F "dry-run: VM evidence arch-hyprland-pipewire:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing VM evidence command" >&2
+  exit 1
+}
+grep -F "Final release proof dry-run complete." "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output did not complete" >&2
+  exit 1
+}
+rm -f "$final_release_plan_output"
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-published-release.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing published-release verification" >&2
   exit 1
@@ -265,6 +295,17 @@ if bash scripts/verify-final-release-proof.sh \
   --docs-base-url https://docs.example.test \
   --dry-run >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted an invalid git head" >&2
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-base-url https://docs.example.test \
+  --plan-output /tmp/loopwire-final-proof-plan.txt >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted plan output without dry-run" >&2
   exit 1
 fi
 printf '%s\n' "$release_readiness_help" | grep -F -- "--skip-clean-git" >/dev/null || {

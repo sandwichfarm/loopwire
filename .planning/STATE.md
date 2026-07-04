@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T14:30:09+02:00"
-last_activity: 2026-07-04 - release readiness checks final proof and VM evidence wiring
+last_updated: "2026-07-04T14:37:11+02:00"
+last_activity: 2026-07-04 - final release proof dry-run writes command plan artifacts
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-release-readiness.sh` now checks that the final release proof verifier,
-VM evidence packager, package scripts, and manual final proof workflow are present and wired before a release can be
-treated as ready. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
-host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-final-release-proof.sh --dry-run --plan-output FILE` now writes the exact
+final proof command plan to a durable handoff artifact without touching network, release assets, docs URLs, or VM
+evidence. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
+QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -2008,3 +2008,20 @@ host QEMU/Nix tooling, and operator-run VM evidence.
   `gsd-sdk query init.phase-op 12 --format json` passed. Codebase-memory MCP fast reindex wrote a persistent artifact
   and `index_status` reported ready with 2,534 nodes and 5,387 edges. `pnpm detect:audio` reported PipeWire,
   PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
+- 2026-07-04 final proof command-plan artifact: `scripts/verify-final-release-proof.sh --dry-run` now accepts
+  `--plan-output FILE` and writes the same published-release, live-docs, strict release-evidence, all-target VM
+  evidence, support-matrix, and docs-contract command plan that it prints to stdout. The option is rejected outside
+  dry-run mode so it cannot look like proof from a real final release run.
+- 2026-07-04 final proof command-plan validation: codebase-memory MCP `index_status` reported ready and graph search
+  located the final proof, VM evidence, support matrix, Bunny docs, and secret setup surfaces before implementation.
+  `bash -n scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct
+  `scripts/verify-final-release-proof.sh --dry-run --plan-output <tmp>` smoke, `pnpm verify:docs`, and
+  `pnpm verify:scripts` passed.
+- 2026-07-04 final proof command-plan full validation: offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:workflows`, `pnpm verify:requirements`, full `pnpm check`,
+  `pnpm detect:audio`, `git diff --check`, touched-file added-line scan, `gsd-sdk query roadmap.analyze --format
+  json`, and `gsd-sdk query init.phase-op 12 --format json` passed. Codebase-memory MCP fast reindex wrote a
+  persistent artifact and `index_status` reported ready with 2,536 nodes and 5,389 edges. `pnpm detect:audio`
+  reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is
+  missing.

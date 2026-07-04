@@ -13,6 +13,7 @@ docs_remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 vm_evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
 support_matrix="${LOOPWIRE_SUPPORT_MATRIX:-apps/docs/docs/guide/support-matrix.md}"
 dry_run="false"
+plan_output=""
 
 usage() {
   cat <<'USAGE'
@@ -36,6 +37,7 @@ Checks:
 
 Use --release-dir DIR for local signed release-directory proof instead of downloading from GitHub.
 Use --dry-run to print the exact command plan without touching network, release assets, docs URLs, or VM evidence.
+Use --plan-output FILE with --dry-run to also write that command plan to a handoff artifact.
 USAGE
 }
 
@@ -55,12 +57,19 @@ quote_command() {
   printf '%s\n' "${quoted[*]}"
 }
 
+emit_line() {
+  local line="$1"
+
+  printf '%s\n' "$line"
+  [ -z "$plan_output" ] || printf '%s\n' "$line" >>"$plan_output"
+}
+
 run_step() {
   local label="$1"
   shift
 
   if [ "$dry_run" = "true" ]; then
-    printf 'dry-run: %s: %s\n' "$label" "$(quote_command "$@")"
+    emit_line "dry-run: ${label}: $(quote_command "$@")"
     return
   fi
 
@@ -168,6 +177,10 @@ while [ "$#" -gt 0 ]; do
       dry_run="true"
       shift
       ;;
+    --plan-output)
+      plan_output="${2:?missing value for --plan-output}"
+      shift 2
+      ;;
     -h | --help)
       usage
       exit 0
@@ -190,6 +203,11 @@ reject_unsafe_value "$public_key" "public key path"
 reject_unsafe_value "$release_evidence_dir" "release evidence directory"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
 reject_unsafe_value "$support_matrix" "support matrix path"
+if [ -n "$plan_output" ]; then
+  reject_unsafe_value "$plan_output" "plan output path"
+  [ "$dry_run" = "true" ] || fail "--plan-output requires --dry-run"
+  : >"$plan_output" || fail "cannot write plan output: $plan_output"
+fi
 
 if [ -n "$docs_base_url" ] && [ -n "$docs_hostname" ]; then
   fail "use either --docs-base-url or --docs-hostname, not both"
@@ -280,7 +298,7 @@ run_step "support matrix" \
 run_step "docs contract" pnpm verify:docs
 
 if [ "$dry_run" = "true" ]; then
-  echo "Final release proof dry-run complete."
+  emit_line "Final release proof dry-run complete."
 else
   echo "Final release proof verified for ${repo}@${tag}."
 fi

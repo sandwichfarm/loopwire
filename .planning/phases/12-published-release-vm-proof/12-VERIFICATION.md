@@ -2144,6 +2144,22 @@
   Codebase-memory MCP fast reindex wrote a persistent artifact and `index_status` reported ready with 2,534 nodes and
   5,387 edges. `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains
   unavailable because `jack_lsp` is missing.
+- `scripts/verify-final-release-proof.sh --dry-run` now accepts `--plan-output FILE` and writes the same
+  published-release, live-docs, strict release-evidence, all-target VM evidence, support-matrix, and docs-contract
+  command plan that it prints to stdout. The option is rejected outside dry-run mode so it cannot look like proof from
+  a real final release run.
+- Focused validation passed: codebase-memory MCP `index_status` reported ready and graph search located the final
+  proof, VM evidence, support matrix, Bunny docs, and secret setup surfaces before implementation. `bash -n
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct
+  `scripts/verify-final-release-proof.sh --dry-run --plan-output <tmp>` smoke, `pnpm verify:docs`, and
+  `pnpm verify:scripts` passed.
+- Full validation passed: offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm verify:workflows`, `pnpm verify:requirements`, full `pnpm check`, `pnpm detect:audio`, `git diff --check`,
+  touched-file added-line scan, `gsd-sdk query roadmap.analyze --format json`, and
+  `gsd-sdk query init.phase-op 12 --format json`. Codebase-memory MCP fast reindex wrote a persistent artifact and
+  `index_status` reported ready with 2,536 nodes and 5,389 edges. `pnpm detect:audio` reported PipeWire, PulseAudio
+  compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
 
 ## Evidence Missing
 

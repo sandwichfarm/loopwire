@@ -348,6 +348,7 @@ assert_contains "apps/docs/docs/developer/release.md" "--release-dir dist/releas
 assert_contains "apps/docs/docs/developer/release.md" "apps/docs/docs/public/install.sh"
 assert_contains "apps/docs/docs/developer/release.md" "matches the canonical installer"
 assert_contains "apps/docs/docs/developer/release.md" "the dry-run should include"
+assert_contains "apps/docs/docs/developer/release.md" "dist/release/final-release-proof-plan.txt"
 assert_contains "apps/docs/docs/developer/release.md" "fails closed if the built dist omits"
 assert_contains "apps/docs/docs/developer/release.md" 'rejects unsafe `.` or `..`'
 assert_contains "apps/docs/docs/developer/release.md" "pull-zone hostnames must be hostnames"
@@ -484,6 +485,8 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:package-evidence"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:package-evidence"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "vm-evidence/<target>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'manual `Final Release Proof` workflow'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof dry-runs can now write"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--plan-output` file'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:package-evidence` command'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
