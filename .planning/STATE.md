@@ -2601,3 +2601,12 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
   --start-port 2600` handoff; the same command with `--vm-start-port 2700` included the custom `2700` port handoff.
   `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and full `pnpm check` passed. No VM launch, public
   release, Bunny deployment, secret write, tag push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 hosted CI JACK delegate environment fix: GitHub CI run `28719634750` for commit `6731540` failed in
+  `packages/audio-host/tests/jack-ports-cli.test.ts` because fake delegate scripts using `#!/usr/bin/env node` could
+  not resolve `node` when `runJackPortsCli` spawned delegates with only caller override environment variables. The
+  delegate spawn path now inherits `process.env` and applies `io.env` as overrides, preserving `PATH` for live provider
+  commands while still allowing Loopwire-specific environment injection.
+- 2026-07-04 hosted CI JACK delegate environment validation: `pnpm --filter @loopwire/audio-host test --
+  tests/jack-ports-cli.test.ts`, `pnpm verify:docs`, `git diff --check`, and full `pnpm check` passed after the
+  delegate environment fix. No VM launch, public release, Bunny deployment, secret write, tag push, host audio
+  mutation, or support-matrix promotion was performed.

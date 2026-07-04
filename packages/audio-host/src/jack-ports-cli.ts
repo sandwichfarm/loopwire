@@ -197,7 +197,7 @@ async function writeProvisionManifest(parsed: ParsedArgs): Promise<void> {
 function delegateEnsure(parsed: ParsedArgs, originalArgv: readonly string[], io: JackPortsCliIo): Promise<number> {
   return new Promise((resolve) => {
     const child = spawn(parsed.delegateCommand ?? "", delegateArgv(originalArgv), {
-      env: io.env,
+      env: { ...process.env, ...(io.env ?? {}) },
       stdio: ["ignore", "pipe", "pipe"]
     });
     let settled = false;

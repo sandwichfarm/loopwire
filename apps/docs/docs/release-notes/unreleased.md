@@ -349,6 +349,8 @@ These notes describe source-tree progress. They are not a public release announc
   `pnpm vm:render-ssh-plan`, so multi-VM proof handoffs no longer repeat port `2222` for every missing target.
 - `pnpm release:status` now uses the same VM evidence start-port default as the final release handoff, and exposes
   `--vm-start-port` when an operator chooses a different forwarded-port range.
+- JACK live port delegation now preserves the process environment while applying Loopwire-specific overrides, so
+  provider scripts that use `/usr/bin/env node` keep resolving Node on CI and operator hosts.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,
   desktop/session, or architecture do not match the selected target row.
 - Host-side SSH VM evidence collection can run the guest collector, copy target evidence back, and verify the bundle
