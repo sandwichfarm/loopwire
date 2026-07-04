@@ -4169,8 +4169,41 @@ grep -F -- "--env-file $release_status_env_file" "$release_status_missing_docs_m
   echo "verify-scripts: release status did not preserve the docs proof env-file recovery route" >&2
   exit 1
 }
+grep -F "pnpm vm:prepare-release-evidence" "$release_status_missing_docs_manifest_log" |
+  grep -F -- "--env-file $release_status_env_file" |
+  grep -F -- "--public-key $release_status_public_key" >/dev/null || {
+    echo "verify-scripts: release status did not preserve the explicit public key override in the VM evidence env-file handoff" >&2
+    exit 1
+  }
 if grep -F "env-access-key-that-must-not-print" "$release_status_missing_docs_manifest_log" >/dev/null; then
   echo "verify-scripts: release status leaked the env-file Bunny access key" >&2
+  exit 1
+fi
+release_status_env_default_public_key_log="$tmp_dir/release-status-env-default-public-key.log"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --env-file "$release_status_env_file" \
+  --secret-list-file "$secret_list_all_final" \
+  --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
+  --docs-dist "$release_status_docs_dist" \
+  --skip-gh >"$release_status_env_default_public_key_log" 2>&1; then
+  echo "verify-scripts: release status accepted a missing docs deployment manifest with env-file defaults" >&2
+  exit 1
+fi
+grep -F "pnpm vm:prepare-release-evidence" "$release_status_env_default_public_key_log" |
+  grep -F -- "--env-file $release_status_env_file" >/dev/null || {
+    echo "verify-scripts: release status did not preserve the VM evidence env-file handoff without a public key override" >&2
+    exit 1
+  }
+if grep -F "pnpm vm:prepare-release-evidence" "$release_status_env_default_public_key_log" |
+  grep -F -- "--public-key packaging/release-signing-public.pem" >/dev/null; then
+    echo "verify-scripts: release status expanded the default public key into the VM evidence env-file handoff" >&2
+    exit 1
+fi
+if grep -F "env-access-key-that-must-not-print" "$release_status_env_default_public_key_log" >/dev/null; then
+  echo "verify-scripts: release status env-file default handoff leaked the Bunny access key" >&2
   exit 1
 fi
 release_status_missing_docs_manifest_artifacts_log="$tmp_dir/release-status-missing-docs-manifest-artifacts.log"

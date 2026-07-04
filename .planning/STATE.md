@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T01:42:12+02:00"
-last_activity: 2026-07-05 - Release handoff/status preserve env-file in docs proof fetch commands
+last_updated: "2026-07-05T01:56:31+02:00"
+last_activity: 2026-07-05 - Release status keeps env-file public key defaults implicit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:handoff` and `pnpm release:status` now preserve `--env-file` in generated
-`pnpm release:fetch-docs-proof` commands, so the docs deployment proof step stays on the shared local release env-file
-ceremony. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof,
-and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:status --env-file` no longer marks the default release public key as an
+explicit handoff override, so the embedded VM evidence asset-prep command stays on the shared local release env-file
+unless the operator supplied `--public-key` directly. Phase 12 remains gated on configuring Bunny secrets, public
+GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,11 @@ and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release status env-file public-key explicitness: `scripts/audit-final-release-state.sh` now forwards
+  `--public-key` to the embedded final release handoff only when the operator supplied that flag or no env file is in
+  use. `scripts/verify-scripts.sh` covers explicit public-key preservation, env-file-only VM evidence asset-prep
+  handoff output, and no access-key leakage. Release docs and unreleased notes now document that defaults stay implicit
+  under `--env-file` while explicit CLI key overrides remain rendered.
 - 2026-07-05 Docs proof fetch env-file propagation: `scripts/plan-final-release-handoff.sh` now keeps `--env-file` on
   the rendered `pnpm release:fetch-docs-proof` command. `scripts/audit-final-release-state.sh` now preserves
   `--env-file` in the missing docs deployment manifest recovery command, using shell-safe quoting. `scripts/verify-scripts.sh`

@@ -5,6 +5,7 @@ repo=""
 tag=""
 expected_git_head=""
 public_key="packaging/release-signing-public.pem"
+public_key_explicit="false"
 env_file=""
 secret_list_file=""
 docs_deployment_run_id=""
@@ -455,6 +456,7 @@ while [ "$#" -gt 0 ]; do
       ;;
     --public-key)
       public_key="${2:?missing value for --public-key}"
+      public_key_explicit="true"
       shift 2
       ;;
     --git-head)
@@ -587,8 +589,10 @@ run_gate \
 
 handoff_plan=(bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
   --git-head "$expected_git_head" \
-  --public-key "$public_key" \
   --vm-start-port "$vm_start_port")
+if [ -z "$env_file" ] || [ "$public_key_explicit" = "true" ]; then
+  handoff_plan+=(--public-key "$public_key")
+fi
 if [ -n "$env_file" ]; then
   handoff_plan+=(--env-file "$env_file")
 fi
