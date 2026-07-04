@@ -17,6 +17,7 @@
     "collect:evidence": "node scripts/collect-release-evidence.mjs",
     "collect:support": "node scripts/collect-support-bundle.mjs",
     "release:handoff": "bash scripts/plan-final-release-handoff.sh",
+    "release:status": "bash scripts/audit-final-release-state.sh",
     "jack:provider": "pnpm --filter @loopwire/audio-host build && node packages/audio-host/dist/jack-ports-cli.js",
     "jack:ports": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs",
     "jack:verify": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs --verify",

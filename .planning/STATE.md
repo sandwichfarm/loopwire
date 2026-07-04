@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:15:32+02:00"
-last_activity: 2026-07-04 - Final release handoff commands are rendered by a no-side-effect planner
+last_updated: "2026-07-04T21:22:14+02:00"
+last_activity: 2026-07-04 - Final release blockers are audited by a read-only status command
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:handoff` now renders the no-side-effect operator command plan for secret
-checks, release readiness, Release workflow dispatch, Deploy Docs dispatch, VM evidence collection, VM evidence asset
-preparation, final proof dispatch, and local final-proof dry-run. Phase 12 remains gated on configuring Bunny secrets,
-public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:status` now audits the remaining final proof surfaces from one read-only
+command and exits nonzero while secrets, release assets, docs workflow evidence, VM evidence, support-matrix proof, or
+handoff planning are missing. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny
+deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ public GitHub Release install, Bunny deployment proof, and operator-run VM evide
 
 ## Verification Log
 
+- 2026-07-04 Final release status auditor: `scripts/audit-final-release-state.sh` and `pnpm release:status` now run a
+  read-only audit across required GitHub secrets, the GitHub Release object, recent Deploy Docs and Final Release Proof
+  workflow runs, published-release-bound VM evidence, support-matrix claims, and the local final release handoff plan.
+  The auditor exits nonzero when final proof surfaces are missing and now treats VM matrix `status=missing` reports as
+  blockers even though the matrix status helper itself exits successfully. Validation passed: codebase-memory MCP
+  `index_status` reported `home-sandwich-Develop-loopwire` ready and memory search confirmed prior Bunny deploy
+  lessons; `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct
+  status audit with a names-only release-key artifact, live `pnpm release:status -- --repo sandwichfarm/loopwire --tag
+  v0.1.0` blocker readback, `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm check` passed.
 - 2026-07-04 Final release handoff planner: `scripts/plan-final-release-handoff.sh` and `pnpm release:handoff` now
   render the exact no-side-effect operator command sequence for the remaining public release ceremony, including
   secrets/readiness checks, release/docs workflow dispatch, VM SSH plan and runbook generation, strict GitHub-source VM

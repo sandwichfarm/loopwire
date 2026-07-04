@@ -16,6 +16,7 @@ bash -n \
   scripts/verify-nix-release-package.sh \
   scripts/setup-github-secrets.sh \
   scripts/plan-final-release-handoff.sh \
+  scripts/audit-final-release-state.sh \
   scripts/ct-host-check.sh \
   scripts/vm-matrix.sh \
   scripts/verify-github-workflows.sh \
@@ -70,6 +71,10 @@ if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deploym
 }
 if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff.sh") {
   console.error("verify-scripts: root package is missing release:handoff");
+  process.exit(1);
+}
+if (root.scripts["release:status"] !== "bash scripts/audit-final-release-state.sh") {
+  console.error("verify-scripts: root package is missing release:status");
   process.exit(1);
 }
 if (root.scripts["verify:final-release"] !== "bash scripts/verify-final-release-proof.sh") {
@@ -181,6 +186,10 @@ pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 release_handoff_help="$(bash scripts/plan-final-release-handoff.sh --help)"
+bash scripts/plan-final-release-handoff.sh -- --help >/dev/null || {
+  echo "verify-scripts: release handoff does not accept the package-script argument separator" >&2
+  exit 1
+}
 printf '%s\n' "$release_handoff_help" | grep -F -- "--docs-deployment-run-id ID" >/dev/null || {
   echo "verify-scripts: release handoff help is missing docs deployment run id support" >&2
   exit 1
@@ -248,6 +257,26 @@ if bash scripts/plan-final-release-handoff.sh \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
   --vm-evidence-asset ../loopwire-vm-evidence-v0.1.0.tar.gz >/dev/null 2>&1; then
   echo "verify-scripts: release handoff accepted an unsafe VM evidence asset name" >&2
+  exit 1
+fi
+release_status_help="$(bash scripts/audit-final-release-state.sh --help)"
+bash scripts/audit-final-release-state.sh -- --help >/dev/null || {
+  echo "verify-scripts: release status does not accept the package-script argument separator" >&2
+  exit 1
+}
+printf '%s\n' "$release_status_help" | grep -F -- "--secret-list-file FILE" >/dev/null || {
+  echo "verify-scripts: release status help is missing secret-list artifact support" >&2
+  exit 1
+}
+printf '%s\n' "$release_status_help" | grep -F -- "--skip-gh" >/dev/null || {
+  echo "verify-scripts: release status help is missing offline support" >&2
+  exit 1
+}
+if bash scripts/audit-final-release-state.sh \
+  --repo https://github.com/sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted a URL-like repository" >&2
   exit 1
 fi
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
@@ -3319,6 +3348,35 @@ printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secre
   printf '%s\t%s\n' "BUNNY_PULL_ZONE_HOSTNAME" "2026-07-04T00:00:00Z"
   printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
 } >"$secret_list_all_final"
+release_status_log="$tmp_dir/release-status-blocked.log"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --secret-list-file "$secret_list_release_key_only" \
+  --skip-gh >"$release_status_log" 2>&1; then
+  echo "verify-scripts: release status accepted missing final proof surfaces" >&2
+  exit 1
+fi
+grep -F "Final release status for sandwichfarm/loopwire@v0.1.0" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status output is missing heading" >&2
+  exit 1
+}
+grep -F "blocked: required GitHub secrets" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not report blocked secrets" >&2
+  exit 1
+}
+grep -F "published-release-bound VM evidence" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not audit VM evidence" >&2
+  exit 1
+}
+grep -F "blocked: published-release-bound VM evidence" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not block missing VM evidence" >&2
+  exit 1
+}
+grep -F "local final release handoff plan" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not include the handoff planner" >&2
+  exit 1
+}
 secret_artifact_missing_bunny_log="$tmp_dir/setup-github-secrets-artifact-missing-bunny.log"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \

@@ -181,6 +181,19 @@ dispatch, and local final-proof dry-run. It does not set secrets, create tags, d
 or mutate host audio. If the Deploy Docs run id is not known yet, the final proof command includes
 `<docs-deployment-run-id>` and prints a blocker reminder.
 
+To audit the current final-release state from one read-only command:
+
+```bash
+pnpm release:status -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0
+```
+
+The status command checks required GitHub secrets, the GitHub Release object, recent Deploy Docs and Final Release
+Proof workflow runs, published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It exits
+nonzero until every final proof surface is present. Use `--secret-list-file release-secret-names.tsv` to replay a
+saved names-only secret audit, or `--skip-gh` when you only want local evidence checks.
+
 Parse an existing release-readiness log without rerunning release checks:
 
 ```bash

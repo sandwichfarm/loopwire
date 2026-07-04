@@ -118,6 +118,9 @@ print_command() {
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --)
+      shift
+      ;;
     --repo)
       repo="${2:?missing value for --repo}"
       shift 2
