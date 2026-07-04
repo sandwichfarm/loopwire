@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T14:37:11+02:00"
-last_activity: 2026-07-04 - final release proof dry-run writes command plan artifacts
+last_updated: "2026-07-04T14:46:24+02:00"
+last_activity: 2026-07-04 - GitHub secret check prints no-value next steps
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-final-release-proof.sh --dry-run --plan-output FILE` now writes the exact
-final proof command plan to a durable handoff artifact without touching network, release assets, docs URLs, or VM
-evidence. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
+Last activity: 2026-07-04 - `scripts/setup-github-secrets.sh --check` now prints no-value next steps when required
+release/docs secrets are missing and explains when Bunny docs upload can run but post-upload live docs smoke will be
+skipped. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
 QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -2023,5 +2023,22 @@ QEMU/Nix tooling, and operator-run VM evidence.
   `pnpm detect:audio`, `git diff --check`, touched-file added-line scan, `gsd-sdk query roadmap.analyze --format
   json`, and `gsd-sdk query init.phase-op 12 --format json` passed. Codebase-memory MCP fast reindex wrote a
   persistent artifact and `index_status` reported ready with 2,536 nodes and 5,389 edges. `pnpm detect:audio`
+  reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is
+  missing.
+- 2026-07-04 GitHub secret check guidance: `scripts/setup-github-secrets.sh --check` now prints placeholder-only
+  next steps when required Bunny or release signing secrets are missing, while still preserving the underlying
+  `gh secret list` failure when GitHub secret names cannot be read. When `BUNNY_PULL_ZONE_HOSTNAME` is absent, the
+  check explains that docs deployment can upload to Bunny.net but will skip post-upload live docs smoke.
+- 2026-07-04 GitHub secret check guidance validation: codebase-memory MCP `index_status` reported ready and graph
+  search located the setup helper, release readiness, Bunny deploy, workflow, and docs-live surfaces before
+  implementation. `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:docs`, and `pnpm verify:scripts` passed, including fake `gh secret list` cases for all-required-present,
+  missing-required, and API failure.
+- 2026-07-04 GitHub secret check guidance full validation: offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:workflows`, `pnpm verify:requirements`, full `pnpm check`,
+  `pnpm detect:audio`, `git diff --check`, touched-file added-line scan, `gsd-sdk query roadmap.analyze --format
+  json`, and `gsd-sdk query init.phase-op 12 --format json` passed. Codebase-memory MCP fast reindex wrote a
+  persistent artifact and `index_status` reported ready with 2,536 nodes and 5,390 edges. `pnpm detect:audio`
   reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is
   missing.

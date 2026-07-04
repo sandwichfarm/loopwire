@@ -392,6 +392,8 @@ assert_contains "apps/docs/docs/developer/release.md" "--skip-clean-git"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
 assert_contains "apps/docs/docs/developer/release.md" 'underlying `gh secret list` error'
+assert_contains "apps/docs/docs/developer/release.md" "prints next-step commands with placeholders"
+assert_contains "apps/docs/docs/developer/release.md" "will skip the post-upload live docs smoke"
 assert_contains "apps/docs/docs/developer/release.md" 'storage-zone password in the `AccessKey` header'
 assert_contains "apps/docs/docs/developer/architecture.md" "pw-cli create-node adapter"
 assert_contains "apps/docs/docs/developer/architecture.md" "minimize, maximize/restore"
@@ -478,6 +480,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-all-targ
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret helper now rejects Bunny storage zones"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the release private key against the release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret set` stdin contract'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints no-value next steps"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-docs smoke"
 assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
 assert_contains "apps/docs/docs/developer/release.md" "workflow_dispatch"

@@ -151,6 +151,8 @@ resolve_repo() {
 }
 
 check_secret_presence() {
+  local docs_live_smoke_ready="false"
+
   if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
     echo "unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
     exit 1
@@ -170,8 +172,10 @@ check_secret_presence() {
 
   if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_PULL_ZONE_HOSTNAME; then
     echo "ok: optional GitHub secret present: BUNNY_PULL_ZONE_HOSTNAME"
+    docs_live_smoke_ready="true"
   else
     echo "optional: GitHub secret not set: BUNNY_PULL_ZONE_HOSTNAME"
+    echo "hint: set BUNNY_PULL_ZONE_HOSTNAME to enable post-upload live docs smoke in deploy-docs.yml"
   fi
 
   if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_STORAGE_ENDPOINT; then
@@ -186,7 +190,23 @@ check_secret_presence() {
     echo "optional: GitHub secret not set: BUNNY_REMOTE_PREFIX"
   fi
 
-  [ "$missing" -eq 0 ] || exit 1
+  if [ "$missing" -ne 0 ]; then
+    cat >&2 <<EOF
+next: set Bunny.net deployment secrets without printing values:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --storage-zone <zone> --access-key <key>
+next: set release signing secret from a local private key:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --release-private-key-file <private-key> \\
+    --release-public-key-file packaging/release-signing-public.pem
+EOF
+    exit 1
+  fi
+
+  if [ "$docs_live_smoke_ready" = "true" ]; then
+    echo "ok: docs deploy workflow can run post-upload live smoke"
+  else
+    echo "notice: docs deploy workflow can upload to Bunny.net but will skip post-upload live smoke"
+  fi
 }
 
 set_github_secret() {

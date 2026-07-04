@@ -180,6 +180,8 @@ These notes describe source-tree progress. They are not a public release announc
   secret writes, rejecting invalid or mismatched signing material.
 - The GitHub secret helper now writes secrets through the current `gh secret set` stdin contract, avoiding the removed
   `--body-file` flag while keeping secret values out of command arguments and logs.
+- The GitHub secret helper check now prints no-value next steps when required release/docs secrets are missing and
+  explains when the docs workflow can upload to Bunny.net but will skip live-docs smoke.
 - The Bunny.net docs deploy helper now fails closed when the built dist omits `index.html` or the public `install.sh`,
   and rejects unsafe remote-prefix path segments before upload planning.
 - The docs deployment workflow now runs a live pull-zone smoke with `scripts/verify-docs-live.sh` when

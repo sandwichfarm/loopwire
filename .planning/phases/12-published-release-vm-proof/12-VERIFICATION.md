@@ -2160,6 +2160,22 @@
   `gsd-sdk query init.phase-op 12 --format json`. Codebase-memory MCP fast reindex wrote a persistent artifact and
   `index_status` reported ready with 2,536 nodes and 5,389 edges. `pnpm detect:audio` reported PipeWire, PulseAudio
   compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
+- `scripts/setup-github-secrets.sh --check` now prints placeholder-only next steps when required Bunny or release
+  signing secrets are missing, while still preserving the underlying `gh secret list` failure when GitHub secret names
+  cannot be read. When `BUNNY_PULL_ZONE_HOSTNAME` is absent, the check explains that docs deployment can upload to
+  Bunny.net but will skip post-upload live docs smoke.
+- Focused validation passed: codebase-memory MCP `index_status` reported ready and graph search located the setup
+  helper, release readiness, Bunny deploy, workflow, and docs-live surfaces before implementation. `bash -n
+  scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`, and
+  `pnpm verify:scripts` passed, including fake `gh secret list` cases for all-required-present, missing-required, and
+  API failure.
+- Full validation passed: offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm verify:workflows`, `pnpm verify:requirements`, full `pnpm check`, `pnpm detect:audio`, `git diff --check`,
+  touched-file added-line scan, `gsd-sdk query roadmap.analyze --format json`, and
+  `gsd-sdk query init.phase-op 12 --format json`. Codebase-memory MCP fast reindex wrote a persistent artifact and
+  `index_status` reported ready with 2,536 nodes and 5,390 edges. `pnpm detect:audio` reported PipeWire, PulseAudio
+  compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
 
 ## Evidence Missing
 
