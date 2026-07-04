@@ -2137,3 +2137,16 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   persistent artifact and `index_status` reported ready with 2,536 nodes and 5,390 edges. `pnpm detect:audio`
   reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is
   missing.
+- 2026-07-04 packaged restore launcher preflight: desktop restore-on-boot status now preflights packaged or explicitly
+  configured background launchers with `loopwire --background --help` before reporting the action available or writing
+  a user systemd unit. Raw tarball installs with a present launcher but missing Node.js now surface a blocked status
+  instead of installing a unit that exits 127.
+- 2026-07-04 packaged restore launcher preflight focused validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready with 2,622 nodes and 5,471 edges before implementation, and graph search
+  located the Tauri startup helpers and tests. `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`,
+  `pnpm verify:tauri`, `pnpm verify:docs`, and `git diff --check` passed. No public release, VM launch, Bunny
+  deployment, secret write, tag push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 packaged restore launcher preflight full validation: full `pnpm check` passed after the change, including
+  requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
+  packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
+  core, audio-host, and desktop builds.

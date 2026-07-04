@@ -2344,6 +2344,18 @@
   scripts/verify-docs.sh`, `pnpm verify:install`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, and
   `git diff --check`. No public release, VM launch, Bunny deployment, secret write, tag push, host audio mutation, or
   support-matrix promotion was performed.
+- The desktop restore-on-boot status path now preflights packaged or explicitly configured background launchers with
+  `loopwire --background --help` before reporting the action available or writing a user systemd unit. A present raw
+  tarball launcher with missing Node.js now returns a blocked status instead of installing a unit that exits 127.
+- Focused validation passed: codebase-memory MCP `index_status` reported the graph ready before implementation, graph
+  search located the Tauri startup helpers and tests, and `cargo test --manifest-path
+  apps/desktop/src-tauri/Cargo.toml`, `pnpm verify:tauri`, `pnpm verify:docs`, and `git diff --check` passed. No public
+  release, VM launch, Bunny deployment, secret write, tag push, host audio mutation, or support-matrix promotion was
+  performed.
+- Full validation passed: `pnpm check` passed after the change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds.
 
 ## Evidence Missing
 

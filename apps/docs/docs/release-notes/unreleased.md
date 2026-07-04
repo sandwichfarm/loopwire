@@ -132,8 +132,8 @@ These notes describe source-tree progress. They are not a public release announc
   opening the GUI.
 - Desktop restore-on-boot now resolves the packaged `loopwire` launcher from `loopwire-gui` before writing systemd
   units, and refuses to install a broken GUI-binary `--background` unit when the launcher is missing.
-- Restore-on-boot status now stays readable when the packaged background launcher is missing, marks the action blocked,
-  and still allows removal of an already-installed user unit.
+- Restore-on-boot status now stays readable when the packaged background launcher is missing or fails
+  `loopwire --background --help`, marks the action blocked, and still allows removal of an already-installed user unit.
 - Source-checkout background restore runner reads the Tauri-written state file and verifies the selected configuration
   through dry-run or explicit live backend adapters.
 - Local release artifact packaging, checksum signing, installer smoke, AUR package smoke, and VM target metadata

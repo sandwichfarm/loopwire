@@ -96,8 +96,10 @@ AUR and Nix package paths declare or wrap Node.js for the packaged launchers.
 
 The desktop shell resolves the packaged launcher from the installed GUI path before writing this service. It refuses to
 install a background unit if it can only find the GUI binary, because `--background` belongs to the `loopwire` launcher.
-The status check remains non-destructive when that launcher is missing, so users can see why enable is blocked instead
-of getting a failed status check. The shell then writes the unit and a user-scoped
+The status check also preflights `loopwire --background --help` for packaged launchers, so missing Node.js or missing
+bundled restore assets block enable before a broken unit is written. The check remains non-destructive when that
+launcher is missing or cannot run, so users can see why enable is blocked instead of getting a failed status check.
+When the launcher is available, the shell writes the unit and a user-scoped
 `default.target.wants/loopwire.service` link. It does not run `sudo` or modify `/etc/systemd`.
 
 ## Source Background Restore Path

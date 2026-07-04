@@ -185,6 +185,7 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "Restore on boot"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "loopwire --background"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "The curl installer reports that dependency"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" 'install the distro `nodejs` package'
+assert_contains "apps/docs/docs/guide/start-on-boot.md" 'preflights `loopwire --background --help`'
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "default.target.wants/loopwire.service"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--source-dir"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pending until those apps launch"
@@ -203,7 +204,7 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "Release artifacts insta
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "LOOPWIRE_DSP_PROVIDER_DIR"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "same runtime contract"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pendingStreamRefresh.cleared"
-assert_contains "apps/docs/docs/guide/start-on-boot.md" "status check remains non-destructive"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "The check remains non-destructive"
 assert_contains "apps/docs/docs/guide/install.md" 'packages.<system>.loopwire-bin'
 assert_contains "apps/docs/docs/guide/install.md" "loopwire-dsp-provider"
 assert_contains "apps/docs/docs/guide/install.md" 'The curl installer reports whether `node` is available'
@@ -455,6 +456,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Source-checkout ba
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "restore-on-boot control"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'resolves the packaged `loopwire` launcher'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Restore-on-boot status now stays readable"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`loopwire --background --help`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire --background"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'requires `node` on `PATH`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "local signed release directory"

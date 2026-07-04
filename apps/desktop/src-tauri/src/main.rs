@@ -126,12 +126,22 @@ fn manage_startup(action: String) -> Result<String, String> {
             ))
         }
         "background_install" => {
-            let background_binary = background_binary_path(&binary)?;
-            install_background_startup_entry(&background_path, &background_binary, &state)
+            let status = background_binary_status(&binary);
+            if !status.available {
+                return Ok(background_startup_status_json(
+                    &background_path,
+                    &status.binary,
+                    "Background restore enable was blocked.",
+                    false,
+                    status.note.as_deref(),
+                ));
+            }
+
+            install_background_startup_entry(&background_path, &status.binary, &state)
                 .map_err(|error| error.to_string())?;
             Ok(background_startup_status_json(
                 &background_path,
-                &background_binary,
+                &status.binary,
                 "Loopwire will restore audio through a user systemd unit.",
                 true,
                 None,
@@ -365,10 +375,17 @@ fn background_binary_path(current_binary: &Path) -> Result<PathBuf, String> {
 
 fn background_binary_status(current_binary: &Path) -> BackgroundBinaryStatus {
     match background_binary_path(current_binary) {
-        Ok(binary) => BackgroundBinaryStatus {
-            binary,
-            available: true,
-            note: None,
+        Ok(binary) => match probe_background_binary(current_binary, &binary) {
+            Ok(()) => BackgroundBinaryStatus {
+                binary,
+                available: true,
+                note: None,
+            },
+            Err(error) => BackgroundBinaryStatus {
+                binary,
+                available: false,
+                note: Some(error),
+            },
         },
         Err(error) => BackgroundBinaryStatus {
             binary: current_binary.to_path_buf(),
@@ -411,6 +428,82 @@ fn packaged_launcher_candidates(current_binary: &Path) -> Vec<PathBuf> {
         Some("libexec") => vec![prefix_or_archive_root.join("loopwire")],
         Some("lib") => vec![prefix_or_archive_root.join("bin").join("loopwire")],
         _ => Vec::new(),
+    }
+}
+
+fn probe_background_binary(current_binary: &Path, binary: &Path) -> Result<(), String> {
+    if !should_probe_background_binary(current_binary) {
+        return Ok(());
+    }
+
+    let mut child = Command::new(binary)
+        .args(["--background", "--help"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("background launcher preflight could not start: {error}"))?;
+
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_status)) => {
+                let output = child.wait_with_output().map_err(|error| {
+                    format!("background launcher preflight could not read output: {error}")
+                })?;
+
+                if output.status.success() {
+                    return Ok(());
+                }
+
+                return Err(format!(
+                    "background launcher preflight failed with exit code {}: {}",
+                    output.status.code().unwrap_or(1),
+                    compact_command_output(&output.stdout, &output.stderr)
+                ));
+            }
+            Ok(None) if started.elapsed() <= Duration::from_millis(2_000) => {
+                thread::sleep(Duration::from_millis(10));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let output = child.wait_with_output().map_err(|error| {
+                    format!("background launcher preflight timed out and output could not be read: {error}")
+                })?;
+
+                return Err(format!(
+                    "background launcher preflight timed out: {}",
+                    compact_command_output(&output.stdout, &output.stderr)
+                ));
+            }
+            Err(error) => {
+                return Err(format!("background launcher preflight failed: {error}"));
+            }
+        }
+    }
+}
+
+fn should_probe_background_binary(current_binary: &Path) -> bool {
+    env::var_os("LOOPWIRE_BACKGROUND_BINARY")
+        .map(|value| !value.is_empty())
+        .unwrap_or(false)
+        || current_binary.file_name().and_then(|name| name.to_str()) == Some("loopwire-gui")
+}
+
+fn compact_command_output(stdout: &[u8], stderr: &[u8]) -> String {
+    let stderr = String::from_utf8_lossy(stderr);
+    let stdout = String::from_utf8_lossy(stdout);
+    let raw = if !stderr.trim().is_empty() {
+        stderr.trim()
+    } else {
+        stdout.trim()
+    };
+    let compact = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+
+    if compact.is_empty() {
+        "no output".to_string()
+    } else {
+        compact.chars().take(240).collect()
     }
 }
 
@@ -900,6 +993,60 @@ mod tests {
         let _ = fs::remove_dir_all(temp_dir);
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn reports_packaged_background_launcher_preflight_failure() {
+        let temp_dir = unique_temp_dir();
+        let launcher = temp_dir.join("bin/loopwire");
+        let gui = temp_dir.join("lib/loopwire/loopwire-gui");
+
+        write_executable(
+            &launcher,
+            "#!/usr/bin/env sh\n\
+            echo 'loopwire: background restore requires node on PATH' >&2\n\
+            exit 127\n",
+        );
+        fs::create_dir_all(gui.parent().expect("gui parent")).expect("create gui parent");
+        fs::write(&gui, "").expect("write gui");
+
+        let status = background_binary_status(&gui);
+
+        assert!(!status.available);
+        assert_eq!(status.binary, launcher);
+        let note = status.note.expect("status note");
+        assert!(note.contains("background launcher preflight failed with exit code 127"));
+        assert!(note.contains("requires node on PATH"));
+
+        let _ = fs::remove_dir_all(temp_dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn reports_packaged_background_launcher_preflight_success() {
+        let temp_dir = unique_temp_dir();
+        let launcher = temp_dir.join("bin/loopwire");
+        let gui = temp_dir.join("lib/loopwire/loopwire-gui");
+
+        write_executable(
+            &launcher,
+            "#!/usr/bin/env sh\n\
+            if [ \"${1:-}\" = '--background' ] && [ \"${2:-}\" = '--help' ]; then\n\
+              exit 0\n\
+            fi\n\
+            exit 2\n",
+        );
+        fs::create_dir_all(gui.parent().expect("gui parent")).expect("create gui parent");
+        fs::write(&gui, "").expect("write gui");
+
+        let status = background_binary_status(&gui);
+
+        assert!(status.available);
+        assert_eq!(status.binary, launcher);
+        assert!(status.note.is_none());
+
+        let _ = fs::remove_dir_all(temp_dir);
+    }
+
     #[test]
     fn installs_and_removes_user_autostart_entry() {
         let temp_dir = unique_temp_dir();
@@ -992,6 +1139,16 @@ mod tests {
         let path = std::env::temp_dir().join(format!("loopwire-startup-test-{suffix}"));
         fs::create_dir_all(&path).expect("create temp dir");
         path
+    }
+
+    #[cfg(unix)]
+    fn write_executable(path: &Path, content: &str) {
+        use std::os::unix::fs::PermissionsExt;
+
+        fs::create_dir_all(path.parent().expect("executable parent"))
+            .expect("create executable parent");
+        fs::write(path, content).expect("write executable");
+        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).expect("mark executable");
     }
 
     fn allows(command: &str, args: &[&str]) -> bool {
