@@ -13,6 +13,7 @@ published_release_repo=""
 published_release_tag=""
 release_public_key=""
 require_published_release="false"
+require_github_release_source="false"
 require_all_targets="false"
 operator_note=""
 execute="false"
@@ -37,6 +38,7 @@ Options:
   --published-release-tag TAG      Release tag for installed-release smoke.
   --release-public-key FILE        Guest-visible release public key for signature verification.
   --require-published-release      Require installed-release smoke in every guest evidence bundle.
+  --require-github-release-source  Require installed-release smoke to use --published-release-repo.
   --require-all-targets            Require the plan to cover every target from vm/targets.tsv.
   --note TEXT                      Append operator context to each guest notes.md.
   --execute                        Run each SSH collector. Default is dry-run.
@@ -187,6 +189,10 @@ build_collect_command() {
     collect_cmd+=(--require-published-release)
   fi
 
+  if [ "$require_github_release_source" = "true" ]; then
+    collect_cmd+=(--require-github-release-source)
+  fi
+
   if [ -n "$operator_note" ]; then
     collect_cmd+=(--note "$operator_note")
   fi
@@ -300,6 +306,10 @@ while [ "$#" -gt 0 ]; do
       require_published_release="true"
       shift
       ;;
+    --require-github-release-source)
+      require_github_release_source="true"
+      shift
+      ;;
     --require-all-targets)
       require_all_targets="true"
       shift
@@ -335,6 +345,12 @@ fi
 
 if [ "$require_published_release" = "true" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
   fail "--require-published-release requires --published-release-dir or --published-release-repo"
+fi
+
+if [ "$require_github_release_source" = "true" ]; then
+  [ "$require_published_release" = "true" ] || fail "--require-github-release-source requires --require-published-release"
+  [ -n "$published_release_repo" ] || fail "--require-github-release-source requires --published-release-repo"
+  [ -z "$published_release_dir" ] || fail "--require-github-release-source cannot be used with --published-release-dir"
 fi
 
 if [ -n "$published_release_dir" ] || [ -n "$published_release_repo" ]; then

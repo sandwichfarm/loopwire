@@ -2368,3 +2368,13 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   `bash -n scripts/verify-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
   `pnpm verify:docs`, and full `pnpm check` passed. No VM launch, public release, Bunny deployment, secret write, tag
   push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 VM GitHub-source collection strictness: direct guest, SSH, and matrix VM evidence collectors now accept
+  and forward `--require-github-release-source`, reject attempts to combine that final-proof mode with guest-visible
+  local release directories, and include it in generated final-release runbooks.
+- 2026-07-04 VM GitHub-source collection strictness validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located the VM evidence collection, SSH forwarding,
+  release-evidence validation, and runbook surfaces before implementation. `bash -n scripts/collect-vm-evidence.sh
+  scripts/collect-vm-evidence-ssh.sh scripts/collect-vm-matrix-evidence.sh scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:scripts`, and full `pnpm check`
+  passed. No VM launch, public release, Bunny deployment, secret write, tag push, host audio mutation, or
+  support-matrix promotion was performed.

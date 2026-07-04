@@ -261,6 +261,7 @@ pnpm vm:collect-matrix -- \
   --published-release-tag v0.1.0 \
   --release-public-key packaging/release-signing-public.pem \
   --require-published-release \
+  --require-github-release-source \
   --require-all-targets \
   --execute
 ```
@@ -371,15 +372,16 @@ bash scripts/collect-vm-evidence.sh \
   --published-release-repo sandwichfarm/loopwire \
   --published-release-tag v0.1.0 \
   --release-public-key packaging/release-signing-public.pem \
-  --require-published-release
+  --require-published-release \
+  --require-github-release-source
 ```
 
 That mode runs `scripts/verify-published-release.sh` inside the guest, records `published-release-smoke.log`, and makes
-`scripts/verify-vm-evidence.sh --require-published-release --release-tag v0.1.0` reject bundles that did not install
-and run the signed artifact for that exact release. It also writes `published-release.json`, which binds the VM bundle
-to the release tag and either the GitHub repo or guest-visible release directory used for the smoke.
-Final public support claims add `--require-github-release-source`, so guest-visible release directories remain useful
-for pre-publish VM smoke but cannot satisfy proof that must come from the GitHub Release surface.
+`scripts/verify-vm-evidence.sh --require-published-release --release-tag v0.1.0 --require-github-release-source`
+reject bundles that did not install and run the signed artifact for that exact release from the GitHub Release surface.
+It also writes `published-release.json`, which binds the VM bundle to the release tag and either the GitHub repo or
+guest-visible release directory used for the smoke. Guest-visible release directories remain useful for pre-publish VM
+smoke but cannot satisfy final support proof.
 
 After every target bundle is collected, package the exact archive consumed by the final release proof workflow:
 

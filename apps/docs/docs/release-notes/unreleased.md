@@ -350,6 +350,8 @@ These notes describe source-tree progress. They are not a public release announc
   verification, support-matrix promotion, and AArch64 firmware handoffs.
 - VM evidence runbooks now include the final-release `pnpm vm:collect-matrix` command with published-release smoke and
   all-target strictness, so operator handoffs do not silently collect source-checkout-only support evidence.
+- VM evidence collectors now forward `--require-github-release-source` through direct guest, SSH, and matrix collection
+  paths, so final support bundles fail early when published-release smoke uses a guest-visible local directory.
 - VM launch now supports `--ssh-port` and prints the matching evidence-pull command, so operators can run or plan
   multiple guest targets without hardcoding host port `2222`.
 - VM launch planning now rejects invalid memory, CPU count, SSH port, and backing image-format values before printing

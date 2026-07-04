@@ -621,6 +621,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:launc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-launch-plan` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-runbook` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence runbooks now include the final-release"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence collectors now forward"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup now supports"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup hints are now architecture-scoped"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM launch dry-runs now stay non-mutating"

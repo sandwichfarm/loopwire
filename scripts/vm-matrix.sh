@@ -1059,6 +1059,7 @@ emit_runbook() {
         --release-public-key \
         packaging/release-signing-public.pem \
         --require-published-release \
+        --require-github-release-source \
         --execute
     )"
     evidence_status_command="$(
@@ -1121,6 +1122,7 @@ emit_runbook() {
         --release-public-key \
         packaging/release-signing-public.pem \
         --require-published-release \
+        --require-github-release-source \
         --require-all-targets \
         --execute
     )"

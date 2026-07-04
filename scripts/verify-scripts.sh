@@ -992,6 +992,10 @@ printf '%s\n' "$collect_vm_help" | grep -F -- "--require-published-release" >/de
   echo "verify-scripts: VM evidence collector help is missing required published release support" >&2
   exit 1
 }
+printf '%s\n' "$collect_vm_help" | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: VM evidence collector help is missing GitHub release source support" >&2
+  exit 1
+}
 collect_vm_ssh_help="$(bash scripts/collect-vm-evidence-ssh.sh --help)"
 printf '%s\n' "$collect_vm_ssh_help" | grep -F -- "--published-release-dir DIR" >/dev/null || {
   echo "verify-scripts: SSH VM evidence collector help is missing published release directory support" >&2
@@ -1001,6 +1005,10 @@ printf '%s\n' "$collect_vm_ssh_help" | grep -F -- "--require-published-release" 
   echo "verify-scripts: SSH VM evidence collector help is missing required published release support" >&2
   exit 1
 }
+printf '%s\n' "$collect_vm_ssh_help" | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: SSH VM evidence collector help is missing GitHub release source support" >&2
+  exit 1
+}
 collect_vm_matrix_help="$(bash scripts/collect-vm-matrix-evidence.sh --help)"
 printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--plan FILE" >/dev/null || {
   echo "verify-scripts: matrix VM evidence collector help is missing plan support" >&2
@@ -1008,6 +1016,10 @@ printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--plan FILE" >/dev/null ||
 }
 printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--require-published-release" >/dev/null || {
   echo "verify-scripts: matrix VM evidence collector help is missing required published release support" >&2
+  exit 1
+}
+printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: matrix VM evidence collector help is missing GitHub release source support" >&2
   exit 1
 }
 printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--require-all-targets" >/dev/null || {
@@ -2577,7 +2589,7 @@ printf '%s\n' "$vm_runbook_output" \
     exit 1
   }
 printf '%s\n' "$vm_runbook_output" \
-  | grep -F -- "--release-public-key packaging/release-signing-public.pem --require-published-release --execute" >/dev/null || {
+  | grep -F -- "--release-public-key packaging/release-signing-public.pem --require-published-release --require-github-release-source --execute" >/dev/null || {
     echo "verify-scripts: vm runbook is missing strict published-release VM evidence flags" >&2
     exit 1
   }
@@ -2598,7 +2610,7 @@ printf '%s\n' "$pnpm_vm_runbook_output" | grep -F "### ubuntu-gnome-pipewire-aar
   exit 1
 }
 printf '%s\n' "$pnpm_vm_runbook_output" \
-  | grep -F -- "--require-published-release --require-all-targets --execute" >/dev/null || {
+  | grep -F -- "--require-published-release --require-github-release-source --require-all-targets --execute" >/dev/null || {
     echo "verify-scripts: all-target VM runbook is missing strict all-target collection command" >&2
     exit 1
   }
@@ -2777,11 +2789,33 @@ if bash scripts/collect-vm-evidence.sh \
   echo "verify-scripts: guest VM evidence collector accepted required published-release smoke without release input" >&2
   exit 1
 fi
+if bash scripts/collect-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --output-dir "$tmp_dir/bad-github-source-required" \
+  --published-release-dir /guest/release \
+  --published-release-tag v0.1.0 \
+  --release-public-key /guest/release-public.pem \
+  --require-published-release \
+  --require-github-release-source >/dev/null 2>&1; then
+  echo "verify-scripts: guest VM evidence collector accepted GitHub-source proof with a release directory" >&2
+  exit 1
+fi
 if bash scripts/collect-vm-evidence-ssh.sh \
   --target arch-hyprland-pipewire \
   --host 127.0.0.1 \
   --published-release-dir /guest/release >/dev/null 2>&1; then
   echo "verify-scripts: SSH VM evidence collector accepted published-release smoke without public key" >&2
+  exit 1
+fi
+if bash scripts/collect-vm-evidence-ssh.sh \
+  --target arch-hyprland-pipewire \
+  --host 127.0.0.1 \
+  --published-release-dir /guest/release \
+  --published-release-tag v0.1.0 \
+  --release-public-key /guest/release-public.pem \
+  --require-published-release \
+  --require-github-release-source >/dev/null 2>&1; then
+  echo "verify-scripts: SSH VM evidence collector accepted GitHub-source proof with a release directory" >&2
   exit 1
 fi
 cloud_init_dir="$tmp_dir/all-cloud-init"
@@ -4505,6 +4539,16 @@ printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--published-release-dir" >/de
 printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--published-release-tag" >/dev/null
 printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--release-public-key" >/dev/null
 printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--require-published-release" >/dev/null
+ssh_github_release_dry_run="$(bash scripts/collect-vm-evidence-ssh.sh \
+  --target arch-hyprland-pipewire \
+  --host 127.0.0.1 \
+  --published-release-repo sandwichfarm/loopwire \
+  --published-release-tag v0.1.0 \
+  --release-public-key /guest/release-public.pem \
+  --require-published-release \
+  --require-github-release-source)"
+printf '%s\n' "$ssh_github_release_dry_run" | grep -F -- "--published-release-repo" >/dev/null
+printf '%s\n' "$ssh_github_release_dry_run" | grep -F -- "--require-github-release-source" >/dev/null
 
 matrix_plan="$tmp_dir/vm-ssh-plan.tsv"
 {
@@ -4528,6 +4572,16 @@ matrix_plan="$tmp_dir/vm-ssh-plan.tsv"
     'grim "$LOOPWIRE_SCREENSHOT_PATH"' \
     '.vm/evidence/ubuntu-gnome-pipewire-aarch64'
 } >"$matrix_plan"
+if bash scripts/collect-vm-matrix-evidence.sh \
+  --plan "$matrix_plan" \
+  --published-release-dir /guest/release \
+  --published-release-tag v0.1.0 \
+  --release-public-key /guest/release-public.pem \
+  --require-published-release \
+  --require-github-release-source >/dev/null 2>&1; then
+  echo "verify-scripts: matrix VM evidence collector accepted GitHub-source proof with a release directory" >&2
+  exit 1
+fi
 matrix_dry_run="$(bash scripts/collect-vm-matrix-evidence.sh --plan "$matrix_plan")"
 printf '%s\n' "$matrix_dry_run" | grep -F "Dry run complete for 2 target(s)." >/dev/null || {
   echo "verify-scripts: matrix VM evidence collector did not report both plan rows" >&2
@@ -4555,6 +4609,23 @@ printf '%s\n' "$matrix_release_dry_run" | grep -F -- "--require-published-releas
 }
 printf '%s\n' "$matrix_release_dry_run" | grep -F -- "--published-release-tag v0.1.0" >/dev/null || {
   echo "verify-scripts: matrix VM evidence collector did not forward the published release tag" >&2
+  exit 1
+}
+matrix_github_release_dry_run="$(
+  bash scripts/collect-vm-matrix-evidence.sh \
+    --plan "$matrix_plan" \
+    --published-release-repo sandwichfarm/loopwire \
+    --published-release-tag v0.1.0 \
+    --release-public-key /guest/release-public.pem \
+    --require-published-release \
+    --require-github-release-source
+)"
+printf '%s\n' "$matrix_github_release_dry_run" | grep -F -- "--published-release-repo sandwichfarm/loopwire" >/dev/null || {
+  echo "verify-scripts: matrix VM evidence collector did not forward GitHub release coordinates" >&2
+  exit 1
+}
+printf '%s\n' "$matrix_github_release_dry_run" | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: matrix VM evidence collector did not forward GitHub release source strictness" >&2
   exit 1
 }
 if bash scripts/collect-vm-matrix-evidence.sh \

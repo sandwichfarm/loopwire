@@ -19,6 +19,7 @@ published_release_repo=""
 published_release_tag=""
 release_public_key=""
 require_published_release="false"
+require_github_release_source="false"
 operator_note=""
 execute="false"
 
@@ -43,6 +44,7 @@ Options:
   --published-release-tag TAG       Release tag for installed-release smoke.
   --release-public-key FILE         Guest-visible release public key for signature verification.
   --require-published-release       Require installed-release smoke in guest evidence verification.
+  --require-github-release-source   Require installed-release smoke to use --published-release-repo.
   --note TEXT                       Append operator context to guest notes.md.
   --execute                         Run SSH/SCP and verify local evidence. Default is dry-run.
 
@@ -166,6 +168,10 @@ while [ "$#" -gt 0 ]; do
       require_published_release="true"
       shift
       ;;
+    --require-github-release-source)
+      require_github_release_source="true"
+      shift
+      ;;
     --note)
       operator_note="${2:-}"
       shift 2
@@ -202,6 +208,12 @@ fi
 
 if [ "$require_published_release" = "true" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
   fail "--require-published-release requires --published-release-dir or --published-release-repo"
+fi
+
+if [ "$require_github_release_source" = "true" ]; then
+  [ "$require_published_release" = "true" ] || fail "--require-github-release-source requires --require-published-release"
+  [ -n "$published_release_repo" ] || fail "--require-github-release-source requires --published-release-repo"
+  [ -z "$published_release_dir" ] || fail "--require-github-release-source cannot be used with --published-release-dir"
 fi
 
 if [ -n "$published_release_dir" ] || [ -n "$published_release_repo" ]; then
@@ -248,6 +260,10 @@ if [ "$require_published_release" = "true" ]; then
   collector_args+=(--require-published-release)
 fi
 
+if [ "$require_github_release_source" = "true" ]; then
+  collector_args+=(--require-github-release-source)
+fi
+
 if [ -n "$operator_note" ]; then
   collector_args+=(--note "$operator_note")
 fi
@@ -264,6 +280,9 @@ if [ "$require_published_release" = "true" ]; then
 fi
 if [ -n "$published_release_tag" ]; then
   verify_command+=(--release-tag "$published_release_tag")
+fi
+if [ "$require_github_release_source" = "true" ]; then
+  verify_command+=(--require-github-release-source)
 fi
 
 echo "Target: $target"
