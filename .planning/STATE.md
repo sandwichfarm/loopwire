@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:14:54+02:00"
-last_activity: 2026-07-04 - Desktop multi-backend detection now renders an explicit first-run choice callout
+last_updated: "2026-07-04T20:22:45+02:00"
+last_activity: 2026-07-04 - Landing-page hero now surfaces release-gated curl install instructions
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Desktop multi-backend prompt mode now renders an explicit first-run backend choice callout
-that names detected viable backends, keeps live apply in preview, and tells the user the selection will be saved for
-live apply and startup restore. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
-deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - The VitePress landing-page hero now includes both current source install instructions and
+release-gated curl installer instructions for `/install.sh`, plus a background-restore preview command and explicit
+candidate gating copy. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
+proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,12 @@ deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
 
 ## Verification Log
 
+- 2026-07-04 Landing-page curl installer hero: the public VitePress first viewport now shows current source install,
+  release-gated `curl ... /install.sh | sh`, and `loopwire --background --mode preview` instructions without claiming
+  public release availability before signed artifacts, Bunny deploy, and VM proof exist. The hero install cards now wrap
+  long commands instead of requiring horizontal scroll on desktop or mobile. Validation passed: `pnpm verify:docs`,
+  `pnpm verify:requirements`, `pnpm --filter @loopwire/docs docs:build`, `git diff --check`, Chromium VitePress
+  preview screenshots at 1440x900 and 390x844, and `pnpm check`.
 - 2026-07-04 First-run backend choice callout: the desktop backend chooser now maps core `prompt`/`auto`/`none`
   decisions into a tested callout above the backend cards, so multi-backend detection asks the user to choose before
   live apply while single-backend and no-backend states explain automatic selection or diagnostics. Docs now describe

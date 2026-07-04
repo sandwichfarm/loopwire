@@ -96,7 +96,7 @@
 
 .lw-hero-row {
   display: grid;
-  grid-template-columns: minmax(280px, 520px) minmax(160px, 240px);
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
   gap: 12px;
   align-items: stretch;
 }
@@ -127,14 +127,20 @@
 .lw-install pre {
   max-width: 100%;
   margin: 0;
-  overflow-x: auto;
+  overflow: hidden;
   color: #bde84f;
   background: rgba(0, 0, 0, 0.44);
   border-radius: 6px;
 }
 
+.lw-install code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .lw-release-status {
   display: grid;
+  grid-column: 1 / -1;
   align-content: center;
   gap: 8px;
   padding: 14px;

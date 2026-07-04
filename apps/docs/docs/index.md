@@ -21,9 +21,15 @@ cd loopwire
 pnpm install
 pnpm check</code></pre>
       </figure>
+      <figure class="lw-install">
+        <figcaption>Release-gated curl install</figcaption>
+        <pre><code>curl -fsSL https://&lt;docs-host&gt;/install.sh \
+  | sh
+loopwire --background --mode preview</code></pre>
+      </figure>
       <div class="lw-release-status" aria-label="Release status">
         <strong>v0.1.0 candidate</strong>
-        <span>Signed public release and VM support claims are still gated.</span>
+        <span>The curl path activates after signed public artifacts, Bunny deploy, and VM proof pass.</span>
       </div>
     </div>
     <div class="lw-actions">
