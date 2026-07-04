@@ -2610,3 +2610,14 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
   tests/jack-ports-cli.test.ts`, `pnpm verify:docs`, `git diff --check`, and full `pnpm check` passed after the
   delegate environment fix. No VM launch, public release, Bunny deployment, secret write, tag push, host audio
   mutation, or support-matrix promotion was performed.
+- 2026-07-04 release status docs run handoff alignment: `scripts/audit-final-release-state.sh` now captures the
+  verified latest Deploy Docs workflow `databaseId` and passes it into `scripts/plan-final-release-handoff.sh`, so
+  `release:status` no longer leaves `<docs-deployment-run-id>` in docs proof fetch and final proof dispatch commands
+  after a successful Deploy Docs run has already been verified for the expected commit.
+- 2026-07-04 release status docs run handoff validation: codebase-memory MCP graph search located the final handoff,
+  release-status workflow probe, docs deployment run-id hint, and verifier surfaces. `bash -n
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh` passed. Expected-blocked live `pnpm release:status
+  -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output included `--run-id
+  28719868142`, `-f docs_deployment_run_id=28719868142`, and `Final release status: blocked`. `pnpm verify:scripts`,
+  `pnpm verify:docs`, and full `pnpm check` passed. No VM launch, public release, Bunny deployment, secret write, tag
+  push, host audio mutation, or support-matrix promotion was performed.

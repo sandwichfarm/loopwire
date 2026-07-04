@@ -214,8 +214,9 @@ manifest must be non-dry-run proof for the built docs dist; pass `--docs-deploym
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
 saved names-only secret audit, `--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH
 plan, or `--skip-gh` when you only want local evidence checks.
-If the docs deployment manifest is missing, `release:status` prints the matching `pnpm release:fetch-docs-proof`
-command for the expected commit.
+When the latest Deploy Docs workflow run is verified, the local handoff plan reuses that run id for docs proof fetching
+and final proof dispatch. If the docs deployment manifest is missing, `release:status` prints the matching
+`pnpm release:fetch-docs-proof` command for the expected commit.
 
 Parse an existing release-readiness log without rerunning release checks:
 

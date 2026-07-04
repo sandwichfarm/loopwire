@@ -3996,6 +3996,10 @@ grep -F "GitHub Release object is still a draft release" "$release_status_draft_
   echo "verify-scripts: release status did not block a draft GitHub Release" >&2
   exit 1
 }
+grep -F -- "-f docs_deployment_run_id=123456" "$release_status_draft_release_log" >/dev/null || {
+  echo "verify-scripts: release status handoff did not reuse the verified Deploy Docs run id" >&2
+  exit 1
+}
 release_status_prerelease_log="$tmp_dir/release-status-prerelease.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=prerelease \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \

@@ -12,6 +12,7 @@ vm_evidence_root=".vm/evidence"
 vm_start_port="2600"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
 skip_gh="false"
+latest_docs_deployment_run_id=""
 
 usage() {
   cat <<'USAGE'
@@ -133,6 +134,19 @@ if (run && Number.isInteger(run.databaseId)) {
   console.log(String(run.databaseId));
 } else {
   console.log("<docs-deployment-run-id>");
+}
+NODE
+}
+
+workflow_run_id_from_json() {
+  local output="$1"
+
+  node - "$output" <<'NODE' 2>/dev/null || true
+const raw = process.argv[2];
+const runs = JSON.parse(raw);
+const run = Array.isArray(runs) ? runs[0] : null;
+if (run && Number.isInteger(run.databaseId)) {
+  console.log(String(run.databaseId));
 }
 NODE
 }
@@ -357,6 +371,9 @@ NODE
   fi
 
   echo "ok: $label"
+  if [ "$label" = "latest Deploy Docs workflow run" ]; then
+    latest_docs_deployment_run_id="$(workflow_run_id_from_json "$output")"
+  fi
   [ -z "$validation" ] || printf '%s\n' "$validation" | indent
   [ -z "$output" ] || printf '%s\n' "$output" | indent
   echo
@@ -514,12 +531,16 @@ run_gate \
   node scripts/verify-support-matrix.mjs --matrix "$support_matrix" \
     --require-published-release --release-tag "$tag" || failed=1
 
+handoff_plan=(bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
+  --git-head "$expected_git_head" \
+  --public-key "$public_key" \
+  --vm-start-port "$vm_start_port")
+if [ -n "$latest_docs_deployment_run_id" ]; then
+  handoff_plan+=(--docs-deployment-run-id "$latest_docs_deployment_run_id")
+fi
 run_gate \
   "local final release handoff plan" \
-  bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
-    --git-head "$expected_git_head" \
-    --public-key "$public_key" \
-    --vm-start-port "$vm_start_port" || failed=1
+  "${handoff_plan[@]}" || failed=1
 
 if [ "$failed" -ne 0 ]; then
   echo "Final release status: blocked" >&2
