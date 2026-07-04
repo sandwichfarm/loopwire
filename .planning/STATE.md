@@ -2621,3 +2621,13 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
   28719868142`, `-f docs_deployment_run_id=28719868142`, and `Final release status: blocked`. `pnpm verify:scripts`,
   `pnpm verify:docs`, and full `pnpm check` passed. No VM launch, public release, Bunny deployment, secret write, tag
   push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 pinned Deploy Docs release-status audit: `scripts/audit-final-release-state.sh` now accepts
+  `--docs-deployment-run-id`, validates that exact run with `gh run view`, and reuses it in docs proof fetch plus final
+  proof dispatch handoff commands. Without the option it keeps auditing the latest Deploy Docs run.
+- 2026-07-04 pinned Deploy Docs validation: codebase-memory MCP graph search located `run_workflow_probe`,
+  `docs_deployment_run_id_hint`, and the release-status verifier surfaces. `bash -n
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh` passed. Live expected-blocked `pnpm release:status`
+  runs verified both latest and pinned `--docs-deployment-run-id 28720204030` paths, including concrete `--run-id
+  28720204030`, `-f docs_deployment_run_id=28720204030`, and `Final release status: blocked`. `pnpm verify:scripts`,
+  `pnpm verify:docs`, and full `pnpm check` passed. No VM launch, public release, Bunny deployment, secret write, tag
+  push, host audio mutation, or support-matrix promotion was performed.

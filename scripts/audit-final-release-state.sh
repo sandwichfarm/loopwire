@@ -6,6 +6,7 @@ tag=""
 expected_git_head=""
 public_key="packaging/release-signing-public.pem"
 secret_list_file=""
+docs_deployment_run_id=""
 docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-dist/docs-deployment/deployment-manifest.json}"
 docs_dist="${LOOPWIRE_DOCS_DIST:-apps/docs/docs/.vitepress/dist}"
 vm_evidence_root=".vm/evidence"
@@ -25,6 +26,7 @@ Options:
   --public-key FILE           Release public key, default packaging/release-signing-public.pem
   --git-head SHA              Expected release/source commit, default current checkout HEAD
   --secret-list-file FILE     Names-only `gh secret list` artifact for deterministic secret checks
+  --docs-deployment-run-id ID Verify this Deploy Docs run instead of the latest run
   --docs-deployment-manifest FILE
                               Docs deployment manifest, default dist/docs-deployment/deployment-manifest.json
   --docs-dist DIR             Built docs dist directory, default apps/docs/docs/.vitepress/dist
@@ -62,6 +64,11 @@ validate_vm_start_port() {
   if [ "$vm_start_port" -lt 1 ] || [ "$vm_start_port" -gt 65535 ]; then
     fail "VM start port must be in 1..65535: $vm_start_port"
   fi
+}
+
+validate_docs_deployment_run_id() {
+  [ -z "$docs_deployment_run_id" ] || [[ "$docs_deployment_run_id" =~ ^[0-9]+$ ]] ||
+    fail "docs deployment run id must be numeric: $docs_deployment_run_id"
 }
 
 reject_unsafe_value() {
@@ -115,6 +122,11 @@ check_public_key() {
 docs_deployment_run_id_hint() {
   local output
 
+  if [ -n "$docs_deployment_run_id" ]; then
+    echo "$docs_deployment_run_id"
+    return
+  fi
+
   if [ "$skip_gh" = "true" ]; then
     echo "<docs-deployment-run-id>"
     return
@@ -143,8 +155,8 @@ workflow_run_id_from_json() {
 
   node - "$output" <<'NODE' 2>/dev/null || true
 const raw = process.argv[2];
-const runs = JSON.parse(raw);
-const run = Array.isArray(runs) ? runs[0] : null;
+const parsed = JSON.parse(raw);
+const run = Array.isArray(parsed) ? parsed[0] : parsed;
 if (run && Number.isInteger(run.databaseId)) {
   console.log(String(run.databaseId));
 }
@@ -318,15 +330,16 @@ run_workflow_probe() {
 
   if ! validation="$(node - "$label" "$expected_head" "$output" <<'NODE' 2>&1
 const [label, expectedHead, raw] = process.argv.slice(2);
-let runs;
+let parsed;
 
 try {
-  runs = JSON.parse(raw);
+  parsed = JSON.parse(raw);
 } catch (error) {
   console.error(`${label} did not return JSON: ${error.message}`);
   process.exit(1);
 }
 
+const runs = Array.isArray(parsed) ? parsed : [parsed];
 if (!Array.isArray(runs)) {
   console.error(`${label} did not return a workflow run array.`);
   process.exit(1);
@@ -371,7 +384,7 @@ NODE
   fi
 
   echo "ok: $label"
-  if [ "$label" = "latest Deploy Docs workflow run" ]; then
+  if [ "$label" = "latest Deploy Docs workflow run" ] || [ "$label" = "Deploy Docs workflow run" ]; then
     latest_docs_deployment_run_id="$(workflow_run_id_from_json "$output")"
   fi
   [ -z "$validation" ] || printf '%s\n' "$validation" | indent
@@ -429,6 +442,10 @@ while [ "$#" -gt 0 ]; do
       secret_list_file="${2:?missing value for --secret-list-file}"
       shift 2
       ;;
+    --docs-deployment-run-id)
+      docs_deployment_run_id="${2:?missing value for --docs-deployment-run-id}"
+      shift 2
+      ;;
     --docs-deployment-manifest)
       docs_deployment_manifest="${2:?missing value for --docs-deployment-manifest}"
       shift 2
@@ -470,11 +487,13 @@ validate_tag
 reject_unsafe_value "$public_key" "public key"
 reject_unsafe_value "$expected_git_head" "git head"
 reject_unsafe_value "$secret_list_file" "secret-list file"
+reject_unsafe_value "$docs_deployment_run_id" "docs deployment run id"
 reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest"
 reject_unsafe_value "$docs_dist" "docs dist"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
 reject_unsafe_value "$vm_start_port" "VM start port"
 reject_unsafe_value "$support_matrix" "support matrix"
+validate_docs_deployment_run_id
 validate_vm_start_port
 
 failed=0
@@ -504,11 +523,18 @@ run_release_probe \
   gh release view "$tag" --repo "$repo" \
     --json tagName,url,targetCommitish,isDraft,isPrerelease,assets || failed=1
 
+docs_workflow_label="latest Deploy Docs workflow run"
+docs_workflow_probe=(gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
+  --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
+if [ -n "$docs_deployment_run_id" ]; then
+  docs_workflow_label="Deploy Docs workflow run"
+  docs_workflow_probe=(gh run view "$docs_deployment_run_id" --repo "$repo" \
+    --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
+fi
 run_workflow_probe \
-  "latest Deploy Docs workflow run" \
+  "$docs_workflow_label" \
   "$expected_git_head" \
-  gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
-    --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
+  "${docs_workflow_probe[@]}" || failed=1
 
 run_gate \
   "docs deployment manifest" \

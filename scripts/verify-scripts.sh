@@ -296,6 +296,10 @@ printf '%s\n' "$release_status_help" | grep -F -- "--secret-list-file FILE" >/de
   echo "verify-scripts: release status help is missing secret-list artifact support" >&2
   exit 1
 }
+printf '%s\n' "$release_status_help" | grep -F -- "--docs-deployment-run-id ID" >/dev/null || {
+  echo "verify-scripts: release status help is missing docs deployment run id support" >&2
+  exit 1
+}
 printf '%s\n' "$release_status_help" | grep -F -- "--docs-deployment-manifest FILE" >/dev/null || {
   echo "verify-scripts: release status help is missing docs deployment manifest support" >&2
   exit 1
@@ -341,6 +345,14 @@ if bash scripts/audit-final-release-state.sh \
   --vm-start-port nope \
   --skip-gh >/dev/null 2>&1; then
   echo "verify-scripts: release status accepted an invalid VM start port" >&2
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --docs-deployment-run-id nope \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted an invalid docs deployment run id" >&2
   exit 1
 fi
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
@@ -3573,6 +3585,55 @@ JSON
     esac
     exit 0
     ;;
+  "run view")
+    run_id="${3:?missing fake run id}"
+    shift 3
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --repo | --json)
+          shift 2
+          ;;
+        *)
+          echo "unexpected fake gh run view arg: $1" >&2
+          exit 64
+          ;;
+      esac
+    done
+    case "${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}" in
+      empty)
+        exit 1
+        ;;
+      success)
+        run_status="completed"
+        run_conclusion="success"
+        ;;
+      failed)
+        run_status="completed"
+        run_conclusion="failure"
+        ;;
+      running)
+        run_status="in_progress"
+        run_conclusion=""
+        ;;
+      *)
+        echo "unexpected LOOPWIRE_FAKE_GH_RUN_MODE: ${LOOPWIRE_FAKE_GH_RUN_MODE}" >&2
+        exit 64
+        ;;
+    esac
+    node - "$run_id" "$run_status" "$run_conclusion" <<'NODE'
+const [databaseId, status, conclusion] = process.argv.slice(2);
+console.log(JSON.stringify({
+  databaseId: Number(databaseId),
+  status,
+  conclusion: conclusion === "" ? null : conclusion,
+  headBranch: "master",
+  headSha: "0123456789abcdef0123456789abcdef01234567",
+  createdAt: "2026-07-04T00:00:00Z",
+  url: `https://github.example/actions/runs/${databaseId}`
+}, null, 2));
+NODE
+    exit 0
+    ;;
   api\ *)
     api_path="$2"
     shift 2
@@ -3589,7 +3650,7 @@ JSON
           ;;
       esac
     done
-    [ "$api_path" = "repos/sandwichfarm/loopwire/actions/runs/123456/artifacts" ] || {
+    [[ "$api_path" =~ ^repos/sandwichfarm/loopwire/actions/runs/[0-9]+/artifacts$ ]] || {
       echo "unexpected fake gh api path: $api_path" >&2
       exit 64
     }
@@ -3998,6 +4059,31 @@ grep -F "GitHub Release object is still a draft release" "$release_status_draft_
 }
 grep -F -- "-f docs_deployment_run_id=123456" "$release_status_draft_release_log" >/dev/null || {
   echo "verify-scripts: release status handoff did not reuse the verified Deploy Docs run id" >&2
+  exit 1
+}
+release_status_pinned_docs_run_log="$tmp_dir/release-status-pinned-docs-run.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=draft \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --docs-deployment-run-id 654321 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_pinned_docs_run_log" 2>&1; then
+  echo "verify-scripts: release status accepted a draft GitHub Release with pinned docs run" >&2
+  exit 1
+fi
+grep -F "databaseId=654321" "$release_status_pinned_docs_run_log" >/dev/null || {
+  echo "verify-scripts: release status did not verify the pinned Deploy Docs run id" >&2
+  exit 1
+}
+grep -F -- "--run-id 654321" "$release_status_pinned_docs_run_log" >/dev/null || {
+  echo "verify-scripts: release status docs proof command did not use the pinned run id" >&2
+  exit 1
+}
+grep -F -- "-f docs_deployment_run_id=654321" "$release_status_pinned_docs_run_log" >/dev/null || {
+  echo "verify-scripts: release status final proof handoff did not use the pinned run id" >&2
   exit 1
 }
 release_status_prerelease_log="$tmp_dir/release-status-prerelease.log"

@@ -212,11 +212,11 @@ or still-running workflow lists are release blockers, even when the GitHub API c
 when omitted, so a successful docs or proof run for an older commit cannot satisfy final status. The docs deployment
 manifest must be non-dry-run proof for the built docs dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
-saved names-only secret audit, `--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH
-plan, or `--skip-gh` when you only want local evidence checks.
-When the latest Deploy Docs workflow run is verified, the local handoff plan reuses that run id for docs proof fetching
-and final proof dispatch. If the docs deployment manifest is missing, `release:status` prints the matching
-`pnpm release:fetch-docs-proof` command for the expected commit.
+saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Deploy Docs run audited for final proof,
+`--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH plan, or `--skip-gh` when you
+only want local evidence checks. When a Deploy Docs workflow run is verified, the local handoff plan reuses that run id
+for docs proof fetching and final proof dispatch. If the docs deployment manifest is missing, `release:status` prints
+the matching `pnpm release:fetch-docs-proof` command for the expected commit.
 
 Parse an existing release-readiness log without rerunning release checks:
 
