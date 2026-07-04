@@ -231,7 +231,8 @@ final_release_dry_run="$(
     --support-matrix apps/docs/docs/guide/support-matrix.md \
     --dry-run
 )"
-final_release_plan_output="$(mktemp)"
+final_release_plan_output="dist/release/final-release-proof-plan.verify-scripts.txt"
+rm -f "$final_release_plan_output"
 bash scripts/verify-final-release-proof.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
@@ -409,6 +410,32 @@ if bash scripts/verify-final-release-proof.sh \
   --docs-base-url https://docs.example.test \
   --plan-output /tmp/loopwire-final-proof-plan.txt >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted plan output without dry-run" >&2
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run \
+  --plan-output /tmp/loopwire-final-proof-plan-dry-run.txt >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted plan output outside dist/release" >&2
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run \
+  --plan-output dist/release/../final-release-proof-plan.txt >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted traversal in plan output" >&2
   exit 1
 fi
 bash scripts/validate-release-asset-name.sh \

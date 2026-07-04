@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T16:35:07+02:00"
-last_activity: 2026-07-04 - Curl installer reports the Node runtime dependency for packaged background restore
+last_updated: "2026-07-04T17:44:53+02:00"
+last_activity: 2026-07-04 - Final release proof plan-output is constrained to dist/release handoff artifacts
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/install.sh` now reports whether `node` is available after a raw tarball install,
-so users see the packaged `loopwire --background`, `loopwire-dsp-provider`, and `loopwire-jack-ports` runtime
-dependency before enabling Restore on boot. Phase 12 remains gated on a public release, configured Bunny secrets, live
-Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-final-release-proof.sh --dry-run --plan-output` now writes only
+repo-local `dist/release/` handoff artifacts and rejects absolute paths or `.`/`..` traversal before touching the file.
+Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix
+tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,12 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 final proof handoff hardening: final release proof dry-run plan output is now constrained to
+  repo-local `dist/release/` files, creates that handoff directory explicitly, rejects absolute paths, shell glob
+  metacharacters, symlinks, directories, and `.`/`..` traversal before writing, and keeps the documented release review
+  path aligned with the verifier. Validation passed: focused positive/negative dry-run checks,
+  `bash -n scripts/verify-final-release-proof.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `git diff --check`, and `pnpm check`.
 - 2026-07-04 Phase 12 installer dependency reporting: the curl installer now reports whether `node` is available after
   install and warns raw tarball users that packaged background restore/provider commands require Node.js before Restore
   on boot. `apps/docs/docs/public/install.sh` was synced byte-for-byte from `scripts/install.sh`, and install plus

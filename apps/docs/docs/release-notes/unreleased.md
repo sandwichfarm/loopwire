@@ -250,6 +250,8 @@ These notes describe source-tree progress. They are not a public release announc
   path traversal, URL-like names, glob patterns, wrong evidence-kind prefixes, and tag mismatches.
 - Final release proof dry-runs can now write the exact command plan to a `--plan-output` file for release handoff
   review without touching GitHub, Bunny.net, release assets, docs URLs, or VM evidence.
+- Final release proof plan-output files must now stay under `dist/release/`, and the verifier rejects absolute paths
+  or `.`/`..` traversal before writing release handoff artifacts.
 - Final release proof dry-runs now include the `pnpm vm:prepare-release-evidence` handoff, including VM evidence
   packaging, signed `SHA256SUMS` refresh, signed-checksum verification, and the matching `gh release upload --clobber`
   command before the manual proof workflow.

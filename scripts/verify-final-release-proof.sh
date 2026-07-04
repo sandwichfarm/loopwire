@@ -124,6 +124,42 @@ validate_docs_remote_prefix() {
   esac
 }
 
+validate_plan_output_path() {
+  local value="$1"
+  local normalized
+  local parent
+
+  reject_unsafe_value "$value" "plan output path"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "plan output path must not be empty"
+  case "$normalized" in
+    /* | ~* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "plan output path must be a repo-relative file under dist/release"
+      ;;
+    */)
+      fail "plan output path must be a file, not a directory"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "plan output path must not contain . or .. path segments"
+      ;;
+  esac
+
+  case "$normalized" in
+    dist/release/*) ;;
+    *) fail "plan output path must stay under dist/release/" ;;
+  esac
+
+  [ ! -L "$normalized" ] || fail "plan output path must not be a symlink"
+  [ ! -d "$normalized" ] || fail "plan output path must be a file, not a directory"
+  parent="$(dirname "$normalized")"
+  mkdir -p "$parent" || fail "cannot create plan output directory: $parent"
+  plan_output="$normalized"
+}
+
 target_ids() {
   awk -F '\t' 'NF && $1 !~ /^#/ { print $1 }' vm/targets.tsv
 }
@@ -214,8 +250,8 @@ reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest path"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
 reject_unsafe_value "$support_matrix" "support matrix path"
 if [ -n "$plan_output" ]; then
-  reject_unsafe_value "$plan_output" "plan output path"
   [ "$dry_run" = "true" ] || fail "--plan-output requires --dry-run"
+  validate_plan_output_path "$plan_output"
   : >"$plan_output" || fail "cannot write plan output: $plan_output"
 fi
 
