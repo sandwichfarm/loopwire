@@ -1123,6 +1123,10 @@ node scripts/verify-docs-deployment-manifest.mjs --help | grep -F -- "--expected
   echo "verify-scripts: docs deployment manifest verifier help is missing dry-run binding" >&2
   exit 1
 }
+node scripts/verify-docs-deployment-manifest.mjs --help | grep -F -- "--git-head SHA" >/dev/null || {
+  echo "verify-scripts: docs deployment manifest verifier help is missing git-head binding" >&2
+  exit 1
+}
 bash scripts/prepare-release-signing-key.sh --help >/dev/null
 setup_secrets_required="$(bash scripts/setup-github-secrets.sh --print-required)"
 printf '%s\n' "$setup_secrets_required" | grep -F "Required final-proof GitHub secrets:" >/dev/null || {
@@ -2885,6 +2889,7 @@ printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$docs_dist/index.html"
 printf '%s\n' "body{color:#111}" >"$docs_dist/assets/site.css"
 cp apps/docs/docs/public/install.sh "$docs_dist/install.sh"
 bunny_manifest="$tmp_dir/docs-deployment-manifest.json"
+bunny_git_head="$(git rev-parse HEAD)"
 bunny_dry_run="$(
   bash scripts/deploy-docs-bunny.sh \
     --dist "$docs_dist" \
@@ -2912,14 +2917,17 @@ pnpm verify:docs-deployment -- \
   --storage-zone loopwire-docs \
   --storage-endpoint ny.storage.bunnycdn.com \
   --remote-prefix preview \
+  --git-head "$bunny_git_head" \
   --expected-dry-run true >/dev/null
-node - "$bunny_manifest" <<'NODE' || {
+node - "$bunny_manifest" "$bunny_git_head" <<'NODE' || {
 const { readFileSync } = require("node:fs");
 
 const manifest = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const expectedGitHead = process.argv[3];
 const uploads = new Map(manifest.uploads.map((upload) => [upload.relativePath, upload]));
 
 if (manifest.schema !== "loopwire.docs-deployment.v1") process.exit(1);
+if (manifest.source?.gitHead !== expectedGitHead) process.exit(1);
 if (manifest.dryRun !== true) process.exit(1);
 if (manifest.fileCount !== 3) process.exit(1);
 if (manifest.storage.zone !== "loopwire-docs") process.exit(1);
@@ -2934,6 +2942,14 @@ NODE
   echo "verify-scripts: Bunny docs deploy manifest is malformed" >&2
   exit 1
 }
+if pnpm verify:docs-deployment -- \
+  --manifest "$bunny_manifest" \
+  --dist "$docs_dist" \
+  --git-head 0000000000000000000000000000000000000000 \
+  --expected-dry-run true >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment manifest verifier accepted a mismatched git head" >&2
+  exit 1
+fi
 printf '%s\n' "body{color:#222}" >"$docs_dist/assets/site.css"
 if pnpm verify:docs-deployment -- \
   --manifest "$bunny_manifest" \

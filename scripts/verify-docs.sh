@@ -412,6 +412,8 @@ assert_contains "apps/docs/docs/developer/release.md" "docs-live-smoke"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire.docs-deployment.v1"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:docs-deployment"
 assert_contains "apps/docs/docs/developer/release.md" "rejects checksum drift"
+assert_contains "apps/docs/docs/developer/release.md" "source git head"
+assert_contains "apps/docs/docs/developer/release.md" "rejects source git head drift"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/developer/release.md" "requires a clean git checkout"
 assert_contains "apps/docs/docs/developer/release.md" "local or remote tag resolves"
@@ -499,6 +501,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release evidence m
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Bunny.net upload helper"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire.docs-deployment.v1"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:docs-deployment"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "source git head"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now fails if the docs deployment"
 assert_contains \
   "apps/docs/docs/release-notes/unreleased.md" \

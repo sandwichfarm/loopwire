@@ -189,6 +189,8 @@ These notes describe source-tree progress. They are not a public release announc
   deploy workflow uploads it as the `loopwire-docs-deployment` artifact after successful Bunny uploads.
 - New `pnpm verify:docs-deployment` verifies that deployment manifest against the built docs dist before artifact
   upload, including file inventory, SHA-256 checksums, remote-prefix paths, and secret-like key rejection.
+- Docs deployment manifests now record the source git head, and final release proof rejects manifests that do not match
+  the requested release commit.
 - Release readiness now fails if the docs deployment manifest verifier is missing, unparsable, absent from
   `package.json`, or not wired into the docs deploy workflow before the manifest artifact upload.
 - Release readiness now fails if the final release proof workflow, `pnpm verify:final-release`,

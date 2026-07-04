@@ -133,6 +133,7 @@ jobs:
             --storage-zone "$BUNNY_STORAGE_ZONE" \
             --storage-endpoint "${BUNNY_STORAGE_ENDPOINT:-https://storage.bunnycdn.com}" \
             --remote-prefix "$BUNNY_REMOTE_PREFIX" \
+            --git-head "$GITHUB_SHA" \
             --expected-dry-run false
 
       - name: Upload docs deployment manifest

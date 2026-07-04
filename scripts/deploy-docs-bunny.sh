@@ -8,6 +8,8 @@ storage_endpoint="${BUNNY_STORAGE_ENDPOINT:-https://storage.bunnycdn.com}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-}"
 dry_run="false"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
 
 usage() {
   cat <<'USAGE'
@@ -156,12 +158,14 @@ upload_file() {
 write_deployment_manifest() {
   manifest_path="$1"
   uploads_tsv="$2"
+  git_head="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || true)"
 
   command -v node >/dev/null 2>&1 || fail "node is required to write deployment manifests"
+  [ -n "$git_head" ] || fail "git is required to bind deployment manifests to a source commit"
   mkdir -p "$(dirname "$manifest_path")"
 
   node - "$manifest_path" "$uploads_tsv" "$dist_dir" "$storage_zone" "$storage_endpoint" "$remote_prefix" \
-    "$dry_run" "$file_count" <<'NODE'
+    "$dry_run" "$file_count" "$git_head" <<'NODE'
 const { readFileSync, writeFileSync } = require("node:fs");
 
 const [
@@ -172,7 +176,8 @@ const [
   storageEndpoint,
   remotePrefix,
   dryRun,
-  fileCount
+  fileCount,
+  gitHead
 ] = process.argv.slice(2);
 
 const uploads = readFileSync(uploadsTsv, "utf8")
@@ -192,6 +197,9 @@ const manifest = {
     zone: storageZone,
     endpoint: storageEndpoint,
     remotePrefix
+  },
+  source: {
+    gitHead
   },
   requiredFiles: ["index.html", "install.sh"],
   fileCount: Number(fileCount),

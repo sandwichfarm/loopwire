@@ -10,6 +10,7 @@ const expectedStorageZone = readOption("--storage-zone");
 const expectedStorageEndpoint = readOption("--storage-endpoint");
 const expectedRemotePrefix = readOption("--remote-prefix");
 const expectedDryRun = readOption("--expected-dry-run");
+const expectedGitHead = readOption("--git-head");
 
 if (args.includes("-h") || args.includes("--help")) {
   usage();
@@ -91,10 +92,11 @@ function usage() {
 Usage:
   verify-docs-deployment-manifest.mjs --manifest FILE [--dist DIR]
     [--storage-zone ZONE] [--storage-endpoint URL] [--remote-prefix PATH]
-    [--expected-dry-run true|false]
+    [--expected-dry-run true|false] [--git-head SHA]
 
 Checks:
   - manifest schema and generated timestamp,
+  - source git commit binding,
   - storage zone, endpoint, and remote prefix path safety,
   - required index.html and install.sh entries,
   - every dist file appears exactly once,
@@ -116,7 +118,8 @@ function validateArgs() {
     "--storage-zone",
     "--storage-endpoint",
     "--remote-prefix",
-    "--expected-dry-run"
+    "--expected-dry-run",
+    "--git-head"
   ]);
   const flagOptions = new Set(["--", "-h", "--help"]);
 
@@ -142,6 +145,10 @@ function validateArgs() {
 
   if (expectedDryRun && !["true", "false"].includes(expectedDryRun)) {
     fail("--expected-dry-run must be true or false", 2);
+  }
+
+  if (expectedGitHead) {
+    validateGitHead(expectedGitHead, "--git-head");
   }
 }
 
@@ -183,6 +190,7 @@ function validateManifestShape(value) {
     fail("manifest distDir must be a non-empty string");
   }
 
+  validateSource(value.source);
   validateStorage(value.storage);
 
   if (!Array.isArray(value.requiredFiles)) {
@@ -198,6 +206,23 @@ function validateManifestShape(value) {
   }
 
   return value.uploads;
+}
+
+function validateSource(source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    fail("manifest source must be an object");
+  }
+
+  validateGitHead(source.gitHead, "manifest source.gitHead");
+  if (expectedGitHead && source.gitHead.toLowerCase() !== expectedGitHead.toLowerCase()) {
+    fail(`manifest git head mismatch: expected ${expectedGitHead}, got ${source.gitHead}`);
+  }
+}
+
+function validateGitHead(value, label) {
+  if (typeof value !== "string" || !/^[0-9a-fA-F]{40}$/.test(value)) {
+    fail(`${label} must be a 40-character git commit SHA`);
+  }
 }
 
 function validateStorage(storage) {

@@ -323,6 +323,7 @@ run_step "docs deployment manifest" \
   node scripts/verify-docs-deployment-manifest.mjs \
   --manifest "$docs_deployment_manifest" \
   --dist apps/docs/docs/.vitepress/dist \
+  --git-head "$git_head" \
   --expected-dry-run false
 
 run_step "release evidence" \

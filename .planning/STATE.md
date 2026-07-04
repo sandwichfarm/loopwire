@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T19:29:28+02:00"
-last_activity: 2026-07-04 - Final VM evidence now requires GitHub release source
+last_updated: "2026-07-04T20:07:28+02:00"
+last_activity: 2026-07-04 - Docs deployment manifests now bind to the release git head
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Final VM evidence verification now has a strict GitHub release source mode, and final
-packaging, support-matrix, promotion, release-evidence, and final-proof paths require it for exact-tag public support
-claims. Guest-visible release directories remain available for pre-publish smoke, but cannot satisfy final proof that
-must come from the GitHub Release surface. Phase 12 remains gated on a public release, configured Bunny secrets, live
-Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Docs deployment manifests now record the source git head, the deployment workflow verifies
+that binding against `GITHUB_SHA`, and final release proof passes its required release commit into
+`pnpm verify:docs-deployment` before accepting the docs deployment artifact. Phase 12 remains gated on a public release,
+configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
+evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +85,15 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
 
 ## Verification Log
 
+- 2026-07-04 Docs deployment source-commit binding: `scripts/deploy-docs-bunny.sh` now writes
+  `source.gitHead` into `loopwire.docs-deployment.v1` manifests, `scripts/verify-docs-deployment-manifest.mjs` requires
+  a valid manifest git head and rejects `--git-head` mismatches, the docs deploy workflow checks the manifest against
+  `GITHUB_SHA`, and final release proof checks the downloaded deployment artifact against the requested release commit.
+  Validation passed: codebase-memory MCP listed `home-sandwich-Develop-loopwire` ready with 3,143 nodes and 6,090
+  edges, and `search_graph`/`get_code_snippet` located the docs deployment manifest, manifest verifier, and final proof
+  contracts; `bash -n scripts/deploy-docs-bunny.sh scripts/verify-final-release-proof.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `node --check scripts/verify-docs-deployment-manifest.mjs`, `git diff --check`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:workflows`, and `pnpm check` passed.
 - 2026-07-04 Final VM evidence GitHub-source hardening: `scripts/verify-vm-evidence.sh` now supports
   `--require-github-release-source`, rejecting exact-tag final evidence whose `published-release.json` records a local
   directory source. Final VM archive packaging, final proof, support-matrix verification, promotion, VM matrix status,
