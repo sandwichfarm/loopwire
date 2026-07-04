@@ -3786,6 +3786,45 @@ grep -F "pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id 
     echo "verify-scripts: release status did not print the docs proof fetch command" >&2
     exit 1
   }
+release_status_missing_docs_manifest_artifacts_log="$tmp_dir/release-status-missing-docs-manifest-artifacts.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --public-key "$release_status_public_key" \
+    --secret-list-file "$secret_list_all_final" \
+    --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
+    --docs-dist "$release_status_docs_dist" >"$release_status_missing_docs_manifest_artifacts_log" 2>&1; then
+  echo "verify-scripts: release status accepted a missing docs deployment manifest with only docs artifact present" >&2
+  exit 1
+fi
+grep -F "Deploy Docs artifacts visible:" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+  echo "verify-scripts: release status did not print docs artifact inventory" >&2
+  exit 1
+}
+grep -F "loopwire-docs" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+  echo "verify-scripts: release status did not print the available docs artifact" >&2
+  exit 1
+}
+grep -F "missing workflow artifact: loopwire-docs-deployment" \
+  "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+    echo "verify-scripts: release status did not report the missing deployment artifact" >&2
+    exit 1
+  }
+grep -F "likely cause: Deploy Docs skipped Bunny.net deployment because required Bunny secrets are absent." \
+  "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+    echo "verify-scripts: release status did not explain the likely Bunny skip cause" >&2
+    exit 1
+  }
+grep -F "pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id 123456 --git-head 0123456789abcdef0123456789abcdef01234567" \
+  "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+    echo "verify-scripts: release status did not print the concrete docs proof fetch command" >&2
+    exit 1
+  }
 release_status_log="$tmp_dir/release-status-blocked.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \

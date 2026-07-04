@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T22:41:10+02:00"
-last_activity: 2026-07-04 - Docs proof fetch reports missing deployment artifact inventory
+last_updated: "2026-07-04T22:47:21+02:00"
+last_activity: 2026-07-04 - Final release status reports Deploy Docs artifact inventory
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:fetch-docs-proof` now reports available Deploy Docs artifacts when the
-deployment-manifest artifact is absent, then prints the Bunny.net secret setup recovery command. Phase 12 remains gated
-on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:status` now reports the Deploy Docs artifact inventory when the local docs
+deployment manifest is absent, making the missing `loopwire-docs-deployment` proof visible without a second command.
+Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,16 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
 
 ## Verification Log
 
+- 2026-07-04 Final release status docs artifact inventory: `scripts/audit-final-release-state.sh` now queries the
+  latest Deploy Docs run artifacts when `dist/docs-deployment/deployment-manifest.json` is missing, prints the visible
+  artifact list, and reports the absent `loopwire-docs-deployment` artifact plus the likely Bunny.net secret skip cause.
+  `scripts/verify-scripts.sh` covers this with fake-GitHub status audit evidence where only `loopwire-docs` exists.
+  Validation passed: codebase-memory MCP reported `home-sandwich-Develop-loopwire` ready with 3,279 nodes and 6,373
+  edges; `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed. Live `pnpm release:status -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head d6a20cdc7e5c935381ddd2173d1f36e5d3b3ce55` now blocks as expected
+  while reporting `Deploy Docs artifacts visible: loopwire-docs`, `missing workflow artifact:
+  loopwire-docs-deployment`, and the Bunny.net skip explanation for Deploy Docs run `28719046304`.
 - 2026-07-04 Docs deployment artifact inventory: `scripts/fetch-docs-deployment-proof.sh` now lists the Deploy Docs
   artifacts visible through `gh api` when `loopwire-docs-deployment` is missing, identifies the likely Bunny.net deploy
   skip cause, and prints the no-secret `scripts/setup-github-secrets.sh` recovery command. `scripts/verify-scripts.sh`

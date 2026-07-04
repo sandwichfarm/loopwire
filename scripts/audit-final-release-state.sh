@@ -128,12 +128,37 @@ if (run && Number.isInteger(run.databaseId)) {
 NODE
 }
 
+report_docs_deployment_artifact_hint() {
+  local run_id="$1"
+  local artifacts
+
+  if [ "$skip_gh" = "true" ]; then
+    return
+  fi
+
+  [[ "$run_id" =~ ^[0-9]+$ ]] || return
+
+  artifacts="$(gh api "repos/${repo}/actions/runs/${run_id}/artifacts" --jq '.artifacts[].name' 2>/dev/null || true)"
+  if [ -z "$artifacts" ]; then
+    echo "Deploy Docs artifacts visible: none or unavailable from GitHub API" >&2
+    return
+  fi
+
+  echo "Deploy Docs artifacts visible:" >&2
+  printf '%s\n' "$artifacts" | indent >&2
+  if ! printf '%s\n' "$artifacts" | grep -Fxq "loopwire-docs-deployment"; then
+    echo "missing workflow artifact: loopwire-docs-deployment" >&2
+    echo "likely cause: Deploy Docs skipped Bunny.net deployment because required Bunny secrets are absent." >&2
+  fi
+}
+
 check_docs_deployment_manifest() {
   local run_id
 
   if [ ! -s "$docs_deployment_manifest" ]; then
     run_id="$(docs_deployment_run_id_hint)"
     echo "missing: docs deployment manifest: $docs_deployment_manifest" >&2
+    report_docs_deployment_artifact_hint "$run_id"
     echo "next: fetch and verify Deploy Docs proof artifacts:" >&2
     echo "  pnpm release:fetch-docs-proof -- --repo $repo --run-id $run_id --git-head $expected_git_head" >&2
     echo "note: the Deploy Docs run must include the loopwire-docs-deployment artifact; configure Bunny secrets if it is absent." >&2
