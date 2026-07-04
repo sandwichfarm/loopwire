@@ -63,7 +63,8 @@
     "vm:render-ssh-plan": "bash scripts/vm-matrix.sh render-ssh-plan",
     "vm:render-cloud-init": "bash scripts/vm-matrix.sh render-cloud-init",
     "vm:collect-ssh": "bash scripts/collect-vm-evidence-ssh.sh",
-    "vm:collect-matrix": "bash scripts/collect-vm-matrix-evidence.sh"
+    "vm:collect-matrix": "bash scripts/collect-vm-matrix-evidence.sh",
+    "vm:package-evidence": "bash scripts/package-vm-evidence.sh"
   },
   "devDependencies": {
     "@types/node": "26.1.0",

@@ -26,6 +26,7 @@ bash -n \
   scripts/verify-published-release.sh \
   scripts/verify-final-release-proof.sh \
   scripts/collect-dsp-provider-plan.sh \
+  scripts/package-vm-evidence.sh \
   scripts/verify-vm-evidence.sh \
   scripts/collect-vm-evidence.sh \
   scripts/collect-vm-evidence-ssh.sh \
@@ -684,6 +685,7 @@ node scripts/describe-dsp-provider.mjs --help | grep -F -- "--execute" >/dev/nul
 bash scripts/collect-vm-evidence.sh --help >/dev/null
 bash scripts/collect-vm-evidence-ssh.sh --help >/dev/null
 bash scripts/collect-vm-matrix-evidence.sh --help >/dev/null
+bash scripts/package-vm-evidence.sh --help >/dev/null
 collect_vm_help="$(bash scripts/collect-vm-evidence.sh --help)"
 printf '%s\n' "$collect_vm_help" | grep -F -- "--published-release-dir DIR" >/dev/null || {
   echo "verify-scripts: VM evidence collector help is missing published release directory support" >&2
@@ -713,6 +715,15 @@ printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--require-published-releas
 }
 printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--require-all-targets" >/dev/null || {
   echo "verify-scripts: matrix VM evidence collector help is missing all-target requirement support" >&2
+  exit 1
+}
+package_vm_evidence_help="$(bash scripts/package-vm-evidence.sh --help)"
+printf '%s\n' "$package_vm_evidence_help" | grep -F -- "--require-published-release" >/dev/null || {
+  echo "verify-scripts: VM evidence packager help is missing published release strictness support" >&2
+  exit 1
+}
+printf '%s\n' "$package_vm_evidence_help" | grep -F -- "vm-evidence/<target>" >/dev/null || {
+  echo "verify-scripts: VM evidence packager help is missing archive layout" >&2
   exit 1
 }
 single_ssh_plan="$(
@@ -3194,6 +3205,26 @@ bash scripts/verify-vm-evidence.sh \
   --require-published-release >/dev/null
 rm -rf "$status_root/arch-hyprland-pipewire"
 cp -R "$evidence_dir" "$status_root/arch-hyprland-pipewire"
+vm_evidence_archive="$tmp_dir/loopwire-vm-evidence-v0.1.0.tar.gz"
+bash scripts/package-vm-evidence.sh \
+  --tag v0.1.0 \
+  --evidence-root "$status_root" \
+  --target arch-hyprland-pipewire \
+  --require-published-release \
+  --output "$vm_evidence_archive" >/dev/null
+tar -tzf "$vm_evidence_archive" "vm-evidence/arch-hyprland-pipewire/command-results.tsv" >/dev/null || {
+  echo "verify-scripts: VM evidence packager archive is missing target command ledger" >&2
+  exit 1
+}
+if bash scripts/package-vm-evidence.sh \
+  --tag v0.1.0 \
+  --evidence-root "$status_root" \
+  --target arch-hyprland-pipewire \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence packager accepted --all with --target" >&2
+  exit 1
+fi
 vm_strict_status_output="$(
   bash scripts/vm-matrix.sh evidence-status \
     --target arch-hyprland-pipewire \

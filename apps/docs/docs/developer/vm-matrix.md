@@ -375,6 +375,20 @@ That mode runs `scripts/verify-published-release.sh` inside the guest, records `
 `scripts/verify-vm-evidence.sh --require-published-release` reject bundles that did not install and run a signed
 release artifact.
 
+After every target bundle is collected, package the exact archive consumed by the final release proof workflow:
+
+```bash
+pnpm vm:package-evidence -- \
+  --tag v0.1.0 \
+  --evidence-root .vm/evidence \
+  --all \
+  --require-published-release \
+  --output dist/release/loopwire-vm-evidence-v0.1.0.tar.gz
+```
+
+The packager verifies each selected target bundle before writing the deterministic `vm-evidence/<target>` archive
+layout. It fails before creating final proof material if any target is missing or lacks published-release smoke.
+
 `environment.json` is structured proof that the bundle was captured for the selected `vm/targets.tsv` row. The
 verifier checks the target distro, desktop/session, architecture, observed guest environment, and expected audio
 backend availability from `detect-audio.json`. If SSH does not expose the graphical session variables, run the

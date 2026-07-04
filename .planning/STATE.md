@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:47:08+02:00"
-last_activity: 2026-07-04 - final release proof workflow added
+last_updated: "2026-07-04T13:54:17+02:00"
+last_activity: 2026-07-04 - VM evidence archive packager added
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now exposes a manual CI proof gate that
-downloads release and VM evidence archives from the GitHub Release, verifies the live docs target, and runs
-`scripts/verify-final-release-proof.sh` against the exact release tag commit. Phase 12 remains gated on a public
-release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/package-vm-evidence.sh` and `pnpm vm:package-evidence` now package verified
+operator-collected VM bundles into the `loopwire-vm-evidence-<tag>.tar.gz` archive consumed by final release proof.
+The packager re-runs `scripts/verify-vm-evidence.sh` before writing archive entries. Phase 12 remains gated on a
+public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1951,3 +1951,14 @@ release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM ev
   `pnpm verify:docs`, Ruby workflow YAML parsing for `.github/workflows/final-release-proof.yml`, `git diff --check`,
   and an added-line length scan passed. No release asset, VM evidence archive, Bunny deployment, live URL smoke,
   tag push, or public release was created.
+- 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
+  selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
+  and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes
+  `pnpm vm:package-evidence`, and release/VM docs describe how to create
+  `loopwire-vm-evidence-<tag>.tar.gz` after operator-run VM evidence exists.
+- 2026-07-04 VM evidence packager validation: codebase-memory MCP `search_graph` located the existing VM evidence and
+  final proof surfaces before implementation. `bash -n scripts/package-vm-evidence.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, a packager dry-run, `pnpm verify:docs`, and `pnpm verify:scripts` passed. The script
+  verifier packages a fake strict single-target evidence archive and checks `--all`/`--target` conflict rejection.
+  No VM was launched, no public release was created, no release asset was uploaded, and no support matrix row was
+  promoted.

@@ -308,6 +308,20 @@ The VM evidence archive must contain either target directories at its root, `.vm
 Release, verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every VM target
 bundle to include published-release smoke, verifies support-matrix promotion rules, and reruns `pnpm verify:docs`.
 
+After collecting and verifying every VM target bundle, create the archive for the GitHub Release:
+
+```bash
+pnpm vm:package-evidence -- \
+  --tag v0.1.0 \
+  --evidence-root .vm/evidence \
+  --all \
+  --require-published-release \
+  --output dist/release/loopwire-vm-evidence-v0.1.0.tar.gz
+```
+
+The packager re-runs `scripts/verify-vm-evidence.sh --require-published-release` for each selected target before
+writing `vm-evidence/<target>` entries into the archive.
+
 This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
 release evidence archive, and VM evidence archive all exist.
 

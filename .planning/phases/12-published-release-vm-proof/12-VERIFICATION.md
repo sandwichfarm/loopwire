@@ -2100,6 +2100,11 @@
   target by URL or Bunny hostname/prefix, and runs `scripts/verify-final-release-proof.sh`.
 - Workflow validation passed: `pnpm verify:workflows`, `pnpm verify:docs`, Ruby YAML parsing for
   `.github/workflows/final-release-proof.yml`, `git diff --check`, and an added-line length scan.
+- `scripts/package-vm-evidence.sh` and `pnpm vm:package-evidence` now package verified operator-collected VM bundles
+  into `loopwire-vm-evidence-<tag>.tar.gz` with `vm-evidence/<target>` archive layout. The packager validates the tag,
+  resolves targets from `vm/targets.tsv`, and re-runs `scripts/verify-vm-evidence.sh` before writing archive entries.
+- Focused validation passed: `bash -n scripts/package-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  a packager dry-run, `pnpm verify:docs`, and `pnpm verify:scripts`.
 
 ## Evidence Missing
 
@@ -2113,6 +2118,8 @@
   deployment or live URL smoke was performed.
 - The final proof workflow exists, but no release evidence archive, VM evidence archive, live docs target, or public
   release exists for it to verify yet.
+- The VM evidence packager exists, but no real all-target VM evidence archive has been produced from operator-run
+  guests.
 - Host-side single-target and matrix SSH collectors are available, but no live VM evidence bundle was captured from an
   actual VM run.
 - Host VM launch is not available on this machine until QEMU tooling is installed; `scripts/vm-matrix.sh doctor --all`

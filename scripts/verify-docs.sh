@@ -464,7 +464,11 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret
 assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
 assert_contains "apps/docs/docs/developer/release.md" "workflow_dispatch"
+assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:package-evidence"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:package-evidence"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "vm-evidence/<target>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'manual `Final Release Proof` workflow'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:package-evidence` command'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
