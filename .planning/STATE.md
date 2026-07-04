@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:43:56+02:00"
-last_activity: 2026-07-04 - Nix release package verification has a fail-closed build-proof wrapper
+last_updated: "2026-07-04T15:53:37+02:00"
+last_activity: 2026-07-04 - Final release proof now includes published-release Nix package verification
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-nix-release-package.sh` now renders the checksum-bound Nix package
-expression and runs `nix build` when `nix` is available, failing closed by default on non-Nix hosts. Phase 12 remains
-gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and
-operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-nix-release-package.sh` can now download signed assets from
+`--repo OWNER/REPO --tag vX.Y.Z`, and `scripts/verify-final-release-proof.sh` now runs that published-release Nix
+package proof before accepting final release evidence. Phase 12 remains gated on a public release, configured Bunny
+secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -59,7 +59,8 @@ operator-run VM evidence.
   claim public signed installer readiness until the Bunny deploy secrets are configured and a tagged release workflow
   has passed.
 
-- Nix package metadata is smoke-tested structurally, but Nix build proof still needs a Nix-enabled host or VM target.
+- Nix package metadata and final proof wiring are smoke-tested structurally, but non-skipped `nix build` proof still
+  needs a Nix-enabled host or VM target.
 - Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, and published release proof
   remain the major product gaps for a fully functional Loopback-class app.
 - Packaged background restore is now release-shaped through `loopwire --background`, but public release proof still
@@ -2006,6 +2007,17 @@ operator-run VM evidence.
   in `--render-only` mode against checksum-bound fake artifacts so Nix-enabled hosts do not try to build unpublished
   fake tarballs. No non-skipped `nix build`, public release, tag push, Bunny deployment, VM launch, or support-matrix
   promotion was performed.
+- 2026-07-04 published-release Nix proof gate: `scripts/verify-nix-release-package.sh` now supports
+  `--repo OWNER/REPO --tag vX.Y.Z`, downloads signed release assets with `gh`, and still fails closed unless real
+  `nix build` proof succeeds. `scripts/collect-release-evidence.mjs` / `scripts/verify-release-evidence.mjs` expose
+  `--require-nix-release`, and `scripts/verify-final-release-proof.sh` now runs the published-release Nix package
+  verifier directly before release evidence, VM evidence, support-matrix, and docs proof.
+- 2026-07-04 published-release Nix proof validation: `bash -n` for changed shell scripts, `node --check` for release
+  evidence scripts, `pnpm verify:packaging`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:workflows`,
+  `pnpm verify:requirements`, offline `pnpm verify:release-readiness`, `pnpm verify:vm`, `pnpm detect:audio`,
+  `pnpm check`, `git diff --check`, added-line length scan, and GSD roadmap/phase queries passed. Codebase-memory MCP
+  `index_status` reported ready with 2,616 nodes and 5,447 edges. No non-skipped `nix build`, GitHub release, tag
+  push, Bunny deployment, VM launch, or support-matrix promotion was performed.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

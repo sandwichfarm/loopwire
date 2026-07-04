@@ -99,8 +99,17 @@ pnpm verify:nix-release -- \
   --public-key packaging/release-signing-public.pem
 ```
 
-Non-Nix CI and local machines may use `--skip-build-if-missing-nix` only to check wiring. Release evidence must not use
-that skip as Nix package proof.
+For final release proof, bind the proof to the published GitHub Release instead of a local directory:
+
+```bash
+pnpm verify:nix-release -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem
+```
+
+Non-Nix CI and local machines may use `--skip-build-if-missing-nix` only to check wiring. Release evidence and final
+release proof must not use that skip as Nix package proof.
 
 These channels are not published yet. Do not submit AUR metadata or expose a release-ready Nix package until versioned
 artifacts and real checksums exist.

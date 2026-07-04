@@ -79,6 +79,16 @@ pnpm verify:nix-release -- \
   --public-key packaging/release-signing-public.pem
 ```
 
+For final release proof, prefer the published GitHub Release coordinates so the verifier downloads the same signed
+assets that users and package metadata will consume:
+
+```bash
+pnpm verify:nix-release -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem
+```
+
 On non-Nix hosts, release-readiness wiring can be checked without claiming build proof:
 
 ```bash
@@ -88,8 +98,8 @@ pnpm verify:nix-release -- \
   --skip-build-if-missing-nix
 ```
 
-The skip flag is only for local or CI wiring checks on hosts without `nix`. Release evidence still requires the
-non-skipped command to run successfully.
+The skip flag is only for local or CI wiring checks on hosts without `nix`. Final release proof and release evidence
+still require the non-skipped command to run successfully.
 
 For fake-artifact metadata smokes, use render-only mode:
 

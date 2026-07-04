@@ -164,6 +164,8 @@ assert_contains ".github/workflows/release.yml" '--release-tag "$LOOPWIRE_RELEAS
 assert_contains ".github/workflows/release.yml" '--repo "$GITHUB_REPOSITORY"'
 assert_contains ".github/workflows/release.yml" '--git-head "$LOOPWIRE_RELEASE_COMMIT"'
 assert_contains ".github/workflows/release.yml" "--require-published-release"
+assert_contains "scripts/verify-final-release-proof.sh" "scripts/verify-nix-release-package.sh"
+assert_contains "scripts/verify-final-release-proof.sh" "Nix release package"
 assert_contains ".github/workflows/release.yml" "--require-dsp-provider-plan"
 assert_contains ".github/workflows/release.yml" 'loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
 assert_contains ".github/workflows/release.yml" 'evidence_archive="dist/release/loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"'

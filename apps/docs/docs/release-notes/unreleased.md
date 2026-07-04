@@ -325,6 +325,12 @@ These notes describe source-tree progress. They are not a public release announc
   rejects missing or duplicate checksum manifest entries before any Nix publication claim.
 - `pnpm verify:nix-release` now wraps the Nix render step and runs `nix build` on Nix-enabled hosts, with an explicit
   skip flag reserved for non-Nix wiring checks.
+- `pnpm verify:nix-release` can now download signed assets from `--repo OWNER/REPO --tag vX.Y.Z`, so final release
+  proof can verify the Nix package from the published GitHub Release instead of a local staging directory.
+- Release evidence collection and verification now support `--require-nix-release`, rejecting render-only or skipped
+  Nix proof rows when a release evidence bundle claims package-manager evidence.
+- `pnpm verify:final-release` now includes a direct Nix release package proof step before accepting final release
+  evidence, VM evidence, support-matrix, and docs proof.
 - The docs site now carries a VitePress public installer asset at `/install.sh` that is verified byte-for-byte against
   the canonical `scripts/install.sh`.
 - The release installer now rejects signed tarballs with unsafe absolute or parent-traversing archive paths before
@@ -349,7 +355,7 @@ These notes describe source-tree progress. They are not a public release announc
 - Public AArch64 release proof still requires a tagged workflow run and published `loopwire-linux-aarch64.tar.gz`
   asset.
 - Nix flake package wiring exists, but non-skipped `pnpm verify:nix-release` proof must come from a Nix-enabled host or
-  VM target after real release hashes exist.
+  VM target after real release hashes exist; render-only and missing-Nix modes remain wiring checks only.
 
 ## Verification To Keep Current
 

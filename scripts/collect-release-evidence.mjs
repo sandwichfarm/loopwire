@@ -28,6 +28,7 @@ const listCommands = args.includes("--list-commands");
 const requirePublishedRelease = args.includes("--require-published-release");
 const requireVmEvidence = args.includes("--require-vm-evidence");
 const requireLiveDocs = args.includes("--require-live-docs");
+const requireNixRelease = args.includes("--require-nix-release");
 const requireDspProviderPlan = args.includes("--require-dsp-provider-plan");
 const summarizeReleaseReadinessLog = readOption("--summarize-release-readiness-log");
 
@@ -118,6 +119,9 @@ const manifest = {
       targets: vmEvidenceTargets,
       required: requireVmEvidence
     },
+    nixReleasePackage: {
+      required: requireNixRelease
+    },
     vmLaunchPlan: {
       imageRoot: vmLaunchImageRoot,
       startPort: vmLaunchStartPort
@@ -174,6 +178,9 @@ Release options:
   --require-live-docs
                      Include deployed homepage plus /install.sh smoke as required evidence.
                      Full profile includes it as optional evidence when a docs URL/hostname is configured.
+  --require-nix-release
+                     Include Nix package build proof from the published release assets as required evidence.
+                     Full profile includes it as optional evidence by default.
   --vm-target TARGET VM target id for verified VM bundle evidence. Repeatable.
                      Use "all" to expand every target from vm/targets.tsv.
                      Defaults to LOOPWIRE_VM_TARGET or arch-hyprland-pipewire.
@@ -406,6 +413,21 @@ function evidenceCommands(selectedProfile) {
     log: "published-release-smoke.log",
     required: requirePublishedRelease
   };
+  const nixReleasePackage = {
+    name: "nix-release-package",
+    command: shellCommand([
+      "bash",
+      "scripts/verify-nix-release-package.sh",
+      "--repo",
+      releaseRepo,
+      "--tag",
+      releaseTag,
+      "--public-key",
+      releasePublicKey
+    ]),
+    log: "nix-release-package.log",
+    required: requireNixRelease
+  };
   const vmEvidence = vmEvidenceTargets.map((target) => ({
     name: vmEvidenceName(target.target),
     command: shellCommand(vmEvidenceCommandFor(target)),
@@ -452,6 +474,7 @@ function evidenceCommands(selectedProfile) {
     const requiredEvidence = [
       ...(requirePublishedRelease ? [publishedReleaseSmoke] : []),
       ...(requireLiveDocs ? [docsLiveSmoke] : []),
+      ...(requireNixRelease ? [nixReleasePackage] : []),
       ...(requireVmEvidence ? vmEvidence : []),
       ...(requireDspProviderPlan ? [dspProviderPlanCommand(selectedProfile)] : [])
     ];
@@ -479,6 +502,7 @@ function evidenceCommands(selectedProfile) {
       required: false
     },
     publishedReleaseSmoke,
+    nixReleasePackage,
     ...(docsLiveSmoke ? [docsLiveSmoke] : []),
     ...vmEvidence,
     {

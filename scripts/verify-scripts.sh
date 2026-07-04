@@ -149,6 +149,10 @@ node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-live-doc
   echo "verify-scripts: release evidence verifier help is missing live docs support" >&2
   exit 1
 }
+node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-nix-release" >/dev/null || {
+  echo "verify-scripts: release evidence verifier help is missing Nix release support" >&2
+  exit 1
+}
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-vm-launch-plan" >/dev/null || {
   echo "verify-scripts: release evidence verifier help is missing VM launch-plan support" >&2
   exit 1
@@ -207,6 +211,10 @@ grep -F "dry-run: release evidence:" "$final_release_plan_output" >/dev/null || 
   echo "verify-scripts: final release plan output is missing release evidence command" >&2
   exit 1
 }
+grep -F "dry-run: Nix release package:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing Nix release package command" >&2
+  exit 1
+}
 grep -F "dry-run: VM evidence arch-hyprland-pipewire:" "$final_release_plan_output" >/dev/null || {
   echo "verify-scripts: final release plan output is missing VM evidence command" >&2
   exit 1
@@ -218,6 +226,10 @@ grep -F "Final release proof dry-run complete." "$final_release_plan_output" >/d
 rm -f "$final_release_plan_output"
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-published-release.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing published-release verification" >&2
+  exit 1
+}
+printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-nix-release-package.sh" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing Nix release package verification" >&2
   exit 1
 }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-docs-live.sh" >/dev/null || {
@@ -382,6 +394,10 @@ printf '%s\n' "$collect_evidence_help" | grep -F -- "--require-live-docs" >/dev/
   echo "verify-scripts: release evidence help is missing live docs requirement support" >&2
   exit 1
 }
+printf '%s\n' "$collect_evidence_help" | grep -F -- "--require-nix-release" >/dev/null || {
+  echo "verify-scripts: release evidence help is missing Nix release requirement support" >&2
+  exit 1
+}
 printf '%s\n' "$collect_evidence_help" | grep -F -- "--vm-target TARGET" >/dev/null || {
   echo "verify-scripts: release evidence help is missing VM target support" >&2
   exit 1
@@ -477,6 +493,20 @@ if (!item || item.required !== false) process.exit(1);
   echo "verify-scripts: full release evidence plan should keep published-release smoke optional by default" >&2
   exit 1
 }
+printf '%s\n' "$collect_evidence_full_plan" | node -e '
+const fs = require("node:fs");
+const plan = JSON.parse(fs.readFileSync(0, "utf8"));
+const item = plan.find((entry) => entry.name === "nix-release-package");
+if (!item || item.required !== false) process.exit(1);
+if (!item.command.includes("scripts/verify-nix-release-package.sh")) process.exit(1);
+if (!item.command.includes("--repo")) process.exit(1);
+if (!item.command.includes("--tag")) process.exit(1);
+if (item.command.includes("--skip-build-if-missing-nix")) process.exit(1);
+if (item.command.includes("--render-only")) process.exit(1);
+' || {
+  echo "verify-scripts: full release evidence plan should include optional Nix release proof" >&2
+  exit 1
+}
 printf '%s\n' "$collect_evidence_full_plan" | grep -F '"name": "vm-evidence"' >/dev/null || {
   echo "verify-scripts: full release evidence plan is missing VM evidence" >&2
   exit 1
@@ -517,6 +547,7 @@ collect_evidence_required_plan="$(
     --list-commands \
     --profile quick \
     --require-published-release \
+    --require-nix-release \
     --release-tag v0.1.0 \
     --repo sandwichfarm/loopwire \
     --public-key packaging/release-signing-public.pem
@@ -532,6 +563,17 @@ const item = plan.find((entry) => entry.name === "published-release-smoke");
 if (!item || item.required !== true) process.exit(1);
 ' || {
   echo "verify-scripts: required release evidence plan did not make published-release smoke required" >&2
+  exit 1
+}
+printf '%s\n' "$collect_evidence_required_plan" | node -e '
+const fs = require("node:fs");
+const plan = JSON.parse(fs.readFileSync(0, "utf8"));
+const item = plan.find((entry) => entry.name === "nix-release-package");
+if (!item || item.required !== true) process.exit(1);
+if (!item.command.includes("scripts/verify-nix-release-package.sh")) process.exit(1);
+if (!item.command.includes("--public-key")) process.exit(1);
+' || {
+  echo "verify-scripts: required release evidence plan did not make Nix release proof required" >&2
   exit 1
 }
 collect_evidence_live_docs_required_plan="$(
@@ -906,6 +948,67 @@ pnpm --filter @loopwire/audio-host build >/dev/null
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
+
+nix_evidence_dir="$tmp_dir/nix-release-evidence"
+mkdir -p "$nix_evidence_dir"
+printf '%s\n' "Nix release package build passed for Loopwire 0.1.0." >"$nix_evidence_dir/nix-release-package.log"
+cat >"$nix_evidence_dir/release-evidence.json" <<'EOF'
+{
+  "generatedAt": "2026-07-04T00:00:00.000Z",
+  "profile": "quick",
+  "git": {
+    "head": "0123456789abcdef0123456789abcdef01234567",
+    "branch": "main",
+    "origin": "git@github.com:sandwichfarm/loopwire.git",
+    "statusShort": ""
+  },
+  "release": {
+    "repo": "o/r",
+    "tag": "v0.1.0",
+    "publicKey": "k",
+    "findings": [],
+    "blockers": []
+  },
+  "ok": true,
+  "commands": [
+    {
+      "name": "nix-release-package",
+      "command": "'bash' 'scripts/verify-nix-release-package.sh' '--repo' 'o/r' '--tag' 'v0.1.0' '--public-key' 'k'",
+      "log": "nix-release-package.log",
+      "required": true,
+      "startedAt": "2026-07-04T00:00:00.000Z",
+      "finishedAt": "2026-07-04T00:00:01.000Z",
+      "exitCode": 0,
+      "signal": null,
+      "bytes": 57
+    }
+  ]
+}
+EOF
+node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$nix_evidence_dir" \
+  --release-tag v0.1.0 \
+  --repo o/r \
+  --public-key k \
+  --require-nix-release >/dev/null
+nix_unsafe_evidence_dir="$tmp_dir/nix-release-evidence-unsafe"
+cp -R "$nix_evidence_dir" "$nix_unsafe_evidence_dir"
+node -e '
+const fs = require("node:fs");
+const path = process.argv[1];
+const payload = JSON.parse(fs.readFileSync(path, "utf8"));
+payload.commands[0].command += " --render-only";
+fs.writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`);
+' "$nix_unsafe_evidence_dir/release-evidence.json"
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$nix_unsafe_evidence_dir" \
+  --release-tag v0.1.0 \
+  --repo o/r \
+  --public-key k \
+  --require-nix-release >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence accepted render-only Nix proof" >&2
+  exit 1
+fi
 
 safe_tar_src="$tmp_dir/safe-tar-src"
 safe_tar_extract="$tmp_dir/safe-tar-extract"
@@ -2983,6 +3086,7 @@ cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
 cp scripts/validate-release-asset-name.sh "$release_tag_repo/scripts/validate-release-asset-name.sh"
 cp scripts/verify-release-asset-checksum.sh "$release_tag_repo/scripts/verify-release-asset-checksum.sh"
+cp scripts/verify-nix-release-package.sh "$release_tag_repo/scripts/verify-nix-release-package.sh"
 cp scripts/extract-safe-tar.sh "$release_tag_repo/scripts/extract-safe-tar.sh"
 cp scripts/package-vm-evidence.sh "$release_tag_repo/scripts/package-vm-evidence.sh"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"

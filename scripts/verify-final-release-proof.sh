@@ -29,6 +29,7 @@ Usage:
 Checks:
   - signed published release assets plus public release evidence archive,
   - deployed docs homepage and public /install.sh,
+  - Nix package build proof from the published release assets,
   - final release-evidence.json with published release, live docs, DSP plan, all VM targets, clean git, and no blockers,
   - matrix-wide dry-run VM launch plan paired to evidence-pull commands,
   - every target under vm/targets.tsv has VM evidence with installed-release smoke,
@@ -255,6 +256,12 @@ if [ -n "$release_dir" ]; then
   )
 fi
 run_step "published release" "${published_release[@]}"
+
+run_step "Nix release package" \
+  bash scripts/verify-nix-release-package.sh \
+  --repo "$repo" \
+  --tag "$tag" \
+  --public-key "$public_key"
 
 docs_live=(bash scripts/verify-docs-live.sh --expected-installer apps/docs/docs/public/install.sh)
 if [ -n "$docs_base_url" ]; then

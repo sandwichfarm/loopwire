@@ -30,6 +30,7 @@ pnpm verify:install
 pnpm verify:packaging
 pnpm nix:render-release -- --version 0.1.0 --release-dir dist/release --output dist/release/loopwire-bin-release.nix
 pnpm verify:nix-release -- --version 0.1.0 --release-dir dist/release --skip-build-if-missing-nix
+pnpm verify:nix-release -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem
 pnpm vm:list
 pnpm vm:plan
 ```
@@ -79,7 +80,8 @@ artifact names. The docs site carries `/install.sh` as a synced public copy of `
 installer is not advertised as live until signed GitHub Release assets exist. The flake package still uses fake hashes
 until published artifacts provide real release hashes; `pnpm nix:render-release` renders the concrete Nix expression
 from checksum-bound release artifacts, while `pnpm verify:nix-release` runs the real Nix build when `nix` is available.
-The `--skip-build-if-missing-nix` flag is only a wiring check and is not release proof.
+For final release proof, `verify:nix-release` can download the signed assets from `--repo` and `--tag` before running
+`nix build`. The `--skip-build-if-missing-nix` flag is only a wiring check and is not release proof.
 
 ## GSD
 

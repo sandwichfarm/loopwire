@@ -2273,6 +2273,30 @@
   tarballs. `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains
   unavailable because `jack_lsp` is missing. No non-skipped `nix build`, public release, tag push, Bunny deployment,
   VM launch, or support-matrix promotion was performed.
+- `scripts/verify-nix-release-package.sh` now also accepts `--repo OWNER/REPO --tag vX.Y.Z --public-key FILE`, downloads
+  the signed GitHub Release assets with `gh`, derives the Nix package version from the tag, renders the checksum-bound
+  package expression, and still fails closed unless a real `nix build` succeeds.
+- `scripts/collect-release-evidence.mjs` and `scripts/verify-release-evidence.mjs` now support
+  `--require-nix-release`. The evidence verifier requires a successful `nix-release-package` command bound to the same
+  repo, tag, and public key, and rejects `--release-dir`, `--skip-build-if-missing-nix`, and `--render-only` rows as
+  final Nix proof.
+- `scripts/verify-final-release-proof.sh` now runs the published-release Nix package verifier directly before checking
+  release evidence, all-target VM evidence, support-matrix, and docs proof. Its dry-run plan now includes the Nix
+  command so release operators can see the package-manager gate before launching a final proof run.
+- Focused validation passed: `bash -n scripts/verify-nix-release-package.sh scripts/verify-final-release-proof.sh
+  scripts/verify-release-readiness.sh scripts/verify-github-workflows.sh scripts/verify-packaging.sh
+  scripts/verify-scripts.sh`, `node --check scripts/collect-release-evidence.mjs`, `node --check
+  scripts/verify-release-evidence.mjs`, `bash scripts/verify-nix-release-package.sh --help`, and a quick
+  `collect-release-evidence --list-commands --require-nix-release` smoke.
+- Full validation passed after the published-release Nix proof update: `pnpm verify:packaging`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:workflows`, `pnpm verify:requirements`,
+  offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm verify:vm`, `pnpm detect:audio`, `pnpm check`, `git diff --check`, added-line length scan, and GSD
+  roadmap/phase queries. Codebase-memory MCP `index_status` reported ready with 2,616 nodes and 5,447 edges.
+  `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because
+  `jack_lsp` is missing. No non-skipped `nix build`, GitHub release, tag push, Bunny deployment, VM launch, or
+  support-matrix promotion was performed.
 
 ## Evidence Missing
 
@@ -2292,9 +2316,9 @@
   actual VM run.
 - Host VM launch is not available on this machine until QEMU tooling is installed; `scripts/vm-matrix.sh doctor --all`
   reports missing `qemu-system-x86_64`, `qemu-system-aarch64`, `qemu-img`, and `cloud-localds`.
-- Nix package output is statically wired and can now be rendered from checksum-bound release artifacts, and
-  `pnpm verify:nix-release` can run the build proof on Nix-enabled hosts. This host lacks `nix`, so non-skipped
-  `nix build` proof still needs a Nix-enabled host or VM target after real release hashes exist.
+- Nix package output is statically wired, can now be rendered from checksum-bound release artifacts, and final release
+  proof now includes the published-release Nix package verifier. This host lacks `nix`, so non-skipped `nix build`
+  proof still needs a Nix-enabled host or VM target after real release hashes exist.
 - A bundled JACK virtual port provider/client, live backend graph-edge gain, and live host DSP capture/injection remain
   unimplemented, but the pure core DSP gain/mute mix math, the injected audio-host DSP graph adapter, the injected JACK
   virtual-port provider hook, the command-backed DSP provider port helper, explicit background DSP provider restore,

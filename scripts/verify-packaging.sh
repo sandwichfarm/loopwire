@@ -42,6 +42,7 @@ require_contains scripts/render-nix-release-package.sh "loopwire-linux-aarch64.t
 require_contains scripts/render-nix-release-package.sh "verify-release-asset-checksum.sh"
 require_contains scripts/verify-nix-release-package.sh "--skip-build-if-missing-nix"
 require_contains scripts/verify-nix-release-package.sh "--render-only"
+require_contains scripts/verify-nix-release-package.sh "--repo OWNER/REPO"
 require_contains scripts/verify-nix-release-package.sh "nix build"
 require_contains packaging/README.md "same release artifacts"
 require_contains packaging/README.md "loopwire-dsp-provider"

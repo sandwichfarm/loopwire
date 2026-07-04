@@ -28,8 +28,8 @@ Checks:
   - versioned release notes no longer carry release-candidate/not-published wording,
   - public docs installer stays synchronized with the canonical installer,
   - docs deployment manifest verifier is present, parseable, and wired into the deploy workflow,
-  - final release proof workflow, asset-name validator, asset checksum verifier, safe archive extractor, and VM
-    evidence packager are present, parseable, and wired,
+  - final release proof workflow, asset-name validator, asset checksum verifier, Nix package verifier, safe archive
+    extractor, and VM evidence packager are present, parseable, and wired,
   - release public key exists and parses,
   - git checkout is clean unless --skip-clean-git is passed,
   - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
@@ -164,6 +164,7 @@ check_file "scripts/verify-docs-deployment-manifest.mjs" "docs deployment manife
 check_file "scripts/verify-final-release-proof.sh" "final release proof verifier"
 check_file "scripts/validate-release-asset-name.sh" "release evidence asset-name validator"
 check_file "scripts/verify-release-asset-checksum.sh" "release evidence asset checksum verifier"
+check_file "scripts/verify-nix-release-package.sh" "Nix release package verifier"
 check_file "scripts/extract-safe-tar.sh" "safe release archive extractor"
 check_file "scripts/package-vm-evidence.sh" "VM evidence packager"
 check_file "package.json" "package manifest"
@@ -193,10 +194,12 @@ fi
 
 if [ -s "scripts/verify-final-release-proof.sh" ] && [ -s "scripts/validate-release-asset-name.sh" ] &&
   [ -s "scripts/verify-release-asset-checksum.sh" ] &&
+  [ -s "scripts/verify-nix-release-package.sh" ] &&
   [ -s "scripts/extract-safe-tar.sh" ] &&
   [ -s "scripts/package-vm-evidence.sh" ]; then
   if bash -n scripts/verify-final-release-proof.sh scripts/validate-release-asset-name.sh \
-    scripts/verify-release-asset-checksum.sh scripts/extract-safe-tar.sh scripts/package-vm-evidence.sh; then
+    scripts/verify-release-asset-checksum.sh scripts/verify-nix-release-package.sh scripts/extract-safe-tar.sh \
+    scripts/package-vm-evidence.sh; then
     echo "ok: final proof scripts parse"
   else
     echo "invalid: final proof scripts have shell syntax errors" >&2

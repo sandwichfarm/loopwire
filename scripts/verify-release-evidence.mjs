@@ -10,6 +10,7 @@ const expectedPublicKey = readOption("--public-key");
 const expectedGitHead = readOption("--git-head");
 const requirePublishedRelease = args.includes("--require-published-release");
 const requireLiveDocs = args.includes("--require-live-docs");
+const requireNixRelease = args.includes("--require-nix-release");
 const requireVmEvidence = args.includes("--require-vm-evidence");
 const requireAllVmTargets = args.includes("--require-all-vm-targets");
 const requireVmLaunchPlan = args.includes("--require-vm-launch-plan");
@@ -106,6 +107,17 @@ if (requireLiveDocs) {
   validateLiveDocsCommand(command);
 }
 
+if (requireNixRelease) {
+  const command = findCommand("nix-release-package");
+  if (!command) {
+    fail("missing command result: nix-release-package");
+  }
+  if (command.required !== true || command.exitCode !== 0) {
+    fail("nix-release-package must be required and successful");
+  }
+  validateNixReleaseCommand(command);
+}
+
 if (requireVmEvidence) {
   validateRequiredVmEvidence();
 }
@@ -139,6 +151,8 @@ Options:
                      Require successful published-release-smoke evidence.
   --require-live-docs
                      Require successful deployed docs homepage and installer smoke evidence.
+  --require-nix-release
+                     Require successful Nix package build proof from published release assets.
   --require-vm-evidence
                      Require successful VM evidence commands for manifest targets.
   --require-all-vm-targets
@@ -669,6 +683,30 @@ function validatePublishedReleaseCommand(command) {
     }
 
     requireOptionValue(tokens, flag, value, "published-release-smoke");
+  }
+}
+
+function validateNixReleaseCommand(command) {
+  const tokens = validateScriptInvocation(command, "scripts/verify-nix-release-package.sh", "nix-release-package");
+  const requiredBindings = [
+    ["--repo", manifest.release?.repo],
+    ["--tag", manifest.release?.tag],
+    ["--public-key", manifest.release?.publicKey]
+  ];
+
+  for (const [flag, value] of requiredBindings) {
+    if (typeof value !== "string" || value.length === 0) {
+      fail("nix-release-package command is missing release binding metadata");
+    }
+
+    requireOptionValue(tokens, flag, value, "nix-release-package");
+  }
+
+  if (tokens.includes("--release-dir")) {
+    fail("nix-release-package command must use published release coordinates, not --release-dir");
+  }
+  if (tokens.includes("--skip-build-if-missing-nix") || tokens.includes("--render-only")) {
+    fail("nix-release-package command must not use skip or render-only modes");
   }
 }
 
