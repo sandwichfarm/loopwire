@@ -89,9 +89,13 @@ assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/verify-docs-li
 assert_contains ".github/workflows/deploy-docs.yml" '--remote-prefix "$BUNNY_REMOTE_PREFIX"'
 assert_contains ".github/workflows/deploy-docs.yml" 'docs_url="${docs_url}/${prefix}"'
 assert_contains ".github/workflows/deploy-docs.yml" "LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST"
+assert_contains ".github/workflows/deploy-docs.yml" "Verify docs deployment manifest"
+assert_contains ".github/workflows/deploy-docs.yml" "pnpm verify:docs-deployment"
+assert_contains ".github/workflows/deploy-docs.yml" "--expected-dry-run false"
 assert_contains ".github/workflows/deploy-docs.yml" "Upload docs deployment manifest"
 assert_contains ".github/workflows/deploy-docs.yml" "loopwire-docs-deployment"
 assert_contains ".github/workflows/deploy-docs.yml" "dist/docs-deployment/deployment-manifest.json"
+assert_contains "package.json" '"verify:docs-deployment": "node scripts/verify-docs-deployment-manifest.mjs"'
 assert_contains "package.json" '"verify:docs-live": "bash scripts/verify-docs-live.sh"'
 
 assert_contains ".github/workflows/final-release-proof.yml" "workflow_dispatch:"

@@ -44,6 +44,7 @@ node --check scripts/describe-jack-ports.mjs
 node --check scripts/describe-dsp-provider.mjs
 node --check scripts/promote-vm-evidence.mjs
 node --check scripts/restore-background.mjs
+node --check scripts/verify-docs-deployment-manifest.mjs
 node --check scripts/verify-support-matrix.mjs
 node -e '
 const root = require("./package.json");
@@ -54,6 +55,10 @@ if (!root.scripts["jack:provider"]) {
 }
 if (!root.scripts["dsp:provider"]) {
   console.error("verify-scripts: root package is missing dsp:provider");
+  process.exit(1);
+}
+if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deployment-manifest.mjs") {
+  console.error("verify-scripts: root package is missing verify:docs-deployment");
   process.exit(1);
 }
 if (audioHost.bin?.["loopwire-jack-ports"] !== "./dist/jack-ports-cli.js") {
@@ -772,6 +777,10 @@ bash scripts/collect-vm-evidence-ssh.sh -- --target arch-hyprland-pipewire --hos
 bash scripts/deploy-docs-bunny.sh --help >/dev/null
 bash scripts/deploy-docs-bunny.sh --help | grep -F -- "--deployment-manifest FILE" >/dev/null || {
   echo "verify-scripts: Bunny docs deploy help is missing deployment manifest support" >&2
+  exit 1
+}
+node scripts/verify-docs-deployment-manifest.mjs --help | grep -F -- "--expected-dry-run true|false" >/dev/null || {
+  echo "verify-scripts: docs deployment manifest verifier help is missing dry-run binding" >&2
   exit 1
 }
 bash scripts/prepare-release-signing-key.sh --help >/dev/null
@@ -2294,6 +2303,13 @@ printf '%s\n' "$bunny_dry_run" | grep -F "Dry run complete; 3 docs file(s) would
   echo "verify-scripts: Bunny docs deploy dry-run did not count files" >&2
   exit 1
 }
+pnpm verify:docs-deployment -- \
+  --manifest "$bunny_manifest" \
+  --dist "$docs_dist" \
+  --storage-zone loopwire-docs \
+  --storage-endpoint ny.storage.bunnycdn.com \
+  --remote-prefix preview \
+  --expected-dry-run true >/dev/null
 node - "$bunny_manifest" <<'NODE' || {
 const { readFileSync } = require("node:fs");
 
@@ -2315,6 +2331,18 @@ NODE
   echo "verify-scripts: Bunny docs deploy manifest is malformed" >&2
   exit 1
 }
+printf '%s\n' "body{color:#222}" >"$docs_dist/assets/site.css"
+if pnpm verify:docs-deployment -- \
+  --manifest "$bunny_manifest" \
+  --dist "$docs_dist" \
+  --storage-zone loopwire-docs \
+  --storage-endpoint ny.storage.bunnycdn.com \
+  --remote-prefix preview \
+  --expected-dry-run true >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment manifest verifier accepted stale checksums" >&2
+  exit 1
+fi
+printf '%s\n' "body{color:#111}" >"$docs_dist/assets/site.css"
 docs_dist_missing_installer="$tmp_dir/docs-dist-missing-installer"
 mkdir -p "$docs_dist_missing_installer"
 printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$docs_dist_missing_installer/index.html"

@@ -2113,6 +2113,15 @@
   scripts/verify-github-workflows.sh`, `pnpm verify:workflows`, `pnpm verify:docs`, `pnpm verify:scripts`, and a
   real VitePress build plus Bunny dry-run manifest smoke that wrote a `loopwire.docs-deployment.v1` manifest with 68
   files and `install.sh`.
+- `scripts/verify-docs-deployment-manifest.mjs` and `pnpm verify:docs-deployment` now verify
+  `loopwire.docs-deployment.v1` artifacts against the built VitePress dist before `.github/workflows/deploy-docs.yml`
+  uploads the `loopwire-docs-deployment` artifact. The verifier checks schema, timestamp, storage bindings,
+  dry-run/live mode when requested, required files, exact dist inventory, remote-prefix mapping, SHA-256 checksums, path
+  safety, and secret-like manifest keys.
+- Focused validation passed: `node --check scripts/verify-docs-deployment-manifest.mjs`, `bash -n
+  scripts/verify-scripts.sh scripts/verify-docs.sh scripts/verify-github-workflows.sh`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, and real VitePress build dry-run smokes that verified 68-file manifests
+  for both `preview` and empty remote prefixes.
 
 ## Evidence Missing
 
@@ -2122,8 +2131,8 @@
 - No release tag exists locally or remotely.
 - Required Bunny.net deployment secrets are not present: `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
-  workflow has a pull-zone smoke gate and deployment manifest artifact, and release evidence can require a successful
-  `docs-live-smoke` row, but no Bunny deployment or live URL smoke was performed.
+  workflow has a pull-zone smoke gate plus verified deployment manifest artifact, and release evidence can require a
+  successful `docs-live-smoke` row, but no Bunny deployment or live URL smoke was performed.
 - The final proof workflow exists, but no release evidence archive, VM evidence archive, live docs target, or public
   release exists for it to verify yet.
 - The VM evidence packager exists, but no real all-target VM evidence archive has been produced from operator-run

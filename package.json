@@ -41,6 +41,7 @@
     "release:prepare-key": "bash scripts/prepare-release-signing-key.sh",
     "verify:aur": "bash scripts/verify-aur-package.sh",
     "verify:docs": "bash scripts/verify-docs.sh",
+    "verify:docs-deployment": "node scripts/verify-docs-deployment-manifest.mjs",
     "verify:docs-live": "bash scripts/verify-docs-live.sh",
     "verify:packaging": "bash scripts/verify-packaging.sh",
     "verify:runtime": "bash scripts/verify-runtime.sh",

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T14:04:45+02:00"
-last_activity: 2026-07-04 - docs deployment manifest evidence added
+last_updated: "2026-07-04T14:12:34+02:00"
+last_activity: 2026-07-04 - docs deployment manifest verifier added
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/deploy-docs-bunny.sh` can now write a non-secret
-`loopwire.docs-deployment.v1` manifest, and `.github/workflows/deploy-docs.yml` uploads it as the
-`loopwire-docs-deployment` artifact after Bunny.net uploads. Phase 12 remains gated on a public release, configured
-Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-docs-deployment-manifest.mjs` and `pnpm verify:docs-deployment` now
+verify the non-secret `loopwire.docs-deployment.v1` artifact against the built VitePress dist before the docs deploy
+workflow uploads it. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
+host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1973,3 +1973,13 @@ Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-
   `pnpm verify:docs`, and `pnpm verify:scripts` passed. A real VitePress build plus Bunny dry-run wrote a
   `loopwire.docs-deployment.v1` manifest with 68 files and `install.sh`. No Bunny secret was written, no Bunny upload
   was attempted, and no live docs smoke was performed.
+- 2026-07-04 docs deployment manifest verifier: `scripts/verify-docs-deployment-manifest.mjs` and
+  `pnpm verify:docs-deployment` now verify deployment manifests against the current built docs dist before workflow
+  artifact upload. The verifier checks schema, timestamp, storage bindings, dry-run/live mode when requested, required
+  files, exact dist inventory, remote-prefix mapping, SHA-256 checksums, path safety, and secret-like manifest keys.
+- 2026-07-04 docs deployment manifest verifier validation: codebase-memory MCP `search_graph` located deployment
+  manifest, workflow, docs-live, and release-evidence surfaces before implementation. `node --check
+  scripts/verify-docs-deployment-manifest.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-github-workflows.sh`, `pnpm verify:workflows`, `pnpm verify:docs`, and `pnpm verify:scripts` passed.
+  Real VitePress build dry-run smokes verified 68-file manifests for both `preview` and empty remote prefixes. No
+  Bunny secret was written, no Bunny upload was attempted, and no live docs smoke was performed.

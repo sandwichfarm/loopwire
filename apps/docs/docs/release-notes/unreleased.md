@@ -168,6 +168,8 @@ These notes describe source-tree progress. They are not a public release announc
   uploads for storage zones that serve multiple paths.
 - The Bunny.net docs deploy helper can now write a non-secret `loopwire.docs-deployment.v1` manifest, and the docs
   deploy workflow uploads it as the `loopwire-docs-deployment` artifact after successful Bunny uploads.
+- New `pnpm verify:docs-deployment` verifies that deployment manifest against the built docs dist before artifact
+  upload, including file inventory, SHA-256 checksums, remote-prefix paths, and secret-like key rejection.
 - The GitHub secret helper now rejects Bunny storage zones, endpoints, pull-zone hostnames, and remote prefixes that
   would later fail the docs deploy or live-smoke helpers.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or
