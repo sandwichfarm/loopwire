@@ -3343,19 +3343,70 @@ case "$1 ${2:-}" in
     exit 0
     ;;
   "release view")
-    if [ "${LOOPWIRE_FAKE_GH_RELEASE_MODE:-missing}" = "ok" ]; then
-      cat <<'JSON'
-{
-  "tagName": "v0.1.0",
-  "url": "https://github.example/releases/v0.1.0",
-  "targetCommitish": "main",
-  "isDraft": false,
-  "isPrerelease": false
-}
-JSON
-      exit 0
-    fi
-    exit 1
+    case "${LOOPWIRE_FAKE_GH_RELEASE_MODE:-missing}" in
+      ok)
+        release_tag="v0.1.0"
+        release_draft="false"
+        release_prerelease="false"
+        release_assets="full"
+        ;;
+      wrong-tag)
+        release_tag="v0.2.0"
+        release_draft="false"
+        release_prerelease="false"
+        release_assets="full"
+        ;;
+      draft)
+        release_tag="v0.1.0"
+        release_draft="true"
+        release_prerelease="false"
+        release_assets="full"
+        ;;
+      prerelease)
+        release_tag="v0.1.0"
+        release_draft="false"
+        release_prerelease="true"
+        release_assets="full"
+        ;;
+      missing-asset)
+        release_tag="v0.1.0"
+        release_draft="false"
+        release_prerelease="false"
+        release_assets="missing-vm"
+        ;;
+      missing)
+        exit 1
+        ;;
+      *)
+        echo "unexpected LOOPWIRE_FAKE_GH_RELEASE_MODE: ${LOOPWIRE_FAKE_GH_RELEASE_MODE}" >&2
+        exit 64
+        ;;
+    esac
+    node - "$release_tag" "$release_draft" "$release_prerelease" "$release_assets" <<'NODE'
+const [tagName, draftRaw, prereleaseRaw, assetMode] = process.argv.slice(2);
+const assets = [
+  "loopwire-linux-x86_64.tar.gz",
+  "loopwire-linux-aarch64.tar.gz",
+  "SHA256SUMS",
+  "SHA256SUMS.sig",
+  `loopwire-release-evidence-${tagName}.tar.gz`,
+  `loopwire-vm-evidence-${tagName}.tar.gz`
+];
+const filtered = assetMode === "missing-vm"
+  ? assets.filter((name) => !name.startsWith("loopwire-vm-evidence-"))
+  : assets;
+const release = {
+  tagName,
+  url: `https://github.example/releases/${tagName}`,
+  targetCommitish: "main",
+  isDraft: draftRaw === "true",
+  isPrerelease: prereleaseRaw === "true",
+  assets: filtered.map((name) => ({ name }))
+};
+
+console.log(JSON.stringify(release, null, 2));
+NODE
+    exit 0
     ;;
   "run list")
     case "${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}" in
@@ -3458,6 +3509,72 @@ grep -F "local final release handoff plan" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status did not include the handoff planner" >&2
   exit 1
 }
+release_status_draft_release_log="$tmp_dir/release-status-draft-release.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=draft \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_draft_release_log" 2>&1; then
+  echo "verify-scripts: release status accepted a draft GitHub Release" >&2
+  exit 1
+fi
+grep -F "GitHub Release object is still a draft release" "$release_status_draft_release_log" >/dev/null || {
+  echo "verify-scripts: release status did not block a draft GitHub Release" >&2
+  exit 1
+}
+release_status_prerelease_log="$tmp_dir/release-status-prerelease.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=prerelease \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_prerelease_log" 2>&1; then
+  echo "verify-scripts: release status accepted a prerelease GitHub Release" >&2
+  exit 1
+fi
+grep -F "GitHub Release object is still marked prerelease" "$release_status_prerelease_log" >/dev/null || {
+  echo "verify-scripts: release status did not block a prerelease GitHub Release" >&2
+  exit 1
+}
+release_status_wrong_tag_log="$tmp_dir/release-status-wrong-tag.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=wrong-tag \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_wrong_tag_log" 2>&1; then
+  echo "verify-scripts: release status accepted a mismatched release tag" >&2
+  exit 1
+fi
+grep -F "GitHub Release object returned tag v0.2.0, not v0.1.0" \
+  "$release_status_wrong_tag_log" >/dev/null || {
+    echo "verify-scripts: release status did not block a mismatched release tag" >&2
+    exit 1
+  }
+release_status_missing_asset_log="$tmp_dir/release-status-missing-asset.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=missing-asset \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_missing_asset_log" 2>&1; then
+  echo "verify-scripts: release status accepted missing release assets" >&2
+  exit 1
+fi
+grep -F "GitHub Release object is missing required asset(s): loopwire-vm-evidence-v0.1.0.tar.gz" \
+  "$release_status_missing_asset_log" >/dev/null || {
+    echo "verify-scripts: release status did not block missing release assets" >&2
+    exit 1
+  }
 release_status_empty_workflow_log="$tmp_dir/release-status-empty-workflow.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=empty \

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:38:58+02:00"
-last_activity: 2026-07-04 - Final release status now binds workflow-run evidence to the expected commit
+last_updated: "2026-07-04T21:45:12+02:00"
+last_activity: 2026-07-04 - Final release status now validates release object and required asset evidence
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,9 +28,10 @@ Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
 Last activity: 2026-07-04 - `pnpm release:status` now audits the remaining final proof surfaces from one read-only
-command and exits nonzero while secrets, release assets, completed successful workflow-run evidence for the expected
-commit, VM evidence, support-matrix proof, or handoff planning are missing. Phase 12 remains gated on configuring Bunny
-secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+command and exits nonzero while secrets, a non-draft/non-prerelease GitHub Release with required assets, completed
+successful workflow-run evidence for the expected commit, VM evidence, support-matrix proof, or handoff planning are
+missing. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,16 @@ secrets, public GitHub Release install, Bunny deployment proof, and operator-run
 
 ## Verification Log
 
+- 2026-07-04 Final release object and asset status hardening: `scripts/audit-final-release-state.sh` now parses the
+  `gh release view` JSON, requires the returned `tagName` to match the requested tag, rejects draft and prerelease
+  releases, requires a release URL, and requires canonical Linux tarballs, signed checksum files, release evidence, and
+  VM evidence release assets before treating the GitHub Release object as valid final-release status evidence. Validation
+  passed: codebase-memory MCP `index_status` reported `home-sandwich-Develop-loopwire` ready with 3,250 nodes and 6,316
+  edges; `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and live
+  `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  8285d3b48818c2f5faaf7433c51e13281e83fdf0` blocker readback passed. Deterministic fake-`gh` coverage now rejects
+  draft releases, prereleases, mismatched tags, and missing required release assets.
 - 2026-07-04 Final release workflow-run commit binding: `scripts/audit-final-release-state.sh` now accepts
   `--git-head SHA`, defaults it to the current checkout, validates it as a 40-character commit SHA, passes it into the
   release handoff plan, and rejects Deploy Docs or Final Release Proof workflow runs whose latest successful run

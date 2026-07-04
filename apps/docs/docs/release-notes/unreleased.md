@@ -189,8 +189,8 @@ These notes describe source-tree progress. They are not a public release announc
 - New `pnpm release:handoff` renders the no-side-effect release operator plan, including secret checks, workflow
   dispatch commands, VM evidence collection, VM evidence asset prep, and final-proof dry-run commands.
 - New `pnpm release:status` audits the remaining final proof surfaces from one read-only command and exits nonzero
-  until GitHub secrets, release assets, completed successful workflow runs for the expected commit, VM evidence, and
-  support-matrix proof are present.
+  until GitHub secrets, a non-draft/non-prerelease release with required assets, completed successful workflow runs for
+  the expected commit, VM evidence, and support-matrix proof are present.
 - Release readiness now rejects local or remote release tags that do not point at the current checkout commit, preventing
   stale tag preflights from looking publishable.
 - Release readiness now requires a clean git checkout by default, while candidate evidence collection opts out with

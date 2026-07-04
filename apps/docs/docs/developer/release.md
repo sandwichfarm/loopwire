@@ -190,13 +190,15 @@ pnpm release:status -- \
   --git-head "$(git rev-parse refs/tags/v0.1.0^{commit})"
 ```
 
-The status command checks required GitHub secrets, the GitHub Release object, completed successful Deploy Docs and Final
-Release Proof workflow runs, published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It
-exits nonzero until every final proof surface is present. Empty, failed, cancelled, or still-running workflow lists are
-release blockers, even when the GitHub API call itself succeeds. The workflow run `headSha` must match `--git-head`,
-which defaults to the current checkout when omitted, so a successful docs or proof run for an older commit cannot
-satisfy final status. Use `--secret-list-file release-secret-names.tsv` to replay a saved names-only secret audit, or
-`--skip-gh` when you only want local evidence checks.
+The status command checks required GitHub secrets, the GitHub Release object and required release assets, completed
+successful Deploy Docs and Final Release Proof workflow runs, published-release-bound VM evidence, support-matrix
+claims, and the local handoff plan. It exits nonzero until every final proof surface is present. Draft releases,
+prereleases, mismatched release tags, and releases missing canonical tarballs, signed checksums, release evidence, or
+VM evidence archives are blockers. Empty, failed, cancelled, or still-running workflow lists are release blockers, even
+when the GitHub API call itself succeeds. The workflow run `headSha` must match `--git-head`, which defaults to the
+current checkout when omitted, so a successful docs or proof run for an older commit cannot satisfy final status. Use
+`--secret-list-file release-secret-names.tsv` to replay a saved names-only secret audit, or `--skip-gh` when you only
+want local evidence checks.
 
 Parse an existing release-readiness log without rerunning release checks:
 

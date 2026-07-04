@@ -83,9 +83,12 @@ run_gate() {
   return 1
 }
 
-run_gh_probe() {
+run_release_probe() {
   local label="$1"
-  shift
+  local expected_tag="$2"
+  shift 2
+  local output
+  local validation
 
   if [ "$skip_gh" = "true" ]; then
     echo "==> $label"
@@ -94,7 +97,89 @@ run_gh_probe() {
     return 0
   fi
 
-  run_gate "$label" "$@"
+  echo "==> $label"
+  if ! output="$("$@" 2>&1)"; then
+    echo "blocked: $label" >&2
+    [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+    echo >&2
+    return 1
+  fi
+
+  if ! validation="$(node - "$label" "$expected_tag" "$output" <<'NODE' 2>&1
+const [label, expectedTag, raw] = process.argv.slice(2);
+let release;
+
+try {
+  release = JSON.parse(raw);
+} catch (error) {
+  console.error(`${label} did not return JSON: ${error.message}`);
+  process.exit(1);
+}
+
+if (!release || typeof release !== "object" || Array.isArray(release)) {
+  console.error(`${label} did not return a release object.`);
+  process.exit(1);
+}
+
+if (release.tagName !== expectedTag) {
+  console.error(`${label} returned tag ${release.tagName ?? "unknown"}, not ${expectedTag}.`);
+  process.exit(1);
+}
+
+if (release.isDraft === true) {
+  console.error(`${label} is still a draft release.`);
+  process.exit(1);
+}
+
+if (release.isPrerelease === true) {
+  console.error(`${label} is still marked prerelease.`);
+  process.exit(1);
+}
+
+if (typeof release.url !== "string" || release.url.length === 0) {
+  console.error(`${label} did not include a release URL.`);
+  process.exit(1);
+}
+
+if (!Array.isArray(release.assets)) {
+  console.error(`${label} did not include an assets array.`);
+  process.exit(1);
+}
+
+const expectedAssets = [
+  "loopwire-linux-x86_64.tar.gz",
+  "loopwire-linux-aarch64.tar.gz",
+  "SHA256SUMS",
+  "SHA256SUMS.sig",
+  `loopwire-release-evidence-${expectedTag}.tar.gz`,
+  `loopwire-vm-evidence-${expectedTag}.tar.gz`
+];
+const assetNames = new Set(
+  release.assets
+    .map((asset) => asset?.name)
+    .filter((name) => typeof name === "string" && name.length > 0)
+);
+const missing = expectedAssets.filter((name) => !assetNames.has(name));
+
+if (missing.length > 0) {
+  console.error(`${label} is missing required asset(s): ${missing.join(", ")}.`);
+  process.exit(1);
+}
+
+console.log(`release verified: ${release.tagName} ${release.url} assets=${expectedAssets.length}`);
+NODE
+  )"; then
+    echo "blocked: $label" >&2
+    [ -z "$validation" ] || printf '%s\n' "$validation" | indent >&2
+    [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+    echo >&2
+    return 1
+  fi
+
+  echo "ok: $label"
+  [ -z "$validation" ] || printf '%s\n' "$validation" | indent
+  [ -z "$output" ] || printf '%s\n' "$output" | indent
+  echo
 }
 
 run_workflow_probe() {
@@ -280,9 +365,11 @@ if [ -n "$secret_list_file" ]; then
 fi
 run_gate "required GitHub secrets" "${secret_check[@]}" || failed=1
 
-run_gh_probe \
+run_release_probe \
   "GitHub Release object" \
-  gh release view "$tag" --repo "$repo" --json tagName,url,targetCommitish,isDraft,isPrerelease || failed=1
+  "$tag" \
+  gh release view "$tag" --repo "$repo" \
+    --json tagName,url,targetCommitish,isDraft,isPrerelease,assets || failed=1
 
 run_workflow_probe \
   "latest Deploy Docs workflow run" \
