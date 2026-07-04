@@ -2209,3 +2209,18 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   verify:tauri` and full `pnpm check` then passed, including requirements verification, scripts/workflows/runtime/Tauri
   verification, install and release-artifact smokes, packaging metadata smoke, VM target/cloud-init validation, docs
   contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop builds.
+- 2026-07-04 release readiness next-step handoff: `scripts/verify-release-readiness.sh` now emits value-safe next-step
+  commands for the currently missing blocker classes before failing. The live preflight for `sandwichfarm/loopwire`
+  now prints the Bunny secret setup command and the guarded `git tag -a v0.1.0` / `git push origin v0.1.0` commands,
+  explicitly after required secrets are configured and readiness passes.
+- 2026-07-04 release readiness next-step validation: codebase-memory MCP `index_status` reported ready and graph search
+  located the readiness, tag, Bunny deploy, and final proof surfaces before implementation. `bash -n
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, live `pnpm
+  verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem` failure-surface review, `pnpm verify:scripts`, and `pnpm verify:docs` passed.
+  No secret write, Bunny deployment, tag push, public release, VM launch, host audio mutation, or support-matrix
+  promotion was performed.
+- 2026-07-04 release readiness next-step full validation: full `pnpm check` passed after the change, including
+  requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
+  packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
+  core, audio-host, and desktop builds.

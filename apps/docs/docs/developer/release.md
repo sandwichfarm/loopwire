@@ -408,6 +408,11 @@ The helper rejects Bunny values that would fail deployment: storage zones cannot
 cannot contain newlines, pull-zone hostnames must be hostnames rather than URLs or paths, and remote prefixes cannot
 contain `.` or `..` path segments.
 
+`pnpm verify:release-readiness` also prints no-value next steps for the remaining blocker classes. With Bunny secrets
+missing it points back to `scripts/setup-github-secrets.sh`; with the release tag missing it prints the guarded
+`git tag -a <tag> -m "Loopwire <tag>"` and `git push origin <tag>` commands, explicitly after required secrets are
+configured and readiness passes.
+
 ## Boundaries
 
 - The workflow now has a dedicated `ubuntu-22.04-arm` AArch64 lane, but public AArch64 proof still requires a tagged

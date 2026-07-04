@@ -112,8 +112,37 @@ if [ -n "$repo" ]; then
 fi
 
 failed=0
+missing_bunny_secret=0
+missing_release_secret=0
+missing_release_tag=0
 version="${tag#v}"
 release_notes="apps/docs/docs/release-notes/${version}.md"
+
+print_next_steps() {
+  if [ "$missing_bunny_secret" -ne 0 ]; then
+    cat >&2 <<EOF
+next: set Bunny.net deployment secrets without printing values:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --storage-zone <zone> --access-key <key>
+EOF
+  fi
+
+  if [ "$missing_release_secret" -ne 0 ]; then
+    cat >&2 <<EOF
+next: set release signing secret from a local private key:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --release-private-key-file <private-key> \\
+    --release-public-key-file packaging/release-signing-public.pem
+EOF
+  fi
+
+  if [ "$missing_release_tag" -ne 0 ]; then
+    cat >&2 <<EOF
+next: after required secrets are configured and readiness passes, create and push the release tag:
+  git tag -a ${tag} -m "Loopwire ${tag}"
+  git push origin ${tag}
+EOF
+  fi
+}
 
 check_file() {
   path="$1"
@@ -362,6 +391,7 @@ if [ "$require_tag" = "true" ]; then
     else
       echo "missing: local or remote tag: $tag" >&2
       failed=1
+      missing_release_tag=1
     fi
   fi
 else
@@ -380,6 +410,14 @@ if [ "$require_gh" = "true" ]; then
       else
         echo "missing: GitHub secret: $secret" >&2
         failed=1
+        case "$secret" in
+          BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
+            missing_bunny_secret=1
+            ;;
+          LOOPWIRE_RELEASE_PRIVATE_KEY)
+            missing_release_secret=1
+            ;;
+        esac
       fi
     done
   else
@@ -396,5 +434,8 @@ else
   echo "skipped: GitHub repository and secret checks"
 fi
 
-[ "$failed" -eq 0 ] || fail "release readiness checks failed"
+if [ "$failed" -ne 0 ]; then
+  print_next_steps
+  fail "release readiness checks failed"
+fi
 echo "Release readiness checks passed for ${repo:-offline}@${tag}."

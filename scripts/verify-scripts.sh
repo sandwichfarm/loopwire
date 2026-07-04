@@ -3077,6 +3077,31 @@ grep -F "error: unable to read GitHub secret names for sandwichfarm/loopwire: ap
     echo "verify-scripts: release readiness did not preserve gh secret-list failure details" >&2
     exit 1
   }
+release_readiness_next_steps_log="$tmp_dir/release-readiness-next-steps.log"
+if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-release-readiness.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --skip-public-key \
+    --skip-clean-git >"$release_readiness_next_steps_log" 2>&1; then
+  echo "verify-scripts: release readiness accepted missing Bunny secrets and tag" >&2
+  exit 1
+fi
+grep -F "next: set Bunny.net deployment secrets without printing values" \
+  "$release_readiness_next_steps_log" >/dev/null || {
+    echo "verify-scripts: release readiness did not print Bunny next step" >&2
+    exit 1
+  }
+grep -F "next: after required secrets are configured and readiness passes, create and push the release tag" \
+  "$release_readiness_next_steps_log" >/dev/null || {
+    echo "verify-scripts: release readiness did not print release tag next step" >&2
+    exit 1
+  }
+grep -F "git tag -a v0.1.0 -m \"Loopwire v0.1.0\"" "$release_readiness_next_steps_log" >/dev/null || {
+  echo "verify-scripts: release readiness tag next step is missing tag command" >&2
+  exit 1
+}
 
 refresh_published_release_manifest() {
   local release_dir="$1"

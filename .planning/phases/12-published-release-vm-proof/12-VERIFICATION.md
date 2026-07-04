@@ -2415,6 +2415,19 @@
   scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds.
+- `scripts/verify-release-readiness.sh` now prints value-safe next-step commands for missing Bunny secrets, missing
+  release signing secret, and missing release tag before the final failure line. The tag handoff is explicitly guarded
+  behind required secrets being configured and readiness passing.
+- Focused validation passed: codebase-memory MCP `index_status` reported the graph ready and search located the
+  readiness, tag, Bunny deploy, and final proof surfaces before implementation. Live `pnpm verify:release-readiness`
+  for `sandwichfarm/loopwire@v0.1.0` now prints the Bunny setup command plus guarded `git tag -a v0.1.0` and
+  `git push origin v0.1.0` commands. `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, and `pnpm verify:docs` passed. No secret write, Bunny deployment,
+  tag push, public release, VM launch, host audio mutation, or support-matrix promotion was performed.
+- Full validation passed: `pnpm check` passed after the change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds.
 
 ## Evidence Missing
 
