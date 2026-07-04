@@ -242,7 +242,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:render-runbook"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "launch_command"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "evidence_pull_command"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "markdown runbook"
-assert_contains "apps/docs/docs/developer/vm-matrix.md" "AArch64 firmware reminders"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "AArch64 firmware"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "does not download images, install packages, launch guests"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "status=missing"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "status=invalid"
@@ -286,6 +286,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" "fails before SSH runs"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "target id as its own path"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "segment and must not contain"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'Use `--require-published-release` for final public release'
+assert_contains "apps/docs/docs/developer/vm-matrix.md" 'final-release `pnpm vm:collect-matrix` command'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'missing `cloud-localds`'
 assert_contains "apps/docs/docs/developer/release-notes.md" "Release-note workflow"
 assert_contains "apps/docs/docs/developer/release-notes.md" "release workflow reject"
@@ -575,6 +576,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'dry-run-only `pnpm
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:launch` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-launch-plan` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-runbook` command'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence runbooks now include the final-release"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup now supports"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup hints are now architecture-scoped"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM launch dry-runs now stay non-mutating"

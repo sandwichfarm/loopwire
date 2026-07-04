@@ -2356,6 +2356,19 @@
   scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds.
+- Generated VM evidence runbooks now include the strict final-release `pnpm vm:collect-matrix` command with
+  published-release smoke, the checked-in release public key, and `--require-all-targets` for full-matrix runs. This is
+  a handoff/readiness improvement only; it does not prove VM compatibility until an operator runs the generated command
+  against reachable guests after the signed public release exists.
+- Focused validation passed: codebase-memory MCP `index_status` reported the graph ready before implementation, graph
+  search located the VM matrix runbook, collector, and verification surfaces, and `bash -n scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, focused `scripts/vm-matrix.sh render-runbook` smokes,
+  `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check` passed. No VM launch, public release, Bunny
+  deployment, secret write, tag push, host audio mutation, or support-matrix promotion was performed.
+- Full validation passed: `pnpm check` passed after the change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds.
 
 ## Evidence Missing
 

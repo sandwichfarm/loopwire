@@ -2345,10 +2345,30 @@ printf '%s\n' "$vm_runbook_output" \
     echo "verify-scripts: vm runbook is missing target-scoped evidence pull command" >&2
     exit 1
   }
+printf '%s\n' "$vm_runbook_output" \
+  | grep -F "Final-release collection after the signed public GitHub Release exists" >/dev/null || {
+    echo "verify-scripts: vm runbook is missing final-release collection guidance" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_runbook_output" \
+  | grep -F -- "--published-release-repo sandwichfarm/loopwire --published-release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: vm runbook is missing published release coordinates" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_runbook_output" \
+  | grep -F -- "--release-public-key packaging/release-signing-public.pem --require-published-release --execute" >/dev/null || {
+    echo "verify-scripts: vm runbook is missing strict published-release VM evidence flags" >&2
+    exit 1
+  }
 printf '%s\n' "$pnpm_vm_runbook_output" | grep -F "### ubuntu-gnome-pipewire-aarch64" >/dev/null || {
   echo "verify-scripts: pnpm vm:render-runbook did not include the AArch64 target" >&2
   exit 1
 }
+printf '%s\n' "$pnpm_vm_runbook_output" \
+  | grep -F -- "--require-published-release --require-all-targets --execute" >/dev/null || {
+    echo "verify-scripts: all-target VM runbook is missing strict all-target collection command" >&2
+    exit 1
+  }
 printf '%s\n' "$pnpm_vm_runbook_output" | grep -F -- "--ssh-port 2640" >/dev/null || {
   echo "verify-scripts: all-target VM runbook did not assign deterministic ports" >&2
   exit 1

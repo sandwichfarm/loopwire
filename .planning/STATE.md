@@ -2150,3 +2150,17 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
   packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
   core, audio-host, and desktop builds.
+- 2026-07-04 final-release VM matrix runbook handoff: generated VM evidence runbooks now include the strict
+  final-release `pnpm vm:collect-matrix` command with published-release smoke, the checked-in release public key, and
+  `--require-all-targets` for full-matrix runs. This keeps operator handoffs aligned with final proof requirements
+  instead of collecting source-checkout-only evidence by accident.
+- 2026-07-04 final-release VM matrix runbook validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready before implementation, and graph search located the VM matrix runbook,
+  collector, and verification surfaces. `bash -n scripts/vm-matrix.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, focused `scripts/vm-matrix.sh render-runbook` smokes, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `git diff --check` passed. No VM launch, public release, Bunny deployment, secret write,
+  tag push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 final-release VM matrix runbook full validation: full `pnpm check` passed after the change, including
+  requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
+  packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
+  core, audio-host, and desktop builds.

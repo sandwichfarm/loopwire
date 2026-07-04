@@ -990,6 +990,8 @@ emit_runbook() {
   local cloud_init_command
   local launch_plan_command
   local ssh_plan_command
+  local matrix_collect_command
+  local final_matrix_collect_command
   local evidence_status_command
   local matrix_promote_command
 
@@ -1021,6 +1023,23 @@ emit_runbook() {
         --output \
         .vm/ssh-targets.tsv
     )"
+    matrix_collect_command="$(shell_join pnpm vm:collect-matrix -- --plan .vm/ssh-targets.tsv --execute)"
+    final_matrix_collect_command="$(
+      shell_join \
+        pnpm \
+        vm:collect-matrix \
+        -- \
+        --plan \
+        .vm/ssh-targets.tsv \
+        --published-release-repo \
+        sandwichfarm/loopwire \
+        --published-release-tag \
+        v0.1.0 \
+        --release-public-key \
+        packaging/release-signing-public.pem \
+        --require-published-release \
+        --execute
+    )"
     evidence_status_command="$(
       shell_join pnpm vm:evidence-status -- --target "$target_filter" --evidence-root "$evidence_root"
     )"
@@ -1045,6 +1064,24 @@ emit_runbook() {
     ssh_plan_command="$(
       shell_join pnpm vm:render-ssh-plan -- --all --start-port "$ssh_plan_start_port" --output .vm/ssh-targets.tsv
     )"
+    matrix_collect_command="$(shell_join pnpm vm:collect-matrix -- --plan .vm/ssh-targets.tsv --execute)"
+    final_matrix_collect_command="$(
+      shell_join \
+        pnpm \
+        vm:collect-matrix \
+        -- \
+        --plan \
+        .vm/ssh-targets.tsv \
+        --published-release-repo \
+        sandwichfarm/loopwire \
+        --published-release-tag \
+        v0.1.0 \
+        --release-public-key \
+        packaging/release-signing-public.pem \
+        --require-published-release \
+        --require-all-targets \
+        --execute
+    )"
     evidence_status_command="$(shell_join pnpm vm:evidence-status -- --all --evidence-root "$evidence_root")"
     matrix_promote_command="$(
       shell_join pnpm vm:promote-evidence -- --all --evidence-root "$evidence_root" --dry-run
@@ -1065,7 +1102,9 @@ $doctor_command
 $cloud_init_command
 $launch_plan_command
 $ssh_plan_command
-$(shell_join pnpm vm:collect-matrix -- --plan .vm/ssh-targets.tsv --execute)
+$matrix_collect_command
+# Final-release collection after the signed public GitHub Release exists:
+$final_matrix_collect_command
 $evidence_status_command
 $matrix_promote_command
 \`\`\`

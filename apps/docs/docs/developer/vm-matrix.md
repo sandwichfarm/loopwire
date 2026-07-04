@@ -305,8 +305,9 @@ pnpm vm:render-runbook -- \
 ```
 
 The runbook includes host setup and doctor commands, cloud-init rendering, deterministic dry-run launch commands,
-target-scoped SSH evidence-pull commands, local evidence verification, dry-run support-matrix promotion commands, and
-AArch64 firmware reminders. It does not download images, install packages, launch guests, copy evidence, or edit docs.
+target-scoped SSH evidence-pull commands, a final-release `pnpm vm:collect-matrix` command with published-release smoke
+and all-target strictness, local evidence verification, dry-run support-matrix promotion commands, and AArch64 firmware
+reminders. It does not download images, install packages, launch guests, copy evidence, or edit docs.
 
 The launch command uses the target architecture to choose the QEMU system binary, for example `qemu-system-x86_64` for
 x86_64 targets and `qemu-system-aarch64` for AArch64 targets. AArch64 launch dry-runs add the `virt` machine and
