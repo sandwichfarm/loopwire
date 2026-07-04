@@ -145,7 +145,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Hidden monitor cards now move into a compact recovery tray with `Show` actions instead of staying dimmed in the main
   monitor grid.
 - Desktop custom chrome now persists as a preference and requests an undecorated Tauri window before showing
-  Loopwire-owned drag, minimize, maximize/restore, and close controls.
+  Loopwire-owned drag, minimize, maximize/restore, and close controls; the chrome setting is now a native-first
+  segmented control with explicit fallback-mode copy.
 - Desktop sidebar start-on-boot control for XDG autostart status, enable, and disable, plus CLI helper fallback.
 - Desktop sidebar restore-on-boot control for a user-scoped systemd unit that runs packaged background restore without
   opening the GUI.

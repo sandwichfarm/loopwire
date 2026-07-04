@@ -496,6 +496,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "manual host bindin
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Monitor visibility is now scoped per configuration"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "compact recovery tray"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "custom chrome now persists"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "native-first"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "minimize, maximize/restore, and close controls"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Native PipeWire monitor routing"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "native JACK adapter"

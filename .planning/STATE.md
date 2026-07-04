@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:36:42+02:00"
-last_activity: 2026-07-04 - Restore-on-boot now names the active configuration and saved backend
+last_updated: "2026-07-04T20:42:32+02:00"
+last_activity: 2026-07-04 - Window chrome control now explains native-first and fallback modes
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Desktop restore-on-boot now names the active configuration and saved backend before
-enablement, keeps the saved configuration visible when the background launcher is blocked, and documents that unsafe
-unit creation remains disabled until the packaged launcher/backend prerequisites are satisfied. Phase 12 remains gated
-on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch,
-and operator-run VM evidence.
+Last activity: 2026-07-04 - Desktop window chrome selection is now a segmented native-first control with explicit
+fallback-mode copy, so users can see when Loopwire is using system decorations versus its own drag, minimize,
+maximize/restore, and close controls. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
+deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,15 @@ and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Native-first chrome control UX: the desktop chrome setting now uses a tested segmented control with
+  native-first, fallback, and browser-preview summaries, preserving the existing Tauri decoration behavior while making
+  the DE/WM window-management choice explicit at the point of use. Docs and requirements verification now assert the
+  segmented control and fallback copy. Validation passed: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready with 3,173 nodes and 6,166 edges; targeted reads confirmed Tauri defaults to
+  decorated windows and `applyWindowChrome` still requests decorations only through the desktop runtime; `pnpm --filter
+  @loopwire/desktop test -- chrome-mode-summary.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm
+  --filter @loopwire/desktop build`, `pnpm verify:requirements`, `pnpm verify:docs`, Chromium screenshots at 1440x900
+  and 390x844, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 Restore-on-boot target summary: the desktop restore-on-boot sidebar card now derives a tested summary from
   the active configuration, saved backend, service availability, and enabled state, so users can see exactly what will
   be restored before a user-scoped background service is written. Docs now describe the behavior and `verify-docs.sh`

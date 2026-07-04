@@ -42,6 +42,8 @@ for requirement in UX-01 UX-02 UX-03 UX-04; do
 done
 
 assert_contains "apps/desktop/src/App.svelte" "Chrome"
+assert_contains "apps/desktop/src/App.svelte" "segmented-control"
+assert_contains "apps/desktop/src/chrome-mode-summary.ts" "System chrome preferred"
 assert_contains "apps/desktop/src/App.svelte" "applyWindowChrome"
 assert_contains "apps/desktop/src/App.svelte" "setMonitorHidden"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "Window Controls Look Wrong"

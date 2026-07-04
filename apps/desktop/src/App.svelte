@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { describeBackendChoiceCallout } from "./backend-choice";
+  import { describeChromeModeSummary, type ChromeMode } from "./chrome-mode-summary";
   import { groupMonitorsByVisibility } from "./monitor-visibility";
   import { describeStartupRestoreSummary } from "./startup-restore-summary";
   import {
@@ -79,7 +80,6 @@
     type RuntimeTransactionReason
   } from "@loopwire/core";
 
-  type ChromeMode = "native" | "custom";
   type HostApplyMode = "preview" | "live";
   type RuntimeBadge = "ready" | "applying" | "verified" | "rolled_back" | "failed";
   type SourceCandidate = {
@@ -311,6 +311,7 @@
     enabled: backgroundStartupEnabled,
     available: backgroundStartupAvailable
   });
+  $: chromeModeSummary = describeChromeModeSummary({ mode: chromeMode, desktopRuntimeAvailable });
   $: backendSelectionSummary = describeBackendSelectionSummary();
   $: backendChoiceCallout = describeBackendChoiceCallout(backendDecision, selectedBackendName);
   $: selectedBackendCapability = backendCapabilityFor(state.selectedBackend);
@@ -366,10 +367,7 @@
     return value === "custom" ? "custom" : "native";
   }
 
-  async function handleChromeModeChange(event: Event): Promise<void> {
-    const target = event.currentTarget;
-    const nextMode = target instanceof HTMLSelectElement ? parseChromeMode(target.value) : "native";
-
+  async function setChromeMode(nextMode: ChromeMode): Promise<void> {
     chromeMode = nextMode;
     localStorage.setItem(chromeStorageKey, nextMode);
     await applyWindowChrome(nextMode);
@@ -1938,13 +1936,29 @@
             </button>
           </label>
 
-          <label>
+          <div class="chrome-control" data-mode={chromeModeSummary.tone} aria-label="Window chrome mode">
             <span>Chrome</span>
-            <select value={chromeMode} on:change={(event) => void handleChromeModeChange(event)}>
-              <option value="native">Native</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
+            <div class="segmented-control" role="group" aria-label="Choose window chrome mode">
+              <button
+                type="button"
+                class:active={chromeMode === "native"}
+                aria-pressed={chromeMode === "native"}
+                on:click={() => void setChromeMode("native")}
+              >
+                Native
+              </button>
+              <button
+                type="button"
+                class:active={chromeMode === "custom"}
+                aria-pressed={chromeMode === "custom"}
+                on:click={() => void setChromeMode("custom")}
+              >
+                Fallback
+              </button>
+            </div>
+            <strong>{chromeModeSummary.title}</strong>
+            <small>{chromeModeSummary.message}</small>
+          </div>
         </div>
       </header>
 
@@ -2766,6 +2780,52 @@
     color: #d8d0bf;
     font-size: 0.78rem;
     font-weight: 700;
+  }
+
+  .chrome-control {
+    display: grid;
+    gap: 6px;
+    max-width: 260px;
+    color: #d8d0bf;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .chrome-control > span {
+    color: #d8d0bf;
+  }
+
+  .chrome-control strong {
+    color: #f4efe2;
+    font-size: 0.82rem;
+  }
+
+  .chrome-control small {
+    line-height: 1.35;
+  }
+
+  .segmented-control {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 36px;
+    padding: 3px;
+    background: #171817;
+    border: 1px solid rgba(244, 239, 226, 0.16);
+    border-radius: 6px;
+  }
+
+  .segmented-control button {
+    min-width: 78px;
+    color: #d8d0bf;
+    font-weight: 800;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+  }
+
+  .segmented-control button.active {
+    color: #101113;
+    background: #c9f05a;
   }
 
   .source-button {

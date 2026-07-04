@@ -151,9 +151,10 @@ running from a GUI binary that does not own `--background`. Install the packaged
 ## Window Controls Look Wrong
 
 Loopwire uses native chrome where the desktop environment provides it and custom chrome when the window manager needs a
-fallback. In the desktop shell, switching to **Custom** asks Tauri for an undecorated window, persists that preference,
-and shows Loopwire-owned drag, minimize, maximize/restore, and close controls. Browser preview can show the fallback
-controls, but cannot change platform window decorations.
+fallback. In the desktop shell, the **Chrome** segmented control shows **Native** for the preferred system titlebar and
+**Fallback** for Loopwire-owned controls. Switching to **Fallback** asks Tauri for an undecorated window, persists that
+preference, and shows Loopwire-owned drag, minimize, maximize/restore, and close controls. Browser preview can show the
+fallback controls, but cannot change platform window decorations.
 
 If close, maximize/restore, or minimize controls are missing, capture the desktop environment, session type, compositor,
 the selected chrome mode, and a screenshot, then compare against the VM matrix target that most closely matches the

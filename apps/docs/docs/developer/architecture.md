@@ -19,9 +19,9 @@ The first slice implements the pure domain model, persistence rules, and UI shel
 The third slice adds configuration CRUD, versioned import/export, legacy persistence migration, startup re-apply, and
 an app-runtime transaction port for unload, apply, verify, and rollback.
 The fourth slice adds keyboard-accessible route gain/mute controls, on-demand backend diagnostics, responsive visual QA,
-and guarded Tauri custom chrome actions. The desktop defaults to native decorations, but the custom chrome preference
-is persisted and requests an undecorated Tauri window before showing Loopwire-owned drag, minimize, maximize/restore,
-and close controls.
+and guarded Tauri custom chrome actions. The desktop chrome control is a native-first segmented mode selector: native
+decorations remain preferred when the desktop environment or window manager provides them. The fallback mode persists
+its preference before requesting an undecorated Tauri window with Loopwire-owned drag, minimize, maximize/restore, and close controls.
 
 The first host mutation primitives now live in `@loopwire/audio-host`. A guarded native PipeWire adapter links existing
 PipeWire ports through `pw-link`, creates Loopwire-owned virtual output and monitor sinks through `pw-cli create-node adapter`,
