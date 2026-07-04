@@ -9,6 +9,7 @@ secret_list_file=""
 docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-dist/docs-deployment/deployment-manifest.json}"
 docs_dist="${LOOPWIRE_DOCS_DIST:-apps/docs/docs/.vitepress/dist}"
 vm_evidence_root=".vm/evidence"
+vm_start_port="2600"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
 skip_gh="false"
 
@@ -27,6 +28,7 @@ Options:
                               Docs deployment manifest, default dist/docs-deployment/deployment-manifest.json
   --docs-dist DIR             Built docs dist directory, default apps/docs/docs/.vitepress/dist
   --vm-evidence-root DIR      VM evidence root, default .vm/evidence
+  --vm-start-port PORT        SSH start port for VM evidence collection handoffs, default 2600
   --support-matrix FILE       Support matrix path, default apps/docs/docs/guide/support-matrix.md
   --skip-gh                   Skip live GitHub release/workflow lookups
 
@@ -52,6 +54,13 @@ validate_tag() {
 validate_git_head() {
   local pattern='^[0-9a-fA-F]{40}$'
   [[ "$expected_git_head" =~ $pattern ]] || fail "git head must be a 40-character SHA: $expected_git_head"
+}
+
+validate_vm_start_port() {
+  [[ "$vm_start_port" =~ ^[0-9]+$ ]] || fail "VM start port must be numeric: $vm_start_port"
+  if [ "$vm_start_port" -lt 1 ] || [ "$vm_start_port" -gt 65535 ]; then
+    fail "VM start port must be in 1..65535: $vm_start_port"
+  fi
 }
 
 reject_unsafe_value() {
@@ -415,6 +424,10 @@ while [ "$#" -gt 0 ]; do
       vm_evidence_root="${2:?missing value for --vm-evidence-root}"
       shift 2
       ;;
+    --vm-start-port)
+      vm_start_port="${2:?missing value for --vm-start-port}"
+      shift 2
+      ;;
     --support-matrix)
       support_matrix="${2:?missing value for --support-matrix}"
       shift 2
@@ -443,7 +456,9 @@ reject_unsafe_value "$secret_list_file" "secret-list file"
 reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest"
 reject_unsafe_value "$docs_dist" "docs dist"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
+reject_unsafe_value "$vm_start_port" "VM start port"
 reject_unsafe_value "$support_matrix" "support matrix"
+validate_vm_start_port
 
 failed=0
 head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
@@ -491,6 +506,7 @@ run_workflow_probe \
 run_vm_evidence_gate \
   "published-release-bound VM evidence" \
   bash scripts/vm-matrix.sh evidence-status --all --evidence-root "$vm_evidence_root" \
+    --start-port "$vm_start_port" \
     --require-published-release --release-tag "$tag" || failed=1
 
 run_gate \
@@ -502,7 +518,8 @@ run_gate \
   "local final release handoff plan" \
   bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
     --git-head "$expected_git_head" \
-    --public-key "$public_key" || failed=1
+    --public-key "$public_key" \
+    --vm-start-port "$vm_start_port" || failed=1
 
 if [ "$failed" -ne 0 ]; then
   echo "Final release status: blocked" >&2

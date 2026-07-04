@@ -347,6 +347,8 @@ These notes describe source-tree progress. They are not a public release announc
   VM proof for the exact release before promoting support-matrix rows.
 - `pnpm vm:evidence-status` now prints target-specific SSH collection ports from the same `--start-port` convention as
   `pnpm vm:render-ssh-plan`, so multi-VM proof handoffs no longer repeat port `2222` for every missing target.
+- `pnpm release:status` now uses the same VM evidence start-port default as the final release handoff, and exposes
+  `--vm-start-port` when an operator chooses a different forwarded-port range.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,
   desktop/session, or architecture do not match the selected target row.
 - Host-side SSH VM evidence collection can run the guest collector, copy target evidence back, and verify the bundle

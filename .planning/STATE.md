@@ -2589,3 +2589,15 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
   scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:scripts`, and full `pnpm check`
   passed. No VM launch, public release, Bunny deployment, secret write, tag push, host audio mutation, or
   support-matrix promotion was performed.
+- 2026-07-04 release status VM evidence port alignment: `pnpm release:status` now defaults VM evidence collection
+  handoffs to start port `2600`, matching the final release SSH plan, and accepts `--vm-start-port` for alternate
+  operator port ranges. The audit passes the same port into `scripts/vm-matrix.sh evidence-status` and
+  `scripts/plan-final-release-handoff.sh`.
+- 2026-07-04 release status VM evidence port validation: codebase-memory MCP listed the Loopwire project and graph
+  search located `validate_vm_start_port`, `run_vm_evidence_gate`, and VM matrix evidence-status surfaces. `bash -n
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh` passed. Expected-blocked
+  `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output included
+  `collect-start-port=2600`, `collect-port=2600`, `collect-port=2610`, and the `pnpm vm:render-ssh-plan -- --all
+  --start-port 2600` handoff; the same command with `--vm-start-port 2700` included the custom `2700` port handoff.
+  `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and full `pnpm check` passed. No VM launch, public
+  release, Bunny deployment, secret write, tag push, host audio mutation, or support-matrix promotion was performed.

@@ -304,6 +304,10 @@ printf '%s\n' "$release_status_help" | grep -F -- "--docs-dist DIR" >/dev/null |
   echo "verify-scripts: release status help is missing docs dist support" >&2
   exit 1
 }
+printf '%s\n' "$release_status_help" | grep -F -- "--vm-start-port PORT" >/dev/null || {
+  echo "verify-scripts: release status help is missing VM start port support" >&2
+  exit 1
+}
 printf '%s\n' "$release_status_help" | grep -F -- "--git-head SHA" >/dev/null || {
   echo "verify-scripts: release status help is missing expected git head support" >&2
   exit 1
@@ -329,6 +333,14 @@ if bash scripts/audit-final-release-state.sh \
   --git-head not-a-sha \
   --skip-gh >/dev/null 2>&1; then
   echo "verify-scripts: release status accepted an invalid git head" >&2
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --vm-start-port nope \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted an invalid VM start port" >&2
   exit 1
 fi
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
@@ -3898,6 +3910,20 @@ if bash scripts/audit-final-release-state.sh \
   echo "verify-scripts: release status accepted missing final proof surfaces" >&2
   exit 1
 fi
+release_status_vm_start_port_log="$tmp_dir/release-status-vm-start-port.log"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --public-key "$release_status_public_key" \
+  --secret-list-file "$secret_list_release_key_only" \
+  --docs-deployment-manifest "$release_status_docs_manifest" \
+  --docs-dist "$release_status_docs_dist" \
+  --vm-start-port 2700 \
+  --skip-gh >"$release_status_vm_start_port_log" 2>&1; then
+  echo "verify-scripts: release status accepted missing final proof surfaces with custom VM start port" >&2
+  exit 1
+fi
 grep -F "Final release status for sandwichfarm/loopwire@v0.1.0" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status output is missing heading" >&2
   exit 1
@@ -3920,6 +3946,34 @@ grep -F "published-release-bound VM evidence" "$release_status_log" >/dev/null |
 }
 grep -F "blocked: published-release-bound VM evidence" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status did not block missing VM evidence" >&2
+  exit 1
+}
+grep -F "collect-start-port=2600" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not use handoff-aligned VM start port" >&2
+  exit 1
+}
+grep -F "collect-port=2600" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not report first VM collect port from default start port" >&2
+  exit 1
+}
+grep -F "collect-port=2610" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not report second VM collect port from default start port" >&2
+  exit 1
+}
+grep -F -- "pnpm vm:render-ssh-plan -- --all --start-port 2600" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status handoff plan did not keep VM start port aligned" >&2
+  exit 1
+}
+grep -F "collect-start-port=2700" "$release_status_vm_start_port_log" >/dev/null || {
+  echo "verify-scripts: release status did not honor custom VM start port" >&2
+  exit 1
+}
+grep -F "collect-port=2700" "$release_status_vm_start_port_log" >/dev/null || {
+  echo "verify-scripts: release status did not report first VM collect port from custom start port" >&2
+  exit 1
+}
+grep -F -- "pnpm vm:render-ssh-plan -- --all --start-port 2700" "$release_status_vm_start_port_log" >/dev/null || {
+  echo "verify-scripts: release status handoff plan did not honor custom VM start port" >&2
   exit 1
 }
 grep -F "local final release handoff plan" "$release_status_log" >/dev/null || {
