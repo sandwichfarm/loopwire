@@ -337,6 +337,19 @@ const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 if (data.length < signature.length || !signature.every((byte, index) => data[index] === byte)) {
   throw new Error("screenshot.png must be a PNG file");
 }
+if (data.length < 33) {
+  throw new Error("screenshot.png must include a PNG IHDR chunk");
+}
+const ihdrLength = data.readUInt32BE(8);
+const ihdrType = data.toString("ascii", 12, 16);
+if (ihdrLength !== 13 || ihdrType !== "IHDR") {
+  throw new Error("screenshot.png must start with a valid PNG IHDR chunk");
+}
+const width = data.readUInt32BE(16);
+const height = data.readUInt32BE(20);
+if (width < 320 || height < 200) {
+  throw new Error(`screenshot.png is too small for desktop evidence: ${width}x${height}`);
+}
 ' "$evidence_dir/screenshot.png"
 
 echo "VM evidence verification passed for $target."

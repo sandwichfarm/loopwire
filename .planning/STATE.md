@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T17:44:53+02:00"
-last_activity: 2026-07-04 - Final release proof plan-output is constrained to dist/release handoff artifacts
+last_updated: "2026-07-04T17:50:46+02:00"
+last_activity: 2026-07-04 - VM evidence screenshots must include usable PNG dimensions
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-final-release-proof.sh --dry-run --plan-output` now writes only
-repo-local `dist/release/` handoff artifacts and rejects absolute paths or `.`/`..` traversal before touching the file.
+Last activity: 2026-07-04 - `scripts/verify-vm-evidence.sh` now parses `screenshot.png` PNG IHDR dimensions and
+rejects tiny placeholder screenshots below 320x200, so VM support promotion needs a usable desktop visual capture.
 Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix
 tooling for local VM launch, and operator-run VM evidence.
 
@@ -83,6 +83,11 @@ tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 VM screenshot evidence hardening: `scripts/verify-vm-evidence.sh` now parses PNG IHDR width and
+  height and rejects screenshots below 320x200, preventing 1x1 or header-only placeholders from satisfying VM support
+  evidence. `scripts/verify-scripts.sh` now builds a dimensioned synthetic PNG for positive fixture coverage and
+  rejects a 1x1 PNG in a negative case. Validation passed: `bash -n scripts/verify-vm-evidence.sh
+  scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check`.
 - 2026-07-04 Phase 12 final proof handoff hardening: final release proof dry-run plan output is now constrained to
   repo-local `dist/release/` files, creates that handoff directory explicitly, rejects absolute paths, shell glob
   metacharacters, symlinks, directories, and `.`/`..` traversal before writing, and keeps the documented release review

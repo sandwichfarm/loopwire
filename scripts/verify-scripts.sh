@@ -3842,10 +3842,22 @@ printf '%s\n' 'name	exitCode	startedAt	finishedAt	log' \
 printf '%s\n' "# Loopwire Support Bundle" >"$evidence_dir/support-bundle/notes.md"
 node -e '
 const fs = require("node:fs");
-fs.writeFileSync(process.argv[1], Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00
-]));
-' "$evidence_dir/screenshot.png"
+const output = process.argv[1];
+const width = Number(process.argv[2]);
+const height = Number(process.argv[3]);
+const header = Buffer.alloc(33);
+Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(header, 0);
+header.writeUInt32BE(13, 8);
+header.write("IHDR", 12, "ascii");
+header.writeUInt32BE(width, 16);
+header.writeUInt32BE(height, 20);
+header[24] = 8;
+header[25] = 2;
+header[26] = 0;
+header[27] = 0;
+header[28] = 0;
+fs.writeFileSync(output, header);
+' "$evidence_dir/screenshot.png" 1280 720
 {
   printf 'pnpm-check\t0\t2026-07-03T00:00:00+00:00\t2026-07-03T00:00:01+00:00\tpnpm-check.log\n'
   printf 'desktop-launch\t0\t2026-07-03T00:00:01+00:00\t2026-07-03T00:00:02+00:00\tdesktop-launch.log\n'
@@ -3908,6 +3920,27 @@ if bash scripts/verify-vm-evidence.sh \
   --evidence-dir "$evidence_dir" \
   --require-published-release >/dev/null 2>&1; then
   echo "verify-scripts: verify-vm-evidence accepted missing required published-release smoke" >&2
+  exit 1
+fi
+small_screenshot_dir="$tmp_dir/vm-evidence-small-screenshot"
+cp -R "$evidence_dir" "$small_screenshot_dir"
+node -e '
+const fs = require("node:fs");
+const output = process.argv[1];
+const header = Buffer.alloc(33);
+Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(header, 0);
+header.writeUInt32BE(13, 8);
+header.write("IHDR", 12, "ascii");
+header.writeUInt32BE(1, 16);
+header.writeUInt32BE(1, 20);
+header[24] = 8;
+header[25] = 2;
+fs.writeFileSync(output, header);
+' "$small_screenshot_dir/screenshot.png"
+if bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$small_screenshot_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted a too-small screenshot" >&2
   exit 1
 fi
 matrix_release_copy="$tmp_dir/support-matrix-release-required.md"

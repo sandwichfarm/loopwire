@@ -495,11 +495,12 @@ Required files are:
 
 `command-results.tsv` must show successful `pnpm-check`, `desktop-launch`, `audio-host-build`, `detect-audio`,
 `ct-host-check`, and `autostart` commands, and each row must point to the expected non-empty log file. `screenshot.png`
-must be a real PNG file. Text placeholders are rejected by the verifier. `environment.json` must match the selected
-VM target row and the observed distro, desktop/session, and architecture. `detect-audio.json` must report the expected
-target backend as available: PipeWire targets require PipeWire, compatibility targets require PipeWire and PulseAudio,
-PulseAudio targets require PulseAudio, and JACK targets require JACK. When `--require-published-release` is used, the
-ledger must also include a successful `published-release-smoke` row.
+must be a real PNG file with PNG header dimensions of at least 320x200. Text placeholders and tiny placeholder images
+are rejected by the verifier. `environment.json` must match the selected VM target row and the observed distro,
+desktop/session, and architecture. `detect-audio.json` must report the expected target backend as available: PipeWire
+targets require PipeWire, compatibility targets require PipeWire and PulseAudio, PulseAudio targets require PulseAudio,
+and JACK targets require JACK. When `--require-published-release` is used, the ledger must also include a successful
+`published-release-smoke` row.
 
 ## CI Boundary
 

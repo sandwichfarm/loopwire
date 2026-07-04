@@ -283,6 +283,8 @@ These notes describe source-tree progress. They are not a public release announc
   claims cannot rely on file presence alone.
 - VM evidence collection now starts the Loopwire desktop shell, records `desktop-launch.log`, and requires a successful
   `desktop-launch` ledger row before support claims can be promoted.
+- VM evidence verification now rejects tiny placeholder screenshots; `screenshot.png` must include PNG header
+  dimensions of at least 320x200 before a target can be promoted.
 - VM evidence collection can now run published-release installer smoke inside the guest and `verify-vm-evidence` can
   require that installed-release proof for final release gates.
 - VM evidence promotion now has a guarded `pnpm vm:promote-evidence` command that verifies target evidence before
