@@ -20,6 +20,10 @@ In the desktop shell, use the sidebar startup cards:
 - **Restore on boot** manages a user systemd unit that runs the packaged `loopwire --background --mode live` launcher
   against the persisted state file.
 
+The restore card names the active configuration and saved backend before enablement. If the packaged background
+launcher is unavailable or no backend is selected, the card keeps the saved configuration visible and blocks the unsafe
+enable path instead of writing a unit that cannot restore audio.
+
 Browser preview does not write startup files. It shows the paths and asks you to use the desktop shell.
 Source-checkout Tauri runs do not install a background-capable GUI binary; use the source checkout CLI path below until
 you test an installed package or set `LOOPWIRE_BACKGROUND_BINARY` to a compatible launcher.

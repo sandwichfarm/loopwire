@@ -4,6 +4,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { describeBackendChoiceCallout } from "./backend-choice";
   import { groupMonitorsByVisibility } from "./monitor-visibility";
+  import { describeStartupRestoreSummary } from "./startup-restore-summary";
   import {
     describeConfigurationSwitchPreflight,
     describeLiveApplyPreflight,
@@ -304,6 +305,12 @@
   $: backendDecision = selectBackend(backendCandidates, state.selectedBackend);
   $: selectedBackend = state.selectedBackend ?? "";
   $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
+  $: startupRestoreSummary = describeStartupRestoreSummary({
+    configuration: activeConfiguration,
+    selectedBackendName,
+    enabled: backgroundStartupEnabled,
+    available: backgroundStartupAvailable
+  });
   $: backendSelectionSummary = describeBackendSelectionSummary();
   $: backendChoiceCallout = describeBackendChoiceCallout(backendDecision, selectedBackendName);
   $: selectedBackendCapability = backendCapabilityFor(state.selectedBackend);
@@ -1817,6 +1824,7 @@
       <div
         class="boot-card"
         class:blocked={!backgroundStartupAvailable}
+        data-restore-summary={startupRestoreSummary.tone}
         aria-label="Restore on boot"
       >
         <div>
@@ -1824,6 +1832,10 @@
           <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable)}</strong>
         </div>
         <small>{backgroundStartupNote}</small>
+        <div class="restore-summary">
+          <strong>{startupRestoreSummary.title}</strong>
+          <small>{startupRestoreSummary.message}</small>
+        </div>
         <small class="path">{backgroundStartupPath}</small>
         {#if backgroundStartupBinary}
           <small class="path">Launcher {backgroundStartupBinary}</small>
@@ -2616,6 +2628,14 @@
     border-left-color: #f7b74a;
   }
 
+  .boot-card[data-restore-summary="setup"] {
+    border-left-color: #f7b74a;
+  }
+
+  .boot-card[data-restore-summary="blocked"] {
+    border-left-color: #f05d5e;
+  }
+
   .boot-card > div:first-child {
     display: flex;
     align-items: center;
@@ -2642,6 +2662,19 @@
   .boot-card .path {
     color: #9f9789;
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+
+  .restore-summary {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    background: rgba(244, 239, 226, 0.05);
+    border: 1px solid rgba(244, 239, 226, 0.1);
+    border-radius: 6px;
+  }
+
+  .restore-summary strong {
+    font-size: 0.86rem;
   }
 
   .boot-actions {

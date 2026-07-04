@@ -198,6 +198,7 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm restore:background
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Packaged Background Restore Path"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Open on boot"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Restore on boot"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "The restore card names the active configuration and saved backend"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "loopwire --background"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "The curl installer reports that dependency"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" 'install the distro `nodejs` package'
@@ -502,6 +503,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Source-checkout ba
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "restore-on-boot control"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'resolves the packaged `loopwire` launcher'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Restore-on-boot status now stays readable"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Restore-on-boot now names the active configuration and saved backend"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`loopwire --background --help`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire --background"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'requires `node` on `PATH`'

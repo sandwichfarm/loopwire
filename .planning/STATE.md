@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:29:40+02:00"
-last_activity: 2026-07-04 - Hidden monitors now move into a recoverable tray
+last_updated: "2026-07-04T20:36:42+02:00"
+last_activity: 2026-07-04 - Restore-on-boot now names the active configuration and saved backend
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Desktop hidden monitors now leave the main monitor grid and move into a compact recovery
-tray with `Show` actions, preserving each monitor and its host sink binding without keeping hidden devices visually
-present. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
-QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Desktop restore-on-boot now names the active configuration and saved backend before
+enablement, keeps the saved configuration visible when the background launcher is blocked, and documents that unsafe
+unit creation remains disabled until the packaged launcher/backend prerequisites are satisfied. Phase 12 remains gated
+on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch,
+and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,14 @@ QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Restore-on-boot target summary: the desktop restore-on-boot sidebar card now derives a tested summary from
+  the active configuration, saved backend, service availability, and enabled state, so users can see exactly what will
+  be restored before a user-scoped background service is written. Docs now describe the behavior and `verify-docs.sh`
+  asserts the guide and release-note copy. Validation passed: codebase-memory MCP `search_graph` located the startup
+  restore and backend selection paths, and `get_code_snippet` confirmed the Tauri background service writes
+  `loopwire --background --state-file ... --mode live`; `pnpm --filter @loopwire/desktop test --
+  startup-restore-summary.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop
+  build`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 Recoverable hidden monitor tray: the desktop now groups monitors by visibility, renders only visible
   monitors in the main monitor grid, and lists hidden monitors in a compact recovery tray with per-monitor `Show`
   actions. The core hidden-monitor persistence contract is unchanged; the new desktop helper is covered by focused
