@@ -4,7 +4,13 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-type DspProviderCommand = "read-source" | "write-output" | "verify-output" | "clear-output" | "seed-source";
+type DspProviderCommand =
+  | "capabilities"
+  | "read-source"
+  | "write-output"
+  | "verify-output"
+  | "clear-output"
+  | "seed-source";
 
 interface DspProviderCliIo {
   readonly env?: NodeJS.ProcessEnv;
@@ -42,6 +48,8 @@ export async function runDspProviderCli(argv: readonly string[], io: DspProvider
     }
 
     switch (parsed.command) {
+      case "capabilities":
+        return capabilities(io);
       case "read-source":
         return await readSource(parsed, io);
       case "write-output":
@@ -57,6 +65,18 @@ export async function runDspProviderCli(argv: readonly string[], io: DspProvider
     io.stderr(`${errorMessage(error)}\n`);
     return 2;
   }
+}
+
+function capabilities(io: DspProviderCliIo): number {
+  const payload = {
+    ok: true,
+    providerKind: "file-backed",
+    supportsLiveGraph: false,
+    operations: ["read-source", "write-output", "verify-output", "clear-output", "seed-source"]
+  };
+
+  io.stdout(`${JSON.stringify(payload)}\n`);
+  return 0;
 }
 
 function parseArgs(argv: readonly string[], env: NodeJS.ProcessEnv): ParsedArgs {
@@ -328,7 +348,16 @@ function defaultStoreDir(env: NodeJS.ProcessEnv): string {
 }
 
 function isCommand(command: string): command is DspProviderCommand {
-  return ["read-source", "write-output", "verify-output", "clear-output", "seed-source"].includes(command);
+  const commands: readonly string[] = [
+    "capabilities",
+    "read-source",
+    "write-output",
+    "verify-output",
+    "clear-output",
+    "seed-source"
+  ];
+
+  return commands.includes(command);
 }
 
 function optionalPositiveInteger(value: string | undefined, label: string): number | undefined {
@@ -377,6 +406,7 @@ function usage(): string {
   return `Loopwire file-backed DSP provider.
 
 Usage:
+  loopwire-dsp-provider capabilities
   loopwire-dsp-provider read-source --source-id ID --channels N [--frames N] [--store-dir DIR]
   loopwire-dsp-provider write-output --output-id ID --channels N --frames N --peak VALUE --configuration-id ID [--store-dir DIR]
   loopwire-dsp-provider verify-output --output-id ID --channels N --frames N --peak VALUE --configuration-id ID [--store-dir DIR]
@@ -384,6 +414,7 @@ Usage:
   loopwire-dsp-provider seed-source --source-id ID --channels N --frames N [--value N] [--store-dir DIR]
 
 State defaults to LOOPWIRE_DSP_PROVIDER_DIR or XDG_STATE_HOME/loopwire/dsp-provider.
+capabilities prints provider metadata and declares supportsLiveGraph:false for this bundled file-backed provider.
 read-source prints {"missing":true} until a source is seeded.
 write-output and verify-output read Loopwire rendered-output JSON on stdin.
 `;

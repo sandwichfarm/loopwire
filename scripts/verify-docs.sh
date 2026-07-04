@@ -127,7 +127,10 @@ assert_contains "apps/docs/docs/guide/backends.md" "verify rendered outputs"
 assert_contains "apps/docs/docs/guide/backends.md" "restore the rollback configuration"
 assert_contains "apps/docs/docs/guide/backends.md" "first-class configuration runtime adapter wrapper"
 assert_contains "apps/docs/docs/guide/backends.md" "command-backed DSP provider helper"
-assert_contains "apps/docs/docs/guide/backends.md" '`read-source`, `write-output`, `verify-output`, and `clear-output`'
+assert_contains \
+  "apps/docs/docs/guide/backends.md" \
+  '`capabilities`, `read-source`, `write-output`, `verify-output`, and `clear-output`'
+assert_contains "apps/docs/docs/guide/backends.md" "supportsLiveGraph:false"
 assert_contains "apps/docs/docs/guide/backends.md" "JSON stdin"
 assert_contains "apps/docs/docs/guide/backends.md" "stored by configuration"
 assert_contains "apps/docs/docs/guide/backends.md" "Release artifacts ship"
@@ -199,6 +202,7 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "--backend dsp"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-command"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-timeout-ms"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-mode live"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "supportsLiveGraph:true"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-frame-count"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm dsp:plan"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm dsp:verify"
@@ -541,6 +545,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm dsp:plan`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm dsp:verify`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`loopwire-dsp-provider`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--dsp-provider-mode live"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "supportsLiveGraph:true"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Support bundles can include read-only JACK readiness"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "injected JACK virtual port provider"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-jack-ports"

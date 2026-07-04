@@ -1381,7 +1381,9 @@ function value(name) {
   return index === -1 ? undefined : args[index + 1];
 }
 
-if (args[0] === "read-source") {
+if (args[0] === "capabilities") {
+  process.stdout.write(`${JSON.stringify({ ok: true, providerKind: "verify-live", supportsLiveGraph: true })}\n`);
+} else if (args[0] === "read-source") {
   const channels = Number(value("--channels"));
   const frames = Number(value("--frames"));
   const payload = {

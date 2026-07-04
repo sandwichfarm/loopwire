@@ -186,8 +186,9 @@ provider command before enabling boot restore. Release artifacts install `loopwi
 provider for contract smoke and local restore preflight. It stores seeded source buffers and configuration-scoped rendered output
 buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
-provider. `--mode live --backend dsp` now requires `--dsp-provider-mode live`, which should only be used with a real
-provider that captures from and writes to the host audio graph.
+provider. `--mode live --backend dsp` now requires `--dsp-provider-mode live` and a provider `capabilities` result
+with `supportsLiveGraph:true`; the bundled file-backed provider declares `supportsLiveGraph:false` and is rejected for
+live restore. Use live mode only with a real provider that captures from and writes to the host audio graph.
 
 Seed every source your configuration routes before running execute-mode preflight:
 

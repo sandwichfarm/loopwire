@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T18:48:44+02:00"
-last_activity: 2026-07-04 - Command-backed DSP verification now rejects empty provider output
+last_updated: "2026-07-04T18:59:33+02:00"
+last_activity: 2026-07-04 - Live DSP restore now requires provider-declared live graph capability
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Command-backed DSP verification now rejects exit-0 `verify-output` providers that emit no
-JSON result, so live DSP integrations must explicitly prove rendered output comparison. Phase 12 remains gated on a
-public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
-operator-run VM evidence.
+Last activity: 2026-07-04 - Live DSP restore now probes the provider `capabilities` command and requires
+`supportsLiveGraph:true` before host apply. The bundled file-backed provider declares `supportsLiveGraph:false`, so it
+remains valid for preflight and contract smoke but cannot be silently treated as live audio. Phase 12 remains gated on
+a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch,
+and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -49,7 +50,8 @@ operator-run VM evidence.
   restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook and bundled
   `loopwire-jack-ports` wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client
   creation, and native host graph-edge gain implementation remain planned. DSP live restore now requires the operator
-  to declare a live provider explicitly with `--dsp-provider-mode live`.
+  to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now requires provider
+  `capabilities` to declare `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -83,6 +85,15 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Live DSP provider capability hardening: `loopwire-dsp-provider capabilities` now declares the bundled
+  provider as file-backed with `supportsLiveGraph:false`, and `restore-background.mjs --backend dsp --mode live`
+  probes provider capabilities before creating a runtime adapter. Regression coverage proves live restore accepts a
+  provider that declares `supportsLiveGraph:true` and rejects a file-backed provider before source/output operations.
+  Validation passed: `pnpm --filter @loopwire/audio-host test -- --runInBand dsp-provider-cli.test.ts`, `pnpm
+  --filter @loopwire/audio-host typecheck`, `node --check scripts/restore-background.mjs`, `bash -n
+  scripts/verify-autostart.sh scripts/verify-scripts.sh scripts/verify-docs.sh scripts/verify-release-artifacts.sh`,
+  `pnpm verify:autostart`, `pnpm verify:release`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:runtime`,
+  and `git diff --check`.
 - 2026-07-04 Command-backed DSP verification hardening: `createDspRuntimeCommandPorts` now treats empty
   `verify-output` stdout as a failed provider verification instead of accepting exit code 0 as proof. Regression
   coverage proves a silent provider fails closed before Loopwire reports verified graph-edge output. Docs now state

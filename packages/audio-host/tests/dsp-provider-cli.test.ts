@@ -5,6 +5,18 @@ import { describe, expect, it } from "vitest";
 import { runDspProviderCli } from "../src/dsp-provider-cli.js";
 
 describe("runDspProviderCli", () => {
+  it("declares bundled provider capabilities without live graph support", async () => {
+    const result = await runProvider(["capabilities"]);
+
+    expect(result).toMatchObject({ exitCode: 0, stderr: "" });
+    expect(JSON.parse(result.stdout)).toEqual({
+      ok: true,
+      providerKind: "file-backed",
+      supportsLiveGraph: false,
+      operations: ["read-source", "write-output", "verify-output", "clear-output", "seed-source"]
+    });
+  });
+
   it("seeds and reads source buffers from the provider store", async () => {
     const storeDir = await temporaryStore();
     const seed = await runProvider([

@@ -129,6 +129,10 @@ fi
   echo "Packaged Loopwire DSP provider help did not run." >&2
   exit 1
 }
+"$check_dir/loopwire-dsp-provider" capabilities | grep -F -- '"supportsLiveGraph":false' >/dev/null || {
+  echo "Packaged Loopwire DSP provider did not declare file-backed capabilities." >&2
+  exit 1
+}
 "$check_dir/loopwire-jack-ports" --help | grep -F -- "LOOPWIRE_JACK_PORTS_DELEGATE" >/dev/null || {
   echo "Packaged Loopwire JACK ports provider help did not run." >&2
   exit 1
@@ -186,6 +190,10 @@ fi
 }
 "$prefix/loopwire-dsp-provider" --help | grep -F -- "seed-source" >/dev/null || {
   echo "Installed Loopwire DSP provider help did not run." >&2
+  exit 1
+}
+"$prefix/loopwire-dsp-provider" capabilities | grep -F -- '"supportsLiveGraph":false' >/dev/null || {
+  echo "Installed Loopwire DSP provider did not declare file-backed capabilities." >&2
   exit 1
 }
 "$prefix/loopwire-jack-ports" --help | grep -F -- "LOOPWIRE_JACK_PORTS_DELEGATE" >/dev/null || {

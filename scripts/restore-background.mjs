@@ -222,6 +222,7 @@ async function main() {
     selectBackend,
     mode: args.mode
   });
+  const dspProviderCapability = await verifyDspProviderCapability(runner, selectedBackend, args);
   const adapter = createRuntimeAdapter(audioHost, runner, selectedBackend, args.mode, args);
   const result = await verifyStartupConfiguration(restored.state, adapter, new Date().toISOString());
   const pendingStreamRefresh = await refreshPendingPulseAudioRoutes({
@@ -245,6 +246,7 @@ async function main() {
       ? {
           dspProviderCommand: args.dspProviderCommand,
           dspProviderMode: args.dspProviderMode,
+          ...(dspProviderCapability ? { dspProviderCapability } : {}),
           ...(args.dspFrameCount !== undefined ? { dspFrameCount: args.dspFrameCount } : {})
         }
       : {}),
@@ -303,6 +305,50 @@ function selectRestoreBackend({ requestedBackend, persistedBackend, detection, s
   }
 
   throw new Error(decision.reason);
+}
+
+async function verifyDspProviderCapability(runner, backend, args) {
+  if (backend !== "dsp" || args.mode !== "live" || args.dspProviderMode !== "live") {
+    return undefined;
+  }
+
+  const result = await runner.run(args.dspProviderCommand, ["capabilities"], {
+    timeoutMs: args.dspProviderTimeoutMs
+  });
+
+  if (result.exitCode !== 0) {
+    throw new Error(providerCapabilityFailure(result, "capabilities command failed"));
+  }
+
+  const raw = result.stdout.trim();
+  if (!raw) {
+    throw new Error(providerCapabilityFailure(result, "capabilities command returned empty stdout"));
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    throw new Error(providerCapabilityFailure(result, "capabilities command returned invalid JSON"));
+  }
+
+  if (!payload || typeof payload !== "object" || payload.supportsLiveGraph !== true) {
+    const providerKind =
+      payload && typeof payload === "object" && typeof payload.providerKind === "string"
+        ? ` (${payload.providerKind})`
+        : "";
+    throw new Error(
+      `DSP live restore requires a provider that declares supportsLiveGraph=true${providerKind}. ` +
+        "Use preview mode for file-backed providers or configure a real live DSP provider."
+    );
+  }
+
+  return payload;
+}
+
+function providerCapabilityFailure(result, reason) {
+  const detail = result.stderr.trim() || result.stdout.trim();
+  return `DSP live restore provider ${reason}: ${result.command} capabilities${detail ? `: ${detail}` : ""}`;
 }
 
 function createRuntimeAdapter(audioHost, runner, backend, mode, options) {

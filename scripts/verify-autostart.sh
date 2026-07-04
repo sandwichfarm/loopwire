@@ -27,6 +27,7 @@ packaged_dsp_systemd_render="$tmp_dir/packaged-dsp-systemd.render"
 state_file="$tmp_dir/state.json"
 restore_output="$tmp_dir/restore-output.json"
 dsp_restore_output="$tmp_dir/dsp-restore-output.json"
+dsp_reject_output="$tmp_dir/dsp-reject-output.txt"
 dsp_provider="$tmp_dir/dsp-provider.sh"
 dsp_provider_log="$tmp_dir/dsp-provider.log"
 
@@ -169,6 +170,9 @@ cat >"$dsp_provider" <<SH
 set -euo pipefail
 printf '%s\n' "\$*" >>"$dsp_provider_log"
 case "\$1" in
+  capabilities)
+    printf '{"ok":true,"providerKind":"verify-live","supportsLiveGraph":true}\n'
+    ;;
   read-source)
     printf '{"channels":[[1,1],[1,1]]}\n'
     ;;
@@ -197,9 +201,38 @@ pnpm restore:background -- \
 assert_contains "$dsp_restore_output" '"status": "verified"'
 assert_contains "$dsp_restore_output" '"backend": "dsp"'
 assert_contains "$dsp_restore_output" '"dspProviderCommand":'
+assert_contains "$dsp_restore_output" '"supportsLiveGraph": true'
+assert_contains "$dsp_provider_log" "capabilities"
 assert_contains "$dsp_provider_log" "read-source --source-id mic --channels 2 --frames 2"
 assert_contains "$dsp_provider_log" "write-output --output-id program --channels 2 --frames 2 --peak 1"
 assert_contains "$dsp_provider_log" "verify-output --output-id program --channels 2 --frames 2 --peak 1"
+
+cat >"$dsp_provider" <<SH
+#!/usr/bin/env bash
+set -euo pipefail
+case "\$1" in
+  capabilities)
+    printf '{"ok":true,"providerKind":"file-backed","supportsLiveGraph":false}\n'
+    ;;
+  *)
+    echo "unexpected operation: \$1" >&2
+    exit 2
+    ;;
+esac
+SH
+chmod +x "$dsp_provider"
+if pnpm restore:background -- \
+  --state-file "$state_file" \
+  --backend dsp \
+  --mode live \
+  --dsp-provider-command "$dsp_provider" \
+  --dsp-provider-mode live \
+  --dsp-frame-count 2 \
+  --pretty >"$dsp_reject_output" 2>&1; then
+  echo "restore background accepted a DSP provider that does not declare live graph support." >&2
+  exit 1
+fi
+assert_contains "$dsp_reject_output" "supportsLiveGraph=true"
 
 XDG_CONFIG_HOME="$tmp_dir/config" bash scripts/manage-autostart.sh install --mode desktop --binary /tmp/loopwire
 desktop_file="$tmp_dir/config/autostart/loopwire.desktop"
