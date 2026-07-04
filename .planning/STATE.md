@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T18:59:33+02:00"
-last_activity: 2026-07-04 - Live DSP restore now requires provider-declared live graph capability
+last_updated: "2026-07-04T19:04:35+02:00"
+last_activity: 2026-07-04 - DSP provider preflight can require live graph capability
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Live DSP restore now probes the provider `capabilities` command and requires
-`supportsLiveGraph:true` before host apply. The bundled file-backed provider declares `supportsLiveGraph:false`, so it
-remains valid for preflight and contract smoke but cannot be silently treated as live audio. Phase 12 remains gated on
-a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch,
-and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm dsp:verify -- --require-live-capability` now probes the provider `capabilities`
+command and fails unless it declares `supportsLiveGraph:true`, giving users and release evidence a direct preflight
+before wiring a provider into live boot restore. Phase 12 remains gated on a public release, configured Bunny secrets,
+live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,12 @@ and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 DSP live capability preflight: `scripts/describe-dsp-provider.mjs` now accepts
+  `--require-live-capability`, calls only the provider `capabilities` operation, includes `providerCapability` in JSON
+  output, and exits nonzero unless `supportsLiveGraph:true` is declared. Docs now show the preflight before live DSP
+  boot restore. Validation passed: `node --check scripts/describe-dsp-provider.mjs`, `bash -n
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `git diff --check`, `pnpm verify:scripts`, and
+  `pnpm verify:docs`.
 - 2026-07-04 Live DSP provider capability hardening: `loopwire-dsp-provider capabilities` now declares the bundled
   provider as file-backed with `supportsLiveGraph:false`, and `restore-background.mjs --backend dsp --mode live`
   probes provider capabilities before creating a runtime adapter. Regression coverage proves live restore accepts a

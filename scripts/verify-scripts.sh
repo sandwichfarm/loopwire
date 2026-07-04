@@ -971,6 +971,10 @@ node scripts/describe-dsp-provider.mjs --help | grep -F -- "--execute" >/dev/nul
   echo "verify-scripts: DSP provider description help is missing execute option" >&2
   exit 1
 }
+node scripts/describe-dsp-provider.mjs --help | grep -F -- "--require-live-capability" >/dev/null || {
+  echo "verify-scripts: DSP provider description help is missing live capability option" >&2
+  exit 1
+}
 bash scripts/collect-vm-evidence.sh --help >/dev/null
 bash scripts/collect-vm-evidence-ssh.sh --help >/dev/null
 bash scripts/collect-vm-matrix-evidence.sh --help >/dev/null
@@ -1382,7 +1386,9 @@ function value(name) {
 }
 
 if (args[0] === "capabilities") {
-  process.stdout.write(`${JSON.stringify({ ok: true, providerKind: "verify-live", supportsLiveGraph: true })}\n`);
+  const supportsLiveGraph = process.env.LOOPWIRE_DSP_PROVIDER_SUPPORTS_LIVE !== "false";
+  const providerKind = supportsLiveGraph ? "verify-live" : "file-backed";
+  process.stdout.write(`${JSON.stringify({ ok: true, providerKind, supportsLiveGraph })}\n`);
 } else if (args[0] === "read-source") {
   const channels = Number(value("--channels"));
   const frames = Number(value("--frames"));
@@ -1420,6 +1426,7 @@ dsp_verify_json="$(
     node scripts/describe-dsp-provider.mjs \
       --configuration "$jack_configuration" \
       --provider-command "$dsp_provider" \
+      --require-live-capability \
       --execute \
       --frame-count 2 \
       --pretty
@@ -1431,8 +1438,13 @@ if (payload.ok !== true) process.exit(1);
 if (payload.mode !== "execute") process.exit(1);
 if (payload.execution.apply.ok !== true) process.exit(1);
 if (payload.execution.verify.ok !== true) process.exit(1);
+if (payload.providerCapability?.supportsLiveGraph !== true) process.exit(1);
 ' || {
   echo "verify-scripts: DSP provider execute JSON output is malformed" >&2
+  exit 1
+}
+grep -F "capabilities" "$dsp_provider_log" >/dev/null || {
+  echo "verify-scripts: DSP provider execute did not check provider capabilities" >&2
   exit 1
 }
 grep -F "read-source --source-id mic --channels 2 --frames 2" "$dsp_provider_log" >/dev/null || {
@@ -1451,6 +1463,21 @@ if node scripts/describe-dsp-provider.mjs \
   --configuration "$jack_configuration" \
   --execute >/dev/null 2>&1; then
   echo "verify-scripts: DSP provider execute accepted a missing provider command" >&2
+  exit 1
+fi
+if node scripts/describe-dsp-provider.mjs \
+  --configuration "$jack_configuration" \
+  --require-live-capability >/dev/null 2>&1; then
+  echo "verify-scripts: DSP provider live capability check accepted a missing provider command" >&2
+  exit 1
+fi
+if LOOPWIRE_DSP_PROVIDER_SUPPORTS_LIVE=false \
+  node scripts/describe-dsp-provider.mjs \
+    --configuration "$jack_configuration" \
+    --provider-command "$dsp_provider" \
+    --require-live-capability \
+    --frame-count 2 >/dev/null 2>&1; then
+  echo "verify-scripts: DSP provider live capability check accepted a file-backed provider" >&2
   exit 1
 fi
 if LOOPWIRE_DSP_PROVIDER_FAIL_VERIFY=true \

@@ -11,20 +11,23 @@ function usage() {
 Usage:
   describe-dsp-provider.mjs [--state-file FILE] [--configuration-id ID] [--frame-count N] [--format json|tsv]
   describe-dsp-provider.mjs --configuration FILE [--frame-count N] [--format json|tsv]
+  describe-dsp-provider.mjs --configuration FILE --provider-command COMMAND [--require-live-capability]
   describe-dsp-provider.mjs --configuration FILE --provider-command COMMAND --execute [--timeout-ms MS]
 
 Options:
   --configuration FILE       Loopwire configuration export or raw configuration JSON.
   --state-file FILE          Persisted Loopwire state. Defaults to XDG config state.
   --configuration-id ID      Select a configuration from --state-file instead of the active one.
-  --provider-command COMMAND DSP provider command to execute. Not called unless --execute is set.
+  --provider-command COMMAND DSP provider command for execute or capability checks.
+  --require-live-capability  Probe provider capabilities and require supportsLiveGraph:true.
   --timeout-ms MS            Provider operation timeout. Default: 5000.
   --frame-count N            Bounded source frames requested from the provider. Default: 480.
   --execute                  Run provider apply and verify. Without this, the command is read-only.
   --format json|tsv          Output format. Default: json.
   --pretty                   Pretty-print JSON output.
 
-The default plan mode never calls the provider command. Execute mode can mutate provider-owned host audio outputs.`);
+The default plan mode never calls the provider command unless --require-live-capability is set.
+Execute mode can mutate provider-owned host audio outputs.`);
 }
 
 function parseArgs(argv) {
@@ -36,6 +39,7 @@ function parseArgs(argv) {
     frameCount: defaultFrameCount,
     pretty: false,
     providerCommand: undefined,
+    requireLiveCapability: false,
     stateFile: defaultStateFile(),
     timeoutMs: 5000
   };
@@ -77,6 +81,9 @@ function parseArgs(argv) {
       case "--execute":
         parsed.execute = true;
         break;
+      case "--require-live-capability":
+        parsed.requireLiveCapability = true;
+        break;
       case "--pretty":
         parsed.pretty = true;
         break;
@@ -100,6 +107,10 @@ function parseArgs(argv) {
 
   if (parsed.execute && !parsed.providerCommand) {
     throw new Error("--execute requires --provider-command");
+  }
+
+  if (parsed.requireLiveCapability && !parsed.providerCommand) {
+    throw new Error("--require-live-capability requires --provider-command");
   }
 
   return parsed;
@@ -141,16 +152,21 @@ async function main() {
   const configuration = await loadConfiguration(args, core);
   const plan = core.createDspMixPlan(configuration);
   const operations = describeOperations(core, plan, args.frameCount);
+  const providerCapability = args.requireLiveCapability
+    ? await probeProviderCapability(audioHost, args)
+    : undefined;
   const execution = args.execute
     ? await executeProvider(audioHost, args, configuration)
     : undefined;
+  const capabilityOk = providerCapability ? providerCapability.supportsLiveGraph === true : true;
   const payload = {
-    ok: execution ? execution.ok : true,
+    ok: capabilityOk && (execution ? execution.ok : true),
     mode: args.execute ? "execute" : "plan",
     configurationId: configuration.id,
     configurationName: configuration.name,
     frameCount: args.frameCount,
     ...(args.providerCommand ? { providerCommand: args.providerCommand } : {}),
+    ...(providerCapability ? { providerCapability } : {}),
     operations,
     ...(execution ? { execution } : {})
   };
@@ -192,6 +208,54 @@ function describeOperations(core, plan, frameCount) {
   ]);
 
   return [...reads, ...outputs];
+}
+
+async function probeProviderCapability(audioHost, args) {
+  const result = await audioHost.createNodeCommandRunner().run(args.providerCommand, ["capabilities"], {
+    timeoutMs: args.timeoutMs
+  });
+
+  if (result.exitCode !== 0) {
+    return {
+      ok: false,
+      supportsLiveGraph: false,
+      message: providerCapabilityMessage(result, "capabilities command failed")
+    };
+  }
+
+  const raw = result.stdout.trim();
+  if (!raw) {
+    return {
+      ok: false,
+      supportsLiveGraph: false,
+      message: providerCapabilityMessage(result, "capabilities command returned empty stdout")
+    };
+  }
+
+  try {
+    const payload = JSON.parse(raw);
+    const supportsLiveGraph = Boolean(payload?.supportsLiveGraph === true);
+
+    return {
+      ...payload,
+      ok: supportsLiveGraph,
+      supportsLiveGraph,
+      ...(!supportsLiveGraph
+        ? { message: "DSP provider does not declare supportsLiveGraph=true." }
+        : {})
+    };
+  } catch {
+    return {
+      ok: false,
+      supportsLiveGraph: false,
+      message: providerCapabilityMessage(result, "capabilities command returned invalid JSON")
+    };
+  }
+}
+
+function providerCapabilityMessage(result, reason) {
+  const detail = result.stderr.trim() || result.stdout.trim();
+  return `DSP provider ${reason}${detail ? `: ${detail}` : ""}`;
 }
 
 async function executeProvider(audioHost, args, configuration) {
@@ -295,6 +359,16 @@ function formatTsv(payload) {
         ""
       ]
     );
+  }
+
+  if (payload.providerCapability) {
+    rows.push([
+      "provider-capability",
+      payload.providerCommand,
+      payload.providerCapability.supportsLiveGraph ? "supportsLiveGraph=true" : payload.providerCapability.message,
+      "",
+      ""
+    ]);
   }
 
   return `${rows.map((row) => row.map(formatTsvCell).join("\t")).join("\n")}\n`;

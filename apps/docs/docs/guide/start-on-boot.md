@@ -213,6 +213,15 @@ bash scripts/manage-autostart.sh render \
 For a real live DSP provider, use the provider command supplied by that integration and declare the trust boundary:
 
 ```bash
+pnpm dsp:verify -- \
+  --configuration exported-loopwire-config.json \
+  --provider-command loopwire-live-dsp-provider \
+  --require-live-capability \
+  --frame-count 480 \
+  --pretty
+```
+
+```bash
 bash scripts/manage-autostart.sh render \
   --mode systemd \
   --source-dir "$PWD" \
