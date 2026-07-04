@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:43:00+02:00"
-last_activity: 2026-07-04 - published release evidence extraction uses the shared safe tar validator
+last_updated: "2026-07-04T15:58:00+02:00"
+last_activity: 2026-07-04 - final proof signed checksum binding is implemented and locally validated
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-published-release.sh` now extracts required release evidence archives
-through `scripts/extract-safe-tar.sh`, so published-release proof rejects unsafe paths and link members before
-project-specific evidence verification. Phase 12 remains gated on a public release, configured Bunny secrets, live
-Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now downloads signed `SHA256SUMS` files and
+verifies release/VM evidence archives with `scripts/verify-release-asset-checksum.sh` before extraction. Phase 12
+remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1970,6 +1970,21 @@ Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
   roadmap/phase queries, and codebase-memory MCP fast reindex/status passed. `pnpm verify:scripts` rejects a signed
   fake release whose evidence archive contains a symlinked manifest member. No VM launch, public release, release asset
   upload, Bunny deployment, or support-matrix promotion was performed.
+- 2026-07-04 final proof checksum binding: `scripts/verify-release-asset-checksum.sh` now verifies a single downloaded
+  release asset against signed `SHA256SUMS`, requiring exactly one manifest entry and rejecting missing entries,
+  duplicate entries, tampered assets, and unsafe asset names. `.github/workflows/final-release-proof.yml` downloads
+  `SHA256SUMS`/`SHA256SUMS.sig` and verifies both release and VM evidence archives before extraction. Codebase-memory
+  MCP `index_status` reported ready, and graph search found the checksum/signature/final-proof surfaces before
+  implementation.
+- 2026-07-04 final proof checksum binding validation: `bash -n scripts/verify-release-asset-checksum.sh
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-github-workflows.sh`,
+  `pnpm verify:scripts`, `pnpm verify:workflows`, `pnpm verify:docs`, offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:requirements`, `pnpm check`, `pnpm detect:audio`,
+  `git diff --check`, added-line length scan, GSD roadmap/phase queries, and codebase-memory MCP fast reindex/status
+  passed. `pnpm verify:scripts` covers missing checksum entries, duplicate entries, tampered assets, and the successful
+  signed-asset smoke path. No VM launch, public release, release asset upload, Bunny deployment, or support-matrix
+  promotion was performed.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

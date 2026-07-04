@@ -313,10 +313,12 @@ live docs base URL or Bunny pull-zone hostname. By default it downloads these re
 - `loopwire-vm-evidence-<tag>.tar.gz`, produced by the operator after collecting all VM target bundles.
 
 The VM evidence archive must contain either target directories at its root, `.vm/evidence/<target>` directories, or a
-`vm-evidence/<target>` root. The workflow checks out the exact tag commit, downloads both archives from the GitHub
-Release, validates both downloaded tarballs with `scripts/extract-safe-tar.sh` before extraction, verifies live docs and
-`/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every VM target bundle to include
-published-release smoke, verifies support-matrix promotion rules, and reruns `pnpm verify:docs`.
+`vm-evidence/<target>` root. The workflow checks out the exact tag commit, downloads the signed `SHA256SUMS` manifest,
+downloads both archives from the GitHub Release, verifies each archive is listed in the signed checksum manifest with
+`scripts/verify-release-asset-checksum.sh`, validates both downloaded tarballs with `scripts/extract-safe-tar.sh`
+before extraction, verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every
+VM target bundle to include published-release smoke, verifies support-matrix promotion rules, and reruns
+`pnpm verify:docs`.
 
 After collecting and verifying every VM target bundle, create the archive for the GitHub Release:
 
@@ -332,6 +334,8 @@ pnpm vm:package-evidence -- \
 The packager re-runs `scripts/verify-vm-evidence.sh --require-published-release` for each selected target before
 writing `vm-evidence/<target>` entries into the archive. After writing, it validates the archive with
 `scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
+After attaching the archive, regenerate and re-sign `SHA256SUMS` so final proof can prove the VM evidence archive is a
+signed release asset before extraction.
 
 This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
 release evidence archive, and VM evidence archive all exist.

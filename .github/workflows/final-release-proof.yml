@@ -116,6 +116,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Download signed checksum manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/final-proof/downloads
+          gh release download "$LOOPWIRE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir dist/final-proof/downloads \
+            --pattern SHA256SUMS \
+            --clobber
+          gh release download "$LOOPWIRE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir dist/final-proof/downloads \
+            --pattern SHA256SUMS.sig \
+            --clobber
+
       - name: Download release evidence archive
         env:
           GH_TOKEN: ${{ github.token }}
@@ -137,6 +154,11 @@ jobs:
             --dir dist/final-proof/downloads \
             --pattern "$archive" \
             --clobber
+          bash scripts/verify-release-asset-checksum.sh \
+            --release-dir dist/final-proof/downloads \
+            --asset "$archive" \
+            --public-key packaging/release-signing-public.pem \
+            --label "release evidence archive"
           bash scripts/extract-safe-tar.sh \
             --archive "dist/final-proof/downloads/${archive}" \
             --output-dir dist/final-proof/release-evidence \
@@ -169,6 +191,11 @@ jobs:
             --dir dist/final-proof/downloads \
             --pattern "$archive" \
             --clobber
+          bash scripts/verify-release-asset-checksum.sh \
+            --release-dir dist/final-proof/downloads \
+            --asset "$archive" \
+            --public-key packaging/release-signing-public.pem \
+            --label "VM evidence archive"
           bash scripts/extract-safe-tar.sh \
             --archive "dist/final-proof/downloads/${archive}" \
             --output-dir dist/final-proof/vm-evidence \

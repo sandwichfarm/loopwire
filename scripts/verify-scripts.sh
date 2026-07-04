@@ -26,6 +26,7 @@ bash -n \
   scripts/verify-published-release.sh \
   scripts/verify-final-release-proof.sh \
   scripts/validate-release-asset-name.sh \
+  scripts/verify-release-asset-checksum.sh \
   scripts/extract-safe-tar.sh \
   scripts/collect-dsp-provider-plan.sh \
   scripts/package-vm-evidence.sh \
@@ -109,6 +110,11 @@ printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest v
 printf '%s\n' "$release_readiness_help" |
   grep -F -- "final release proof workflow, asset-name validator" >/dev/null || {
     echo "verify-scripts: release readiness help is missing final proof wiring check" >&2
+    exit 1
+  }
+printf '%s\n' "$release_readiness_help" |
+  grep -F -- "asset checksum verifier" >/dev/null || {
+    echo "verify-scripts: release readiness help is missing final proof checksum verifier check" >&2
     exit 1
   }
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
@@ -2974,6 +2980,7 @@ cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
 cp scripts/validate-release-asset-name.sh "$release_tag_repo/scripts/validate-release-asset-name.sh"
+cp scripts/verify-release-asset-checksum.sh "$release_tag_repo/scripts/verify-release-asset-checksum.sh"
 cp scripts/extract-safe-tar.sh "$release_tag_repo/scripts/extract-safe-tar.sh"
 cp scripts/package-vm-evidence.sh "$release_tag_repo/scripts/package-vm-evidence.sh"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"
@@ -3059,6 +3066,48 @@ bash scripts/package-release.sh \
   --arch "$published_secondary_arch" \
   --output-dir "$published_release_dir" >/dev/null
 bash scripts/sign-release-artifacts.sh --release-dir "$published_release_dir" --private-key "$private_key_file" >/dev/null
+bash scripts/verify-release-asset-checksum.sh \
+  --release-dir "$published_release_dir" \
+  --asset "loopwire-linux-${published_current_arch}.tar.gz" \
+  --public-key "$public_key_file" \
+  --label "published release smoke asset" >/dev/null
+missing_checksum_release_dir="$tmp_dir/missing-checksum-release"
+cp -R "$published_release_dir" "$missing_checksum_release_dir"
+grep -Fv "loopwire-linux-${published_current_arch}.tar.gz" \
+  "$published_release_dir/SHA256SUMS" >"$missing_checksum_release_dir/SHA256SUMS"
+bash scripts/sign-release-artifacts.sh --release-dir "$missing_checksum_release_dir" --private-key "$private_key_file" \
+  >/dev/null
+if bash scripts/verify-release-asset-checksum.sh \
+  --release-dir "$missing_checksum_release_dir" \
+  --asset "loopwire-linux-${published_current_arch}.tar.gz" \
+  --public-key "$public_key_file" >/dev/null 2>&1; then
+  echo "verify-scripts: release asset checksum verifier accepted a missing checksum entry" >&2
+  exit 1
+fi
+duplicate_checksum_release_dir="$tmp_dir/duplicate-checksum-release"
+cp -R "$published_release_dir" "$duplicate_checksum_release_dir"
+grep -F "loopwire-linux-${published_current_arch}.tar.gz" "$published_release_dir/SHA256SUMS" \
+  >>"$duplicate_checksum_release_dir/SHA256SUMS"
+bash scripts/sign-release-artifacts.sh \
+  --release-dir "$duplicate_checksum_release_dir" \
+  --private-key "$private_key_file" >/dev/null
+if bash scripts/verify-release-asset-checksum.sh \
+  --release-dir "$duplicate_checksum_release_dir" \
+  --asset "loopwire-linux-${published_current_arch}.tar.gz" \
+  --public-key "$public_key_file" >/dev/null 2>&1; then
+  echo "verify-scripts: release asset checksum verifier accepted duplicate checksum entries" >&2
+  exit 1
+fi
+tampered_checksum_release_dir="$tmp_dir/tampered-checksum-release"
+cp -R "$published_release_dir" "$tampered_checksum_release_dir"
+printf '%s\n' "tamper" >>"$tampered_checksum_release_dir/loopwire-linux-${published_current_arch}.tar.gz"
+if bash scripts/verify-release-asset-checksum.sh \
+  --release-dir "$tampered_checksum_release_dir" \
+  --asset "loopwire-linux-${published_current_arch}.tar.gz" \
+  --public-key "$public_key_file" >/dev/null 2>&1; then
+  echo "verify-scripts: release asset checksum verifier accepted a tampered asset" >&2
+  exit 1
+fi
 bash scripts/verify-published-release.sh \
   --release-dir "$published_release_dir" \
   --public-key "$public_key_file" \

@@ -225,6 +225,8 @@ These notes describe source-tree progress. They are not a public release announc
   `loopwire-release-evidence-<tag>.tar.gz` is covered by the same signed checksum manifest as the installable tarballs.
 - A manual `Final Release Proof` workflow now downloads release and VM evidence archives from the GitHub Release,
   checks the tag commit, verifies live docs, and runs the same final proof script used locally.
+- The final release proof workflow now downloads signed `SHA256SUMS` files and verifies both release and VM evidence
+  archives are checksum-bound before extraction.
 - The final release proof workflow now validates downloaded release and VM evidence tarballs with
   `scripts/extract-safe-tar.sh` before extraction, rejecting unsafe member paths or link entries before project-specific
   evidence verification runs.

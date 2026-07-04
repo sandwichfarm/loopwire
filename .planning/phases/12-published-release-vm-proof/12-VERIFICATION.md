@@ -2228,6 +2228,22 @@
   `index_status` reported ready with 2,554 nodes and 5,404 edges. `pnpm detect:audio` reported PipeWire, PulseAudio
   compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing. No VM launch, public
   release, release asset upload, Bunny deployment, or support-matrix promotion was performed.
+- `scripts/verify-release-asset-checksum.sh` now verifies an individual release asset against signed `SHA256SUMS`,
+  requiring exactly one manifest entry and rejecting missing entries, duplicate entries, tampered assets, and unsafe
+  asset names.
+- `.github/workflows/final-release-proof.yml` now downloads `SHA256SUMS`/`SHA256SUMS.sig` and verifies both release and
+  VM evidence archives are signed-checksum-bound before extracting them.
+- Focused validation passed: `bash -n scripts/verify-release-asset-checksum.sh scripts/verify-release-readiness.sh
+  scripts/verify-scripts.sh scripts/verify-github-workflows.sh`, `pnpm verify:scripts`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm verify:requirements`, `git diff --check`, added-line length scan, and GSD roadmap/phase queries.
+- Full validation passed: `pnpm check`, `pnpm detect:audio`, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,565 nodes and 5,417 edges. `pnpm verify:scripts` covers the direct signed-asset
+  checksum regressions for missing manifest entries, duplicate entries, tampered assets, and the successful smoke path.
+  `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because
+  `jack_lsp` is missing. No VM launch, public release, release asset upload, Bunny deployment, or support-matrix
+  promotion was performed.
 
 ## Evidence Missing
 
