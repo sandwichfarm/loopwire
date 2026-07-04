@@ -34,7 +34,7 @@ Checks:
   - git checkout is clean unless --skip-clean-git is passed,
   - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
   - GitHub repository is reachable unless --skip-gh is passed,
-  - release/docs secrets are present unless --skip-gh is passed.
+  - release/docs secrets are present, including the live-docs pull-zone hostname, unless --skip-gh is passed.
 
 No secret values are read and no release is created.
 USAGE
@@ -113,6 +113,7 @@ fi
 
 failed=0
 missing_bunny_secret=0
+missing_docs_live_secret=0
 missing_release_secret=0
 missing_release_tag=0
 version="${tag#v}"
@@ -121,8 +122,16 @@ release_notes="apps/docs/docs/release-notes/${version}.md"
 print_next_steps() {
   if [ "$missing_bunny_secret" -ne 0 ]; then
     cat >&2 <<EOF
-next: set Bunny.net deployment secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} --storage-zone <zone> --access-key <key>
+next: set Bunny.net deployment and live-docs secrets without printing values:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
+EOF
+  fi
+
+  if [ "$missing_bunny_secret" -eq 0 ] && [ "$missing_docs_live_secret" -ne 0 ]; then
+    cat >&2 <<EOF
+next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
 EOF
   fi
 
@@ -404,7 +413,7 @@ if [ "$require_gh" = "true" ]; then
 
   if secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
     secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
-    for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY LOOPWIRE_RELEASE_PRIVATE_KEY; do
+    for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY; do
       if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
         echo "ok: GitHub secret present: $secret"
       else
@@ -413,6 +422,9 @@ if [ "$require_gh" = "true" ]; then
         case "$secret" in
           BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
             missing_bunny_secret=1
+            ;;
+          BUNNY_PULL_ZONE_HOSTNAME)
+            missing_docs_live_secret=1
             ;;
           LOOPWIRE_RELEASE_PRIVATE_KEY)
             missing_release_secret=1

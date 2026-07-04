@@ -190,6 +190,9 @@ These notes describe source-tree progress. They are not a public release announc
   already has `LOOPWIRE_RELEASE_PRIVATE_KEY` but lacks Bunny.net secrets no longer gets release-key reset guidance.
 - Release readiness now prints no-value next steps for missing Bunny secrets and missing release tags, including the
   guarded `git tag -a <tag>` and `git push origin <tag>` commands only after required secrets are configured.
+- Release readiness and the GitHub secret helper now require `BUNNY_PULL_ZONE_HOSTNAME` for final proof, because the
+  published release ceremony must prove the live docs deployment and public installer from the Bunny pull-zone URL.
+  The helper can set that hostname by itself when Bunny storage credentials are already configured.
 - The Bunny.net docs deploy helper now fails closed when the built dist omits `index.html` or the public `install.sh`,
   and rejects unsafe remote-prefix path segments before upload planning.
 - The docs deployment workflow now runs a live pull-zone smoke with `scripts/verify-docs-live.sh` when

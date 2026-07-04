@@ -132,6 +132,11 @@ printf '%s\n' "$release_readiness_help" |
     echo "verify-scripts: release readiness help is missing VM signed-release helper check" >&2
     exit 1
   }
+printf '%s\n' "$release_readiness_help" |
+  grep -F -- "live-docs pull-zone hostname" >/dev/null || {
+    echo "verify-scripts: release readiness help is missing live-docs hostname requirement" >&2
+    exit 1
+  }
 pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git \
   | grep -F -- "ok: final release proof workflow passes GitHub token to proof step" \
@@ -1043,6 +1048,14 @@ node scripts/verify-docs-deployment-manifest.mjs --help | grep -F -- "--expected
 }
 bash scripts/prepare-release-signing-key.sh --help >/dev/null
 setup_secrets_required="$(bash scripts/setup-github-secrets.sh --print-required)"
+printf '%s\n' "$setup_secrets_required" | grep -F "Required release/final-proof GitHub secrets:" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper required output is missing final-proof heading" >&2
+  exit 1
+}
+printf '%s\n' "$setup_secrets_required" | grep -F "BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper required output is missing pull-zone hostname" >&2
+  exit 1
+}
 printf '%s\n' "$setup_secrets_required" | grep -F "BUNNY_REMOTE_PREFIX" >/dev/null || {
   echo "verify-scripts: GitHub secret helper required output is missing remote prefix" >&2
   exit 1
@@ -2865,6 +2878,21 @@ if bash scripts/setup-github-secrets.sh \
   echo "verify-scripts: GitHub secret helper accepted a URL as pull-zone hostname" >&2
   exit 1
 fi
+hostname_only_secret_dry_run="$(
+  bash scripts/setup-github-secrets.sh \
+    --repo sandwichfarm/loopwire \
+    --pull-zone-hostname docs.example.test \
+    --dry-run
+)"
+printf '%s\n' "$hostname_only_secret_dry_run" |
+  grep -F "would set GitHub secret for sandwichfarm/loopwire: BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not allow hostname-only dry-run setup" >&2
+    exit 1
+  }
+if printf '%s\n' "$hostname_only_secret_dry_run" | grep -F "BUNNY_STORAGE_ZONE" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper required storage secrets for hostname-only setup" >&2
+  exit 1
+fi
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --storage-zone loopwire-docs \
@@ -2912,13 +2940,21 @@ case "$1 ${2:-}" in
       printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
       exit 0
     fi
+    if [ "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" = "missing-live-docs" ]; then
+      printf '%s\t%s\n' "BUNNY_STORAGE_ZONE" "2026-07-04T00:00:00Z"
+      printf '%s\t%s\n' "BUNNY_ACCESS_KEY" "2026-07-04T00:00:00Z"
+      printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
+      exit 0
+    fi
     if [ "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" = "missing-release-key" ]; then
       printf '%s\t%s\n' "BUNNY_STORAGE_ZONE" "2026-07-04T00:00:00Z"
       printf '%s\t%s\n' "BUNNY_ACCESS_KEY" "2026-07-04T00:00:00Z"
+      printf '%s\t%s\n' "BUNNY_PULL_ZONE_HOSTNAME" "2026-07-04T00:00:00Z"
       exit 0
     fi
     printf '%s\t%s\n' "BUNNY_STORAGE_ZONE" "2026-07-04T00:00:00Z"
     printf '%s\t%s\n' "BUNNY_ACCESS_KEY" "2026-07-04T00:00:00Z"
+    printf '%s\t%s\n' "BUNNY_PULL_ZONE_HOSTNAME" "2026-07-04T00:00:00Z"
     printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
     printf '%s\t%s\n' "BUNNY_STORAGE_ENDPOINT" "2026-07-04T00:00:00Z"
     printf '%s\t%s\n' "BUNNY_REMOTE_PREFIX" "2026-07-04T00:00:00Z"
@@ -2959,6 +2995,10 @@ printf '%s\n' "$secret_check_ok" | grep -F "ok: GitHub secret present: LOOPWIRE_
   echo "verify-scripts: GitHub secret check did not report release secret presence" >&2
   exit 1
 }
+printf '%s\n' "$secret_check_ok" | grep -F "ok: GitHub secret present: BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not report pull-zone hostname presence" >&2
+  exit 1
+}
 printf '%s\n' "$secret_check_ok" | grep -F "ok: optional GitHub secret present: BUNNY_STORAGE_ENDPOINT" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not report optional endpoint presence" >&2
   exit 1
@@ -2967,8 +3007,8 @@ printf '%s\n' "$secret_check_ok" | grep -F "ok: optional GitHub secret present: 
   echo "verify-scripts: GitHub secret check did not report optional remote-prefix presence" >&2
   exit 1
 }
-printf '%s\n' "$secret_check_ok" | grep -F "notice: docs deploy workflow can upload to Bunny.net" >/dev/null || {
-  echo "verify-scripts: GitHub secret check did not report live-smoke skip guidance" >&2
+printf '%s\n' "$secret_check_ok" | grep -F "ok: docs deploy workflow can run post-upload live smoke" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not report live-smoke readiness" >&2
   exit 1
 }
 secret_missing_required_log="$tmp_dir/setup-github-secrets-missing-required.log"
@@ -2990,6 +3030,27 @@ if grep -F "next: set release signing secret from a local private key" "$secret_
   echo "verify-scripts: GitHub secret check printed release key next step when only Bunny secrets were missing" >&2
   exit 1
 fi
+secret_missing_live_docs_log="$tmp_dir/setup-github-secrets-missing-live-docs.log"
+if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-live-docs \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check >"$secret_missing_live_docs_log" 2>&1; then
+  echo "verify-scripts: GitHub secret check accepted missing pull-zone hostname" >&2
+  exit 1
+fi
+grep -F "missing: GitHub secret: BUNNY_PULL_ZONE_HOSTNAME" "$secret_missing_live_docs_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not report missing pull-zone hostname" >&2
+  exit 1
+}
+grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof" \
+  "$secret_missing_live_docs_log" >/dev/null || {
+    echo "verify-scripts: GitHub secret check did not print pull-zone hostname next step" >&2
+    exit 1
+  }
+if grep -F "next: set Bunny.net deployment secrets without printing values" \
+  "$secret_missing_live_docs_log" >/dev/null; then
+  echo "verify-scripts: GitHub secret check printed storage setup when only pull-zone hostname was missing" >&2
+  exit 1
+fi
 secret_missing_release_log="$tmp_dir/setup-github-secrets-missing-release.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-release-key \
   PATH="$fake_gh_dir:$PATH" \
@@ -3005,7 +3066,8 @@ grep -F "next: set release signing secret from a local private key" "$secret_mis
   echo "verify-scripts: GitHub secret check did not print release key next step" >&2
   exit 1
 }
-if grep -F "next: set Bunny.net deployment secrets without printing values" "$secret_missing_release_log" >/dev/null; then
+if grep -F "next: set Bunny.net deployment secrets without printing values" \
+  "$secret_missing_release_log" >/dev/null; then
   echo "verify-scripts: GitHub secret check printed Bunny next step when only release key was missing" >&2
   exit 1
 fi
@@ -3029,6 +3091,7 @@ secret_set_output="$(
       --repo sandwichfarm/loopwire \
       --storage-zone loopwire-docs \
       --access-key dry-run-access-key \
+      --pull-zone-hostname docs.example.test \
       --storage-endpoint ny.storage.bunnycdn.com \
       --remote-prefix private-prefix-value \
       --release-private-key-file "$tmp_secret_file" \
@@ -3049,6 +3112,10 @@ grep -F "loopwire-docs" "$fake_secret_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || 
 }
 grep -F "dry-run-access-key" "$fake_secret_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
   echo "verify-scripts: GitHub secret helper did not write the access key through stdin" >&2
+  exit 1
+}
+grep -F "docs.example.test" "$fake_secret_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not write the pull-zone hostname through stdin" >&2
   exit 1
 }
 grep -F "https://ny.storage.bunnycdn.com" "$fake_secret_set_dir/BUNNY_STORAGE_ENDPOINT" >/dev/null || {
@@ -3088,11 +3155,15 @@ if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
   echo "verify-scripts: release readiness accepted missing Bunny secrets and tag" >&2
   exit 1
 fi
-grep -F "next: set Bunny.net deployment secrets without printing values" \
+grep -F "next: set Bunny.net deployment and live-docs secrets without printing values" \
   "$release_readiness_next_steps_log" >/dev/null || {
     echo "verify-scripts: release readiness did not print Bunny next step" >&2
     exit 1
   }
+grep -F -- "--pull-zone-hostname <host>" "$release_readiness_next_steps_log" >/dev/null || {
+  echo "verify-scripts: release readiness Bunny next step is missing pull-zone hostname" >&2
+  exit 1
+}
 grep -F "next: after required secrets are configured and readiness passes, create and push the release tag" \
   "$release_readiness_next_steps_log" >/dev/null || {
     echo "verify-scripts: release readiness did not print release tag next step" >&2
@@ -3102,6 +3173,27 @@ grep -F "git tag -a v0.1.0 -m \"Loopwire v0.1.0\"" "$release_readiness_next_step
   echo "verify-scripts: release readiness tag next step is missing tag command" >&2
   exit 1
 }
+release_readiness_live_docs_log="$tmp_dir/release-readiness-live-docs.log"
+if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-live-docs \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-release-readiness.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --skip-tag \
+    --skip-public-key \
+    --skip-clean-git >"$release_readiness_live_docs_log" 2>&1; then
+  echo "verify-scripts: release readiness accepted missing pull-zone hostname" >&2
+  exit 1
+fi
+grep -F "missing: GitHub secret: BUNNY_PULL_ZONE_HOSTNAME" "$release_readiness_live_docs_log" >/dev/null || {
+  echo "verify-scripts: release readiness did not report missing pull-zone hostname" >&2
+  exit 1
+}
+grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof" \
+  "$release_readiness_live_docs_log" >/dev/null || {
+    echo "verify-scripts: release readiness did not print pull-zone hostname next step" >&2
+    exit 1
+  }
 
 refresh_published_release_manifest() {
   local release_dir="$1"

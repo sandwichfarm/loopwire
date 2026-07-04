@@ -359,6 +359,8 @@ assert_contains "apps/docs/docs/developer/release.md" "dist/release/final-releas
 assert_contains "apps/docs/docs/developer/release.md" "fails closed if the built dist omits"
 assert_contains "apps/docs/docs/developer/release.md" 'rejects unsafe `.` or `..`'
 assert_contains "apps/docs/docs/developer/release.md" "pull-zone hostnames must be hostnames"
+assert_contains "apps/docs/docs/developer/release.md" "required for final proof"
+assert_contains "apps/docs/docs/developer/release.md" "--pull-zone-hostname docs.example.test"
 assert_contains "apps/docs/docs/developer/release.md" "scripts/verify-docs-live.sh"
 assert_contains "apps/docs/docs/developer/release.md" '--remote-prefix "$BUNNY_REMOTE_PREFIX"'
 assert_contains "apps/docs/docs/developer/release.md" "same pull-zone prefix used for upload"
@@ -402,7 +404,7 @@ assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
 assert_contains "apps/docs/docs/developer/release.md" 'underlying `gh secret list` error'
 assert_contains "apps/docs/docs/developer/release.md" "prints next-step commands with placeholders"
-assert_contains "apps/docs/docs/developer/release.md" "only Bunny.net secrets are missing"
+assert_contains "apps/docs/docs/developer/release.md" "only Bunny.net storage or live-docs secrets are missing"
 assert_contains "apps/docs/docs/developer/release.md" "it prints only the release signing command"
 assert_contains "apps/docs/docs/developer/release.md" '`pnpm verify:release-readiness` also prints no-value next steps'
 assert_contains "apps/docs/docs/developer/release.md" 'git tag -a <tag> -m "Loopwire <tag>"'

@@ -2428,6 +2428,28 @@
   scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds.
+- `BUNNY_PULL_ZONE_HOSTNAME` is now a required final-proof GitHub secret rather than optional release-readiness
+  metadata. Release readiness fails if it is absent, the secret helper can set the hostname by itself when storage
+  credentials already exist, and the next-step output distinguishes missing storage credentials from a missing live
+  docs hostname.
+- Focused validation passed: codebase-memory MCP `index_status` reported the graph ready and MCP search found the
+  release readiness, final proof, docs deployment, and pull-zone hostname surfaces before implementation.
+  `bash -n scripts/setup-github-secrets.sh scripts/verify-release-readiness.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `bash scripts/setup-github-secrets.sh --print-required`,
+  `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --pull-zone-hostname docs.example.test
+  --dry-run`, `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `git diff --check` passed.
+- Live read-only validation passed: `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check` and
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem` now both fail closed on missing `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`,
+  `BUNNY_PULL_ZONE_HOSTNAME`, and the absent `v0.1.0` tag while preserving the present
+  `LOOPWIRE_RELEASE_PRIVATE_KEY` result.
+- Full validation passed: `pnpm check` passed after the change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds. No secret write, Bunny deployment, tag push, public release, VM launch, host audio mutation, or support-matrix
+  promotion was performed.
 
 ## Evidence Missing
 
@@ -2435,7 +2457,8 @@
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is
   now stored as the `LOOPWIRE_RELEASE_PRIVATE_KEY` GitHub secret for `sandwichfarm/loopwire`.
 - No release tag exists locally or remotely.
-- Required Bunny.net deployment secrets are not present: `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
+- Required Bunny.net deployment/final-proof secrets are not present: `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`, and
+  `BUNNY_PULL_ZONE_HOSTNAME`.
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
   workflow has a pull-zone smoke gate plus verified deployment manifest artifact, and final proof now requires the
   deployment run artifact before accepting live docs, but no Bunny deployment or live URL smoke was performed.

@@ -389,6 +389,7 @@ bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
+  --pull-zone-hostname docs.example.test \
   --release-private-key-file /secure/loopwire-release-private.pem \
   --release-public-key-file packaging/release-signing-public.pem \
   --dry-run
@@ -400,10 +401,18 @@ key, parses the public key, derives the public key from the private key, and fai
 does not match. If the GitHub CLI cannot read repository secret names, `--check` and the release readiness preflight
 fail with the underlying `gh secret list` error instead of reporting those secrets as missing.
 When required secrets are missing, `--check` prints next-step commands with placeholders rather than values. If
-only Bunny.net secrets are missing, it prints only the Bunny secret setup command; if only
-`LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. If `BUNNY_PULL_ZONE_HOSTNAME` is
-absent, `--check` also explains that the docs workflow can still upload to Bunny.net but will skip the post-upload live
-docs smoke.
+only Bunny.net storage or live-docs secrets are missing, it prints only the Bunny setup command; if only
+`LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. `BUNNY_PULL_ZONE_HOSTNAME` is
+required for final proof because the docs deployment must run post-upload live smoke against the served pull-zone URL.
+If storage credentials are already configured and only the hostname is missing, set it without re-entering storage
+credentials:
+
+```bash
+bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --pull-zone-hostname docs.example.test
+```
+
 The helper rejects Bunny values that would fail deployment: storage zones cannot contain slashes, storage endpoints
 cannot contain newlines, pull-zone hostnames must be hostnames rather than URLs or paths, and remote prefixes cannot
 contain `.` or `..` path segments.
@@ -507,6 +516,7 @@ bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
+  --pull-zone-hostname docs.example.test \
   --storage-endpoint ny.storage.bunnycdn.com \
   --remote-prefix loopwire \
   --dry-run

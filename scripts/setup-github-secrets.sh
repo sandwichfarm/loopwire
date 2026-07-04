@@ -35,14 +35,14 @@ Environment fallback:
   BUNNY_REMOTE_PREFIX
   LOOPWIRE_RELEASE_PUBLIC_KEY_FILE
 
-Required secrets:
+Required release/final-proof secrets:
   BUNNY_STORAGE_ZONE
   BUNNY_ACCESS_KEY
+  BUNNY_PULL_ZONE_HOSTNAME
   LOOPWIRE_RELEASE_PRIVATE_KEY
 
 Optional secrets:
   BUNNY_STORAGE_ENDPOINT
-  BUNNY_PULL_ZONE_HOSTNAME
   BUNNY_REMOTE_PREFIX
 
 No secret values are printed in --check or --dry-run output.
@@ -51,14 +51,14 @@ USAGE
 
 print_required() {
   cat <<'SECRETS'
-Required GitHub secrets:
+Required release/final-proof GitHub secrets:
   BUNNY_STORAGE_ZONE
   BUNNY_ACCESS_KEY
+  BUNNY_PULL_ZONE_HOSTNAME
   LOOPWIRE_RELEASE_PRIVATE_KEY
 
 Optional GitHub secrets:
   BUNNY_STORAGE_ENDPOINT
-  BUNNY_PULL_ZONE_HOSTNAME
   BUNNY_REMOTE_PREFIX
 SECRETS
 }
@@ -153,6 +153,7 @@ resolve_repo() {
 check_secret_presence() {
   local docs_live_smoke_ready="false"
   local missing_bunny="false"
+  local missing_docs_live="false"
   local missing_release_key="false"
 
   if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
@@ -163,9 +164,12 @@ check_secret_presence() {
   secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
   missing=0
 
-  for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY LOOPWIRE_RELEASE_PRIVATE_KEY; do
+  for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY; do
     if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
       echo "ok: GitHub secret present: $secret"
+      if [ "$secret" = "BUNNY_PULL_ZONE_HOSTNAME" ]; then
+        docs_live_smoke_ready="true"
+      fi
     else
       echo "missing: GitHub secret: $secret" >&2
       missing=1
@@ -173,20 +177,15 @@ check_secret_presence() {
         BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
           missing_bunny="true"
           ;;
+        BUNNY_PULL_ZONE_HOSTNAME)
+          missing_docs_live="true"
+          ;;
         LOOPWIRE_RELEASE_PRIVATE_KEY)
           missing_release_key="true"
           ;;
       esac
     fi
   done
-
-  if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_PULL_ZONE_HOSTNAME; then
-    echo "ok: optional GitHub secret present: BUNNY_PULL_ZONE_HOSTNAME"
-    docs_live_smoke_ready="true"
-  else
-    echo "optional: GitHub secret not set: BUNNY_PULL_ZONE_HOSTNAME"
-    echo "hint: set BUNNY_PULL_ZONE_HOSTNAME to enable post-upload live docs smoke in deploy-docs.yml"
-  fi
 
   if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_STORAGE_ENDPOINT; then
     echo "ok: optional GitHub secret present: BUNNY_STORAGE_ENDPOINT"
@@ -204,7 +203,14 @@ check_secret_presence() {
     if [ "$missing_bunny" = "true" ]; then
       cat >&2 <<EOF
 next: set Bunny.net deployment secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} --storage-zone <zone> --access-key <key>
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
+EOF
+    fi
+    if [ "$missing_bunny" != "true" ] && [ "$missing_docs_live" = "true" ]; then
+      cat >&2 <<EOF
+next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
 EOF
     fi
     if [ "$missing_release_key" = "true" ]; then
@@ -232,8 +238,7 @@ set_github_secret() {
 }
 
 validate_requested_secret_set() {
-  if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] || \
-    [ -n "$pull_zone_hostname" ] || [ -n "$remote_prefix" ]; then
+  if [ -n "$storage_zone" ] || [ -n "$access_key" ]; then
     if [ -z "$storage_zone" ] || [ -z "$access_key" ]; then
       echo "Bunny.net deployment secrets require both storage zone and access key." >&2
       exit 2
@@ -382,8 +387,7 @@ validate_requested_secret_set
 
 set_any="false"
 
-if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] || \
-  [ -n "$pull_zone_hostname" ] || [ -n "$remote_prefix" ]; then
+if [ -n "$storage_zone" ] || [ -n "$access_key" ]; then
   if [ "$dry_run" = "true" ]; then
     echo "would set GitHub secret for ${repo}: BUNNY_STORAGE_ZONE"
     echo "would set GitHub secret for ${repo}: BUNNY_ACCESS_KEY"
@@ -393,29 +397,33 @@ if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] 
   fi
   set_any="true"
 
-  if [ -n "$pull_zone_hostname" ]; then
-    if [ "$dry_run" = "true" ]; then
-      echo "would set optional GitHub secret for ${repo}: BUNNY_PULL_ZONE_HOSTNAME"
-    else
-      printf '%s' "$pull_zone_hostname" | set_github_secret BUNNY_PULL_ZONE_HOSTNAME
-    fi
-  fi
+fi
 
-  if [ -n "$storage_endpoint" ]; then
-    if [ "$dry_run" = "true" ]; then
-      echo "would set optional GitHub secret for ${repo}: BUNNY_STORAGE_ENDPOINT"
-    else
-      printf '%s' "$storage_endpoint" | set_github_secret BUNNY_STORAGE_ENDPOINT
-    fi
+if [ -n "$pull_zone_hostname" ]; then
+  if [ "$dry_run" = "true" ]; then
+    echo "would set GitHub secret for ${repo}: BUNNY_PULL_ZONE_HOSTNAME"
+  else
+    printf '%s' "$pull_zone_hostname" | set_github_secret BUNNY_PULL_ZONE_HOSTNAME
   fi
+  set_any="true"
+fi
 
-  if [ -n "$remote_prefix" ]; then
-    if [ "$dry_run" = "true" ]; then
-      echo "would set optional GitHub secret for ${repo}: BUNNY_REMOTE_PREFIX"
-    else
-      printf '%s' "$remote_prefix" | set_github_secret BUNNY_REMOTE_PREFIX
-    fi
+if [ -n "$storage_endpoint" ]; then
+  if [ "$dry_run" = "true" ]; then
+    echo "would set optional GitHub secret for ${repo}: BUNNY_STORAGE_ENDPOINT"
+  else
+    printf '%s' "$storage_endpoint" | set_github_secret BUNNY_STORAGE_ENDPOINT
   fi
+  set_any="true"
+fi
+
+if [ -n "$remote_prefix" ]; then
+  if [ "$dry_run" = "true" ]; then
+    echo "would set optional GitHub secret for ${repo}: BUNNY_REMOTE_PREFIX"
+  else
+    printf '%s' "$remote_prefix" | set_github_secret BUNNY_REMOTE_PREFIX
+  fi
+  set_any="true"
 fi
 
 if [ -n "$release_private_key_file" ]; then
