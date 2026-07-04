@@ -83,6 +83,20 @@ run_gate() {
   return 1
 }
 
+check_public_key() {
+  if [ ! -s "$public_key" ]; then
+    echo "missing: release signing public key: $public_key" >&2
+    return 1
+  fi
+
+  if ! openssl pkey -pubin -in "$public_key" -noout >/dev/null 2>&1; then
+    echo "invalid: release signing public key: $public_key" >&2
+    return 1
+  fi
+
+  echo "ok: release signing public key parses: $public_key"
+}
+
 run_release_probe() {
   local label="$1"
   local expected_tag="$2"
@@ -364,6 +378,8 @@ if [ -n "$secret_list_file" ]; then
   secret_check+=(--secret-list-file "$secret_list_file")
 fi
 run_gate "required GitHub secrets" "${secret_check[@]}" || failed=1
+
+run_gate "release signing public key" check_public_key || failed=1
 
 run_release_probe \
   "GitHub Release object" \

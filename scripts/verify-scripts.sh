@@ -272,6 +272,10 @@ printf '%s\n' "$release_status_help" | grep -F -- "--git-head SHA" >/dev/null ||
   echo "verify-scripts: release status help is missing expected git head support" >&2
   exit 1
 }
+printf '%s\n' "$release_status_help" | grep -F -- "--public-key FILE" >/dev/null || {
+  echo "verify-scripts: release status help is missing public-key support" >&2
+  exit 1
+}
 printf '%s\n' "$release_status_help" | grep -F -- "--skip-gh" >/dev/null || {
   echo "verify-scripts: release status help is missing offline support" >&2
   exit 1
@@ -3480,10 +3484,32 @@ printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secre
   printf '%s\t%s\n' "BUNNY_PULL_ZONE_HOSTNAME" "2026-07-04T00:00:00Z"
   printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
 } >"$secret_list_all_final"
+release_status_private_key="$tmp_dir/release-status-private.pem"
+release_status_public_key="$tmp_dir/release-status-public.pem"
+release_status_bad_public_key="$tmp_dir/release-status-bad-public.pem"
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$release_status_private_key" >/dev/null 2>&1
+openssl pkey -in "$release_status_private_key" -pubout -out "$release_status_public_key" >/dev/null 2>&1
+printf '%s\n' "not a public key" >"$release_status_bad_public_key"
+release_status_bad_public_key_log="$tmp_dir/release-status-bad-public-key.log"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key "$release_status_bad_public_key" \
+  --secret-list-file "$secret_list_all_final" \
+  --skip-gh >"$release_status_bad_public_key_log" 2>&1; then
+  echo "verify-scripts: release status accepted an invalid release signing public key" >&2
+  exit 1
+fi
+grep -F "invalid: release signing public key: $release_status_bad_public_key" \
+  "$release_status_bad_public_key_log" >/dev/null || {
+    echo "verify-scripts: release status did not block an invalid release signing public key" >&2
+    exit 1
+  }
 release_status_log="$tmp_dir/release-status-blocked.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
+  --public-key "$release_status_public_key" \
   --secret-list-file "$secret_list_release_key_only" \
   --skip-gh >"$release_status_log" 2>&1; then
   echo "verify-scripts: release status accepted missing final proof surfaces" >&2
@@ -3495,6 +3521,10 @@ grep -F "Final release status for sandwichfarm/loopwire@v0.1.0" "$release_status
 }
 grep -F "blocked: required GitHub secrets" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status did not report blocked secrets" >&2
+  exit 1
+}
+grep -F "ok: release signing public key parses: $release_status_public_key" "$release_status_log" >/dev/null || {
+  echo "verify-scripts: release status did not report a valid release signing public key" >&2
   exit 1
 }
 grep -F "published-release-bound VM evidence" "$release_status_log" >/dev/null || {

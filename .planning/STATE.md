@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:45:12+02:00"
-last_activity: 2026-07-04 - Final release status now validates release object and required asset evidence
+last_updated: "2026-07-04T21:55:19+02:00"
+last_activity: 2026-07-04 - Final release status now validates the release signing public key
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:status` now audits the remaining final proof surfaces from one read-only
-command and exits nonzero while secrets, a non-draft/non-prerelease GitHub Release with required assets, completed
-successful workflow-run evidence for the expected commit, VM evidence, support-matrix proof, or handoff planning are
-missing. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
-operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:status` now audits the release signing public key before accepting the
+remaining final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
+Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +83,17 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Release signing public-key status gate: `scripts/audit-final-release-state.sh` now validates that the
+  configured release signing public key exists and parses before accepting final release status evidence, while
+  `scripts/verify-scripts.sh` rejects an invalid public key and confirms a generated valid key is reported as parsed.
+  Release docs and unreleased notes now describe the key parse check as a required `pnpm release:status` proof surface.
+  Validation passed: codebase-memory MCP `index_status` reported `home-sandwich-Develop-loopwire` ready with 3,250
+  nodes and 6,321 edges; `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
+  Live `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  989386b8bcbfc3a9e154b490733a14fc539f4111` still blocks on missing Bunny secrets, missing GitHub Release, missing
+  Final Release Proof run, and missing VM evidence, while reporting
+  `ok: release signing public key parses: packaging/release-signing-public.pem`.
 - 2026-07-04 Final release object and asset status hardening: `scripts/audit-final-release-state.sh` now parses the
   `gh release view` JSON, requires the returned `tagName` to match the requested tag, rejects draft and prerelease
   releases, requires a release URL, and requires canonical Linux tarballs, signed checksum files, release evidence, and
