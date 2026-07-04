@@ -9,6 +9,7 @@ pull_zone_hostname="${BUNNY_PULL_ZONE_HOSTNAME:-}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 release_private_key_file=""
 release_public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY_FILE:-}"
+secret_list_file=""
 dry_run="false"
 check_mode="false"
 print_required="false"
@@ -24,7 +25,7 @@ Usage:
                           [--remote-prefix PATH]
                           [--release-private-key-file FILE]
                           [--release-public-key-file FILE]
-  setup-github-secrets.sh --repo owner/name --check [--scope deploy|final]
+  setup-github-secrets.sh --repo owner/name --check [--scope deploy|final] [--secret-list-file FILE]
   setup-github-secrets.sh --print-required [--scope deploy|final]
   setup-github-secrets.sh --repo owner/name --dry-run [secret options]
 
@@ -35,6 +36,10 @@ Environment fallback:
   BUNNY_PULL_ZONE_HOSTNAME
   BUNNY_REMOTE_PREFIX
   LOOPWIRE_RELEASE_PUBLIC_KEY_FILE
+
+Secret-list files:
+  --secret-list-file accepts saved `gh secret list` output for offline check-mode rehearsal.
+  The file contains names only plus optional metadata columns; values must never be included.
 
 Required deploy secrets:
   BUNNY_STORAGE_ZONE
@@ -268,9 +273,16 @@ check_secret_presence() {
   local missing_release_key="false"
   local required_secrets
 
-  if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
-    echo "unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
-    exit 1
+  if [ -n "$secret_list_file" ]; then
+    if ! secret_list_output="$(cat "$secret_list_file" 2>&1)"; then
+      echo "unable to read GitHub secret names from ${secret_list_file}: ${secret_list_output}" >&2
+      exit 1
+    fi
+  else
+    if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
+      echo "unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
+      exit 1
+    fi
   fi
 
   secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
@@ -424,6 +436,10 @@ while [ "$#" -gt 0 ]; do
       release_public_key_file="${2:?missing value for --release-public-key-file}"
       shift 2
       ;;
+    --secret-list-file)
+      secret_list_file="${2:?missing value for --secret-list-file}"
+      shift 2
+      ;;
     --dry-run)
       dry_run="true"
       shift
@@ -464,7 +480,14 @@ if [ "$check_mode" = "true" ] && [ "$dry_run" = "true" ]; then
   exit 2
 fi
 
-if [ "$check_mode" = "true" ] || [ "$dry_run" != "true" ] || [ -z "$repo" ]; then
+if [ -n "$secret_list_file" ] && [ "$check_mode" != "true" ]; then
+  echo "--secret-list-file requires --check." >&2
+  exit 2
+fi
+
+if [ -z "$repo" ] ||
+  { [ "$check_mode" = "true" ] && [ -z "$secret_list_file" ]; } ||
+  { [ "$check_mode" != "true" ] && [ "$dry_run" != "true" ]; }; then
   require_gh
 fi
 

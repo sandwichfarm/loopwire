@@ -11,6 +11,7 @@ require_tag="true"
 require_public_key="true"
 require_clean_git="true"
 allow_candidate_notes="false"
+secret_list_file=""
 
 usage() {
   cat <<'USAGE'
@@ -18,6 +19,7 @@ Verify Loopwire release readiness without publishing.
 
 Usage:
   verify-release-readiness.sh --repo OWNER/REPO --tag vX.Y.Z [--public-key FILE]
+  verify-release-readiness.sh --repo OWNER/REPO --tag vX.Y.Z --secret-list-file FILE
   verify-release-readiness.sh --repo OWNER/REPO --tag vX.Y.Z --skip-gh --skip-tag
   verify-release-readiness.sh --tag vX.Y.Z --skip-gh --skip-tag --skip-public-key --skip-clean-git
 
@@ -37,6 +39,8 @@ Checks:
   - release/docs secrets are present, including the live-docs pull-zone hostname, unless --skip-gh is passed.
 
 No secret values are read and no release is created.
+--secret-list-file accepts saved `gh secret list` output for deterministic secret-gate rehearsal while still checking
+repository reachability and release existence.
 USAGE
 }
 
@@ -60,6 +64,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --public-key)
       public_key="${2:-}"
+      shift 2
+      ;;
+    --secret-list-file)
+      secret_list_file="${2:-}"
       shift 2
       ;;
     --skip-gh)
@@ -104,6 +112,9 @@ if [ "$require_gh" = "true" ] && [ -z "$repo" ]; then
 fi
 
 [ "$require_gh" = "false" ] || [ -n "$repo" ] || fail "missing --repo OWNER/REPO"
+if [ -n "$secret_list_file" ] && [ "$require_gh" != "true" ]; then
+  fail "--secret-list-file cannot be combined with --skip-gh"
+fi
 if [ -n "$repo" ]; then
   repo_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
   if [[ ! "$repo" =~ $repo_pattern ]]; then
@@ -414,7 +425,23 @@ if [ "$require_gh" = "true" ]; then
   command -v gh >/dev/null 2>&1 || fail "gh is required"
   gh repo view "$repo" >/dev/null
 
-  if secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
+  if [ -n "$secret_list_file" ]; then
+    if secret_list_output="$(cat "$secret_list_file" 2>&1)"; then
+      echo "ok: GitHub secret names loaded from artifact: $secret_list_file"
+    else
+      echo "error: unable to read GitHub secret names from ${secret_list_file}: ${secret_list_output}" >&2
+      failed=1
+      secret_list_output=""
+    fi
+  elif secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
+    echo "ok: GitHub secret names loaded from repository"
+  else
+    echo "error: unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
+    failed=1
+    secret_list_output=""
+  fi
+
+  if [ -n "$secret_list_output" ]; then
     secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
     for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY; do
       if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
@@ -435,9 +462,6 @@ if [ "$require_gh" = "true" ]; then
         esac
       fi
     done
-  else
-    echo "error: unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
-    failed=1
   fi
 
   if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then

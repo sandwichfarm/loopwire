@@ -184,6 +184,8 @@ These notes describe source-tree progress. They are not a public release announc
   instead of misreporting API or auth failures as missing release/deploy secrets.
 - GitHub secret checks now support `--scope deploy` for Bunny.net upload readiness separately from the default strict
   final-proof scope.
+- GitHub secret checks and release readiness now accept a names-only `--secret-list-file` artifact, so final-proof
+  secret blockers can be replayed deterministically without a live `gh secret list` call or any secret values.
 - Release readiness now rejects local or remote release tags that do not point at the current checkout commit, preventing
   stale tag preflights from looking publishable.
 - Release readiness now requires a clean git checkout by default, while candidate evidence collection opts out with

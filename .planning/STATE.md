@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:01:44+02:00"
-last_activity: 2026-07-04 - Published-release verifier can require GitHub Release source
+last_updated: "2026-07-04T21:08:34+02:00"
+last_activity: 2026-07-04 - Release secret checks can replay names-only artifacts
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Published-release verification now supports `--require-github-release-source`, and the
-normal final release proof path passes it so local `--release-dir` smoke cannot satisfy public release proof. Phase 12
-remains gated on public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - GitHub secret checks and release readiness now accept names-only `--secret-list-file`
+artifacts, so the final-proof secret gate can be rehearsed deterministically without a live `gh secret list` call or
+secret values. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment
+proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,16 @@ remains gated on public GitHub Release install, Bunny deployment proof, and oper
 
 ## Verification Log
 
+- 2026-07-04 Names-only secret-list artifact rehearsal: `scripts/setup-github-secrets.sh --check` and
+  `scripts/verify-release-readiness.sh` now accept `--secret-list-file` inputs containing saved `gh secret list`
+  names and metadata, never values. This lets release review replay the exact current blocker shape where
+  `LOOPWIRE_RELEASE_PRIVATE_KEY` is present but Bunny.net secrets are absent, without fake `gh` wiring or live secret
+  access. Validation passed: codebase-memory MCP `search_graph` located the secret helper and release-readiness
+  surfaces; live `gh secret list --repo sandwichfarm/loopwire` showed only `LOOPWIRE_RELEASE_PRIVATE_KEY`; `bash -n
+  scripts/setup-github-secrets.sh scripts/verify-release-readiness.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, direct helper artifact rejection for missing
+  Bunny secrets with release key present, and direct release-readiness success from a complete secret-list artifact
+  passed.
 - 2026-07-04 Published-release GitHub-source strictness: `scripts/verify-published-release.sh` now supports
   `--require-github-release-source` and rejects local `--release-dir` when that strictness is requested. The normal
   `scripts/verify-final-release-proof.sh` published-release step passes the flag, keeping local release-directory smoke

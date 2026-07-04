@@ -1170,6 +1170,15 @@ bash scripts/setup-github-secrets.sh --help | grep -F -- "--release-public-key-f
   echo "verify-scripts: GitHub secret helper help is missing release public key validation option" >&2
   exit 1
 }
+bash scripts/setup-github-secrets.sh --help | grep -F -- "--secret-list-file FILE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper help is missing secret-list artifact support" >&2
+  exit 1
+}
+release_readiness_help_for_secret_artifacts="$(bash scripts/verify-release-readiness.sh --help)"
+printf '%s\n' "$release_readiness_help_for_secret_artifacts" | grep -F -- "--secret-list-file FILE" >/dev/null || {
+  echo "verify-scripts: release readiness help is missing secret-list artifact support" >&2
+  exit 1
+}
 pnpm --filter @loopwire/core build >/dev/null
 pnpm --filter @loopwire/audio-host build >/dev/null
 
@@ -3226,6 +3235,41 @@ echo "unexpected fake gh args: $*" >&2
 exit 64
 EOF
 chmod +x "$fake_gh_dir/gh"
+secret_list_release_key_only="$tmp_dir/secret-list-release-key-only.tsv"
+secret_list_all_final="$tmp_dir/secret-list-all-final.tsv"
+printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secret_list_release_key_only"
+{
+  printf '%s\t%s\n' "BUNNY_STORAGE_ZONE" "2026-07-04T00:00:00Z"
+  printf '%s\t%s\n' "BUNNY_ACCESS_KEY" "2026-07-04T00:00:00Z"
+  printf '%s\t%s\n' "BUNNY_PULL_ZONE_HOSTNAME" "2026-07-04T00:00:00Z"
+  printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
+} >"$secret_list_all_final"
+secret_artifact_missing_bunny_log="$tmp_dir/setup-github-secrets-artifact-missing-bunny.log"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --check \
+  --secret-list-file "$secret_list_release_key_only" >"$secret_artifact_missing_bunny_log" 2>&1; then
+  echo "verify-scripts: GitHub secret artifact check accepted missing Bunny secrets" >&2
+  exit 1
+fi
+grep -F "ok: GitHub secret present: LOOPWIRE_RELEASE_PRIVATE_KEY" "$secret_artifact_missing_bunny_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret artifact check did not report release key presence" >&2
+  exit 1
+}
+grep -F "missing: GitHub secret: BUNNY_STORAGE_ZONE" "$secret_artifact_missing_bunny_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret artifact check did not report missing Bunny storage zone" >&2
+  exit 1
+}
+if grep -F "next: set release signing secret from a local private key" "$secret_artifact_missing_bunny_log" >/dev/null; then
+  echo "verify-scripts: GitHub secret artifact check printed release key guidance for Bunny-only gap" >&2
+  exit 1
+fi
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --secret-list-file "$secret_list_all_final" >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a secret-list artifact outside check mode" >&2
+  exit 1
+fi
 secret_check_ok="$(
   PATH="$fake_gh_dir:$PATH" \
     bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check
@@ -3417,6 +3461,27 @@ fi
 grep -F "error: unable to read GitHub secret names for sandwichfarm/loopwire: api denied" \
   "$release_readiness_secret_failure_log" >/dev/null || {
     echo "verify-scripts: release readiness did not preserve gh secret-list failure details" >&2
+    exit 1
+  }
+release_readiness_secret_artifact_log="$tmp_dir/release-readiness-secret-artifact.log"
+LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-release-readiness.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --secret-list-file "$secret_list_all_final" \
+    --skip-tag \
+    --skip-public-key \
+    --skip-clean-git \
+    --allow-candidate-notes >"$release_readiness_secret_artifact_log" 2>&1
+grep -F "ok: GitHub secret names loaded from artifact: $secret_list_all_final" \
+  "$release_readiness_secret_artifact_log" >/dev/null || {
+    echo "verify-scripts: release readiness did not use the secret-list artifact" >&2
+    exit 1
+  }
+grep -F "Release readiness checks passed for sandwichfarm/loopwire@v0.1.0." \
+  "$release_readiness_secret_artifact_log" >/dev/null || {
+    echo "verify-scripts: release readiness artifact check did not pass" >&2
     exit 1
   }
 release_readiness_next_steps_log="$tmp_dir/release-readiness-next-steps.log"
