@@ -219,6 +219,10 @@ printf '%s\n' "$verify_published_release_help" | grep -F -- "--require-release-e
   echo "verify-scripts: published release verifier help is missing evidence asset support" >&2
   exit 1
 }
+printf '%s\n' "$verify_published_release_help" | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: published release verifier help is missing GitHub-source strictness support" >&2
+  exit 1
+}
 printf '%s\n' "$verify_final_release_help" | grep -F -- "--release-evidence-dir DIR" >/dev/null || {
   echo "verify-scripts: final release verifier help is missing release evidence directory support" >&2
   exit 1
@@ -301,6 +305,12 @@ printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-published-relea
   echo "verify-scripts: final release dry-run is missing published-release verification" >&2
   exit 1
 }
+printf '%s\n' "$final_release_dry_run" \
+  | grep -F "scripts/verify-published-release.sh" \
+  | grep -F -- "--require-github-release-source" >/dev/null || {
+    echo "verify-scripts: final release dry-run is missing published-release GitHub-source strictness" >&2
+    exit 1
+  }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-nix-release-package.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing Nix release package verification" >&2
   exit 1
@@ -3763,6 +3773,13 @@ bash scripts/verify-published-release.sh \
   --release-dir "$published_release_dir" \
   --public-key "$public_key_file" \
   --prefix "$published_prefix" >/dev/null
+if bash scripts/verify-published-release.sh \
+  --release-dir "$published_release_dir" \
+  --public-key "$public_key_file" \
+  --require-github-release-source >/dev/null 2>&1; then
+  echo "verify-scripts: published release verifier accepted local release-dir with GitHub-source strictness" >&2
+  exit 1
+fi
 if bash scripts/verify-published-release.sh \
   --repo sandwichfarm/loopwire/releases \
   --tag v0.1.0 \

@@ -9,19 +9,21 @@ git_head="${LOOPWIRE_RELEASE_COMMIT:-}"
 release_dir=""
 release_source="github"
 require_release_evidence="false"
+require_github_release_source="false"
 
 usage() {
   cat <<'USAGE'
 Verify a published Loopwire GitHub Release.
 
 Usage:
-  verify-published-release.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE [--prefix DIR] [--git-head SHA] [--require-release-evidence]
+  verify-published-release.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE [--prefix DIR] [--git-head SHA] [--require-release-evidence] [--require-github-release-source]
   verify-published-release.sh --release-dir DIR --public-key FILE [--prefix DIR] [--tag vX.Y.Z] [--git-head SHA] [--require-release-evidence]
 
 Downloads release assets with gh, verifies canonical assets are present in the signed SHA256SUMS manifest, installs the
 host tarball from the downloaded release directory, and runs the installed binary. Use --release-dir for CI smoke coverage
 of the same verification path without network or GitHub release access. Add --require-release-evidence to require, verify,
-and checksum-bind the loopwire-release-evidence-<tag>.tar.gz release asset.
+and checksum-bind the loopwire-release-evidence-<tag>.tar.gz release asset. Add --require-github-release-source to fail
+if a local --release-dir is supplied for final public proof.
 USAGE
 }
 
@@ -63,6 +65,10 @@ while [ "$#" -gt 0 ]; do
       require_release_evidence="true"
       shift
       ;;
+    --require-github-release-source)
+      require_github_release_source="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -75,6 +81,9 @@ done
 
 [ -n "$release_dir" ] || [ -n "$repo" ] || fail "missing --repo OWNER/REPO or --release-dir DIR"
 [ -n "$release_dir" ] || [ -n "$tag" ] || fail "missing --tag vX.Y.Z"
+if [ "$require_github_release_source" = "true" ] && [ -n "$release_dir" ]; then
+  fail "--require-github-release-source cannot be used with --release-dir"
+fi
 if [ -n "$repo" ]; then
   repo_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
   if [[ ! "$repo" =~ $repo_pattern ]]; then

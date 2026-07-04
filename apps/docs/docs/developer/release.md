@@ -343,9 +343,10 @@ pnpm vm:package-evidence -- \
 
 The packager re-runs
 `scripts/verify-vm-evidence.sh --require-published-release --release-tag <tag> --require-github-release-source` for
-each selected target before writing `vm-evidence/<target>` entries into the archive. That requires each VM bundle to
-include `published-release.json` matching the release tag and GitHub release source, in addition to a successful
-`published-release-smoke` ledger row.
+each selected target before writing `vm-evidence/<target>` entries into the archive. The final proof also runs
+`scripts/verify-published-release.sh --require-github-release-source`, so a local `--release-dir` smoke cannot satisfy
+public release proof. Each VM bundle must include `published-release.json` matching the release tag and GitHub release
+source, in addition to a successful `published-release-smoke` ledger row.
 After writing, it validates the archive with
 `scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
 Prepare the archive as a signed release asset with the release private key:

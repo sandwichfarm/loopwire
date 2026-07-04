@@ -289,6 +289,7 @@ published_release=(
   --public-key "$public_key"
   --git-head "$git_head"
   --require-release-evidence
+  --require-github-release-source
 )
 if [ -n "$release_dir" ]; then
   published_release=(

@@ -356,6 +356,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'known `vm/targets.tsv` ta
 assert_contains "apps/docs/docs/developer/release.md" 'keep each `evidenceDir` relative and target-scoped'
 assert_contains "apps/docs/docs/developer/release.md" 'bash scripts/verify-vm-evidence.sh --target'
 assert_contains "apps/docs/docs/developer/release.md" "--require-github-release-source"
+assert_contains "apps/docs/docs/developer/release.md" "verify-published-release.sh --require-github-release-source"
 assert_contains "apps/docs/docs/developer/release.md" "vm-launch-plan.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-vm-evidence-ssh.sh --execute"
 assert_contains "apps/docs/docs/developer/release.md" "dsp-provider-plan.tsv"
@@ -588,6 +589,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "reject non-semver 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "path-like manifest or expected"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "URLs or extra path segments instead of plain"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Published release verification now rejects release directories missing"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Published release verification now supports"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "no matching live stream"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "keep absent matching streams pending"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence promotion can now require published-release smoke"

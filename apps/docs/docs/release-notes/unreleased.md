@@ -293,6 +293,8 @@ These notes describe source-tree progress. They are not a public release announc
   members fail before the archive is attached to a public release.
 - Published release verification can now require that public evidence archive with `--require-release-evidence`, extract
   it, and reject archives with missing published-release smoke or blocker findings.
+- Published release verification now supports `--require-github-release-source`, and final release proof passes it so
+  local `--release-dir` smoke cannot satisfy public release proof.
 - Published release evidence archive verification now binds the manifest to the expected `release.tag` and repo. It
   rejects unsafe archive paths before extraction, rejects link members with `scripts/extract-safe-tar.sh`, and rejects
   manifest command logs that escape the evidence directory or resolve through symlinks.

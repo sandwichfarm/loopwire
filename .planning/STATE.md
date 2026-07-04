@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:54:27+02:00"
-last_activity: 2026-07-04 - GitHub secrets helper check-mode logic is split into smaller helpers
+last_updated: "2026-07-04T21:01:44+02:00"
+last_activity: 2026-07-04 - Published-release verifier can require GitHub Release source
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - The GitHub secrets helper check-mode path now splits required-secret selection,
-optional-secret reporting, missing-secret classification, and no-value next-step guidance into smaller helpers while
-preserving the same checked output. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
-deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Published-release verification now supports `--require-github-release-source`, and the
+normal final release proof path passes it so local `--release-dir` smoke cannot satisfy public release proof. Phase 12
+remains gated on public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,14 @@ deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
 
 ## Verification Log
 
+- 2026-07-04 Published-release GitHub-source strictness: `scripts/verify-published-release.sh` now supports
+  `--require-github-release-source` and rejects local `--release-dir` when that strictness is requested. The normal
+  `scripts/verify-final-release-proof.sh` published-release step passes the flag, keeping local release-directory smoke
+  limited to rehearsal instead of final public proof. Validation passed: codebase-memory MCP `search_graph` identified
+  the final proof and published-release verifier surfaces; `bash -n scripts/verify-published-release.sh
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, final-proof dry-run grep for `--require-github-release-source`, strict local `--release-dir`
+  rejection, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 GitHub secrets helper maintainability: `scripts/setup-github-secrets.sh --check` now delegates required
   secret selection, presence checks, optional secret reporting, missing-secret classification, and no-value guidance to
   smaller helpers while preserving the existing deploy/final scope behavior. This keeps the requested GitHub secrets
