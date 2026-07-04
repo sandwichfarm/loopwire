@@ -116,6 +116,10 @@ bash scripts/verify-vm-evidence.sh --help | grep -F -- "--release-tag vX.Y.Z" >/
   echo "verify-scripts: VM evidence verifier help is missing release tag support" >&2
   exit 1
 }
+bash scripts/verify-vm-evidence.sh --help | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: VM evidence verifier help is missing GitHub release source strictness support" >&2
+  exit 1
+}
 bash scripts/vm-matrix.sh evidence-status --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
   echo "verify-scripts: VM matrix helper help is missing release tag support" >&2
   exit 1
@@ -1604,7 +1608,7 @@ function command(name, log) {
 function vmCommand(target) {
   return {
     ...command(`vm-evidence:${target}`, `vm-evidence-${target}.log`),
-    command: `bash scripts/verify-vm-evidence.sh --target ${target} --evidence-dir .vm/evidence/${target} --require-published-release --release-tag v0.1.0`
+    command: `bash scripts/verify-vm-evidence.sh --target ${target} --evidence-dir .vm/evidence/${target} --require-published-release --release-tag v0.1.0 --require-github-release-source`
   };
 }
 
@@ -4182,12 +4186,43 @@ bash scripts/verify-vm-evidence.sh \
   --evidence-dir "$evidence_dir" \
   --require-published-release \
   --release-tag v0.1.0 >/dev/null
+bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$evidence_dir" \
+  --require-published-release \
+  --release-tag v0.1.0 \
+  --require-github-release-source >/dev/null
 if bash scripts/verify-vm-evidence.sh \
   --target arch-hyprland-pipewire \
   --evidence-dir "$evidence_dir" \
   --require-published-release \
   --release-tag v0.2.0 >/dev/null 2>&1; then
   echo "verify-scripts: verify-vm-evidence accepted a mismatched release tag" >&2
+  exit 1
+fi
+directory_source_evidence_dir="$tmp_dir/vm-evidence-directory-source"
+cp -R "$evidence_dir" "$directory_source_evidence_dir"
+node - "$directory_source_evidence_dir/published-release.json" <<'NODE'
+const fs = require("node:fs");
+const path = process.argv[2];
+const manifest = JSON.parse(fs.readFileSync(path, "utf8"));
+manifest.source = "directory";
+delete manifest.release.repo;
+manifest.release.directory = "/guest/release";
+fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
+bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$directory_source_evidence_dir" \
+  --require-published-release \
+  --release-tag v0.1.0 >/dev/null
+if bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$directory_source_evidence_dir" \
+  --require-published-release \
+  --release-tag v0.1.0 \
+  --require-github-release-source >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted directory source as final GitHub release proof" >&2
   exit 1
 fi
 rm -rf "$status_root/arch-hyprland-pipewire"

@@ -744,6 +744,9 @@ function validateVmEvidenceCommand(command, target) {
 
   if (requirePublishedRelease) {
     requireOptionValue(tokens, "--release-tag", manifest.release.tag, `VM evidence command ${command.name}`);
+    if (!tokens.includes("--require-github-release-source")) {
+      fail(`VM evidence command ${command.name} must require GitHub release source`);
+    }
   }
 }
 

@@ -364,7 +364,8 @@ while IFS= read -r target; do
     --target "$target" \
     --evidence-dir "$vm_evidence_root/$target" \
     --require-published-release \
-    --release-tag "$tag"
+    --release-tag "$tag" \
+    --require-github-release-source
 done < <(target_ids)
 
 run_step "support matrix" \

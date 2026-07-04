@@ -319,7 +319,7 @@ function vmEvidenceCommandFor({ target, evidenceDir }) {
   ];
 
   if (requirePublishedRelease) {
-    command.push("--require-published-release", "--release-tag", releaseTag);
+    command.push("--require-published-release", "--release-tag", releaseTag, "--require-github-release-source");
   }
 
   return command;

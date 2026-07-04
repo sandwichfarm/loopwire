@@ -573,6 +573,9 @@ verify_evidence_bundle() {
   if [ -n "$release_tag" ]; then
     verify_args+=(--release-tag "$release_tag")
   fi
+  if [ "$require_published_release" = "true" ] && [ -n "$release_tag" ]; then
+    verify_args+=(--require-github-release-source)
+  fi
 
   "${verify_args[@]}"
 }
@@ -605,6 +608,9 @@ evidence_status() {
     fi
     if [ -n "$release_tag" ]; then
       verify_command="$verify_command --release-tag $release_tag"
+    fi
+    if [ "$require_published_release" = "true" ] && [ -n "$release_tag" ]; then
+      verify_command="$verify_command --require-github-release-source"
     fi
 
     echo "target=$id"

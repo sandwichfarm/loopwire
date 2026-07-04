@@ -339,9 +339,11 @@ pnpm vm:package-evidence -- \
   --output dist/release/loopwire-vm-evidence-v0.1.0.tar.gz
 ```
 
-The packager re-runs `scripts/verify-vm-evidence.sh --require-published-release --release-tag <tag>` for each
-selected target before writing `vm-evidence/<target>` entries into the archive. That requires each VM bundle to include
-`published-release.json` matching the release tag, in addition to a successful `published-release-smoke` ledger row.
+The packager re-runs
+`scripts/verify-vm-evidence.sh --require-published-release --release-tag <tag> --require-github-release-source` for
+each selected target before writing `vm-evidence/<target>` entries into the archive. That requires each VM bundle to
+include `published-release.json` matching the release tag and GitHub release source, in addition to a successful
+`published-release-smoke` ledger row.
 After writing, it validates the archive with
 `scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
 Prepare the archive as a signed release asset with the release private key:

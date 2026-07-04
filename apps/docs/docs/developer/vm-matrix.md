@@ -377,6 +377,8 @@ That mode runs `scripts/verify-published-release.sh` inside the guest, records `
 `scripts/verify-vm-evidence.sh --require-published-release --release-tag v0.1.0` reject bundles that did not install
 and run the signed artifact for that exact release. It also writes `published-release.json`, which binds the VM bundle
 to the release tag and either the GitHub repo or guest-visible release directory used for the smoke.
+Final public support claims add `--require-github-release-source`, so guest-visible release directories remain useful
+for pre-publish VM smoke but cannot satisfy proof that must come from the GitHub Release surface.
 
 After every target bundle is collected, package the exact archive consumed by the final release proof workflow:
 
@@ -507,7 +509,8 @@ are rejected by the verifier. `environment.json` must match the selected VM targ
 desktop/session, and architecture. `detect-audio.json` must report the expected target backend as available: PipeWire
 targets require PipeWire, compatibility targets require PipeWire and PulseAudio, PulseAudio targets require PulseAudio,
 and JACK targets require JACK. When `--require-published-release` is used, the ledger must also include a successful
-`published-release-smoke` row. When `--release-tag` is used, `published-release.json` must match that exact tag.
+`published-release-smoke` row. When `--release-tag` is used, `published-release.json` must match that exact tag. Final
+release support checks also require `published-release.json` to record GitHub release source.
 
 ## CI Boundary
 

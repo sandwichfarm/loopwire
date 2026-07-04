@@ -4,6 +4,7 @@ set -euo pipefail
 target=""
 evidence_dir=""
 require_published_release="false"
+require_github_release_source="false"
 release_tag=""
 
 usage() {
@@ -11,7 +12,8 @@ usage() {
 Verify Loopwire VM evidence.
 
 Usage:
-  verify-vm-evidence.sh --target TARGET --evidence-dir DIR [--require-published-release] [--release-tag vX.Y.Z]
+  verify-vm-evidence.sh --target TARGET --evidence-dir DIR [--require-published-release]
+                        [--release-tag vX.Y.Z] [--require-github-release-source]
 
 Required files:
   pnpm-check.log
@@ -37,6 +39,8 @@ the required guest commands, including desktop launch smoke, completed successfu
 match the selected VM target's distro, desktop/session, audio stack, and architecture. With --require-published-release,
 the bundle must also prove an installed release smoke through scripts/verify-published-release.sh.
 With --release-tag, the bundle must include structured published-release metadata for that exact tag.
+Use --require-github-release-source with --require-published-release --release-tag for final support claims that must
+prove the VM installed from the GitHub Release surface instead of a guest-visible local release directory.
 USAGE
 }
 
@@ -57,6 +61,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --require-published-release)
       require_published_release="true"
+      shift
+      ;;
+    --require-github-release-source)
+      require_github_release_source="true"
       shift
       ;;
     --release-tag)
@@ -83,6 +91,10 @@ if [ -n "$release_tag" ]; then
   [[ "$release_tag" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$ ]] \
     || fail "release tag must be v-prefixed semver without path separators: $release_tag"
   [ "$require_published_release" = "true" ] || fail "--release-tag requires --require-published-release"
+fi
+if [ "$require_github_release_source" = "true" ]; then
+  [ "$require_published_release" = "true" ] || fail "--require-github-release-source requires --require-published-release"
+  [ -n "$release_tag" ] || fail "--require-github-release-source requires --release-tag"
 fi
 
 for required in \
@@ -352,6 +364,7 @@ if [ -n "$release_tag" ]; then
 const fs = require("node:fs");
 const path = process.argv[1];
 const expectedTag = process.argv[2];
+const requireGithubSource = process.argv[3] === "true";
 const data = JSON.parse(fs.readFileSync(path, "utf8"));
 
 if (data.kind !== "loopwire.vm-published-release" || data.version !== 1) {
@@ -366,6 +379,10 @@ if (!["directory", "github"].includes(data.source)) {
   throw new Error("published-release.json source must be directory or github");
 }
 
+if (requireGithubSource && data.source !== "github") {
+  throw new Error("published-release.json source must be github for final release support evidence");
+}
+
 if (!data.release?.publicKey) {
   throw new Error("published-release.json must include release.publicKey");
 }
@@ -377,7 +394,7 @@ if (data.source === "github" && !data.release?.repo) {
 if (data.source === "directory" && !data.release?.directory) {
   throw new Error("published-release.json directory source must include release.directory");
 }
-' "$evidence_dir/published-release.json" "$release_tag"
+' "$evidence_dir/published-release.json" "$release_tag" "$require_github_release_source"
 fi
 
 node -e '

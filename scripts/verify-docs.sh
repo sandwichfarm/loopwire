@@ -232,6 +232,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" "audio.backends"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "jack-port-requirements.json"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "published-release-smoke.log"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "verify-vm-evidence.sh --require-published-release"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "--require-github-release-source"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "published-release.json"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "--release-tag v0.1.0"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "published-release-smoke"
@@ -344,6 +345,7 @@ assert_contains "apps/docs/docs/developer/release.md" "rejects command log paths
 assert_contains "apps/docs/docs/developer/release.md" 'known `vm/targets.tsv` target ids exactly once'
 assert_contains "apps/docs/docs/developer/release.md" 'keep each `evidenceDir` relative and target-scoped'
 assert_contains "apps/docs/docs/developer/release.md" 'bash scripts/verify-vm-evidence.sh --target'
+assert_contains "apps/docs/docs/developer/release.md" "--require-github-release-source"
 assert_contains "apps/docs/docs/developer/release.md" "vm-launch-plan.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-vm-evidence-ssh.sh --execute"
 assert_contains "apps/docs/docs/developer/release.md" "dsp-provider-plan.tsv"
@@ -582,6 +584,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "retry pending app-
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'records `desktop-launch.log`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "published-release installer smoke inside the guest"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "require verified VM evidence"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "GitHub release source"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "all declared VM matrix targets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "verify final release evidence bundles"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "green smoke against the wrong deployment"

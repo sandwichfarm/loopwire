@@ -218,6 +218,9 @@ function verifyEvidence(id, dir) {
   if (releaseTag) {
     verifierArgs.push("--release-tag", releaseTag);
   }
+  if (requirePublishedRelease && releaseTag) {
+    verifierArgs.push("--require-github-release-source");
+  }
 
   const result = spawnSync(
     "bash",
