@@ -365,6 +365,8 @@ These notes describe source-tree progress. They are not a public release announc
   any operator-run guest evidence is claimed.
 - VM evidence verification now rejects bundles whose `detect-audio.json` does not report the selected target's expected
   audio backend as available.
+- VM evidence verification now rejects header-only or truncated `screenshot.png` placeholders, requiring decodable PNG
+  image data with desktop-sized dimensions before support evidence can be promoted.
 - Debian and Ubuntu VM cloud-init commands now install the pinned pnpm toolchain before workspace validation.
 - Non-Nix VM cloud-init commands now install Rust and Tauri Linux build prerequisites before running `pnpm check`.
 - NixOS VM cloud-init commands now run evidence collection through `nix develop --command`.

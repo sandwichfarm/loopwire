@@ -262,6 +262,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" "does not download image
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "status=missing"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "status=invalid"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "status=verified"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "header-only or truncated PNG placeholders are rejected"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'pnpm vm:host-setup -- --all'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'pnpm vm:doctor -- --all'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "Host setup hints are architecture-scoped"
@@ -640,6 +641,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe absolute or
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now fails if the public docs installer drifts"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "opensuse-kde-pipewire"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu target"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'header-only or truncated `screenshot.png` placeholders'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Nix flake"

@@ -3999,6 +3999,67 @@ printf '%s\n' "autostart passed" >"$evidence_dir/autostart.log"
 printf '%s\n' "Support bundle written to support-bundle" >"$evidence_dir/support-bundle.log"
 printf '%s\n' "# VM Evidence" >"$evidence_dir/notes.md"
 mkdir -p "$evidence_dir/support-bundle"
+write_test_png() {
+  node - "$1" "$2" "$3" <<'NODE'
+const fs = require("node:fs");
+const zlib = require("node:zlib");
+
+const output = process.argv[2];
+const width = Number(process.argv[3]);
+const height = Number(process.argv[4]);
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function chunk(type, data) {
+  const typeBuffer = Buffer.from(type, "ascii");
+  const output = Buffer.alloc(12 + data.length);
+  output.writeUInt32BE(data.length, 0);
+  typeBuffer.copy(output, 4);
+  data.copy(output, 8);
+  output.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 8 + data.length);
+  return output;
+}
+
+const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const ihdr = Buffer.alloc(13);
+ihdr.writeUInt32BE(width, 0);
+ihdr.writeUInt32BE(height, 4);
+ihdr[8] = 8;
+ihdr[9] = 2;
+ihdr[10] = 0;
+ihdr[11] = 0;
+ihdr[12] = 0;
+
+const rowBytes = 1 + width * 3;
+const raw = Buffer.alloc(rowBytes * height);
+for (let y = 0; y < height; y += 1) {
+  const row = y * rowBytes;
+  raw[row] = 0;
+  for (let x = 0; x < width; x += 1) {
+    const pixel = row + 1 + x * 3;
+    raw[pixel] = x % 256;
+    raw[pixel + 1] = y % 256;
+    raw[pixel + 2] = (x + y) % 256;
+  }
+}
+
+fs.writeFileSync(output, Buffer.concat([
+  signature,
+  chunk("IHDR", ihdr),
+  chunk("IDAT", zlib.deflateSync(raw)),
+  chunk("IEND", Buffer.alloc(0))
+]));
+NODE
+}
 node - "$evidence_dir/support-bundle/support-bundle.json" <<'NODE'
 const fs = require("node:fs");
 const output = process.argv[2];
@@ -4026,24 +4087,7 @@ NODE
 printf '%s\n' 'name	exitCode	startedAt	finishedAt	log' \
   >"$evidence_dir/support-bundle/command-results.tsv"
 printf '%s\n' "# Loopwire Support Bundle" >"$evidence_dir/support-bundle/notes.md"
-node -e '
-const fs = require("node:fs");
-const output = process.argv[1];
-const width = Number(process.argv[2]);
-const height = Number(process.argv[3]);
-const header = Buffer.alloc(33);
-Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(header, 0);
-header.writeUInt32BE(13, 8);
-header.write("IHDR", 12, "ascii");
-header.writeUInt32BE(width, 16);
-header.writeUInt32BE(height, 20);
-header[24] = 8;
-header[25] = 2;
-header[26] = 0;
-header[27] = 0;
-header[28] = 0;
-fs.writeFileSync(output, header);
-' "$evidence_dir/screenshot.png" 1280 720
+write_test_png "$evidence_dir/screenshot.png" 1280 720
 {
   printf 'pnpm-check\t0\t2026-07-03T00:00:00+00:00\t2026-07-03T00:00:01+00:00\tpnpm-check.log\n'
   printf 'desktop-launch\t0\t2026-07-03T00:00:01+00:00\t2026-07-03T00:00:02+00:00\tdesktop-launch.log\n'
@@ -4110,6 +4154,15 @@ if bash scripts/verify-vm-evidence.sh \
 fi
 small_screenshot_dir="$tmp_dir/vm-evidence-small-screenshot"
 cp -R "$evidence_dir" "$small_screenshot_dir"
+write_test_png "$small_screenshot_dir/screenshot.png" 1 1
+if bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$small_screenshot_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted a too-small screenshot" >&2
+  exit 1
+fi
+truncated_screenshot_dir="$tmp_dir/vm-evidence-truncated-screenshot"
+cp -R "$evidence_dir" "$truncated_screenshot_dir"
 node -e '
 const fs = require("node:fs");
 const output = process.argv[1];
@@ -4117,16 +4170,16 @@ const header = Buffer.alloc(33);
 Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(header, 0);
 header.writeUInt32BE(13, 8);
 header.write("IHDR", 12, "ascii");
-header.writeUInt32BE(1, 16);
-header.writeUInt32BE(1, 20);
+header.writeUInt32BE(1280, 16);
+header.writeUInt32BE(720, 20);
 header[24] = 8;
 header[25] = 2;
 fs.writeFileSync(output, header);
-' "$small_screenshot_dir/screenshot.png"
+' "$truncated_screenshot_dir/screenshot.png"
 if bash scripts/verify-vm-evidence.sh \
   --target arch-hyprland-pipewire \
-  --evidence-dir "$small_screenshot_dir" >/dev/null 2>&1; then
-  echo "verify-scripts: verify-vm-evidence accepted a too-small screenshot" >&2
+  --evidence-dir "$truncated_screenshot_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted a truncated screenshot" >&2
   exit 1
 fi
 matrix_release_copy="$tmp_dir/support-matrix-release-required.md"

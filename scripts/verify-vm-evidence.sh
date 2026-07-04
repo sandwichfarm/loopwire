@@ -399,24 +399,98 @@ fi
 
 node -e '
 const fs = require("node:fs");
+const zlib = require("node:zlib");
 const path = process.argv[1];
 const data = fs.readFileSync(path);
 const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 if (data.length < signature.length || !signature.every((byte, index) => data[index] === byte)) {
   throw new Error("screenshot.png must be a PNG file");
 }
-if (data.length < 33) {
-  throw new Error("screenshot.png must include a PNG IHDR chunk");
+
+let offset = signature.length;
+let width = 0;
+let height = 0;
+let bitDepth = 0;
+let colorType = 0;
+let sawIhdr = false;
+let sawIend = false;
+const idatChunks = [];
+
+while (offset < data.length) {
+  if (offset + 12 > data.length) {
+    throw new Error("screenshot.png has a truncated PNG chunk header");
+  }
+
+  const length = data.readUInt32BE(offset);
+  const type = data.toString("ascii", offset + 4, offset + 8);
+  const chunkStart = offset + 8;
+  const chunkEnd = chunkStart + length;
+  const nextOffset = chunkEnd + 4;
+
+  if (chunkEnd > data.length || nextOffset > data.length) {
+    throw new Error(`screenshot.png has a truncated ${type} chunk`);
+  }
+
+  if (!sawIhdr && type !== "IHDR") {
+    throw new Error("screenshot.png must start with a valid PNG IHDR chunk");
+  }
+
+  if (type === "IHDR") {
+    if (sawIhdr || length !== 13) {
+      throw new Error("screenshot.png must contain exactly one valid PNG IHDR chunk");
+    }
+    width = data.readUInt32BE(chunkStart);
+    height = data.readUInt32BE(chunkStart + 4);
+    bitDepth = data[chunkStart + 8];
+    colorType = data[chunkStart + 9];
+    const compression = data[chunkStart + 10];
+    const filter = data[chunkStart + 11];
+    const interlace = data[chunkStart + 12];
+    if (compression !== 0 || filter !== 0 || interlace !== 0) {
+      throw new Error("screenshot.png must be a non-interlaced PNG with standard compression and filtering");
+    }
+    sawIhdr = true;
+  } else if (type === "IDAT") {
+    idatChunks.push(data.subarray(chunkStart, chunkEnd));
+  } else if (type === "IEND") {
+    sawIend = true;
+    break;
+  }
+
+  offset = nextOffset;
 }
-const ihdrLength = data.readUInt32BE(8);
-const ihdrType = data.toString("ascii", 12, 16);
-if (ihdrLength !== 13 || ihdrType !== "IHDR") {
-  throw new Error("screenshot.png must start with a valid PNG IHDR chunk");
+
+if (!sawIhdr || !sawIend) {
+  throw new Error("screenshot.png must contain IHDR and IEND chunks");
 }
-const width = data.readUInt32BE(16);
-const height = data.readUInt32BE(20);
 if (width < 320 || height < 200) {
   throw new Error(`screenshot.png is too small for desktop evidence: ${width}x${height}`);
+}
+if (idatChunks.length === 0) {
+  throw new Error("screenshot.png must contain PNG image data");
+}
+
+const channelsByColorType = new Map([
+  [0, 1],
+  [2, 3],
+  [3, 1],
+  [4, 2],
+  [6, 4]
+]);
+const channels = channelsByColorType.get(colorType);
+if (!channels) {
+  throw new Error(`screenshot.png has unsupported PNG color type: ${colorType}`);
+}
+const validBitDepths = new Set([1, 2, 4, 8, 16]);
+if (!validBitDepths.has(bitDepth)) {
+  throw new Error(`screenshot.png has unsupported PNG bit depth: ${bitDepth}`);
+}
+
+const inflated = zlib.inflateSync(Buffer.concat(idatChunks));
+const rowBytes = 1 + Math.ceil((width * channels * bitDepth) / 8);
+const expectedBytes = rowBytes * height;
+if (inflated.length !== expectedBytes) {
+  throw new Error(`screenshot.png image data has ${inflated.length} decoded bytes; expected ${expectedBytes}`);
 }
 ' "$evidence_dir/screenshot.png"
 

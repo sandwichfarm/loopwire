@@ -2351,3 +2351,12 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh`, `pnpm verify:workflows`, `pnpm verify:docs`,
   `pnpm verify:scripts`, and full `pnpm check` passed. No release tag, public release, Bunny deployment, secret write,
   VM launch, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-04 VM screenshot evidence hardening: `scripts/verify-vm-evidence.sh` now parses VM `screenshot.png` files as
+  real non-interlaced PNGs with IHDR, IDAT, IEND, decodable image data, and desktop-sized dimensions. Header-only or
+  truncated PNG placeholders can no longer satisfy Phase 12 screenshot evidence.
+- 2026-07-04 VM screenshot evidence hardening validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located the VM evidence verifier and screenshot collection
+  surfaces before implementation. `bash -n scripts/verify-vm-evidence.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and full `pnpm check` passed. No VM launch,
+  public release, Bunny deployment, secret write, tag push, host audio mutation, or support-matrix promotion was
+  performed.
