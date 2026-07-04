@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T01:27:53+02:00"
-last_activity: 2026-07-05 - Docs deployment proof fetch preserves env-file recovery hints for missing Bunny artifacts
+last_updated: "2026-07-05T01:42:12+02:00"
+last_activity: 2026-07-05 - Release handoff/status preserve env-file in docs proof fetch commands
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:fetch-docs-proof` now accepts `--env-file` so missing
-`loopwire-docs-deployment` artifact recovery keeps pointing at the shared local release env file instead of only direct
-placeholder flags. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment
-proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:handoff` and `pnpm release:status` now preserve `--env-file` in generated
+`pnpm release:fetch-docs-proof` commands, so the docs deployment proof step stays on the shared local release env-file
+ceremony. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof,
+and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,11 @@ proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Docs proof fetch env-file propagation: `scripts/plan-final-release-handoff.sh` now keeps `--env-file` on
+  the rendered `pnpm release:fetch-docs-proof` command. `scripts/audit-final-release-state.sh` now preserves
+  `--env-file` in the missing docs deployment manifest recovery command, using shell-safe quoting. `scripts/verify-scripts.sh`
+  covers handoff output, release-status placeholder and concrete run-id recovery output, and no access-key leakage.
+  Release docs and unreleased notes now describe docs-proof fetch as part of the one-file release ceremony.
 - 2026-07-05 Docs deployment proof env-file recovery: `scripts/fetch-docs-deployment-proof.sh` now accepts
   `--env-file` and preserves that path in the missing `loopwire-docs-deployment` artifact recovery command without
   reading or printing secret values. `scripts/verify-scripts.sh` covers help text, missing-artifact recovery output,

@@ -181,8 +181,9 @@ final proof commands include `<docs-deployment-run-id>` and print a blocker remi
 local file used by `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. Bunny storage credentials
 are ignored by the handoff so access keys never appear in rendered release commands. When `--env-file` is present, the
-rendered secret-check and VM evidence asset-prep commands keep using that env file instead of expanding env-derived
-release key paths. Explicit CLI key flags still override the env file and are rendered only when supplied directly.
+rendered secret-check, docs proof fetch, and VM evidence asset-prep commands keep using that env file instead of
+expanding env-derived release key paths. Explicit CLI key flags still override the env file and are rendered only when
+supplied directly.
 
 After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
 
@@ -224,10 +225,10 @@ saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Depl
 only want local evidence checks. Use `--env-file` to let the embedded local handoff plan reuse the release private-key
 path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. The embedded
 handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
-to copy release key paths into separate command flags. When a Deploy Docs workflow run is verified, the local handoff
-plan reuses that run id for docs proof fetching and final proof dispatch. If the docs deployment manifest is missing,
-`release:status` prints the matching
-`pnpm release:fetch-docs-proof` command for the expected commit.
+to copy release key paths into separate command flags. It also keeps `--env-file` on the rendered docs proof fetch
+command. When a Deploy Docs workflow run is verified, the local handoff plan reuses that run id for docs proof fetching
+and final proof dispatch. If the docs deployment manifest is missing, `release:status` prints the matching
+`pnpm release:fetch-docs-proof` command for the expected commit and preserves `--env-file` when supplied.
 
 Parse an existing release-readiness log without rerunning release checks:
 

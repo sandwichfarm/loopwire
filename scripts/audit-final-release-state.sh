@@ -88,6 +88,20 @@ indent() {
   sed 's/^/    /'
 }
 
+shell_join() {
+  local out=""
+  local arg
+
+  for arg in "$@"; do
+    if [ -n "$out" ]; then
+      out+=" "
+    fi
+    printf -v out '%s%q' "$out" "$arg"
+  done
+
+  printf '%s\n' "$out"
+}
+
 run_gate() {
   local label="$1"
   shift
@@ -191,13 +205,18 @@ report_docs_deployment_artifact_hint() {
 
 check_docs_deployment_manifest() {
   local run_id
+  local fetch_command
 
   if [ ! -s "$docs_deployment_manifest" ]; then
     run_id="$(docs_deployment_run_id_hint)"
     echo "missing: docs deployment manifest: $docs_deployment_manifest" >&2
     report_docs_deployment_artifact_hint "$run_id"
+    fetch_command=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$run_id" --git-head "$expected_git_head")
+    if [ -n "$env_file" ]; then
+      fetch_command+=(--env-file "$env_file")
+    fi
     echo "next: fetch and verify Deploy Docs proof artifacts:" >&2
-    echo "  pnpm release:fetch-docs-proof -- --repo $repo --run-id $run_id --git-head $expected_git_head" >&2
+    printf '  %s\n' "$(shell_join "${fetch_command[@]}")" >&2
     echo "note: the Deploy Docs run must include the loopwire-docs-deployment artifact; configure Bunny secrets if it is absent." >&2
     return 1
   fi

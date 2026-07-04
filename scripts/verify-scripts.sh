@@ -277,6 +277,11 @@ printf '%s\n' "$release_handoff_env_plan" | grep -F "bash scripts/setup-github-s
     echo "verify-scripts: release handoff env-file plan did not preserve the secret setup env-file" >&2
     exit 1
   }
+printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm release:fetch-docs-proof" |
+  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not preserve the docs proof env-file" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm vm:prepare-release-evidence" |
   grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
     echo "verify-scripts: release handoff env-file plan did not preserve the VM evidence env-file" >&2
@@ -4127,12 +4132,21 @@ grep -F "invalid: release signing public key: $release_status_bad_public_key" \
     echo "verify-scripts: release status did not block an invalid release signing public key" >&2
     exit 1
   }
+release_status_env_file="$tmp_dir/release-status-release-secrets.env"
+cat >"$release_status_env_file" <<'EOF'
+BUNNY_STORAGE_ZONE=loopwire-docs
+BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
+BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=packaging/release-signing-public.pem
+EOF
 release_status_missing_docs_manifest_log="$tmp_dir/release-status-missing-docs-manifest.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
   --public-key "$release_status_public_key" \
+  --env-file "$release_status_env_file" \
   --secret-list-file "$secret_list_all_final" \
   --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
   --docs-dist "$release_status_docs_dist" \
@@ -4145,11 +4159,20 @@ grep -F "missing: docs deployment manifest: $tmp_dir/missing-docs-deployment-man
     echo "verify-scripts: release status did not report the missing docs deployment manifest" >&2
     exit 1
   }
-grep -F "pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id <docs-deployment-run-id> --git-head 0123456789abcdef0123456789abcdef01234567" \
-  "$release_status_missing_docs_manifest_log" >/dev/null || {
+grep -F "pnpm release:fetch-docs-proof" "$release_status_missing_docs_manifest_log" |
+  grep -F -- "--repo sandwichfarm/loopwire" |
+  grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" >/dev/null || {
     echo "verify-scripts: release status did not print the docs proof fetch command" >&2
     exit 1
   }
+grep -F -- "--env-file $release_status_env_file" "$release_status_missing_docs_manifest_log" >/dev/null || {
+  echo "verify-scripts: release status did not preserve the docs proof env-file recovery route" >&2
+  exit 1
+}
+if grep -F "env-access-key-that-must-not-print" "$release_status_missing_docs_manifest_log" >/dev/null; then
+  echo "verify-scripts: release status leaked the env-file Bunny access key" >&2
+  exit 1
+fi
 release_status_missing_docs_manifest_artifacts_log="$tmp_dir/release-status-missing-docs-manifest-artifacts.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \
@@ -4160,6 +4183,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
     --public-key "$release_status_public_key" \
+    --env-file "$release_status_env_file" \
     --secret-list-file "$secret_list_all_final" \
     --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
     --docs-dist "$release_status_docs_dist" >"$release_status_missing_docs_manifest_artifacts_log" 2>&1; then
@@ -4189,6 +4213,14 @@ grep -F "pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id 
     echo "verify-scripts: release status did not print the concrete docs proof fetch command" >&2
     exit 1
   }
+grep -F -- "--env-file $release_status_env_file" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+  echo "verify-scripts: release status did not preserve the concrete docs proof env-file recovery route" >&2
+  exit 1
+}
+if grep -F "env-access-key-that-must-not-print" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null; then
+  echo "verify-scripts: release status artifact hint leaked the env-file Bunny access key" >&2
+  exit 1
+fi
 release_status_log="$tmp_dir/release-status-blocked.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \

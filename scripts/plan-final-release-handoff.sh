@@ -361,7 +361,11 @@ echo "4. Dispatch docs deployment for the same release ref:"
 print_command gh workflow run deploy-docs.yml --repo "$repo" --ref "$tag"
 echo
 echo "5. Download and verify docs deployment proof artifacts:"
-print_command pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head"
+fetch_docs_proof=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head")
+if [ -n "$env_file" ]; then
+  fetch_docs_proof+=(--env-file "$env_file")
+fi
+print_command "${fetch_docs_proof[@]}"
 echo
 echo "6. Render the operator VM evidence handoff:"
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
