@@ -70,6 +70,38 @@ The renderer reads the canonical tarball entries from `SHA256SUMS`, verifies the
 manifest entries. The output is still not publication proof until a Nix-enabled host runs `nix build` against published
 artifacts.
 
+Run the full Nix package proof on a Nix-enabled host:
+
+```bash
+pnpm verify:nix-release -- \
+  --version 0.1.0 \
+  --release-dir dist/release \
+  --public-key packaging/release-signing-public.pem
+```
+
+On non-Nix hosts, release-readiness wiring can be checked without claiming build proof:
+
+```bash
+pnpm verify:nix-release -- \
+  --version 0.1.0 \
+  --release-dir dist/release \
+  --skip-build-if-missing-nix
+```
+
+The skip flag is only for local or CI wiring checks on hosts without `nix`. Release evidence still requires the
+non-skipped command to run successfully.
+
+For fake-artifact metadata smokes, use render-only mode:
+
+```bash
+pnpm verify:nix-release -- \
+  --version 0.1.0 \
+  --release-dir dist/release \
+  --render-only
+```
+
+Render-only mode proves manifest parsing and expression generation. It never proves the package builds.
+
 ## Smoke
 
 Run:
@@ -78,6 +110,7 @@ Run:
 pnpm verify:install
 pnpm verify:release
 pnpm verify:aur
+pnpm verify:nix-release -- --version 0.1.0 --release-dir dist/release --render-only
 pnpm verify:packaging
 ```
 
@@ -96,4 +129,5 @@ checks the package archive contains `usr/bin/loopwire`, `usr/bin/loopwire-dsp-pr
 `verify:packaging` statically checks that package metadata points at the same release artifact names as the installer
 and that the flake exposes the binary package template without replacing fake hashes with unverified values. It also
 renders a temporary Nix release package expression from checksum-bound fake artifacts and proves duplicate manifest
-entries are rejected.
+entries are rejected. It invokes the Nix verifier with `--render-only` against fake local artifacts, so it does not
+replace real release-time `nix build` evidence.

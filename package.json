@@ -40,6 +40,7 @@
     "verify:requirements": "bash scripts/verify-requirements.sh",
     "release:prepare-key": "bash scripts/prepare-release-signing-key.sh",
     "nix:render-release": "bash scripts/render-nix-release-package.sh",
+    "verify:nix-release": "bash scripts/verify-nix-release-package.sh",
     "verify:aur": "bash scripts/verify-aur-package.sh",
     "verify:docs": "bash scripts/verify-docs.sh",
     "verify:docs-deployment": "node scripts/verify-docs-deployment-manifest.mjs",

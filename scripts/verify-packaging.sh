@@ -5,7 +5,7 @@ require_contains() {
   file="$1"
   pattern="$2"
 
-  if ! grep -Fq "$pattern" "$file"; then
+  if ! grep -Fq -- "$pattern" "$file"; then
     echo "Expected $file to contain: $pattern" >&2
     exit 1
   fi
@@ -36,9 +36,13 @@ require_contains flake.nix "pkgs.callPackage ./packaging/nix/loopwire-bin.nix"
 require_contains flake.nix "nixpkgs.lib.fakeHash"
 require_contains flake.nix "mkLoopwireBinPackage"
 require_contains package.json '"nix:render-release": "bash scripts/render-nix-release-package.sh"'
+require_contains package.json '"verify:nix-release": "bash scripts/verify-nix-release-package.sh"'
 require_contains scripts/render-nix-release-package.sh "loopwire-linux-x86_64.tar.gz"
 require_contains scripts/render-nix-release-package.sh "loopwire-linux-aarch64.tar.gz"
 require_contains scripts/render-nix-release-package.sh "verify-release-asset-checksum.sh"
+require_contains scripts/verify-nix-release-package.sh "--skip-build-if-missing-nix"
+require_contains scripts/verify-nix-release-package.sh "--render-only"
+require_contains scripts/verify-nix-release-package.sh "nix build"
 require_contains packaging/README.md "same release artifacts"
 require_contains packaging/README.md "loopwire-dsp-provider"
 require_contains packaging/README.md "loopwire-jack-ports"
@@ -85,5 +89,10 @@ if bash scripts/render-nix-release-package.sh \
   echo "Nix release renderer accepted duplicate checksum entries" >&2
   exit 1
 fi
+
+bash scripts/verify-nix-release-package.sh \
+  --version 0.1.0 \
+  --release-dir "$release_dir" \
+  --render-only >/dev/null
 
 echo "Packaging metadata smoke passed."

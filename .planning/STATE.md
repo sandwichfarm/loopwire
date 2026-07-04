@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:34:11+02:00"
-last_activity: 2026-07-04 - Nix release package rendering is checksum-bound and locally validated
+last_updated: "2026-07-04T15:43:56+02:00"
+last_activity: 2026-07-04 - Nix release package verification has a fail-closed build-proof wrapper
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/render-nix-release-package.sh` now renders a concrete Nix package expression from
-checksum-bound release tarballs, and `pnpm verify:packaging` proves the renderer accepts canonical artifacts and rejects
-duplicate checksum entries. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
-proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-nix-release-package.sh` now renders the checksum-bound Nix package
+expression and runs `nix build` when `nix` is available, failing closed by default on non-Nix hosts. Phase 12 remains
+gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1995,6 +1995,17 @@ proof, host QEMU/Nix tooling, and operator-run VM evidence.
   roadmap/phase queries, and codebase-memory MCP fast reindex/status passed. `pnpm verify:packaging` renders a
   temporary Nix expression from checksum-bound fake artifacts and rejects duplicate checksum entries. No real
   `nix build`, public release, tag push, Bunny deployment, VM launch, or support-matrix promotion was performed.
+- 2026-07-04 Nix release package build verifier: `scripts/verify-nix-release-package.sh` wraps
+  `scripts/render-nix-release-package.sh` and then runs `nix build -f <rendered> --arg loopwireSrc <repo> --no-link`
+  when `nix` is available. It fails closed by default when `nix` is missing, supports `--skip-build-if-missing-nix`
+  only for non-Nix wiring checks, and supports `--render-only` for fake-artifact metadata smokes.
+- 2026-07-04 Nix release package build verifier validation: `bash -n scripts/verify-nix-release-package.sh
+  scripts/verify-packaging.sh scripts/verify-scripts.sh scripts/verify-requirements.sh`, `pnpm verify:packaging`,
+  `pnpm verify:requirements`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, GSD
+  roadmap/phase queries, and codebase-memory MCP fast reindex/status passed. `pnpm verify:packaging` runs the verifier
+  in `--render-only` mode against checksum-bound fake artifacts so Nix-enabled hosts do not try to build unpublished
+  fake tarballs. No non-skipped `nix build`, public release, tag push, Bunny deployment, VM launch, or support-matrix
+  promotion was performed.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

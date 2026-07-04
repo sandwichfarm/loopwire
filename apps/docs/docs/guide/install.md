@@ -90,5 +90,17 @@ pnpm nix:render-release -- \
 This converts the signed tarball checksums into Nix SRI hashes, but it is still not a release claim until `nix build`
 passes on a Nix-enabled host against published artifacts.
 
+On a Nix-enabled host, run the build-proof command:
+
+```bash
+pnpm verify:nix-release -- \
+  --version 0.1.0 \
+  --release-dir dist/release \
+  --public-key packaging/release-signing-public.pem
+```
+
+Non-Nix CI and local machines may use `--skip-build-if-missing-nix` only to check wiring. Release evidence must not use
+that skip as Nix package proof.
+
 These channels are not published yet. Do not submit AUR metadata or expose a release-ready Nix package until versioned
 artifacts and real checksums exist.

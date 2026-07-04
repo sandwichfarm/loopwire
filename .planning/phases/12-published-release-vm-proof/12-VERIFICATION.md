@@ -2258,6 +2258,21 @@
   expression from checksum-bound fake artifacts and rejects duplicate checksum entries. `pnpm detect:audio` reported
   PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing. No
   real `nix build`, public release, tag push, Bunny deployment, VM launch, or support-matrix promotion was performed.
+- `scripts/verify-nix-release-package.sh` now wraps the checksum-bound Nix render step and runs
+  `nix build -f <rendered> --arg loopwireSrc <repo> --no-link` when `nix` is available. It fails closed by default if
+  `nix` is missing, has `--skip-build-if-missing-nix` only for non-Nix wiring checks, and has `--render-only` for
+  fake-artifact metadata smokes.
+- `package.json` exposes the build-proof wrapper as `pnpm verify:nix-release`; packaging docs, install docs, README,
+  and unreleased notes distinguish render-only checks, non-Nix wiring skips, and real release-time Nix build proof.
+- Focused validation passed: `bash -n scripts/verify-nix-release-package.sh scripts/verify-packaging.sh
+  scripts/verify-scripts.sh scripts/verify-requirements.sh`, `pnpm verify:packaging`, `pnpm verify:requirements`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, added-line length scan, and GSD roadmap/phase queries.
+- Full validation passed: `pnpm check`, `pnpm detect:audio`, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,598 nodes and 5,455 edges. `pnpm verify:packaging` runs the verifier in
+  `--render-only` mode against checksum-bound fake artifacts so Nix-enabled hosts do not try to build unpublished fake
+  tarballs. `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains
+  unavailable because `jack_lsp` is missing. No non-skipped `nix build`, public release, tag push, Bunny deployment,
+  VM launch, or support-matrix promotion was performed.
 
 ## Evidence Missing
 
@@ -2277,8 +2292,9 @@
   actual VM run.
 - Host VM launch is not available on this machine until QEMU tooling is installed; `scripts/vm-matrix.sh doctor --all`
   reports missing `qemu-system-x86_64`, `qemu-system-aarch64`, `qemu-img`, and `cloud-localds`.
-- Nix package output is statically wired and can now be rendered from checksum-bound release artifacts, but this host
-  lacks `nix`; real `nix build` proof still needs a Nix-enabled host or VM target after real release hashes exist.
+- Nix package output is statically wired and can now be rendered from checksum-bound release artifacts, and
+  `pnpm verify:nix-release` can run the build proof on Nix-enabled hosts. This host lacks `nix`, so non-skipped
+  `nix build` proof still needs a Nix-enabled host or VM target after real release hashes exist.
 - A bundled JACK virtual port provider/client, live backend graph-edge gain, and live host DSP capture/injection remain
   unimplemented, but the pure core DSP gain/mute mix math, the injected audio-host DSP graph adapter, the injected JACK
   virtual-port provider hook, the command-backed DSP provider port helper, explicit background DSP provider restore,

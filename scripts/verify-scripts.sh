@@ -13,6 +13,7 @@ bash -n \
   scripts/prepare-release-signing-key.sh \
   scripts/render-aur-pkgbuild.sh \
   scripts/render-nix-release-package.sh \
+  scripts/verify-nix-release-package.sh \
   scripts/setup-github-secrets.sh \
   scripts/ct-host-check.sh \
   scripts/vm-matrix.sh \
