@@ -353,12 +353,16 @@ print_missing_secret_next_steps() {
 next: set Bunny.net deployment secrets without printing values:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --storage-zone <zone> --access-key <key>
+  # Or load them from a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
     else
       cat >&2 <<EOF
 next: set Bunny.net deployment secrets without printing values:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
+  # Or load Bunny values and release key file paths from a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
     fi
   fi
@@ -366,6 +370,8 @@ EOF
     cat >&2 <<EOF
 next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
   bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
+  # Or load it from a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
   fi
   if [ "$missing_release_key" = "true" ]; then

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T00:23:00+02:00"
-last_activity: 2026-07-05 - GitHub secret helper accepts local env files for Bunny and release key inputs
+last_updated: "2026-07-05T00:42:00+02:00"
+last_activity: 2026-07-05 - Missing Bunny secret guidance now points directly to the env-file setup route
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --env-file <file>` now lets operators load local
-uncommitted Bunny.net values and release key file paths without putting secrets in shell history, while command-line
-flags still override env-file values and dry-run output hides values. Phase 12 remains gated on configuring Bunny
-secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --check` now prints the safer
+`--env-file <secret-env-file>` setup route when Bunny secrets or the pull-zone hostname are missing, keeping the
+no-value handoff visible at the exact blocker. Phase 12 remains gated on configuring Bunny secrets, public GitHub
+Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,16 @@ secrets, public GitHub Release install, Bunny deployment proof, and operator-run
 
 ## Verification Log
 
+- 2026-07-05 Missing Bunny secret env-file next step: `scripts/setup-github-secrets.sh --check` now prints
+  `--env-file <secret-env-file>` as an alternative to direct placeholder flags when Bunny storage secrets or the
+  pull-zone hostname are missing. `scripts/verify-scripts.sh` asserts the env-file next step for final-scope missing
+  Bunny secrets, deploy-scope missing Bunny secrets, and hostname-only gaps. Release docs and unreleased notes explain
+  that this keeps the local-file secret ceremony visible at the blocker. Validation passed: `bash -n
+  scripts/setup-github-secrets.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `git diff --check`, and `pnpm check`. Live read-only `setup-github-secrets.sh --check` and pinned
+  `pnpm release:status -- --docs-deployment-run-id 28721253143` now both print
+  `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --env-file <secret-env-file>` while still
+  blocking on the real missing Bunny secrets.
 - 2026-07-05 GitHub secret env-file ceremony: `scripts/setup-github-secrets.sh` now accepts `--env-file` with simple
   `KEY=VALUE` lines for Bunny deploy values plus `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and
   `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, preserving command-line flag precedence and no-value dry-run output.

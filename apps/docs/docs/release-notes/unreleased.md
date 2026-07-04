@@ -357,6 +357,8 @@ These notes describe source-tree progress. They are not a public release announc
   an operator intentionally audits a specific workflow run id.
 - `scripts/setup-github-secrets.sh` now accepts `--env-file` for local uncommitted Bunny.net values and release key
   file paths, with command-line flags taking precedence and dry-run output still hiding secret values.
+- Missing Bunny secret checks now print the `--env-file <secret-env-file>` setup route alongside direct placeholder
+  flags, making the safer local-file ceremony visible at the exact release blocker.
 - JACK live port delegation now preserves the process environment while applying Loopwire-specific overrides, so
   provider scripts that use `/usr/bin/env node` keep resolving Node on CI and operator hosts.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,

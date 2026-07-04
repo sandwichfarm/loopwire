@@ -4335,6 +4335,10 @@ grep -F "next: set Bunny.net deployment secrets without printing values" "$secre
   echo "verify-scripts: GitHub secret check did not print Bunny next step" >&2
   exit 1
 }
+grep -F -- "--env-file <secret-env-file>" "$secret_missing_required_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not print env-file Bunny next step" >&2
+  exit 1
+}
 if grep -F "next: set release signing secret from a local private key" "$secret_missing_required_log" >/dev/null; then
   echo "verify-scripts: GitHub secret check printed release key next step when only Bunny secrets were missing" >&2
   exit 1
@@ -4348,6 +4352,10 @@ if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
 fi
 grep -F -- "--storage-zone <zone> --access-key <key>" "$secret_deploy_missing_required_log" >/dev/null || {
   echo "verify-scripts: GitHub deploy-scope check did not print deploy-only Bunny setup" >&2
+  exit 1
+}
+grep -F -- "--env-file <secret-env-file>" "$secret_deploy_missing_required_log" >/dev/null || {
+  echo "verify-scripts: GitHub deploy-scope check did not print env-file Bunny setup" >&2
   exit 1
 }
 if grep -F -- "--pull-zone-hostname <host>" "$secret_deploy_missing_required_log" >/dev/null; then
@@ -4370,6 +4378,10 @@ grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke a
     echo "verify-scripts: GitHub secret check did not print pull-zone hostname next step" >&2
     exit 1
   }
+grep -F -- "--env-file <secret-env-file>" "$secret_missing_live_docs_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not print env-file pull-zone hostname next step" >&2
+  exit 1
+}
 if grep -F "next: set Bunny.net deployment secrets without printing values" \
   "$secret_missing_live_docs_log" >/dev/null; then
   echo "verify-scripts: GitHub secret check printed storage setup when only pull-zone hostname was missing" >&2
