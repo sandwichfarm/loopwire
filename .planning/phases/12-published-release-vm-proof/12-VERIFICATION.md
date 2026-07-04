@@ -2122,6 +2122,14 @@
   scripts/verify-scripts.sh scripts/verify-docs.sh scripts/verify-github-workflows.sh`, `pnpm verify:workflows`,
   `pnpm verify:docs`, `pnpm verify:scripts`, and real VitePress build dry-run smokes that verified 68-file manifests
   for both `preview` and empty remote prefixes.
+- `scripts/verify-release-readiness.sh` now fails preflight if the docs deployment manifest verifier is missing or
+  unparsable, if `package.json` does not expose `pnpm verify:docs-deployment`, or if
+  `.github/workflows/deploy-docs.yml` does not run the manifest verifier before artifact upload.
+- Focused validation passed: `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:workflows`, `pnpm verify:scripts`,
+  `pnpm verify:requirements`, and offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag
+  v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git
+  --allow-candidate-notes`.
 
 ## Evidence Missing
 

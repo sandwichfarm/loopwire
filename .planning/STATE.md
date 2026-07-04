@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T14:12:34+02:00"
-last_activity: 2026-07-04 - docs deployment manifest verifier added
+last_updated: "2026-07-04T14:19:09+02:00"
+last_activity: 2026-07-04 - release readiness checks docs deployment verifier wiring
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-docs-deployment-manifest.mjs` and `pnpm verify:docs-deployment` now
-verify the non-secret `loopwire.docs-deployment.v1` artifact against the built VitePress dist before the docs deploy
-workflow uploads it. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
-host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-release-readiness.sh` now checks that the docs deployment manifest
+verifier exists, parses, is exposed as `pnpm verify:docs-deployment`, and is wired into the docs deployment workflow
+before artifact upload. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
+proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1983,3 +1983,14 @@ host QEMU/Nix tooling, and operator-run VM evidence.
   scripts/verify-github-workflows.sh`, `pnpm verify:workflows`, `pnpm verify:docs`, and `pnpm verify:scripts` passed.
   Real VitePress build dry-run smokes verified 68-file manifests for both `preview` and empty remote prefixes. No
   Bunny secret was written, no Bunny upload was attempted, and no live docs smoke was performed.
+- 2026-07-04 release readiness docs deployment guard: `scripts/verify-release-readiness.sh` now fails preflight if
+  `scripts/verify-docs-deployment-manifest.mjs` is missing or unparsable, if `package.json` does not expose
+  `pnpm verify:docs-deployment`, or if `.github/workflows/deploy-docs.yml` does not run the manifest verifier before
+  artifact upload.
+- 2026-07-04 release readiness docs deployment guard validation: codebase-memory MCP `search_graph` located release
+  readiness and docs deployment verifier surfaces before implementation. `bash -n scripts/verify-release-readiness.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:workflows`,
+  `pnpm verify:scripts`, `pnpm verify:requirements`, and offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes` passed. No GitHub release, Bunny upload, secret write, live docs smoke,
+  or VM run was performed.

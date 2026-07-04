@@ -92,6 +92,10 @@ node scripts/verify-support-matrix.mjs --help | grep -F -- "--require-published-
 }
 collect_evidence_help="$(node scripts/collect-release-evidence.mjs --help)"
 release_readiness_help="$(bash scripts/verify-release-readiness.sh --help)"
+printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest verifier" >/dev/null || {
+  echo "verify-scripts: release readiness help is missing docs deployment verifier check" >&2
+  exit 1
+}
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
@@ -2744,8 +2748,22 @@ bash scripts/verify-release-readiness.sh -- \
   --skip-gh \
   --skip-tag \
   --skip-clean-git \
-  --allow-candidate-notes | grep -F "ok: public docs installer matches canonical installer" >/dev/null || {
+  --allow-candidate-notes >"$tmp_dir/release-readiness-offline.log"
+grep -F "ok: public docs installer matches canonical installer" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify public installer sync" >&2
+    exit 1
+  }
+grep -F "ok: docs deployment manifest verifier parses" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+  echo "verify-scripts: release readiness did not verify docs deployment verifier syntax" >&2
+  exit 1
+}
+grep -F "ok: package script verify:docs-deployment is wired" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+  echo "verify-scripts: release readiness did not verify docs deployment package script" >&2
+  exit 1
+}
+grep -F "ok: docs deployment workflow verifies manifest before artifact upload" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+    echo "verify-scripts: release readiness did not verify docs deployment workflow wiring" >&2
     exit 1
   }
 bad_public_installer="$tmp_dir/bad-public-install.sh"
@@ -2764,11 +2782,15 @@ if LOOPWIRE_PUBLIC_INSTALLER="$bad_public_installer" \
 fi
 release_tag_repo="$tmp_dir/release-tag-readiness"
 mkdir -p "$release_tag_repo/scripts" \
+  "$release_tag_repo/.github/workflows" \
   "$release_tag_repo/apps/docs/docs/public" \
   "$release_tag_repo/apps/docs/docs/release-notes"
 cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release-readiness.sh"
+cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"
 cp scripts/install.sh "$release_tag_repo/apps/docs/docs/public/install.sh"
+cp package.json "$release_tag_repo/package.json"
+cp .github/workflows/deploy-docs.yml "$release_tag_repo/.github/workflows/deploy-docs.yml"
 printf '%s\n' "# v0.1.0" "" "Release notes for tag readiness smoke." \
   >"$release_tag_repo/apps/docs/docs/release-notes/0.1.0.md"
 (

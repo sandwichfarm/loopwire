@@ -27,6 +27,7 @@ Checks:
   - versioned release notes exist,
   - versioned release notes no longer carry release-candidate/not-published wording,
   - public docs installer stays synchronized with the canonical installer,
+  - docs deployment manifest verifier is present, parseable, and wired into the deploy workflow,
   - release public key exists and parses,
   - git checkout is clean unless --skip-clean-git is passed,
   - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
@@ -157,6 +158,9 @@ check_release_notes_are_publishable "$release_notes"
 
 check_file "$canonical_installer" "canonical installer"
 check_file "$public_installer" "public docs installer"
+check_file "scripts/verify-docs-deployment-manifest.mjs" "docs deployment manifest verifier"
+check_file "package.json" "package manifest"
+check_file ".github/workflows/deploy-docs.yml" "docs deployment workflow"
 if [ -s "$canonical_installer" ] && [ -s "$public_installer" ]; then
   if cmp -s "$canonical_installer" "$public_installer"; then
     echo "ok: public docs installer matches canonical installer"
@@ -166,6 +170,36 @@ if [ -s "$canonical_installer" ] && [ -s "$public_installer" ]; then
   fi
   if ! bash -n "$public_installer"; then
     echo "invalid: public docs installer has shell syntax errors: $public_installer" >&2
+    failed=1
+  fi
+fi
+
+if [ -s "scripts/verify-docs-deployment-manifest.mjs" ]; then
+  if node --check scripts/verify-docs-deployment-manifest.mjs >/dev/null; then
+    echo "ok: docs deployment manifest verifier parses"
+  else
+    echo "invalid: docs deployment manifest verifier has syntax errors" >&2
+    failed=1
+  fi
+fi
+
+if [ -s "package.json" ] && node -e '
+const fs = require("node:fs");
+const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+process.exit(pkg.scripts?.["verify:docs-deployment"] === "node scripts/verify-docs-deployment-manifest.mjs" ? 0 : 1);
+'; then
+  echo "ok: package script verify:docs-deployment is wired"
+else
+  echo "invalid: package script verify:docs-deployment is missing or changed" >&2
+  failed=1
+fi
+
+if [ -s ".github/workflows/deploy-docs.yml" ]; then
+  if grep -F -- "pnpm verify:docs-deployment" .github/workflows/deploy-docs.yml >/dev/null &&
+    grep -F -- "dist/docs-deployment/deployment-manifest.json" .github/workflows/deploy-docs.yml >/dev/null; then
+    echo "ok: docs deployment workflow verifies manifest before artifact upload"
+  else
+    echo "invalid: docs deployment workflow does not verify the deployment manifest" >&2
     failed=1
   fi
 fi
