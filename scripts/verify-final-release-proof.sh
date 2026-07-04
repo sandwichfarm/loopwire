@@ -363,14 +363,16 @@ while IFS= read -r target; do
     bash scripts/verify-vm-evidence.sh \
     --target "$target" \
     --evidence-dir "$vm_evidence_root/$target" \
-    --require-published-release
+    --require-published-release \
+    --release-tag "$tag"
 done < <(target_ids)
 
 run_step "support matrix" \
   node scripts/verify-support-matrix.mjs \
   --evidence-root "$vm_evidence_root" \
   --matrix "$support_matrix" \
-  --require-published-release
+  --require-published-release \
+  --release-tag "$tag"
 run_step "docs contract" pnpm verify:docs
 
 if [ "$dry_run" = "true" ]; then

@@ -13,6 +13,7 @@ const evidenceDir = readOption("--evidence-dir") ?? (target ? join(evidenceRoot,
 const matrixPath = readOption("--matrix") ?? join(root, "apps/docs/docs/guide/support-matrix.md");
 const dryRun = args.includes("--dry-run");
 const requirePublishedRelease = args.includes("--require-published-release");
+const releaseTag = readOption("--release-tag");
 
 if (args.includes("-h") || args.includes("--help")) {
   usage();
@@ -36,12 +37,13 @@ function usage() {
 
 Usage:
   promote-vm-evidence.mjs --target TARGET [--evidence-dir DIR] [--evidence-root DIR] [--matrix FILE] [--dry-run]
-  promote-vm-evidence.mjs --target TARGET --require-published-release [--dry-run]
-  promote-vm-evidence.mjs --all [--evidence-root DIR] [--matrix FILE] [--require-published-release] [--dry-run]
+  promote-vm-evidence.mjs --target TARGET --require-published-release --release-tag vX.Y.Z [--dry-run]
+  promote-vm-evidence.mjs --all [--evidence-root DIR] [--matrix FILE] [--require-published-release] [--release-tag vX.Y.Z] [--dry-run]
 
 The tool runs scripts/verify-vm-evidence.sh first. It only promotes rows from Manual VM to Verified.
 With --all, missing evidence directories are reported and skipped; invalid evidence fails the command.
-Use --require-published-release for final release support claims that must prove installed-release smoke.
+Use --require-published-release with --release-tag for final release support claims that must prove installed-release
+smoke for the exact release.
 Use --dry-run to verify evidence and preview the change without editing docs.
 `);
 }
@@ -52,7 +54,7 @@ function readOption(name) {
 }
 
 function validateArgs() {
-  const valueOptions = new Set(["--target", "--evidence-dir", "--evidence-root", "--matrix"]);
+  const valueOptions = new Set(["--target", "--evidence-dir", "--evidence-root", "--matrix", "--release-tag"]);
   const flagOptions = new Set(["--all", "--dry-run", "--require-published-release"]);
 
   for (let index = 0; index < args.length; index += 1) {
@@ -83,6 +85,16 @@ function validateArgs() {
 
   if (allTargets && args.includes("--evidence-dir")) {
     fail("--all uses --evidence-root; do not pass --evidence-dir");
+  }
+
+  if (releaseTag) {
+    if (!requirePublishedRelease) {
+      fail("--release-tag requires --require-published-release");
+    }
+
+    if (!/^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$/.test(releaseTag)) {
+      fail(`release tag must be v-prefixed semver without path separators: ${releaseTag}`);
+    }
   }
 }
 
@@ -202,6 +214,9 @@ function verifyEvidence(id, dir) {
   const verifierArgs = ["scripts/verify-vm-evidence.sh", "--target", id, "--evidence-dir", dir];
   if (requirePublishedRelease) {
     verifierArgs.push("--require-published-release");
+  }
+  if (releaseTag) {
+    verifierArgs.push("--release-tag", releaseTag);
   }
 
   const result = spawnSync(

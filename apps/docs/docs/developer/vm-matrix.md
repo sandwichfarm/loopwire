@@ -373,8 +373,9 @@ bash scripts/collect-vm-evidence.sh \
 ```
 
 That mode runs `scripts/verify-published-release.sh` inside the guest, records `published-release-smoke.log`, and makes
-`scripts/verify-vm-evidence.sh --require-published-release` reject bundles that did not install and run a signed
-release artifact.
+`scripts/verify-vm-evidence.sh --require-published-release --release-tag v0.1.0` reject bundles that did not install
+and run the signed artifact for that exact release. It also writes `published-release.json`, which binds the VM bundle
+to the release tag and either the GitHub repo or guest-visible release directory used for the smoke.
 
 After every target bundle is collected, package the exact archive consumed by the final release proof workflow:
 
@@ -445,7 +446,8 @@ For the final publish gate, require installed-release evidence too:
 bash scripts/verify-vm-evidence.sh \
   --target arch-hyprland-pipewire \
   --evidence-dir .vm/evidence/arch-hyprland-pipewire \
-  --require-published-release
+  --require-published-release \
+  --release-tag v0.1.0
 ```
 
 After verification passes, promote the support-matrix row through the guarded updater:
@@ -454,8 +456,9 @@ After verification passes, promote the support-matrix row through the guarded up
 pnpm vm:promote-evidence -- \
   --target arch-hyprland-pipewire \
   --require-published-release \
+  --release-tag v0.1.0 \
   --dry-run
-pnpm vm:promote-evidence -- --target arch-hyprland-pipewire --require-published-release
+pnpm vm:promote-evidence -- --target arch-hyprland-pipewire --require-published-release --release-tag v0.1.0
 ```
 
 After a broader VM pass, promote every target that has verified evidence under the matrix evidence root:
@@ -465,15 +468,17 @@ pnpm vm:promote-evidence -- \
   --all \
   --evidence-root .vm/evidence \
   --require-published-release \
+  --release-tag v0.1.0 \
   --dry-run
-pnpm vm:promote-evidence -- --all --evidence-root .vm/evidence --require-published-release
+pnpm vm:promote-evidence -- --all --evidence-root .vm/evidence --require-published-release --release-tag v0.1.0
 ```
 
 The promotion tool runs `scripts/verify-vm-evidence.sh` before editing docs. It only changes rows from `Manual VM` to
 `Verified`, and it no-ops if the row is already verified. In `--all` mode, missing evidence directories are reported
-and skipped while invalid evidence fails the command. Use `--require-published-release` for final public release claims
-so promotion also proves installed-release smoke. Do not edit support-matrix status by hand after evidence collection
-unless the promotion tool cannot run and the matching verifier command has passed.
+and skipped while invalid evidence fails the command. Use `--require-published-release` with `--release-tag` for final
+public release claims so promotion also proves installed-release smoke for the exact release. Do not edit
+support-matrix status by hand after evidence collection unless the promotion tool cannot run and the matching verifier
+command has passed.
 
 Required files are:
 
@@ -492,6 +497,7 @@ Required files are:
 - `notes.md`
 - `command-results.tsv`
 - `published-release-smoke.log` when `--require-published-release` is used
+- `published-release.json` when `--release-tag` is used
 
 `command-results.tsv` must show successful `pnpm-check`, `desktop-launch`, `audio-host-build`, `detect-audio`,
 `ct-host-check`, and `autostart` commands, and each row must point to the expected non-empty log file. `screenshot.png`
@@ -500,7 +506,7 @@ are rejected by the verifier. `environment.json` must match the selected VM targ
 desktop/session, and architecture. `detect-audio.json` must report the expected target backend as available: PipeWire
 targets require PipeWire, compatibility targets require PipeWire and PulseAudio, PulseAudio targets require PulseAudio,
 and JACK targets require JACK. When `--require-published-release` is used, the ledger must also include a successful
-`published-release-smoke` row.
+`published-release-smoke` row. When `--release-tag` is used, `published-release.json` must match that exact tag.
 
 ## CI Boundary
 

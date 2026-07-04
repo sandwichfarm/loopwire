@@ -224,6 +224,8 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" "audio.backends"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "jack-port-requirements.json"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "published-release-smoke.log"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "verify-vm-evidence.sh --require-published-release"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "published-release.json"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "--release-tag v0.1.0"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "published-release-smoke"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "environment.json"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'backend availability from `detect-audio.json`'
@@ -288,7 +290,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" "--require-all-targets"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "fails before SSH runs"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "target id as its own path"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "segment and must not contain"
-assert_contains "apps/docs/docs/developer/vm-matrix.md" 'Use `--require-published-release` for final public release'
+assert_contains "apps/docs/docs/developer/vm-matrix.md" 'Use `--require-published-release` with `--release-tag` for final'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'final-release `pnpm vm:collect-matrix` command'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'missing `cloud-localds`'
 assert_contains "apps/docs/docs/developer/release-notes.md" "Release-note workflow"

@@ -741,6 +741,10 @@ function validateVmEvidenceCommand(command, target) {
   if (requirePublishedRelease && !tokens.includes("--require-published-release")) {
     fail(`VM evidence command ${command.name} must require published-release smoke`);
   }
+
+  if (requirePublishedRelease) {
+    requireOptionValue(tokens, "--release-tag", manifest.release.tag, `VM evidence command ${command.name}`);
+  }
 }
 
 function validateLiveDocsCommand(command) {

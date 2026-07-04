@@ -26,7 +26,8 @@ stack, and architecture before a row can be promoted. The matching `detect-audio
 audio backend as available, so a JACK or PulseAudio row cannot be promoted with only generic Linux evidence.
 After evidence verifies, promote the row with `pnpm vm:promote-evidence -- --target <target>`. Use `--dry-run` first
 to preview the docs change without editing the matrix. For final release support claims, pass
-`--require-published-release` so promotion also proves the guest installed and ran the signed published artifact.
+`--require-published-release --release-tag <tag>` so promotion also proves the guest installed and ran the signed
+published artifact for the exact release.
 Run `pnpm vm:host-plan` for cross-distro host setup hints and target-specific image, cloud-init, launch, and evidence
 handoff commands.
 Run `pnpm vm:render-ssh-plan -- --all --output .vm/ssh-targets.tsv` to generate the multi-guest TSV consumed by

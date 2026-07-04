@@ -40,7 +40,7 @@ Options:
   --desktop-port PORT               Guest desktop launch smoke port for collect-vm-evidence.sh.
   --published-release-dir DIR       Guest-visible signed release directory for installed-release smoke.
   --published-release-repo REPO     GitHub repository for installed-release smoke.
-  --published-release-tag TAG       GitHub release tag for installed-release smoke.
+  --published-release-tag TAG       Release tag for installed-release smoke.
   --release-public-key FILE         Guest-visible release public key for signature verification.
   --require-published-release       Require installed-release smoke in guest evidence verification.
   --note TEXT                       Append operator context to guest notes.md.
@@ -196,14 +196,18 @@ if [ -n "$published_release_dir" ] && [ -n "$published_release_repo" ]; then
   fail "use either --published-release-dir or --published-release-repo, not both"
 fi
 
+if [ -n "$published_release_tag" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
+  fail "--published-release-tag requires --published-release-dir or --published-release-repo"
+fi
+
 if [ "$require_published_release" = "true" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
   fail "--require-published-release requires --published-release-dir or --published-release-repo"
 fi
 
 if [ -n "$published_release_dir" ] || [ -n "$published_release_repo" ]; then
   [ -n "$release_public_key" ] || fail "published release smoke requires --release-public-key"
-  if [ -n "$published_release_repo" ] && [ -z "$published_release_tag" ]; then
-    fail "--published-release-repo requires --published-release-tag"
+  if [ -z "$published_release_tag" ]; then
+    fail "published release smoke requires --published-release-tag"
   fi
 fi
 
@@ -229,7 +233,7 @@ if [ -n "$desktop_port" ]; then
 fi
 
 if [ -n "$published_release_dir" ]; then
-  collector_args+=(--published-release-dir "$published_release_dir")
+  collector_args+=(--published-release-dir "$published_release_dir" --published-release-tag "$published_release_tag")
 fi
 
 if [ -n "$published_release_repo" ]; then
@@ -257,6 +261,9 @@ scp_source="$(ssh_target):$(remote_evidence_path)/."
 verify_command=(bash scripts/verify-vm-evidence.sh --target "$target" --evidence-dir "$local_output_dir")
 if [ "$require_published_release" = "true" ]; then
   verify_command+=(--require-published-release)
+fi
+if [ -n "$published_release_tag" ]; then
+  verify_command+=(--release-tag "$published_release_tag")
 fi
 
 echo "Target: $target"

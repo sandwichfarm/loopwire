@@ -293,6 +293,8 @@ These notes describe source-tree progress. They are not a public release announc
   dimensions of at least 320x200 before a target can be promoted.
 - VM evidence collection can now run published-release installer smoke inside the guest and `verify-vm-evidence` can
   require that installed-release proof for final release gates.
+- VM evidence now writes `published-release.json`, and final release proof can require the VM bundle to match the exact
+  release tag instead of accepting any successful published-release smoke log.
 - VM evidence promotion now has a guarded `pnpm vm:promote-evidence` command that verifies target evidence before
   changing a support-matrix row from `Manual VM` to `Verified`.
 - VM evidence promotion can now require published-release smoke, so final public support rows cannot be promoted from

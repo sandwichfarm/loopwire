@@ -92,6 +92,10 @@ node scripts/promote-vm-evidence.mjs --help | grep -F -- "--require-published-re
   echo "verify-scripts: VM evidence promotion help is missing published release requirement support" >&2
   exit 1
 }
+node scripts/promote-vm-evidence.mjs --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
+  echo "verify-scripts: VM evidence promotion help is missing release tag support" >&2
+  exit 1
+}
 node scripts/promote-vm-evidence.mjs --help | grep -F -- "--all" >/dev/null || {
   echo "verify-scripts: VM evidence promotion help is missing all-target support" >&2
   exit 1
@@ -106,6 +110,14 @@ node scripts/verify-support-matrix.mjs --help | grep -F -- "--matrix FILE" >/dev
 }
 node scripts/verify-support-matrix.mjs --help | grep -F -- "--require-published-release" >/dev/null || {
   echo "verify-scripts: support matrix verifier help is missing published release strictness support" >&2
+  exit 1
+}
+bash scripts/verify-vm-evidence.sh --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
+  echo "verify-scripts: VM evidence verifier help is missing release tag support" >&2
+  exit 1
+}
+node scripts/verify-support-matrix.mjs --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
+  echo "verify-scripts: support matrix verifier help is missing release tag support" >&2
   exit 1
 }
 collect_evidence_help="$(node scripts/collect-release-evidence.mjs --help)"
@@ -315,6 +327,12 @@ printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-vm-evidence.sh"
   echo "verify-scripts: final release dry-run is missing VM evidence verification" >&2
   exit 1
 }
+printf '%s\n' "$final_release_dry_run" \
+  | grep -F "dry-run: VM evidence arch-hyprland-pipewire:" \
+  | grep -F -- "--release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: final release dry-run is missing VM evidence release tag binding" >&2
+    exit 1
+  }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/package-vm-evidence.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing VM evidence archive packaging" >&2
   exit 1
@@ -331,6 +349,12 @@ printf '%s\n' "$final_release_dry_run" \
   | grep -F "dry-run: support matrix:" \
   | grep -F -- "--require-published-release" >/dev/null || {
     echo "verify-scripts: final release dry-run is missing strict support matrix verification" >&2
+    exit 1
+  }
+printf '%s\n' "$final_release_dry_run" \
+  | grep -F "dry-run: support matrix:" \
+  | grep -F -- "--release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: final release dry-run is missing support matrix release tag binding" >&2
     exit 1
   }
 printf '%s\n' "$final_release_dry_run" | grep -F "Final release proof dry-run complete." >/dev/null || {
@@ -802,6 +826,7 @@ const fs = require("node:fs");
 const plan = JSON.parse(fs.readFileSync(0, "utf8"));
 const item = plan.find((entry) => entry.name === "vm-evidence");
 if (!item || !item.command.includes("--require-published-release")) process.exit(1);
+if (!item.command.includes("--release-tag") || !item.command.includes("v0.1.0")) process.exit(1);
 ' || {
   echo "verify-scripts: VM evidence plan did not inherit published-release strictness" >&2
   exit 1
@@ -829,6 +854,7 @@ if (vmItems.length !== targets.length) process.exit(1);
 if (!vmItems.every((entry) => entry.required === true)) process.exit(1);
 if (!vmItems.some((entry) => entry.name === "vm-evidence:fedora-kde-jack")) process.exit(1);
 if (!vmItems.every((entry) => entry.command.includes("--require-published-release"))) process.exit(1);
+if (!vmItems.every((entry) => entry.command.includes("--release-tag") && entry.command.includes("v0.1.0"))) process.exit(1);
 if (!vmItems.some((entry) => entry.command.includes(".vm/evidence/debian-xfce-pulseaudio"))) process.exit(1);
 if (!vmItems.some((entry) => entry.name === "vm-evidence:opensuse-kde-pipewire")) process.exit(1);
 if (!vmItems.some((entry) => entry.name === "vm-evidence:ubuntu-gnome-pipewire-aarch64")) process.exit(1);
@@ -1542,7 +1568,7 @@ function command(name, log) {
 function vmCommand(target) {
   return {
     ...command(`vm-evidence:${target}`, `vm-evidence-${target}.log`),
-    command: `bash scripts/verify-vm-evidence.sh --target ${target} --evidence-dir .vm/evidence/${target} --require-published-release`
+    command: `bash scripts/verify-vm-evidence.sh --target ${target} --evidence-dir .vm/evidence/${target} --require-published-release --release-tag v0.1.0`
   };
 }
 
@@ -4048,12 +4074,38 @@ if node scripts/verify-support-matrix.mjs \
   exit 1
 fi
 printf '%s\n' "Published release verification passed for /tmp/fake-release." >"$evidence_dir/published-release-smoke.log"
+cat >"$evidence_dir/published-release.json" <<'JSON'
+{
+  "kind": "loopwire.vm-published-release",
+  "version": 1,
+  "generatedAt": "2026-07-03T00:00:00.000Z",
+  "source": "github",
+  "release": {
+    "repo": "sandwichfarm/loopwire",
+    "tag": "v0.1.0",
+    "publicKey": "packaging/release-signing-public.pem"
+  }
+}
+JSON
 printf 'published-release-smoke\t0\t2026-07-03T00:00:06+00:00\t2026-07-03T00:00:07+00:00\tpublished-release-smoke.log\n' \
   >>"$evidence_dir/command-results.tsv"
 bash scripts/verify-vm-evidence.sh \
   --target arch-hyprland-pipewire \
   --evidence-dir "$evidence_dir" \
   --require-published-release >/dev/null
+bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$evidence_dir" \
+  --require-published-release \
+  --release-tag v0.1.0 >/dev/null
+if bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$evidence_dir" \
+  --require-published-release \
+  --release-tag v0.2.0 >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted a mismatched release tag" >&2
+  exit 1
+fi
 rm -rf "$status_root/arch-hyprland-pipewire"
 cp -R "$evidence_dir" "$status_root/arch-hyprland-pipewire"
 vm_evidence_archive="$tmp_dir/loopwire-vm-evidence-v0.1.0.tar.gz"
@@ -4238,9 +4290,11 @@ ssh_release_dry_run="$(bash scripts/collect-vm-evidence-ssh.sh \
   --target arch-hyprland-pipewire \
   --host 127.0.0.1 \
   --published-release-dir /guest/release \
+  --published-release-tag v0.1.0 \
   --release-public-key /guest/release-public.pem \
   --require-published-release)"
 printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--published-release-dir" >/dev/null
+printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--published-release-tag" >/dev/null
 printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--release-public-key" >/dev/null
 printf '%s\n' "$ssh_release_dry_run" | grep -F -- "--require-published-release" >/dev/null
 
@@ -4283,11 +4337,16 @@ matrix_release_dry_run="$(
   bash scripts/collect-vm-matrix-evidence.sh \
     --plan "$matrix_plan" \
     --published-release-dir /guest/release \
+    --published-release-tag v0.1.0 \
     --release-public-key /guest/release-public.pem \
     --require-published-release
 )"
 printf '%s\n' "$matrix_release_dry_run" | grep -F -- "--require-published-release" >/dev/null || {
   echo "verify-scripts: matrix VM evidence collector did not forward published release strictness" >&2
+  exit 1
+}
+printf '%s\n' "$matrix_release_dry_run" | grep -F -- "--published-release-tag v0.1.0" >/dev/null || {
+  echo "verify-scripts: matrix VM evidence collector did not forward the published release tag" >&2
   exit 1
 }
 if bash scripts/collect-vm-matrix-evidence.sh \

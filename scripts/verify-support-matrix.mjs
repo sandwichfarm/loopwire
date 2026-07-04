@@ -9,6 +9,7 @@ const args = process.argv.slice(2);
 const evidenceRoot = readOption("--evidence-root") ?? join(root, ".vm/evidence");
 const matrixPath = readOption("--matrix") ?? join(root, "apps/docs/docs/guide/support-matrix.md");
 const requirePublishedRelease = args.includes("--require-published-release");
+const releaseTag = readOption("--release-tag");
 const allowedStatuses = new Set(["Manual VM", "Verified"]);
 
 if (args.includes("-h") || args.includes("--help")) {
@@ -82,10 +83,11 @@ function usage() {
   console.log(`Verify Loopwire support matrix rows against VM target metadata and evidence.
 
 Usage:
-  verify-support-matrix.mjs [--evidence-root DIR] [--matrix FILE] [--require-published-release]
+  verify-support-matrix.mjs [--evidence-root DIR] [--matrix FILE] [--require-published-release] [--release-tag vX.Y.Z]
 
 Rows marked Verified require a passing target evidence bundle. Rows with passing evidence must be marked Verified.
-Use --require-published-release for final release support claims that must prove installed-release smoke.
+Use --require-published-release with --release-tag for final release support claims that must prove installed-release
+smoke for the exact release.
 `);
 }
 
@@ -95,7 +97,7 @@ function readOption(name) {
 }
 
 function validateArgs() {
-  const valueOptions = new Set(["--evidence-root", "--matrix"]);
+  const valueOptions = new Set(["--evidence-root", "--matrix", "--release-tag"]);
   const flagOptions = new Set(["--require-published-release"]);
 
   for (let index = 0; index < args.length; index += 1) {
@@ -116,6 +118,18 @@ function validateArgs() {
 
     console.error(`verify-support-matrix: unknown argument: ${arg}`);
     process.exit(2);
+  }
+
+  if (releaseTag) {
+    if (!requirePublishedRelease) {
+      console.error("verify-support-matrix: --release-tag requires --require-published-release");
+      process.exit(2);
+    }
+
+    if (!/^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$/.test(releaseTag)) {
+      console.error(`verify-support-matrix: release tag must be v-prefixed semver without path separators: ${releaseTag}`);
+      process.exit(2);
+    }
   }
 }
 
@@ -155,6 +169,9 @@ function verifyEvidence(target, evidenceDir) {
   const verifierArgs = ["scripts/verify-vm-evidence.sh", "--target", target, "--evidence-dir", evidenceDir];
   if (requirePublishedRelease) {
     verifierArgs.push("--require-published-release");
+  }
+  if (releaseTag) {
+    verifierArgs.push("--release-tag", releaseTag);
   }
 
   const result = spawnSync(

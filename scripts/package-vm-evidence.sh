@@ -147,7 +147,7 @@ reject_unsafe_value "$output" "output path"
 
 verify_flags=()
 if [ "$require_published_release" = "true" ]; then
-  verify_flags+=(--require-published-release)
+  verify_flags+=(--require-published-release --release-tag "$tag")
 fi
 
 for target in "${targets[@]}"; do

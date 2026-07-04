@@ -31,7 +31,7 @@ Options:
   --desktop-port PORT          Local port for the desktop launch smoke. Defaults to 5181.
   --published-release-dir DIR  Run installed-release smoke against a signed local release directory.
   --published-release-repo REPO Run installed-release smoke against a GitHub release repository.
-  --published-release-tag TAG  GitHub release tag for --published-release-repo.
+  --published-release-tag TAG  Release tag for installed-release smoke.
   --release-public-key FILE    Public key for published-release signature verification.
   --require-published-release  Require published-release smoke arguments and fail if they are absent.
   --note TEXT                  Append operator context to notes.md.
@@ -126,14 +126,18 @@ if [ -n "$published_release_dir" ] && [ -n "$published_release_repo" ]; then
   fail "use either --published-release-dir or --published-release-repo, not both"
 fi
 
+if [ -n "$published_release_tag" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
+  fail "--published-release-tag requires --published-release-dir or --published-release-repo"
+fi
+
 if [ "$require_published_release" = "true" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
   fail "--require-published-release requires --published-release-dir or --published-release-repo"
 fi
 
 if [ -n "$published_release_dir" ] || [ -n "$published_release_repo" ]; then
   [ -n "$release_public_key" ] || fail "published release smoke requires --release-public-key"
-  if [ -n "$published_release_repo" ] && [ -z "$published_release_tag" ]; then
-    fail "--published-release-repo requires --published-release-tag"
+  if [ -z "$published_release_tag" ]; then
+    fail "published release smoke requires --published-release-tag"
   fi
 fi
 
@@ -352,10 +356,13 @@ run_published_release_smoke() {
     return 0
   fi
 
+  write_published_release_manifest
+
   if [ -n "$published_release_dir" ]; then
     run_logged "published-release-smoke" "published-release-smoke.log" \
       bash scripts/verify-published-release.sh \
       --release-dir "$published_release_dir" \
+      --tag "$published_release_tag" \
       --public-key "$release_public_key"
     return 0
   fi
@@ -365,6 +372,36 @@ run_published_release_smoke() {
     --repo "$published_release_repo" \
     --tag "$published_release_tag" \
     --public-key "$release_public_key"
+}
+
+write_published_release_manifest() {
+  node - "$output_dir/published-release.json" "$published_release_dir" "$published_release_repo" \
+    "$published_release_tag" "$release_public_key" <<'NODE'
+const fs = require("node:fs");
+
+const [outputPath, releaseDir, releaseRepo, releaseTag, releasePublicKey] = process.argv.slice(2);
+const source = releaseDir ? "directory" : "github";
+const manifest = {
+  kind: "loopwire.vm-published-release",
+  version: 1,
+  generatedAt: new Date().toISOString(),
+  source,
+  release: {
+    tag: releaseTag,
+    publicKey: releasePublicKey
+  }
+};
+
+if (releaseDir) {
+  manifest.release.directory = releaseDir;
+}
+
+if (releaseRepo) {
+  manifest.release.repo = releaseRepo;
+}
+
+fs.writeFileSync(outputPath, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
 }
 
 capture_screenshot() {
@@ -425,6 +462,9 @@ capture_screenshot
 verify_args=(--target "$target" --evidence-dir "$output_dir")
 if [ "$require_published_release" = "true" ]; then
   verify_args+=(--require-published-release)
+fi
+if [ -n "$published_release_tag" ]; then
+  verify_args+=(--release-tag "$published_release_tag")
 fi
 
 if bash scripts/verify-vm-evidence.sh "${verify_args[@]}" >"$output_dir/vm-evidence-verify.log" 2>&1; then

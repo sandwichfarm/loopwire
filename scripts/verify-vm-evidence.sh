@@ -4,13 +4,14 @@ set -euo pipefail
 target=""
 evidence_dir=""
 require_published_release="false"
+release_tag=""
 
 usage() {
   cat <<'USAGE'
 Verify Loopwire VM evidence.
 
 Usage:
-  verify-vm-evidence.sh --target TARGET --evidence-dir DIR [--require-published-release]
+  verify-vm-evidence.sh --target TARGET --evidence-dir DIR [--require-published-release] [--release-tag vX.Y.Z]
 
 Required files:
   pnpm-check.log
@@ -28,12 +29,14 @@ Required files:
   notes.md
   command-results.tsv
   published-release-smoke.log (when --require-published-release is passed, or when present in command-results.tsv)
+  published-release.json (when --release-tag is passed)
 
 The target must exist in vm/targets.tsv. This verifier checks that the evidence bundle has the expected files and that
 the backend detection JSON contains the target platform and reports array. It also checks command-results.tsv to prove
 the required guest commands, including desktop launch smoke, completed successfully. The environment manifest must
 match the selected VM target's distro, desktop/session, audio stack, and architecture. With --require-published-release,
 the bundle must also prove an installed release smoke through scripts/verify-published-release.sh.
+With --release-tag, the bundle must include structured published-release metadata for that exact tag.
 USAGE
 }
 
@@ -56,6 +59,10 @@ while [ "$#" -gt 0 ]; do
       require_published_release="true"
       shift
       ;;
+    --release-tag)
+      release_tag="${2:-}"
+      shift 2
+      ;;
     -h | --help)
       usage
       exit 0
@@ -69,7 +76,14 @@ done
 [ -n "$target" ] || fail "missing --target"
 [ -n "$evidence_dir" ] || fail "missing --evidence-dir"
 [ -d "$evidence_dir" ] || fail "missing evidence directory: $evidence_dir"
-grep -Fq "$target" vm/targets.tsv || fail "unknown VM target: $target"
+awk -F '\t' -v id="$target" 'NF && $1 == id { found = 1 } END { exit found ? 0 : 1 }' vm/targets.tsv \
+  || fail "unknown VM target: $target"
+
+if [ -n "$release_tag" ]; then
+  [[ "$release_tag" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$ ]] \
+    || fail "release tag must be v-prefixed semver without path separators: $release_tag"
+  [ "$require_published_release" = "true" ] || fail "--release-tag requires --require-published-release"
+fi
 
 for required in \
   pnpm-check.log \
@@ -91,6 +105,10 @@ done
 
 if [ "$require_published_release" = "true" ]; then
   [ -s "$evidence_dir/published-release-smoke.log" ] || fail "missing or empty evidence file: published-release-smoke.log"
+fi
+
+if [ -n "$release_tag" ]; then
+  [ -s "$evidence_dir/published-release.json" ] || fail "missing or empty evidence file: published-release.json"
 fi
 
 node -e '
@@ -328,6 +346,39 @@ function validateCommand(name, expectedLog, requiredCommand) {
   }
 }
 ' "$evidence_dir/command-results.tsv" "$evidence_dir" "$require_published_release"
+
+if [ -n "$release_tag" ]; then
+  node -e '
+const fs = require("node:fs");
+const path = process.argv[1];
+const expectedTag = process.argv[2];
+const data = JSON.parse(fs.readFileSync(path, "utf8"));
+
+if (data.kind !== "loopwire.vm-published-release" || data.version !== 1) {
+  throw new Error("published-release.json must be a loopwire.vm-published-release v1 manifest");
+}
+
+if (data.release?.tag !== expectedTag) {
+  throw new Error(`published release tag mismatch: expected ${expectedTag}, found ${data.release?.tag || "unknown"}`);
+}
+
+if (!["directory", "github"].includes(data.source)) {
+  throw new Error("published-release.json source must be directory or github");
+}
+
+if (!data.release?.publicKey) {
+  throw new Error("published-release.json must include release.publicKey");
+}
+
+if (data.source === "github" && !data.release?.repo) {
+  throw new Error("published-release.json github source must include release.repo");
+}
+
+if (data.source === "directory" && !data.release?.directory) {
+  throw new Error("published-release.json directory source must include release.directory");
+}
+' "$evidence_dir/published-release.json" "$release_tag"
+fi
 
 node -e '
 const fs = require("node:fs");

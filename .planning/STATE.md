@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T18:15:24+02:00"
-last_activity: 2026-07-04 - GitHub secret checks distinguish deploy and final-proof scopes
+last_updated: "2026-07-04T18:28:57+02:00"
+last_activity: 2026-07-04 - VM evidence proof is now bound to exact release tags
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,12 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/setup-github-secrets.sh --check` now supports `--scope deploy` for Bunny.net
-upload readiness separately from the default strict final-proof scope. A live read-only deploy-scope check against
-`sandwichfarm/loopwire` still fails closed because `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY` are not configured, but
-the printed next step no longer requires the final-proof pull-zone hostname in deploy scope. Phase 12 remains gated on
-a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
-operator-run VM evidence.
+Last activity: 2026-07-04 - VM evidence collection now writes `published-release.json`, final proof and release
+evidence command plans pass `--release-tag`, and support-matrix promotion/verification can reject VM evidence collected
+against the wrong release. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
+proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +83,15 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 VM release-tag evidence binding: VM guest evidence now writes structured
+  `published-release.json`, `scripts/verify-vm-evidence.sh --require-published-release --release-tag <tag>` rejects
+  mismatched release evidence, VM archive packaging passes the archive tag into every target verifier, final release
+  proof dry-runs include tag-bound VM/support-matrix checks, and docs describe the exact-tag support-claim ceremony.
+  Validation passed: `bash -n scripts/verify-vm-evidence.sh scripts/collect-vm-evidence.sh
+  scripts/collect-vm-evidence-ssh.sh scripts/collect-vm-matrix-evidence.sh scripts/package-vm-evidence.sh
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh`, `node --check scripts/promote-vm-evidence.mjs
+  scripts/verify-support-matrix.mjs scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`,
+  `git diff --check`, `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm check`.
 - 2026-07-04 Phase 12 GitHub secret scope checks: `scripts/setup-github-secrets.sh --check` now accepts
   `--scope deploy` to check only the Bunny.net upload secret pair, while the default `--scope final` remains strict for
   `BUNNY_PULL_ZONE_HOSTNAME` and `LOOPWIRE_RELEASE_PRIVATE_KEY`. Deploy-scope missing-secret guidance prints only the
