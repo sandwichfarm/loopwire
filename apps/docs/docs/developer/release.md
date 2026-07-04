@@ -176,10 +176,22 @@ pnpm release:handoff -- \
 ```
 
 The handoff prints the required secret check, strict release readiness command, Release workflow dispatch, Deploy Docs
-workflow dispatch, VM SSH plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow
-dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch workflows, upload VM evidence,
-or mutate host audio. If the Deploy Docs run id is not known yet, the final proof command includes
-`<docs-deployment-run-id>` and prints a blocker reminder.
+workflow dispatch, docs deployment proof download, VM SSH plan/runbook/evidence commands, VM evidence asset preparation
+command, final proof workflow dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch
+workflows, upload VM evidence, or mutate host audio. If the Deploy Docs run id is not known yet, the docs proof and
+final proof commands include `<docs-deployment-run-id>` and print a blocker reminder.
+
+After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
+
+```bash
+pnpm release:fetch-docs-proof -- \
+  --repo sandwichfarm/loopwire \
+  --run-id <docs-deployment-run-id> \
+  --git-head "$(git rev-parse HEAD)"
+```
+
+The helper downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is
+non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`.
 
 To audit the current final-release state from one read-only command:
 

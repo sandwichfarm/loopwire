@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T22:08:34+02:00"
-last_activity: 2026-07-04 - Final release status now validates docs deployment manifest proof
+last_updated: "2026-07-04T22:18:46+02:00"
+last_activity: 2026-07-04 - Final release handoff can fetch docs deployment proof artifacts
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:status` now audits non-dry-run docs deployment manifest proof before
-accepting the remaining final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
-install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:fetch-docs-proof` can download and verify Deploy Docs proof artifacts before
+`pnpm release:status` consumes them. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
+Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,18 @@ install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Docs deployment proof fetch helper: added `scripts/fetch-docs-deployment-proof.sh` and
+  `pnpm release:fetch-docs-proof` to download `loopwire-docs` plus `loopwire-docs-deployment` artifacts for a Deploy
+  Docs run, verify the non-dry-run deployment manifest against the downloaded docs dist and expected commit, and write
+  the default paths consumed by `pnpm release:status`. The final handoff now prints this command after Deploy Docs
+  dispatch and before VM/final proof steps. Validation passed: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready with 3,253 nodes and 6,324 edges; `bash -n
+  scripts/fetch-docs-deployment-proof.sh scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
+  Live temp-path `pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id 28718218215 --git-head
+  79bbf9074d58a88409d4650e9e2681b8a04f95e7` now fails with the precise blocker
+  `failed to download docs deployment manifest artifact 'loopwire-docs-deployment'`, while GitHub artifact readback
+  shows the run only published `loopwire-docs` because Bunny deployment steps were skipped.
 - 2026-07-04 Docs deployment manifest status gate: `scripts/audit-final-release-state.sh` now accepts
   `--docs-deployment-manifest` and `--docs-dist`, then verifies the manifest with
   `scripts/verify-docs-deployment-manifest.mjs --expected-dry-run false --git-head <expected>` before accepting final

@@ -10,6 +10,7 @@ bash -n \
   scripts/stage-release-artifacts.sh \
   scripts/deploy-docs-bunny.sh \
   scripts/verify-docs-live.sh \
+  scripts/fetch-docs-deployment-proof.sh \
   scripts/prepare-release-signing-key.sh \
   scripts/render-aur-pkgbuild.sh \
   scripts/render-nix-release-package.sh \
@@ -75,6 +76,10 @@ if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff
 }
 if (root.scripts["release:status"] !== "bash scripts/audit-final-release-state.sh") {
   console.error("verify-scripts: root package is missing release:status");
+  process.exit(1);
+}
+if (root.scripts["release:fetch-docs-proof"] !== "bash scripts/fetch-docs-deployment-proof.sh") {
+  console.error("verify-scripts: root package is missing release:fetch-docs-proof");
   process.exit(1);
 }
 if (root.scripts["verify:final-release"] !== "bash scripts/verify-final-release-proof.sh") {
@@ -186,8 +191,21 @@ pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 release_handoff_help="$(bash scripts/plan-final-release-handoff.sh --help)"
+fetch_docs_proof_help="$(bash scripts/fetch-docs-deployment-proof.sh --help)"
 bash scripts/plan-final-release-handoff.sh -- --help >/dev/null || {
   echo "verify-scripts: release handoff does not accept the package-script argument separator" >&2
+  exit 1
+}
+printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--run-id ID" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper help is missing run id support" >&2
+  exit 1
+}
+printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--manifest-artifact NAME" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper help is missing manifest artifact support" >&2
+  exit 1
+}
+printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--docs-dist DIR" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper help is missing docs dist support" >&2
   exit 1
 }
 printf '%s\n' "$release_handoff_help" | grep -F -- "--docs-deployment-run-id ID" >/dev/null || {
@@ -221,6 +239,12 @@ printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run deploy-docs.yml
   echo "verify-scripts: release handoff plan is missing docs workflow dispatch" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:fetch-docs-proof" |
+  grep -F -- "--run-id 123456" |
+  grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing docs deployment proof fetch" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:collect-matrix" | grep -F -- "--require-github-release-source" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing GitHub-source VM evidence collection" >&2
   exit 1
@@ -3477,12 +3501,122 @@ JSON
     esac
     exit 0
     ;;
+  "run download")
+    run_id="${3:?missing fake run id}"
+    shift 3
+    artifact_name=""
+    output_dir=""
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --repo)
+          shift 2
+          ;;
+        --name)
+          artifact_name="${2:?missing fake artifact name}"
+          shift 2
+          ;;
+        --dir)
+          output_dir="${2:?missing fake artifact output dir}"
+          shift 2
+          ;;
+        *)
+          echo "unexpected fake gh run download arg: $1" >&2
+          exit 64
+          ;;
+      esac
+    done
+    [ "$run_id" = "123456" ] || {
+      echo "unexpected fake run id: $run_id" >&2
+      exit 64
+    }
+    [ -n "$artifact_name" ] || {
+      echo "missing fake artifact name" >&2
+      exit 64
+    }
+    [ -n "$output_dir" ] || {
+      echo "missing fake artifact output dir" >&2
+      exit 64
+    }
+    mkdir -p "$output_dir"
+    case "$artifact_name" in
+      loopwire-docs)
+        printf '%s\n' '<!doctype html><title>Loopwire</title>' >"$output_dir/index.html"
+        printf '%s\n' '#!/usr/bin/env bash' 'echo install loopwire' >"$output_dir/install.sh"
+        ;;
+      loopwire-docs-deployment)
+        node - "$output_dir" "$LOOPWIRE_FAKE_DOCS_DIST" <<'NODE'
+const { createHash } = require("node:crypto");
+const { readdirSync, readFileSync, writeFileSync } = require("node:fs");
+const { join } = require("node:path");
+
+const [outputDir, docsDist] = process.argv.slice(2);
+const uploads = readdirSync(docsDist)
+  .sort()
+  .map((relativePath) => {
+    const bytes = readFileSync(join(docsDist, relativePath));
+    return {
+      relativePath,
+      remotePath: relativePath,
+      checksumSha256: createHash("sha256").update(bytes).digest("hex").toUpperCase()
+    };
+  });
+
+writeFileSync(join(outputDir, "deployment-manifest.json"), `${JSON.stringify({
+  schema: "loopwire.docs-deployment.v1",
+  generatedAt: "2026-07-04T00:00:00.000Z",
+  dryRun: false,
+  distDir: docsDist,
+  storage: {
+    zone: "loopwire-docs",
+    endpoint: "https://storage.bunnycdn.com",
+    remotePrefix: ""
+  },
+  source: {
+    gitHead: "0123456789abcdef0123456789abcdef01234567"
+  },
+  requiredFiles: ["index.html", "install.sh"],
+  fileCount: uploads.length,
+  uploads
+}, null, 2)}\n`);
+NODE
+        ;;
+      *)
+        echo "artifact not found: $artifact_name" >&2
+        exit 1
+        ;;
+    esac
+    exit 0
+    ;;
 esac
 
 echo "unexpected fake gh args: $*" >&2
 exit 64
 EOF
 chmod +x "$fake_gh_dir/gh"
+fetch_docs_proof_dist="$tmp_dir/fetched-docs-dist"
+fetch_docs_proof_manifest="$tmp_dir/fetched-docs-deployment/deployment-manifest.json"
+LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_proof_dist" PATH="$fake_gh_dir:$PATH" \
+  bash scripts/fetch-docs-deployment-proof.sh \
+    --repo sandwichfarm/loopwire \
+    --run-id 123456 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --docs-dist "$fetch_docs_proof_dist" \
+    --manifest "$fetch_docs_proof_manifest" >"$tmp_dir/fetch-docs-proof.log"
+grep -F "Docs deployment manifest verified: $fetch_docs_proof_manifest" "$tmp_dir/fetch-docs-proof.log" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper did not verify the fetched manifest" >&2
+  exit 1
+}
+grep -F "Docs deployment proof ready:" "$tmp_dir/fetch-docs-proof.log" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper did not report ready proof" >&2
+  exit 1
+}
+if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --run-id not-a-run \
+  --git-head 0123456789abcdef0123456789abcdef01234567 >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted an invalid run id" >&2
+  exit 1
+fi
 secret_list_release_key_only="$tmp_dir/secret-list-release-key-only.tsv"
 secret_list_all_final="$tmp_dir/secret-list-all-final.tsv"
 printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secret_list_release_key_only"

@@ -251,7 +251,10 @@ echo
 echo "4. Dispatch docs deployment for the same release ref:"
 print_command gh workflow run deploy-docs.yml --repo "$repo" --ref "$tag"
 echo
-echo "5. Render the operator VM evidence handoff:"
+echo "5. Download and verify docs deployment proof artifacts:"
+print_command pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head"
+echo
+echo "6. Render the operator VM evidence handoff:"
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
 print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --start-port "$vm_start_port" --output "$vm_runbook"
 print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-release-repo "$repo" \
@@ -260,7 +263,7 @@ print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-releas
 print_command pnpm vm:prepare-release-evidence -- --tag "$tag" --private-key "$release_private_key_file" \
   --public-key "$public_key" --repo "$repo" --all
 echo
-echo "6. Dispatch final release proof after docs and VM evidence assets exist:"
+echo "7. Dispatch final release proof after docs and VM evidence assets exist:"
 final_proof=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
   -f "tag=${tag}" \
   -f "git_head=${git_head}" \
@@ -275,7 +278,7 @@ else
 fi
 print_command "${final_proof[@]}"
 echo
-echo "7. Local dry-run of the final proof command plan:"
+echo "8. Local dry-run of the final proof command plan:"
 local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
   --git-head "$git_head" \
   --release-evidence-dir ".release-evidence/${tag}-published" \
