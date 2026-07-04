@@ -427,11 +427,15 @@ bash scripts/deploy-docs-bunny.sh \
   --storage-zone loopwire-docs \
   --storage-endpoint ny.storage.bunnycdn.com \
   --remote-prefix loopwire \
+  --deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --dry-run
 ```
 
 The deploy helper fails closed if the built dist omits `index.html` or `install.sh`; the dry-run should include
-`install.sh`, which is the public curl installer endpoint once the docs site is deployed.
+`install.sh`, which is the public curl installer endpoint once the docs site is deployed. When a deployment manifest is
+requested, the helper writes a non-secret `loopwire.docs-deployment.v1` JSON file listing the deployed relative paths,
+remote paths, SHA-256 checksums, storage endpoint, storage zone, remote prefix, dry-run/live mode, and file count. The
+docs workflow uploads that manifest as the `loopwire-docs-deployment` artifact after a Bunny.net deploy.
 When `BUNNY_PULL_ZONE_HOSTNAME` is configured, the deploy workflow also runs
 `scripts/verify-docs-live.sh --hostname "$BUNNY_PULL_ZONE_HOSTNAME" --remote-prefix "$BUNNY_REMOTE_PREFIX"` after
 upload. That smoke fetches the deployed homepage and `/install.sh` from the same pull-zone prefix used for upload,

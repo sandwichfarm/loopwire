@@ -770,6 +770,10 @@ if bash scripts/vm-matrix.sh render-ssh-plan --all --start-port 65500 >/dev/null
 fi
 bash scripts/collect-vm-evidence-ssh.sh -- --target arch-hyprland-pipewire --host 127.0.0.1 >/dev/null
 bash scripts/deploy-docs-bunny.sh --help >/dev/null
+bash scripts/deploy-docs-bunny.sh --help | grep -F -- "--deployment-manifest FILE" >/dev/null || {
+  echo "verify-scripts: Bunny docs deploy help is missing deployment manifest support" >&2
+  exit 1
+}
 bash scripts/prepare-release-signing-key.sh --help >/dev/null
 setup_secrets_required="$(bash scripts/setup-github-secrets.sh --print-required)"
 printf '%s\n' "$setup_secrets_required" | grep -F "BUNNY_REMOTE_PREFIX" >/dev/null || {
@@ -2268,12 +2272,14 @@ mkdir -p "$docs_dist/assets"
 printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$docs_dist/index.html"
 printf '%s\n' "body{color:#111}" >"$docs_dist/assets/site.css"
 cp apps/docs/docs/public/install.sh "$docs_dist/install.sh"
+bunny_manifest="$tmp_dir/docs-deployment-manifest.json"
 bunny_dry_run="$(
   bash scripts/deploy-docs-bunny.sh \
     --dist "$docs_dist" \
     --storage-zone loopwire-docs \
     --storage-endpoint ny.storage.bunnycdn.com \
     --remote-prefix preview \
+    --deployment-manifest "$bunny_manifest" \
     --dry-run
 )"
 printf '%s\n' "$bunny_dry_run" | grep -F "would upload index.html -> https://ny.storage.bunnycdn.com/loopwire-docs/preview/index.html" >/dev/null || {
@@ -2286,6 +2292,27 @@ printf '%s\n' "$bunny_dry_run" | grep -F "would upload install.sh -> https://ny.
 }
 printf '%s\n' "$bunny_dry_run" | grep -F "Dry run complete; 3 docs file(s) would be uploaded" >/dev/null || {
   echo "verify-scripts: Bunny docs deploy dry-run did not count files" >&2
+  exit 1
+}
+node - "$bunny_manifest" <<'NODE' || {
+const { readFileSync } = require("node:fs");
+
+const manifest = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const uploads = new Map(manifest.uploads.map((upload) => [upload.relativePath, upload]));
+
+if (manifest.schema !== "loopwire.docs-deployment.v1") process.exit(1);
+if (manifest.dryRun !== true) process.exit(1);
+if (manifest.fileCount !== 3) process.exit(1);
+if (manifest.storage.zone !== "loopwire-docs") process.exit(1);
+if (manifest.storage.endpoint !== "https://ny.storage.bunnycdn.com") process.exit(1);
+if (manifest.storage.remotePrefix !== "preview") process.exit(1);
+if (!manifest.requiredFiles.includes("index.html")) process.exit(1);
+if (!manifest.requiredFiles.includes("install.sh")) process.exit(1);
+if (uploads.get("install.sh")?.remotePath !== "preview/install.sh") process.exit(1);
+if (uploads.get("assets/site.css")?.remotePath !== "preview/assets/site.css") process.exit(1);
+if (JSON.stringify(manifest).includes("accessKey")) process.exit(1);
+NODE
+  echo "verify-scripts: Bunny docs deploy manifest is malformed" >&2
   exit 1
 }
 docs_dist_missing_installer="$tmp_dir/docs-dist-missing-installer"

@@ -166,6 +166,8 @@ These notes describe source-tree progress. They are not a public release announc
   regional storage endpoint support through `BUNNY_STORAGE_ENDPOINT`.
 - The docs deployment workflow and GitHub secret helper now pass optional `BUNNY_REMOTE_PREFIX` through to Bunny.net
   uploads for storage zones that serve multiple paths.
+- The Bunny.net docs deploy helper can now write a non-secret `loopwire.docs-deployment.v1` manifest, and the docs
+  deploy workflow uploads it as the `loopwire-docs-deployment` artifact after successful Bunny uploads.
 - The GitHub secret helper now rejects Bunny storage zones, endpoints, pull-zone hostnames, and remote prefixes that
   would later fail the docs deploy or live-smoke helpers.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or

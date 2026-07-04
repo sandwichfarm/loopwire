@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:54:17+02:00"
-last_activity: 2026-07-04 - VM evidence archive packager added
+last_updated: "2026-07-04T14:04:45+02:00"
+last_activity: 2026-07-04 - docs deployment manifest evidence added
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/package-vm-evidence.sh` and `pnpm vm:package-evidence` now package verified
-operator-collected VM bundles into the `loopwire-vm-evidence-<tag>.tar.gz` archive consumed by final release proof.
-The packager re-runs `scripts/verify-vm-evidence.sh` before writing archive entries. Phase 12 remains gated on a
-public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/deploy-docs-bunny.sh` can now write a non-secret
+`loopwire.docs-deployment.v1` manifest, and `.github/workflows/deploy-docs.yml` uploads it as the
+`loopwire-docs-deployment` artifact after Bunny.net uploads. Phase 12 remains gated on a public release, configured
+Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1962,3 +1962,14 @@ public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-ru
   verifier packages a fake strict single-target evidence archive and checks `--all`/`--target` conflict rejection.
   No VM was launched, no public release was created, no release asset was uploaded, and no support matrix row was
   promoted.
+- 2026-07-04 docs deployment manifest evidence: `scripts/deploy-docs-bunny.sh` now accepts
+  `--deployment-manifest` / `LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST` and writes a non-secret
+  `loopwire.docs-deployment.v1` JSON manifest with storage endpoint, zone, remote prefix, dry-run/live mode, file
+  count, required files, upload paths, and SHA-256 checksums. `.github/workflows/deploy-docs.yml` requests that
+  manifest during Bunny uploads and publishes it as the `loopwire-docs-deployment` artifact.
+- 2026-07-04 docs deployment manifest validation: codebase-memory MCP `search_graph` located existing deploy,
+  live-docs, release-evidence, and workflow surfaces before implementation. `bash -n scripts/deploy-docs-bunny.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh scripts/verify-github-workflows.sh`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, and `pnpm verify:scripts` passed. A real VitePress build plus Bunny dry-run wrote a
+  `loopwire.docs-deployment.v1` manifest with 68 files and `install.sh`. No Bunny secret was written, no Bunny upload
+  was attempted, and no live docs smoke was performed.

@@ -6,6 +6,7 @@ storage_zone="${BUNNY_STORAGE_ZONE:-}"
 access_key="${BUNNY_ACCESS_KEY:-}"
 storage_endpoint="${BUNNY_STORAGE_ENDPOINT:-https://storage.bunnycdn.com}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
+deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-}"
 dry_run="false"
 
 usage() {
@@ -14,7 +15,8 @@ Deploy the built VitePress docs directory to Bunny.net Edge Storage.
 
 Usage:
   deploy-docs-bunny.sh [--dist DIR] [--storage-zone ZONE] [--access-key KEY]
-                       [--storage-endpoint URL] [--remote-prefix PATH] [--dry-run]
+                       [--storage-endpoint URL] [--remote-prefix PATH]
+                       [--deployment-manifest FILE] [--dry-run]
 
 Environment:
   LOOPWIRE_DOCS_DIST      Built docs directory, default apps/docs/docs/.vitepress/dist
@@ -22,8 +24,11 @@ Environment:
   BUNNY_ACCESS_KEY        Storage zone password from Bunny's FTP & API Access panel
   BUNNY_STORAGE_ENDPOINT  Regional storage endpoint, default https://storage.bunnycdn.com
   BUNNY_REMOTE_PREFIX     Optional remote path prefix inside the storage zone
+  LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST
+                           Optional JSON manifest describing uploaded files without secrets
 
-Dry-run mode validates the local build output and prints upload targets without contacting Bunny.net.
+Dry-run mode validates the local build output, prints upload targets, and can write the deployment manifest without
+contacting Bunny.net.
 USAGE
 }
 
@@ -54,6 +59,10 @@ while [ "$#" -gt 0 ]; do
       remote_prefix="${2:?missing value for --remote-prefix}"
       shift 2
       ;;
+    --deployment-manifest)
+      deployment_manifest="${2:?missing value for --deployment-manifest}"
+      shift 2
+      ;;
     --dry-run)
       dry_run="true"
       shift
@@ -73,8 +82,8 @@ reject_unsafe_value() {
   label="$2"
 
   case "$value" in
-    *$'\n'* | *$'\r'*)
-      fail "$label must not contain newlines"
+    *$'\n'* | *$'\r'* | *$'\t'*)
+      fail "$label must not contain control separators"
       ;;
   esac
 }
@@ -144,8 +153,58 @@ upload_file() {
     "$url" >/dev/null
 }
 
+write_deployment_manifest() {
+  manifest_path="$1"
+  uploads_tsv="$2"
+
+  command -v node >/dev/null 2>&1 || fail "node is required to write deployment manifests"
+  mkdir -p "$(dirname "$manifest_path")"
+
+  node - "$manifest_path" "$uploads_tsv" "$dist_dir" "$storage_zone" "$storage_endpoint" "$remote_prefix" \
+    "$dry_run" "$file_count" <<'NODE'
+const { readFileSync, writeFileSync } = require("node:fs");
+
+const [
+  manifestPath,
+  uploadsTsv,
+  distDir,
+  storageZone,
+  storageEndpoint,
+  remotePrefix,
+  dryRun,
+  fileCount
+] = process.argv.slice(2);
+
+const uploads = readFileSync(uploadsTsv, "utf8")
+  .split(/\r?\n/)
+  .filter(Boolean)
+  .map((line) => {
+    const [relativePath, remotePath, checksumSha256] = line.split("\t");
+    return { relativePath, remotePath, checksumSha256 };
+  });
+
+const manifest = {
+  schema: "loopwire.docs-deployment.v1",
+  generatedAt: new Date().toISOString(),
+  dryRun: dryRun === "true",
+  distDir,
+  storage: {
+    zone: storageZone,
+    endpoint: storageEndpoint,
+    remotePrefix
+  },
+  requiredFiles: ["index.html", "install.sh"],
+  fileCount: Number(fileCount),
+  uploads
+};
+
+writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
+}
+
 [ -n "$storage_zone" ] || fail "BUNNY_STORAGE_ZONE or --storage-zone is required"
 reject_unsafe_value "$storage_zone" "storage zone"
+reject_unsafe_value "$deployment_manifest" "deployment manifest path"
 case "$storage_zone" in
   */*)
     fail "storage zone must not contain slashes"
@@ -168,14 +227,31 @@ require_dist_file "install.sh" "public installer"
 bash -n "${dist_dir}/install.sh" || fail "public installer has shell syntax errors: install.sh"
 
 file_count=0
+uploads_tsv=""
+if [ -n "$deployment_manifest" ]; then
+  uploads_tsv="$(mktemp)"
+  cleanup_manifest_tsv() {
+    rm -f "$uploads_tsv"
+  }
+  trap cleanup_manifest_tsv EXIT
+fi
 while IFS= read -r -d '' file; do
   file_count=$((file_count + 1))
   relative_path="${file#"$dist_dir"/}"
   reject_unsafe_value "$relative_path" "file path"
   upload_file "$file" "$relative_path"
+  if [ -n "$uploads_tsv" ]; then
+    remote_path="$(remote_path_for_file "$relative_path")"
+    checksum="$(sha256sum "$file" | awk '{ print toupper($1) }')"
+    printf '%s\t%s\t%s\n' "$relative_path" "$remote_path" "$checksum" >>"$uploads_tsv"
+  fi
 done < <(find "$dist_dir" -type f -print0 | sort -z)
 
 [ "$file_count" -gt 0 ] || fail "docs dist directory has no files: $dist_dir"
+
+if [ -n "$deployment_manifest" ]; then
+  write_deployment_manifest "$deployment_manifest" "$uploads_tsv"
+fi
 
 if [ "$dry_run" = "true" ]; then
   echo "Dry run complete; ${file_count} docs file(s) would be uploaded to ${storage_endpoint}/${storage_zone}."

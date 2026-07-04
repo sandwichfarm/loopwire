@@ -2105,6 +2105,14 @@
   resolves targets from `vm/targets.tsv`, and re-runs `scripts/verify-vm-evidence.sh` before writing archive entries.
 - Focused validation passed: `bash -n scripts/package-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
   a packager dry-run, `pnpm verify:docs`, and `pnpm verify:scripts`.
+- `scripts/deploy-docs-bunny.sh` now accepts `--deployment-manifest` / `LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST` and writes
+  a non-secret `loopwire.docs-deployment.v1` manifest with storage endpoint, zone, remote prefix, dry-run/live mode,
+  file count, required files, upload paths, and SHA-256 checksums. `.github/workflows/deploy-docs.yml` uploads that
+  manifest as the `loopwire-docs-deployment` artifact after Bunny.net uploads.
+- Focused validation passed: `bash -n scripts/deploy-docs-bunny.sh scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-github-workflows.sh`, `pnpm verify:workflows`, `pnpm verify:docs`, `pnpm verify:scripts`, and a
+  real VitePress build plus Bunny dry-run manifest smoke that wrote a `loopwire.docs-deployment.v1` manifest with 68
+  files and `install.sh`.
 
 ## Evidence Missing
 
@@ -2114,8 +2122,8 @@
 - No release tag exists locally or remotely.
 - Required Bunny.net deployment secrets are not present: `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
-  workflow has a pull-zone smoke gate, and release evidence can require a successful `docs-live-smoke` row, but no Bunny
-  deployment or live URL smoke was performed.
+  workflow has a pull-zone smoke gate and deployment manifest artifact, and release evidence can require a successful
+  `docs-live-smoke` row, but no Bunny deployment or live URL smoke was performed.
 - The final proof workflow exists, but no release evidence archive, VM evidence archive, live docs target, or public
   release exists for it to verify yet.
 - The VM evidence packager exists, but no real all-target VM evidence archive has been produced from operator-run
