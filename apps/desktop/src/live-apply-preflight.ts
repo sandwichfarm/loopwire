@@ -124,7 +124,9 @@ function liveApplyBlockers(
 
   if (nonUnityGainRoutes.length > 0) {
     blockers.push(
-      `${displayBackendName(backend)} live apply needs 100% route gain for ${formatRouteList(configuration, nonUnityGainRoutes)}.`
+      `${displayBackendName(backend)} live apply needs 100% route gain for ` +
+        `${formatRouteList(configuration, nonUnityGainRoutes)}. Use Reset gains, or switch to a ` +
+        "graph-edge/DSP-capable backend when one is available."
     );
   }
 

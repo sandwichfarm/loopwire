@@ -107,7 +107,8 @@ describe("describeLiveApplyPreflight", () => {
 
     expect(result.message).toBe("Resolve 2 blockers before live apply can be armed.");
     expect(result.blockers).toEqual([
-      "PipeWire live apply needs 100% route gain for Call Audio -> Stream.",
+      "PipeWire live apply needs 100% route gain for Call Audio -> Stream. Use Reset gains, or switch to a " +
+        "graph-edge/DSP-capable backend when one is available.",
       "PipeWire live apply needs host source ports for Call Audio."
     ]);
   });
@@ -130,7 +131,8 @@ describe("describeLiveApplyPreflight", () => {
 
     expect(result.message).toBe("Resolve 2 blockers before live apply can be armed.");
     expect(result.blockers).toEqual([
-      "JACK live apply needs 100% route gain for Call Audio -> Stream.",
+      "JACK live apply needs 100% route gain for Call Audio -> Stream. Use Reset gains, or switch to a " +
+        "graph-edge/DSP-capable backend when one is available.",
       "JACK live apply needs host bindings to existing JACK ports for " +
         "Call Audio (loopwire_studio_input_call), Stream (loopwire_studio_stream), and 1 more endpoint."
     ]);
