@@ -139,6 +139,10 @@ bash scripts/vm-matrix.sh evidence-status --help | grep -F -- "--release-tag vX.
   echo "verify-scripts: VM matrix helper help is missing release tag support" >&2
   exit 1
 }
+bash scripts/vm-matrix.sh evidence-status --help | grep -F -- "--start-port PORT" >/dev/null || {
+  echo "verify-scripts: VM matrix helper help is missing evidence-status start port support" >&2
+  exit 1
+}
 node scripts/verify-support-matrix.mjs --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
   echo "verify-scripts: support matrix verifier help is missing release tag support" >&2
   exit 1
@@ -2394,6 +2398,15 @@ pnpm_vm_empty_status_output="$(
     --target arch-hyprland-pipewire \
     --evidence-root "$vm_empty_status_root"
 )"
+vm_all_empty_status_output="$(
+  bash scripts/vm-matrix.sh evidence-status \
+    --all \
+    --evidence-root "$vm_empty_status_root" \
+    --host 192.0.2.10 \
+    --user operator \
+    --identity /operator/keys/loopwire-vm \
+    --start-port 2600
+)"
 vm_launch_root="$tmp_dir/vm-launch-root"
 vm_launch_output="$(
   LOOPWIRE_VM_ROOT="$vm_launch_root" \
@@ -2531,10 +2544,57 @@ printf '%s\n' "$vm_empty_status_output" \
     echo "verify-scripts: vm evidence-status missing collect handoff" >&2
     exit 1
   }
+printf '%s\n' "$vm_empty_status_output" | grep -F "collect-port=2222" >/dev/null || {
+  echo "verify-scripts: vm evidence-status default collect port missing" >&2
+  exit 1
+}
+printf '%s\n' "$vm_empty_status_output" \
+  | grep -F -- "--local-output-dir $vm_empty_status_root/arch-hyprland-pipewire" >/dev/null || {
+    echo "verify-scripts: vm evidence-status collect handoff did not preserve evidence root" >&2
+    exit 1
+  }
 printf '%s\n' "$pnpm_vm_empty_status_output" | grep -F "status=missing" >/dev/null || {
   echo "verify-scripts: pnpm vm:evidence-status did not forward arguments" >&2
   exit 1
 }
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "collect-host=192.0.2.10" >/dev/null || {
+  echo "verify-scripts: vm evidence-status did not report collect host" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "collect-user=operator" >/dev/null || {
+  echo "verify-scripts: vm evidence-status did not report collect user" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "collect-start-port=2600" >/dev/null || {
+  echo "verify-scripts: vm evidence-status did not report collect start port" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "target=arch-hyprland-pipewire" >/dev/null || {
+  echo "verify-scripts: vm evidence-status all-target output missing first target" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "collect-port=2600" >/dev/null || {
+  echo "verify-scripts: vm evidence-status all-target first collect port wrong" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "target=fedora-kde-pipewire" >/dev/null || {
+  echo "verify-scripts: vm evidence-status all-target output missing second target" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" | grep -F "collect-port=2610" >/dev/null || {
+  echo "verify-scripts: vm evidence-status all-target second collect port wrong" >&2
+  exit 1
+}
+printf '%s\n' "$vm_all_empty_status_output" \
+  | grep -F -- "--identity /operator/keys/loopwire-vm" >/dev/null || {
+    echo "verify-scripts: vm evidence-status collect command did not include identity" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_all_empty_status_output" \
+  | grep -F "summary=checked:9 verified:0 missing:9 invalid:0" >/dev/null || {
+    echo "verify-scripts: vm evidence-status all-target summary is wrong" >&2
+    exit 1
+  }
 if bash scripts/vm-matrix.sh evidence-status \
   --target arch-hyprland-pipewire \
   --evidence-root "$vm_empty_status_root" \

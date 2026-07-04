@@ -15,6 +15,8 @@ Usage:
   vm-matrix.sh host-setup [--family pacman|apt|dnf|zypper|nix] [--target TARGET|--all]
   vm-matrix.sh doctor [--target TARGET|--all]
   vm-matrix.sh evidence-status [--target TARGET|--all] [--evidence-root DIR]
+                               [--host HOST] [--user USER] [--identity FILE]
+                               [--start-port PORT]
                                [--require-published-release] [--release-tag vX.Y.Z]
   vm-matrix.sh plan [--target TARGET]
   vm-matrix.sh render-ssh-plan [--target TARGET|--all] [--host HOST] [--user USER]
@@ -582,6 +584,7 @@ verify_evidence_bundle() {
 
 evidence_status() {
   local checked=0
+  local index=0
   local verified=0
   local missing=0
   local invalid=0
@@ -589,6 +592,9 @@ evidence_status() {
   local dir
   local output
   local verify_command
+  local collect_port
+  local collect_args
+  local collect_command
 
   if [ "$all_targets" = "true" ] && [ -n "${target_filter:-}" ]; then
     fail "evidence-status accepts either --target or --all, not both"
@@ -596,12 +602,18 @@ evidence_status() {
 
   echo "VM evidence status"
   echo "evidence-root=$evidence_root"
+  echo "collect-host=$ssh_plan_host"
+  echo "collect-user=$ssh_plan_user"
+  echo "collect-start-port=$ssh_plan_start_port"
   echo "require-published-release=$require_published_release"
   [ -z "$release_tag" ] || echo "release-tag=$release_tag"
+
+  validate_tcp_port "$ssh_plan_start_port" "start port"
 
   while IFS=$'\t' read -r id _distro _family _desktop _session _audio _arch _tier _notes; do
     checked=$((checked + 1))
     dir="$evidence_root/$id"
+    collect_port=$((ssh_plan_start_port + (index * 10)))
     verify_command="bash scripts/verify-vm-evidence.sh --target $id --evidence-dir $dir"
     if [ "$require_published_release" = "true" ]; then
       verify_command="$verify_command --require-published-release"
@@ -620,8 +632,29 @@ evidence_status() {
     if [ ! -d "$dir" ]; then
       missing=$((missing + 1))
       echo "status=missing"
-      echo "collect-command=bash scripts/collect-vm-evidence-ssh.sh --target $id --host 127.0.0.1 --port 2222 --execute"
+      collect_args=(
+        bash
+        scripts/collect-vm-evidence-ssh.sh
+        --target
+        "$id"
+        --host
+        "$ssh_plan_host"
+        --user
+        "$ssh_plan_user"
+        --port
+        "$collect_port"
+        --local-output-dir
+        "$dir"
+        --execute
+      )
+      if [ -n "$ssh_plan_identity" ]; then
+        collect_args+=(--identity "$ssh_plan_identity")
+      fi
+      collect_command="$(shell_join "${collect_args[@]}")"
+      echo "collect-port=$collect_port"
+      echo "collect-command=$collect_command"
       echo
+      index=$((index + 1))
       continue
     fi
 
@@ -635,6 +668,7 @@ evidence_status() {
     fi
 
     echo
+    index=$((index + 1))
   done <<EOF
 $(each_target)
 EOF

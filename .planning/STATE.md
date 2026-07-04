@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T22:47:21+02:00"
-last_activity: 2026-07-04 - Final release status reports Deploy Docs artifact inventory
+last_updated: "2026-07-04T22:56:10+02:00"
+last_activity: 2026-07-04 - VM evidence status prints per-target collection ports
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:status` now reports the Deploy Docs artifact inventory when the local docs
-deployment manifest is absent, making the missing `loopwire-docs-deployment` proof visible without a second command.
-Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
-operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm vm:evidence-status` now prints per-target SSH collection ports and collect commands
+that preserve `--host`, `--user`, `--identity`, `--start-port`, and the selected evidence root. Phase 12 remains gated
+on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,19 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 VM evidence status collection ports: `scripts/vm-matrix.sh evidence-status` now accepts/documents the
+  same SSH handoff fields as `render-ssh-plan`, reports `collect-host`, `collect-user`, and `collect-start-port`, and
+  emits target-specific missing-evidence collect commands with ports allocated as `start-port + index * 10`. The
+  collect commands also pass `--local-output-dir` so custom `--evidence-root` values are preserved. Docs and unreleased
+  notes now describe the behavior, and `scripts/verify-scripts.sh` asserts default single-target port `2222`, all-target
+  ports `2600`/`2610`, identity propagation, and all-target missing evidence summary. Validation passed:
+  codebase-memory MCP reported `home-sandwich-Develop-loopwire` ready with 3,279 nodes and 6,371 edges; `bash -n
+  scripts/vm-matrix.sh scripts/verify-scripts.sh`, direct all-target status sample, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `git diff --check`, focused `bash scripts/verify-tauri.sh`, focused Cargo test
+  `reports_packaged_background_launcher_preflight_success`, and a clean rerun of `pnpm check` passed. Live
+  `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  3b93756b7ff327b5fb84d5493542bc4a49ee0c8e` still blocks as expected, but the VM evidence section now reports
+  per-target collect ports `2222`, `2232`, `2242`, `2252`, `2262`, `2272`, `2282`, `2292`, and `2302`.
 - 2026-07-04 Final release status docs artifact inventory: `scripts/audit-final-release-state.sh` now queries the
   latest Deploy Docs run artifacts when `dist/docs-deployment/deployment-manifest.json` is missing, prints the visible
   artifact list, and reports the absent `loopwire-docs-deployment` artifact plus the likely Bunny.net secret skip cause.
