@@ -339,6 +339,8 @@ try {
   process.exit(1);
 }
 
+const runDescription = Array.isArray(parsed) ? "latest run" : "selected run";
+const completedDescription = Array.isArray(parsed) ? "latest completed run" : "selected completed run";
 const runs = Array.isArray(parsed) ? parsed : [parsed];
 if (!Array.isArray(runs)) {
   console.error(`${label} did not return a workflow run array.`);
@@ -352,18 +354,18 @@ if (runs.length === 0) {
 
 const run = runs[0] ?? {};
 if (run.status !== "completed") {
-  console.error(`${label} latest run is not completed: ${run.status ?? "unknown"}.`);
+  console.error(`${label} ${runDescription} is not completed: ${run.status ?? "unknown"}.`);
   process.exit(1);
 }
 
 if (run.conclusion !== "success") {
-  console.error(`${label} latest completed run did not succeed: ${run.conclusion ?? "unknown"}.`);
+  console.error(`${label} ${completedDescription} did not succeed: ${run.conclusion ?? "unknown"}.`);
   process.exit(1);
 }
 
 if (run.headSha !== expectedHead) {
   console.error(
-    `${label} latest run is for ${run.headSha ?? "unknown"}, not expected commit ${expectedHead}.`
+    `${label} ${runDescription} is for ${run.headSha ?? "unknown"}, not expected commit ${expectedHead}.`
   );
   process.exit(1);
 }
@@ -373,7 +375,7 @@ const fields = [
   run.headSha ? `headSha=${run.headSha}` : null,
   run.url ? `url=${run.url}` : null
 ].filter(Boolean);
-console.log(`latest run verified: ${fields.join(" ")}`);
+console.log(`${runDescription} verified: ${fields.join(" ")}`);
 NODE
   )"; then
     echo "blocked: $label" >&2

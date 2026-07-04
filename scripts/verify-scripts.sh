@@ -4078,6 +4078,14 @@ grep -F "databaseId=654321" "$release_status_pinned_docs_run_log" >/dev/null || 
   echo "verify-scripts: release status did not verify the pinned Deploy Docs run id" >&2
   exit 1
 }
+grep -F "selected run verified: databaseId=654321" "$release_status_pinned_docs_run_log" >/dev/null || {
+  echo "verify-scripts: release status did not label pinned Deploy Docs evidence as selected-run proof" >&2
+  exit 1
+}
+if grep -F "latest run verified: databaseId=654321" "$release_status_pinned_docs_run_log" >/dev/null; then
+  echo "verify-scripts: release status mislabeled pinned Deploy Docs evidence as latest-run proof" >&2
+  exit 1
+fi
 grep -F -- "--run-id 654321" "$release_status_pinned_docs_run_log" >/dev/null || {
   echo "verify-scripts: release status docs proof command did not use the pinned run id" >&2
   exit 1

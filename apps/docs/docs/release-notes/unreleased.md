@@ -353,6 +353,8 @@ These notes describe source-tree progress. They are not a public release announc
   the docs proof fetch and final proof dispatch commands no longer fall back to a placeholder after a successful docs run.
 - `pnpm release:status` can now audit a pinned Deploy Docs run with `--docs-deployment-run-id`, keeping final proof
   rehearsals tied to the operator-selected docs deployment instead of only the latest workflow run.
+- Pinned Deploy Docs release-status audits now label the evidence as the selected run, avoiding latest-run wording when
+  an operator intentionally audits a specific workflow run id.
 - JACK live port delegation now preserves the process environment while applying Loopwire-specific overrides, so
   provider scripts that use `/usr/bin/env node` keep resolving Node on CI and operator hosts.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T22:56:10+02:00"
-last_activity: 2026-07-04 - VM evidence status prints per-target collection ports
+last_updated: "2026-07-04T23:18:00+02:00"
+last_activity: 2026-07-04 - Pinned Deploy Docs release-status audits now label selected-run proof explicitly
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm vm:evidence-status` now prints per-target SSH collection ports and collect commands
-that preserve `--host`, `--user`, `--identity`, `--start-port`, and the selected evidence root. Phase 12 remains gated
-on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:status -- --docs-deployment-run-id <id>` now labels pinned Deploy Docs
+workflow evidence as selected-run proof instead of latest-run proof, while latest-run audits keep latest-run wording.
+Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,16 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
 
 ## Verification Log
 
+- 2026-07-04 Pinned Deploy Docs selected-run proof wording: `scripts/audit-final-release-state.sh` now distinguishes
+  workflow-list probes from pinned `gh run view` probes, reporting selected-run proof for
+  `--docs-deployment-run-id` and latest-run proof for default audits. `scripts/verify-scripts.sh` asserts that pinned
+  docs evidence is not mislabeled as latest-run proof, and unreleased notes document the operator-facing wording.
+  Validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `git diff --check`, and `pnpm check`. Live
+  `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  7bf00167eb2900eec6522a8ae42ec4b3676e965d --docs-deployment-run-id 28720532328` still blocks as expected, while
+  reporting `selected run verified: databaseId=28720532328` and threading run `28720532328` into the docs proof fetch
+  and final proof workflow commands.
 - 2026-07-04 VM evidence status collection ports: `scripts/vm-matrix.sh evidence-status` now accepts/documents the
   same SSH handoff fields as `render-ssh-plan`, reports `collect-host`, `collect-user`, and `collect-start-port`, and
   emits target-specific missing-evidence collect commands with ports allocated as `start-port + index * 10`. The
