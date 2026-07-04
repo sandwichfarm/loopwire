@@ -56,6 +56,28 @@ const graphEdgeJack: LiveApplyBackendCapability = {
   }
 };
 
+const unavailablePulseAudio: LiveApplyBackendCapability = {
+  kind: "pulseaudio",
+  displayName: "PulseAudio",
+  availability: "unavailable",
+  operations: {
+    createVirtualDevice: "implemented"
+  },
+  mixing: {
+    controlScope: "stream",
+    supportsPerEdgeGain: true,
+    supportsPerEdgeMute: true
+  },
+  gaps: ["PulseAudio compatibility daemon is not reachable"],
+  diagnostics: [
+    {
+      level: "warning",
+      code: "pulseaudio.unavailable",
+      message: "PulseAudio service is not reachable."
+    }
+  ]
+};
+
 describe("describeLiveApplyPreflight", () => {
   it("blocks live apply until a backend is selected", () => {
     expect(describeLiveApplyPreflight(baseConfiguration, undefined)).toEqual({
@@ -64,6 +86,16 @@ describe("describeLiveApplyPreflight", () => {
       badge: "Blocked",
       message: "Choose a detected backend before arming live apply.",
       blockers: ["Choose a detected backend before arming live apply."]
+    });
+  });
+
+  it("blocks the selected backend when current detection reports it unavailable", () => {
+    expect(describeLiveApplyPreflight(baseConfiguration, "pulseaudio", undefined, unavailablePulseAudio)).toEqual({
+      ok: false,
+      mode: "blocked",
+      badge: "Blocked",
+      message: "PulseAudio is unavailable for live apply: PulseAudio service is not reachable.",
+      blockers: ["PulseAudio is unavailable for live apply: PulseAudio service is not reachable."]
     });
   });
 
@@ -211,5 +243,21 @@ describe("describeConfigurationSwitchPreflight", () => {
 
     expect(result.message).toBe("Resolve 2 blockers before live apply can be armed.");
     expect(result.blockers[0]).toContain("PipeWire live apply needs 100% route gain");
+  });
+
+  it("blocks configuration switching when the selected backend report is unavailable", () => {
+    const result = describeConfigurationSwitchPreflight(
+      baseConfiguration,
+      "pulseaudio",
+      [graphEdgePipeWire, unavailablePulseAudio]
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      mode: "blocked",
+      badge: "Blocked",
+      message: "PulseAudio is unavailable for live apply: PulseAudio service is not reachable.",
+      blockers: ["PulseAudio is unavailable for live apply: PulseAudio service is not reachable."]
+    });
   });
 });

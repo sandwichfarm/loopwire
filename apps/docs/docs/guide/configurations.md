@@ -78,8 +78,9 @@ apply, verify, and rollback operations that ran, so switch behavior is inspectab
 status line.
 
 Before live mode can be armed, the desktop runs a static preflight against the selected backend and configuration. It
-blocks known-failing live applies such as no selected backend, PulseAudio routes that fan one source out to multiple
-outputs, native PipeWire/JACK routes with non-100% gain, and missing host source ports for native PipeWire routes.
+blocks known-failing live applies such as no selected backend, a selected backend that current detection reports as
+unavailable, PulseAudio routes that fan one source out to multiple outputs, native PipeWire/JACK routes with non-100%
+gain, and missing host source ports for native PipeWire routes.
 The visible preflight strip and the actual configuration-switch guard both consume the same detected backend capability
 report, so a future graph-edge-capable backend report unlocks live switching without a mismatch between the UI and the
 runtime guard.

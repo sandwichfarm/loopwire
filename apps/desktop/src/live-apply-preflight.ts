@@ -1,4 +1,10 @@
-import type { AudioBackendKind, AudioEndpoint, AudioRoute, LoopwireConfiguration } from "@loopwire/core";
+import type {
+  AudioBackendKind,
+  AudioEndpoint,
+  AudioRoute,
+  BackendAvailability,
+  LoopwireConfiguration
+} from "@loopwire/core";
 import { describeJackPortRequirements, type JackPortRequirement } from "@loopwire/audio-host/runtime";
 
 export type LiveApplyCapabilityState = "implemented" | "planned" | "unavailable";
@@ -7,6 +13,7 @@ export type LiveApplyMixingControlScope = "graph-edge" | "stream" | "link-only" 
 export interface LiveApplyBackendCapability {
   readonly kind: AudioBackendKind;
   readonly displayName: string;
+  readonly availability?: BackendAvailability;
   readonly mixing?: {
     readonly controlScope: LiveApplyMixingControlScope;
     readonly supportsPerEdgeGain: boolean;
@@ -15,6 +22,12 @@ export interface LiveApplyBackendCapability {
   readonly operations?: {
     readonly createVirtualDevice?: LiveApplyCapabilityState;
   };
+  readonly gaps?: readonly string[];
+  readonly diagnostics?: readonly {
+    readonly level: "info" | "warning" | "error";
+    readonly code: string;
+    readonly message: string;
+  }[];
 }
 
 export interface LiveApplyPreflight {
@@ -109,6 +122,12 @@ function liveApplyBlockers(
     return ["Choose a detected backend before arming live apply."];
   }
 
+  const unavailableBackendBlocker = backendAvailabilityBlocker(backend, displayBackendName, capability);
+
+  if (unavailableBackendBlocker) {
+    return [unavailableBackendBlocker];
+  }
+
   if (backend === "alsa") {
     return ["ALSA live apply is not implemented; use PipeWire, PulseAudio, or JACK."];
   }
@@ -157,6 +176,26 @@ function liveApplyBlockers(
   }
 
   return blockers;
+}
+
+function backendAvailabilityBlocker(
+  backend: AudioBackendKind,
+  displayBackendName: BackendDisplayName,
+  capability?: LiveApplyBackendCapability
+): string | undefined {
+  if (capability?.kind !== backend || capability.availability !== "unavailable") {
+    return undefined;
+  }
+
+  return `${displayBackendName(backend)} is unavailable for live apply: ${unavailableBackendReason(capability)}`;
+}
+
+function unavailableBackendReason(capability: LiveApplyBackendCapability): string {
+  const diagnosticReason = capability.diagnostics?.find((diagnostic) => diagnostic.message.trim())?.message.trim();
+  const gapReason = capability.gaps?.find((gap) => gap.trim())?.trim();
+  const reason = diagnosticReason ?? gapReason ?? "backend detection reported it as unavailable";
+
+  return reason.endsWith(".") ? reason : `${reason}.`;
 }
 
 function backendSupportsPerEdgeGain(

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T19:12:15+02:00"
-last_activity: 2026-07-04 - Desktop live switch capability guard has focused regression coverage
+last_updated: "2026-07-04T19:16:44+02:00"
+last_activity: 2026-07-04 - Desktop live switch guard now blocks selected backends reported unavailable
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,10 +28,10 @@ Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
 Last activity: 2026-07-04 - Desktop live configuration switching now resolves selected-backend capability through a
-pure preflight helper with focused regression coverage, preventing graph-edge-capable backend reports from being shown
-as ready in the UI while the actual switch guard applies fallback link-only assumptions. Phase 12 remains gated on a
-public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
-operator-run VM evidence.
+pure preflight helper and blocks persisted selected backends when current detection reports them unavailable, preventing
+stale backend choices from arming live apply or passing the switch guard after the audio system disappears. Phase 12
+remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for
+local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +85,14 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Desktop unavailable-backend live switch guard: live-apply preflight now treats selected backend detection
+  reports with `availability: "unavailable"` as hard blockers before backend-specific rules, and
+  `describeConfigurationSwitchPreflight` uses the same selected-backend report. Focused tests prove an unavailable
+  PulseAudio report blocks both the visible preflight and configuration switching. Validation passed: codebase-memory
+  MCP `index_status` reported `home-sandwich-Develop-loopwire` ready with 3,135 nodes and 6,068 edges, and
+  `search_graph`/`get_code_snippet` located the preflight and backend report contracts; `pnpm --filter
+  @loopwire/desktop test -- live-apply-preflight.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter
+  @loopwire/desktop build`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 Desktop live switch guard regression coverage: `describeConfigurationSwitchPreflight` now resolves the
   selected backend capability report for configuration-switch guards, and `App.svelte` uses that helper instead of
   open-coding the lookup. Focused tests prove the guard uses the selected backend report and ignores reports for other

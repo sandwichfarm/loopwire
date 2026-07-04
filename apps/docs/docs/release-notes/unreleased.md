@@ -68,6 +68,9 @@ These notes describe source-tree progress. They are not a public release announc
 - Desktop route-control status, route gain locking, live-apply preflight, and the configuration-switch guard now
   consume detected backend mixing semantics instead of hardcoded backend names, so graph-edge-capable reports can
   unlock per-route gain when a live DSP backend exists without a UI/runtime mismatch.
+- Desktop live-apply preflight and the configuration-switch guard now block the selected backend when current backend
+  detection reports it unavailable, so persisted backend choices cannot arm live apply after that audio system
+  disappears.
 - Desktop status shows degraded route-control behavior for selected backends, and now names native PipeWire/JACK route
   mute as implemented link disconnect behavior while keeping route gain marked as planned.
 - Desktop live-apply preflight now lists every blocker when a configuration has multiple issues, instead of showing

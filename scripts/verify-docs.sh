@@ -160,6 +160,7 @@ assert_contains "apps/docs/docs/guide/configurations.md" "Clearing the field ret
 assert_contains "apps/docs/docs/guide/configurations.md" "Monitor visibility is scoped to the active configuration"
 assert_contains "apps/docs/docs/guide/configurations.md" "preflight strip lists every blocker"
 assert_contains "apps/docs/docs/guide/configurations.md" "configuration-switch guard both consume"
+assert_contains "apps/docs/docs/guide/configurations.md" "current detection reports as"
 assert_contains "apps/docs/docs/guide/configurations.md" "it can route each source to only one output"
 assert_contains "apps/docs/docs/guide/configurations.md" "PulseAudio routes that fan one source out to multiple"
 assert_contains "apps/docs/docs/guide/configurations.md" "JACK live apply also requires every routed source"
