@@ -2083,17 +2083,26 @@
   checks.
 - `pnpm detect:audio` still reports native PipeWire as link-only with `supportsPerEdgeGain: false`, PulseAudio
   compatibility as stream-level, ALSA as diagnostics-only, and JACK unavailable because `jack_lsp` is missing.
-- No public release, tag push, GitHub secret write, Bunny deployment, live URL smoke, VM launch,
+- No public release, tag push, Bunny deployment, live URL smoke, VM launch,
   `.vm/run` write, image download, support matrix promotion, live host DSP capture/injection, live JACK provider, or
   real host audio mutation was performed.
+- The `LOOPWIRE_RELEASE_PRIVATE_KEY` GitHub secret was written after validating the local private key against
+  `packaging/release-signing-public.pem`.
+- The live secret readback now shows `LOOPWIRE_RELEASE_PRIVATE_KEY` present for `sandwichfarm/loopwire`; the same
+  helper check still fails closed on missing `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
+- `scripts/setup-github-secrets.sh` now writes secrets through stdin for compatibility with the installed `gh secret
+  set` contract, and `scripts/verify-scripts.sh` covers the write path with a fake `gh`.
+- Final validation passed: `pnpm verify:scripts`, `pnpm verify:docs`, full `pnpm check`, `pnpm detect:audio`,
+  `git diff --check`, added-line length scan, `gsd-sdk query roadmap.analyze --format json`,
+  `gsd-sdk query init.phase-op 12 --format json`, and codebase-memory MCP `index_status`.
 
 ## Evidence Missing
 
 - No public GitHub Release was created.
-- A real release signing public key exists at `packaging/release-signing-public.pem`, but the private key has not been
-  stored as the `LOOPWIRE_RELEASE_PRIVATE_KEY` GitHub secret.
+- A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is
+  now stored as the `LOOPWIRE_RELEASE_PRIVATE_KEY` GitHub secret for `sandwichfarm/loopwire`.
 - No release tag exists locally or remotely.
-- Required GitHub secrets are not present for release and Bunny.net deployment.
+- Required Bunny.net deployment secrets are not present: `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
   workflow has a pull-zone smoke gate, and release evidence can require a successful `docs-live-smoke` row, but no Bunny
   deployment or live URL smoke was performed.
@@ -2110,9 +2119,10 @@
   core rollback semantics, and the desktop now consumes backend mixing reports for route-control UX, but current live
   PipeWire/JACK reports still remain link-only and the desktop still blocks unbound JACK live-apply attempts before
   arming.
-- The codebase-memory MCP transport is currently closed, so the code graph could not be refreshed in the latest
-  verification passes.
+- Codebase-memory MCP is currently available for `home-sandwich-Develop-loopwire`; `index_status` reports the graph is
+  ready.
 
 ## Status
 
-Phase 12 remains incomplete. Publication and VM proof require explicit release/tag/signing-key and VM-run decisions.
+Phase 12 remains incomplete. Publication and VM proof require Bunny secrets, a release tag, a public GitHub Release,
+live docs deployment/smoke proof, and operator-run VM evidence.

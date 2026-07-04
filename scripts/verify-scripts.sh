@@ -2470,6 +2470,24 @@ case "$1 ${2:-}" in
     printf '%s\t%s\n' "BUNNY_REMOTE_PREFIX" "2026-07-04T00:00:00Z"
     exit 0
     ;;
+  "secret set")
+    secret_name="${3:?missing fake secret name}"
+    shift 3
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --repo)
+          shift 2
+          ;;
+        *)
+          echo "unexpected fake gh secret set arg: $1" >&2
+          exit 64
+          ;;
+      esac
+    done
+    mkdir -p "${LOOPWIRE_FAKE_GH_SET_DIR:?}"
+    cat >"${LOOPWIRE_FAKE_GH_SET_DIR}/${secret_name}"
+    exit 0
+    ;;
   "release view")
     exit 1
     ;;
@@ -2507,6 +2525,44 @@ grep -F "unable to read GitHub secret names for sandwichfarm/loopwire: api denie
     echo "verify-scripts: GitHub secret check did not preserve gh failure details" >&2
     exit 1
   }
+fake_secret_set_dir="$tmp_dir/fake-gh-secret-set"
+secret_set_output="$(
+  LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_set_dir" \
+    PATH="$fake_gh_dir:$PATH" \
+    bash scripts/setup-github-secrets.sh \
+      --repo sandwichfarm/loopwire \
+      --storage-zone loopwire-docs \
+      --access-key dry-run-access-key \
+      --storage-endpoint ny.storage.bunnycdn.com \
+      --remote-prefix private-prefix-value \
+      --release-private-key-file "$tmp_secret_file" \
+      --release-public-key-file "$tmp_secret_public_key"
+)"
+printf '%s\n' "$secret_set_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not report successful fake writes" >&2
+    exit 1
+  }
+cmp -s "$tmp_secret_file" "$fake_secret_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper did not write the release private key through stdin" >&2
+  exit 1
+}
+grep -F "loopwire-docs" "$fake_secret_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not write the storage zone through stdin" >&2
+  exit 1
+}
+grep -F "dry-run-access-key" "$fake_secret_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not write the access key through stdin" >&2
+  exit 1
+}
+grep -F "https://ny.storage.bunnycdn.com" "$fake_secret_set_dir/BUNNY_STORAGE_ENDPOINT" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not normalize and write the storage endpoint" >&2
+  exit 1
+}
+grep -F "private-prefix-value" "$fake_secret_set_dir/BUNNY_REMOTE_PREFIX" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not write the remote prefix through stdin" >&2
+  exit 1
+}
 release_readiness_secret_failure_log="$tmp_dir/release-readiness-secret-failure.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
   PATH="$fake_gh_dir:$PATH" \

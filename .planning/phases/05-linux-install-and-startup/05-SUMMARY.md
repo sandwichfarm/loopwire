@@ -26,8 +26,9 @@
 ## Remaining Risks
 
 - Public release artifacts do not exist yet.
-- A real release public key is now committed, but the matching private key still needs to be stored as the release
-  GitHub secret before public publishing.
+- A real release public key is now committed, and the matching private key is stored as the release GitHub secret for
+  `sandwichfarm/loopwire`; Bunny deployment secrets, tag/release proof, and published-artifact smoke are still required
+  before public publishing.
 - AArch64 artifacts need a dedicated runner or QEMU lane before public multi-arch support claims.
 - Nix metadata exists, but Nix build proof still needs a Nix-enabled host or VM target.
 - VM target execution is intentionally manual/operator-owned; the repo validates target metadata, not full VM boots.

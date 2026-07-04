@@ -189,6 +189,12 @@ check_secret_presence() {
   [ "$missing" -eq 0 ] || exit 1
 }
 
+set_github_secret() {
+  secret_name="$1"
+
+  gh secret set "$secret_name" --repo "$repo"
+}
+
 validate_requested_secret_set() {
   if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] || \
     [ -n "$pull_zone_hostname" ] || [ -n "$remote_prefix" ]; then
@@ -346,8 +352,8 @@ if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] 
     echo "would set GitHub secret for ${repo}: BUNNY_STORAGE_ZONE"
     echo "would set GitHub secret for ${repo}: BUNNY_ACCESS_KEY"
   else
-    printf '%s' "$storage_zone" | gh secret set BUNNY_STORAGE_ZONE --repo "$repo" --body-file -
-    printf '%s' "$access_key" | gh secret set BUNNY_ACCESS_KEY --repo "$repo" --body-file -
+    printf '%s' "$storage_zone" | set_github_secret BUNNY_STORAGE_ZONE
+    printf '%s' "$access_key" | set_github_secret BUNNY_ACCESS_KEY
   fi
   set_any="true"
 
@@ -355,7 +361,7 @@ if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] 
     if [ "$dry_run" = "true" ]; then
       echo "would set optional GitHub secret for ${repo}: BUNNY_PULL_ZONE_HOSTNAME"
     else
-      printf '%s' "$pull_zone_hostname" | gh secret set BUNNY_PULL_ZONE_HOSTNAME --repo "$repo" --body-file -
+      printf '%s' "$pull_zone_hostname" | set_github_secret BUNNY_PULL_ZONE_HOSTNAME
     fi
   fi
 
@@ -363,7 +369,7 @@ if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] 
     if [ "$dry_run" = "true" ]; then
       echo "would set optional GitHub secret for ${repo}: BUNNY_STORAGE_ENDPOINT"
     else
-      printf '%s' "$storage_endpoint" | gh secret set BUNNY_STORAGE_ENDPOINT --repo "$repo" --body-file -
+      printf '%s' "$storage_endpoint" | set_github_secret BUNNY_STORAGE_ENDPOINT
     fi
   fi
 
@@ -371,7 +377,7 @@ if [ -n "$storage_zone" ] || [ -n "$access_key" ] || [ -n "$storage_endpoint" ] 
     if [ "$dry_run" = "true" ]; then
       echo "would set optional GitHub secret for ${repo}: BUNNY_REMOTE_PREFIX"
     else
-      printf '%s' "$remote_prefix" | gh secret set BUNNY_REMOTE_PREFIX --repo "$repo" --body-file -
+      printf '%s' "$remote_prefix" | set_github_secret BUNNY_REMOTE_PREFIX
     fi
   fi
 fi
@@ -380,7 +386,7 @@ if [ -n "$release_private_key_file" ]; then
   if [ "$dry_run" = "true" ]; then
     echo "would set GitHub secret for ${repo}: LOOPWIRE_RELEASE_PRIVATE_KEY"
   else
-    gh secret set LOOPWIRE_RELEASE_PRIVATE_KEY --repo "$repo" --body-file "$release_private_key_file"
+    set_github_secret LOOPWIRE_RELEASE_PRIVATE_KEY <"$release_private_key_file"
   fi
   set_any="true"
 fi

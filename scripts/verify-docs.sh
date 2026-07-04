@@ -460,10 +460,15 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "rejects unsafe loc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-all-targets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret helper now rejects Bunny storage zones"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the release private key against the release public key"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret set` stdin contract'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
+assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Required Bunny.net docs deployment secrets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop JACK live-apply preflight"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "shared audio-host helper"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm jack:ports`'

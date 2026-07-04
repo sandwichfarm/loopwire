@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:29:28+02:00"
-last_activity: 2026-07-04 - release public key committed
+last_updated: "2026-07-04T13:36:39+02:00"
+last_activity: 2026-07-04 - release private key GitHub secret configured
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,12 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `packaging/release-signing-public.pem` now contains the project release public key. The
-matching private key was generated outside the repository at
-`/home/sandwich/.config/loopwire/release/loopwire-release-private.pem` with `0600` permissions, and the GitHub secret
-helper dry-run validated the key pair without writing secrets. Phase 12 remains gated on setting
-`LOOPWIRE_RELEASE_PRIVATE_KEY`, a public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM
-evidence.
+Last activity: 2026-07-04 - `packaging/release-signing-public.pem` contains the project release public key, the
+matching private key remains outside the repository at
+`/home/sandwich/.config/loopwire/release/loopwire-release-private.pem` with `0600` permissions, and the live
+`sandwichfarm/loopwire` repository now has the matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret. Phase 12 remains gated
+on a public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -53,11 +52,13 @@ evidence.
   creation, and native host graph-edge gain implementation remain planned. DSP live restore now requires the operator
   to declare a live provider explicitly with `--dsp-provider-mode live`.
 
-- Install artifacts are not published yet. Installer and package docs must not claim release availability before artifacts exist.
+- Install artifacts are not published yet. Installer and package docs must not claim release availability before
+  artifacts exist.
 - A real project release public key now exists at `packaging/release-signing-public.pem`, and the private key was
   generated outside the repository at `/home/sandwich/.config/loopwire/release/loopwire-release-private.pem` with
-  `0600` permissions. Do not claim public signed installer readiness until `LOOPWIRE_RELEASE_PRIVATE_KEY` is set from
-  that private key and a tagged release workflow has passed.
+  `0600` permissions. The live `sandwichfarm/loopwire` repository now has `LOOPWIRE_RELEASE_PRIVATE_KEY`, but do not
+  claim public signed installer readiness until the Bunny deploy secrets are configured and a tagged release workflow
+  has passed.
 
 - Nix package metadata is smoke-tested structurally, but Nix build proof still needs a Nix-enabled host or VM target.
 - Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, and published release proof
@@ -1922,3 +1923,22 @@ evidence.
   no secret was written, and no support matrix row was promoted. Final validation also passed with `pnpm verify:vm`,
   `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file line-length checks,
   `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.phase-op 12`.
+- 2026-07-04 release private key secret setup: the current `gh secret set` CLI rejected the helper's obsolete
+  `--body-file` usage. `scripts/setup-github-secrets.sh` now writes all secrets through stdin and
+  `scripts/verify-scripts.sh` has fake-`gh` write coverage for Bunny values and the release private key file.
+  `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh` passed, and a helper dry-run with the real
+  release key pair printed only `LOOPWIRE_RELEASE_PRIVATE_KEY`.
+- 2026-07-04 release private key GitHub secret evidence: `openssl pkey -in
+  /home/sandwich/.config/loopwire/release/loopwire-release-private.pem -pubout` matched
+  `packaging/release-signing-public.pem`, then `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire
+  --release-private-key-file /home/sandwich/.config/loopwire/release/loopwire-release-private.pem
+  --release-public-key-file packaging/release-signing-public.pem` succeeded. Live readback with
+  `gh secret list --repo sandwichfarm/loopwire` shows `LOOPWIRE_RELEASE_PRIVATE_KEY`, while
+  `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check` still fails closed on missing
+  `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`. A release readiness preflight with tag and clean-git checks skipped
+  now fails on the two Bunny secrets, not the release signing secret.
+- 2026-07-04 release secret final validation: `pnpm verify:scripts`, `pnpm verify:docs`, full `pnpm check`,
+  `pnpm detect:audio`, `git diff --check`, added-line length scan, `gsd-sdk query roadmap.analyze --format json`,
+  `gsd-sdk query init.phase-op 12 --format json`, and codebase-memory MCP `index_status` passed. No Bunny secret was
+  available or written, no public release was created, no tag was pushed, no VM was launched, and no support matrix row
+  was promoted.

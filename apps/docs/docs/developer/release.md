@@ -345,8 +345,9 @@ contain `.` or `..` path segments.
   workflow run and published `loopwire-linux-aarch64.tar.gz` asset.
 - Package templates must not be published until a tagged release has real checksums and package-build smoke evidence
   against those published artifacts.
-- `packaging/release-signing-public.pem` contains the project release public key, but public installer claims still
-  require `LOOPWIRE_RELEASE_PRIVATE_KEY` in GitHub secrets plus a tagged release workflow run.
+- `packaging/release-signing-public.pem` contains the project release public key, and the live `sandwichfarm/loopwire`
+  repository has the matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret. Public installer claims still require Bunny
+  deployment secrets plus a tagged release workflow run.
 - The installer does not mutate system audio configuration.
 
 ## AUR Smoke

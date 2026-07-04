@@ -170,6 +170,8 @@ These notes describe source-tree progress. They are not a public release announc
   would later fail the docs deploy or live-smoke helpers.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or
   secret writes, rejecting invalid or mismatched signing material.
+- The GitHub secret helper now writes secrets through the current `gh secret set` stdin contract, avoiding the removed
+  `--body-file` flag while keeping secret values out of command arguments and logs.
 - The Bunny.net docs deploy helper now fails closed when the built dist omits `index.html` or the public `install.sh`,
   and rejects unsafe remote-prefix path segments before upload planning.
 - The docs deployment workflow now runs a live pull-zone smoke with `scripts/verify-docs-live.sh` when
@@ -304,8 +306,9 @@ These notes describe source-tree progress. They are not a public release announc
 ## Known Limitations
 
 - No public signed release artifact exists yet.
-- `packaging/release-signing-public.pem` now contains the project release public key, but the private key still needs
-  to be stored as `LOOPWIRE_RELEASE_PRIVATE_KEY` before publishing.
+- `packaging/release-signing-public.pem` now contains the project release public key, and the live repository has the
+  matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret; Bunny deployment secrets and tagged release proof are still required
+  before publishing.
 - Native JACK client creation and true per-edge gain remain planned. App-only JACK routes and monitors still require a
   separate JACK client or `loopwire-jack-ports` delegate to create the expected Loopwire-owned ports before live apply.
 - Live host apply needs Tauri desktop runtime; browser preview fails closed without host mutation.
