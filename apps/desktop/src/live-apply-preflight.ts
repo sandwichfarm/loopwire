@@ -69,6 +69,20 @@ export function describeLiveApplyPreflight(
   };
 }
 
+export function describeConfigurationSwitchPreflight(
+  configuration: LoopwireConfiguration,
+  backend: AudioBackendKind | undefined,
+  capabilities: readonly LiveApplyBackendCapability[],
+  displayBackendName: BackendDisplayName = defaultBackendDisplayName
+): LiveApplyPreflight {
+  return describeLiveApplyPreflight(
+    configuration,
+    backend,
+    displayBackendName,
+    capabilities.find((capability) => capability.kind === backend)
+  );
+}
+
 export function getNativeGainBlockerRoutes(
   configuration: LoopwireConfiguration,
   backend: AudioBackendKind | undefined,

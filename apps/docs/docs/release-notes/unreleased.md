@@ -123,7 +123,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Support bundles can include read-only JACK readiness by passing a Loopwire configuration export or persisted state,
   writing `jack-port-requirements.json` and a parsed `jack` manifest summary.
 - Desktop live-apply preflight rules are now covered by focused regression tests, including no-backend, ALSA,
-  PulseAudio, native PipeWire, and native JACK blocker behavior.
+  PulseAudio, native PipeWire, native JACK blocker behavior, and selected-backend capability lookup for the
+  configuration-switch guard.
 - Configuration CRUD, source-picker additions, output-bus additions, monitor additions, import/export, persistence
   migration, and startup re-apply through the app runtime contract.
 - Desktop configuration switching is now serialized so in-flight switch, create, duplicate, import, and delete actions

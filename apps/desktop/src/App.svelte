@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
+    describeConfigurationSwitchPreflight,
     describeLiveApplyPreflight,
     getNativeGainBlockerRoutes,
     type LiveApplyPreflight
@@ -634,11 +635,11 @@
       };
     }
 
-    const preflight = describeLiveApplyPreflight(
+    const preflight = describeConfigurationSwitchPreflight(
       targetConfiguration,
       sourceState.selectedBackend,
-      displayBackendName,
-      backendCapabilityFor(sourceState.selectedBackend)
+      backendCapabilityReports,
+      displayBackendName
     );
 
     if (hostApplyMode === "live" && !preflight.ok) {

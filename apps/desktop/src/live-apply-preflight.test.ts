@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { LoopwireConfiguration } from "@loopwire/core";
 import type { LiveApplyBackendCapability } from "./live-apply-preflight";
-import { describeLiveApplyPreflight, getNativeGainBlockerRoutes } from "./live-apply-preflight";
+import {
+  describeConfigurationSwitchPreflight,
+  describeLiveApplyPreflight,
+  getNativeGainBlockerRoutes
+} from "./live-apply-preflight";
 
 const baseConfiguration: LoopwireConfiguration = {
   id: "studio",
@@ -181,5 +185,31 @@ describe("getNativeGainBlockerRoutes", () => {
     expect(getNativeGainBlockerRoutes(baseConfiguration, "jack").map((route) => route.id)).toEqual(["call-stream"]);
     expect(getNativeGainBlockerRoutes(baseConfiguration, "pulseaudio")).toEqual([]);
     expect(getNativeGainBlockerRoutes(baseConfiguration, "alsa")).toEqual([]);
+  });
+});
+
+describe("describeConfigurationSwitchPreflight", () => {
+  it("uses the selected backend capability report for the switch guard", () => {
+    const result = describeConfigurationSwitchPreflight(
+      baseConfiguration,
+      "pipewire",
+      [graphEdgeJack, graphEdgePipeWire],
+      (kind) => (kind === "pipewire" ? "PipeWire DSP" : kind)
+    );
+
+    expect(result.message).toBe("PipeWire DSP live apply needs host source ports for Call Audio.");
+    expect(result.blockers).toEqual(["PipeWire DSP live apply needs host source ports for Call Audio."]);
+  });
+
+  it("does not use a capability report for a different backend", () => {
+    const result = describeConfigurationSwitchPreflight(
+      baseConfiguration,
+      "pipewire",
+      [graphEdgeJack],
+      (kind) => (kind === "pipewire" ? "PipeWire" : kind)
+    );
+
+    expect(result.message).toBe("Resolve 2 blockers before live apply can be armed.");
+    expect(result.blockers[0]).toContain("PipeWire live apply needs 100% route gain");
   });
 });
