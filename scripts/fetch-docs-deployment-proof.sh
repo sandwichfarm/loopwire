@@ -8,6 +8,7 @@ docs_artifact="loopwire-docs"
 manifest_artifact="loopwire-docs-deployment"
 docs_dist="apps/docs/docs/.vitepress/dist"
 manifest_path="dist/docs-deployment/deployment-manifest.json"
+env_file=""
 
 usage() {
   cat <<'USAGE'
@@ -21,6 +22,7 @@ Options:
   --manifest-artifact NAME    Docs deployment manifest artifact, default loopwire-docs-deployment
   --docs-dist DIR             Output docs dist directory, default apps/docs/docs/.vitepress/dist
   --manifest FILE             Output deployment manifest, default dist/docs-deployment/deployment-manifest.json
+  --env-file FILE             Local release secret env file to preserve in Bunny secret recovery hints
 
 The command downloads artifacts into the local checkout and verifies that the deployment manifest is non-dry-run proof
 for the expected commit and downloaded docs bytes. It does not deploy docs or mutate GitHub.
@@ -72,6 +74,20 @@ indent() {
   sed 's/^/    /'
 }
 
+shell_join() {
+  local out=""
+  local arg
+
+  for arg in "$@"; do
+    if [ -n "$out" ]; then
+      out+=" "
+    fi
+    printf -v out '%s%q' "$out" "$arg"
+  done
+
+  printf '%s\n' "$out"
+}
+
 list_run_artifacts() {
   gh api "repos/${repo}/actions/runs/${run_id}/artifacts" --jq '.artifacts[].name' 2>/dev/null || true
 }
@@ -89,7 +105,13 @@ report_missing_deployment_artifact() {
   fi
   echo "likely cause: Deploy Docs did not run the Bunny.net deployment step, so it did not upload deployment proof." >&2
   echo "next: configure required Bunny.net GitHub secrets, rerun Deploy Docs, then rerun this helper:" >&2
-  echo "  bash scripts/setup-github-secrets.sh --repo $repo --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>" >&2
+  if [ -n "$env_file" ]; then
+    printf '  %s\n' "$(shell_join bash scripts/setup-github-secrets.sh --repo "$repo" --env-file "$env_file")" >&2
+  else
+    echo "  bash scripts/setup-github-secrets.sh --repo $repo --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>" >&2
+    echo "  # Or load Bunny values and release key file paths from a local uncommitted env file:" >&2
+    echo "  bash scripts/setup-github-secrets.sh --repo $repo --env-file <secret-env-file>" >&2
+  fi
 }
 
 download_artifact() {
@@ -159,6 +181,10 @@ while [ "$#" -gt 0 ]; do
       manifest_path="${2:?missing value for --manifest}"
       shift 2
       ;;
+    --env-file)
+      env_file="${2:?missing value for --env-file}"
+      shift 2
+      ;;
     -h | --help)
       usage
       exit 0
@@ -180,6 +206,7 @@ reject_unsafe_value "$docs_artifact" "docs artifact"
 reject_unsafe_value "$manifest_artifact" "manifest artifact"
 reject_unsafe_value "$docs_dist" "docs dist"
 reject_unsafe_value "$manifest_path" "manifest path"
+reject_unsafe_value "$env_file" "env file"
 validate_output_path "$docs_dist" "docs dist"
 validate_output_path "$manifest_path" "manifest path"
 

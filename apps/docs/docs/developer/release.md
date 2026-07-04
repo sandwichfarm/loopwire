@@ -190,11 +190,14 @@ After Deploy Docs succeeds, download and verify its proof artifacts before runni
 pnpm release:fetch-docs-proof -- \
   --repo sandwichfarm/loopwire \
   --run-id <docs-deployment-run-id> \
-  --git-head "$(git rev-parse HEAD)"
+  --git-head "$(git rev-parse HEAD)" \
+  --env-file /secure/loopwire-release-secrets.env
 ```
 
 The helper downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is
-non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`.
+non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`. If the deployment
+artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the recovery command without
+reading or printing secret values.
 
 To audit the current final-release state from one read-only command:
 

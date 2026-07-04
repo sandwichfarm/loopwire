@@ -212,6 +212,10 @@ printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--docs-dist DIR" >/dev/null
   echo "verify-scripts: docs deployment proof helper help is missing docs dist support" >&2
   exit 1
 }
+printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--env-file FILE" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper help is missing env-file recovery support" >&2
+  exit 1
+}
 printf '%s\n' "$release_handoff_help" | grep -F -- "--docs-deployment-run-id ID" >/dev/null || {
   echo "verify-scripts: release handoff help is missing docs deployment run id support" >&2
   exit 1
@@ -4006,6 +4010,14 @@ if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
 fi
 fetch_docs_missing_dist="$tmp_dir/fetched-docs-dist-missing-artifact"
 fetch_docs_missing_manifest="$tmp_dir/fetched-docs-deployment-missing-artifact/deployment-manifest.json"
+fetch_docs_missing_env_file="$tmp_dir/fetch-docs-proof-release-secrets.env"
+cat >"$fetch_docs_missing_env_file" <<'EOF'
+BUNNY_STORAGE_ZONE=loopwire-docs
+BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
+BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=packaging/release-signing-public.pem
+EOF
 if LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_missing_dist" LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
   PATH="$fake_gh_dir:$PATH" \
   bash scripts/fetch-docs-deployment-proof.sh \
@@ -4014,6 +4026,7 @@ if LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_missing_dist" LOOPWIRE_FAKE_GH_ARTIFACT_
     --git-head 0123456789abcdef0123456789abcdef01234567 \
     --docs-dist "$fetch_docs_missing_dist" \
     --manifest "$fetch_docs_missing_manifest" \
+    --env-file "$fetch_docs_missing_env_file" \
     --manifest-artifact missing-docs-deployment >"$tmp_dir/fetch-docs-proof-missing-artifact.log" 2>&1; then
   echo "verify-scripts: docs deployment proof helper accepted a missing deployment artifact" >&2
   exit 1
@@ -4036,6 +4049,14 @@ grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire" \
     echo "verify-scripts: docs deployment proof helper did not print the Bunny secret recovery command" >&2
     exit 1
   }
+grep -F -- "--env-file $fetch_docs_missing_env_file" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper did not preserve the env-file recovery route" >&2
+  exit 1
+}
+if grep -F "env-access-key-that-must-not-print" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null; then
+  echo "verify-scripts: docs deployment proof helper leaked the env-file Bunny access key" >&2
+  exit 1
+fi
 secret_list_release_key_only="$tmp_dir/secret-list-release-key-only.tsv"
 secret_list_all_final="$tmp_dir/secret-list-all-final.tsv"
 printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secret_list_release_key_only"
