@@ -25,17 +25,6 @@ export type {
 
 const timeoutMs = 3500;
 
-const plannedRoutingOperations: BackendOperations = {
-  detect: "implemented",
-  enumerateDevices: "implemented",
-  createVirtualDevice: "planned",
-  routeAudio: "planned",
-  monitorAudio: "planned",
-  apply: "planned",
-  verify: "planned",
-  rollback: "planned"
-};
-
 const pipeWireLinkOperations: BackendOperations = {
   detect: "implemented",
   enumerateDevices: "implemented",
@@ -67,6 +56,17 @@ const pactlVirtualSinkOperations: BackendOperations = {
   apply: "implemented",
   verify: "implemented",
   rollback: "implemented"
+};
+
+const diagnosticOnlyOperations: BackendOperations = {
+  detect: "implemented",
+  enumerateDevices: "implemented",
+  createVirtualDevice: "unavailable",
+  routeAudio: "unavailable",
+  monitorAudio: "unavailable",
+  apply: "unavailable",
+  verify: "unavailable",
+  rollback: "unavailable"
 };
 
 const unavailableOperations: BackendOperations = {
@@ -105,14 +105,15 @@ const pulseStreamMixing: BackendMixingSemantics = {
   controlScope: "stream",
   supportsPerEdgeGain: false,
   supportsPerEdgeMute: false,
-  warning: "PulseAudio compatibility applies gain and mute to whole matching streams, not individual graph edges."
+  warning:
+    "PulseAudio compatibility applies gain and mute to whole matching streams; each source can route to only one output."
 };
 
-const plannedGraphMixing: BackendMixingSemantics = {
-  controlScope: "graph-edge",
+const diagnosticOnlyMixing: BackendMixingSemantics = {
+  controlScope: "unavailable",
   supportsPerEdgeGain: false,
   supportsPerEdgeMute: false,
-  warning: "Graph-edge gain and mute controls are planned but not implemented for this backend."
+  warning: "This backend is diagnostic-only; route controls are unavailable."
 };
 
 export async function detectAudioBackends(
@@ -156,6 +157,10 @@ export async function enumeratePlaybackDevices(
 
   if (backend === "jack") {
     return enumerateJackPlaybackDevices(runner, backend, now);
+  }
+
+  if (backend === "alsa") {
+    return enumerateAlsaPlaybackDevices(runner, backend, now);
   }
 
   if (backend !== "pulseaudio") {
@@ -212,6 +217,10 @@ export async function enumerateInputSources(
 
   if (backend === "jack") {
     return enumerateJackInputSources(runner, backend, now);
+  }
+
+  if (backend === "alsa") {
+    return enumerateAlsaInputSources(runner, backend, now);
   }
 
   if (backend !== "pulseaudio") {
@@ -385,6 +394,70 @@ async function enumerateJackInputSources(
   };
 }
 
+async function enumerateAlsaPlaybackDevices(
+  runner: CommandRunner,
+  backend: AudioBackendKind,
+  now: Date
+): Promise<AudioPlaybackDeviceReport> {
+  const devices = await runProbe(runner, "aplay", ["-l"]);
+  const commands = [toProbe(devices)];
+
+  if (devices.exitCode !== 0) {
+    return {
+      generatedAt: now.toISOString(),
+      backend,
+      devices: [],
+      diagnostics: unavailableDiagnostics("PLAYBACK_ENUMERATION_FAILED", commands, "Could not list ALSA playback devices."),
+      commands
+    };
+  }
+
+  const parsedDevices = parseAlsaPlaybackDevices(devices.stdout, backend);
+
+  return {
+    generatedAt: now.toISOString(),
+    backend,
+    devices: parsedDevices,
+    diagnostics:
+      parsedDevices.length > 0
+        ? [{ level: "info", code: "PLAYBACK_DEVICES_AVAILABLE", message: `Listed ${parsedDevices.length} ALSA playback device(s).` }]
+        : [{ level: "warning", code: "PLAYBACK_DEVICES_EMPTY", message: "ALSA returned no playback devices." }],
+    commands
+  };
+}
+
+async function enumerateAlsaInputSources(
+  runner: CommandRunner,
+  backend: AudioBackendKind,
+  now: Date
+): Promise<AudioInputSourceReport> {
+  const devices = await runProbe(runner, "arecord", ["-l"]);
+  const commands = [toProbe(devices)];
+
+  if (devices.exitCode !== 0) {
+    return {
+      generatedAt: now.toISOString(),
+      backend,
+      sources: [],
+      diagnostics: unavailableDiagnostics("INPUT_SOURCE_ENUMERATION_FAILED", commands, "Could not list ALSA capture devices."),
+      commands
+    };
+  }
+
+  const sources = parseAlsaInputSources(devices.stdout, backend);
+
+  return {
+    generatedAt: now.toISOString(),
+    backend,
+    sources,
+    diagnostics:
+      sources.length > 0
+        ? [{ level: "info", code: "INPUT_SOURCES_AVAILABLE", message: `Listed ${sources.length} ALSA capture device(s).` }]
+        : [{ level: "warning", code: "INPUT_SOURCES_EMPTY", message: "ALSA returned no capture devices." }],
+    commands
+  };
+}
+
 async function detectPipeWire(runner: CommandRunner): Promise<BackendCapabilityReport> {
   const version = await runProbe(runner, "pw-cli", ["--version"]);
   const status = await runProbe(runner, "wpctl", ["status"]);
@@ -429,7 +502,7 @@ async function detectPulseAudio(runner: CommandRunner): Promise<BackendCapabilit
     ...(serverVersion ? { version: serverVersion } : {}),
     operations: available ? pactlVirtualSinkOperations : unavailableOperations,
     mixing: available ? pulseStreamMixing : unavailableMixing,
-    gaps: available ? ["true per-edge mixing beyond sink-input controls"] : ["service unavailable"],
+    gaps: available ? ["one output per source", "true per-edge mixing beyond sink-input controls"] : ["service unavailable"],
     diagnostics: available
       ? [
           {
@@ -468,9 +541,12 @@ async function detectJack(runner: CommandRunner): Promise<BackendCapabilityRepor
 }
 
 async function detectAlsa(runner: CommandRunner): Promise<BackendCapabilityReport> {
-  const devices = await runProbe(runner, "aplay", ["-l"]);
-  const hasCards = /(^|\n)card\s+\d+:/i.test(devices.stdout);
-  const available = devices.exitCode === 0 && hasCards;
+  const playbackDevices = await runProbe(runner, "aplay", ["-l"]);
+  const captureDevices = await runProbe(runner, "arecord", ["-l"]);
+  const commands = [toProbe(playbackDevices), toProbe(captureDevices)];
+  const hasPlaybackCards = playbackDevices.exitCode === 0 && hasAlsaCards(playbackDevices.stdout);
+  const hasCaptureCards = captureDevices.exitCode === 0 && hasAlsaCards(captureDevices.stdout);
+  const available = hasPlaybackCards || hasCaptureCards;
 
   return {
     kind: "alsa",
@@ -478,19 +554,15 @@ async function detectAlsa(runner: CommandRunner): Promise<BackendCapabilityRepor
     availability: available ? "available" : "unavailable",
     priority: 40,
     transport: "hardware",
-    operations: available
-      ? {
-          ...plannedRoutingOperations,
-          createVirtualDevice: "unavailable",
-          routeAudio: "planned"
-        }
-      : unavailableOperations,
-    mixing: available ? plannedGraphMixing : unavailableMixing,
-    gaps: available ? ["virtual device creation requires higher-level backend", "route apply", "verify", "rollback"] : ["no playback devices"],
+    operations: available ? diagnosticOnlyOperations : unavailableOperations,
+    mixing: available ? diagnosticOnlyMixing : unavailableMixing,
+    gaps: available
+      ? ["diagnostics only; use PipeWire, PulseAudio, or JACK for routing"]
+      : ["no playback or capture devices"],
     diagnostics: available
-      ? [{ level: "info", code: "ALSA_DEVICES_AVAILABLE", message: "ALSA playback devices were listed." }]
-      : unavailableDiagnostics("ALSA_UNAVAILABLE", [toProbe(devices)], "ALSA playback devices were not listed."),
-    commands: [toProbe(devices)]
+      ? alsaAvailabilityDiagnostics(hasPlaybackCards, hasCaptureCards, commands)
+      : unavailableDiagnostics("ALSA_UNAVAILABLE", commands, "ALSA playback or capture devices were not listed."),
+    commands
   };
 }
 
@@ -538,6 +610,43 @@ function unavailableDiagnostics(
       message: commandReason ? `${fallbackMessage} Probe result: ${commandReason}.` : fallbackMessage
     }
   ];
+}
+
+function alsaAvailabilityDiagnostics(
+  hasPlaybackCards: boolean,
+  hasCaptureCards: boolean,
+  commands: readonly CommandProbe[]
+): readonly BackendDiagnostic[] {
+  if (hasPlaybackCards && hasCaptureCards) {
+    return [
+      {
+        level: "info",
+        code: "ALSA_DEVICES_AVAILABLE",
+        message: "ALSA playback and capture devices were listed."
+      }
+    ];
+  }
+
+  const diagnostics: BackendDiagnostic[] = [
+    {
+      level: "info",
+      code: "ALSA_DEVICES_PARTIAL",
+      message: hasPlaybackCards
+        ? "ALSA playback devices were listed, but capture devices were not listed."
+        : "ALSA capture devices were listed, but playback devices were not listed."
+    }
+  ];
+  const missingCommand = commands.find((command) => !command.available);
+
+  if (missingCommand) {
+    diagnostics.push({
+      level: "warning",
+      code: hasPlaybackCards ? "ALSA_CAPTURE_DEVICES_UNAVAILABLE" : "ALSA_PLAYBACK_DEVICES_UNAVAILABLE",
+      message: `Missing ALSA ${hasPlaybackCards ? "capture" : "playback"} side. Probe result: ${missingCommand.summary}.`
+    });
+  }
+
+  return diagnostics;
 }
 
 function primaryReason(report: BackendCapabilityReport): string {
@@ -675,6 +784,57 @@ function parseJackPortGroups(
   }
 
   return Array.from(groups, ([deviceName, portCount]) => ({ deviceName, portCount }));
+}
+
+function parseAlsaPlaybackDevices(output: string, backend: AudioBackendKind): readonly AudioPlaybackDevice[] {
+  return parseAlsaDeviceCards(output).map((device) => ({
+    backend,
+    deviceName: device.deviceName,
+    label: device.label,
+    detail: device.detail
+  }));
+}
+
+function parseAlsaInputSources(output: string, backend: AudioBackendKind): readonly AudioInputSource[] {
+  return parseAlsaDeviceCards(output).map((device) => ({
+    backend,
+    sourceId: slugifySourceId(device.deviceName),
+    sourceName: device.deviceName,
+    label: device.label,
+    detail: device.detail,
+    channels: 2
+  }));
+}
+
+function parseAlsaDeviceCards(output: string): readonly {
+  readonly deviceName: string;
+  readonly label: string;
+  readonly detail: string;
+}[] {
+  return output
+    .split(/\r?\n/)
+    .map((line) => {
+      const match = line.match(/^card\s+(\d+):\s+([^\s]+)\s+\[(.+?)\],\s+device\s+(\d+):\s+(.+?)\s+\[(.+?)\]/i);
+
+      if (!match) {
+        return undefined;
+      }
+
+      const [, cardIndex, cardToken, cardLabel, deviceIndex, deviceToken, deviceLabel] = match;
+      const deviceName = `hw:${cardIndex},${deviceIndex}`;
+      const label = [cardLabel, deviceLabel].filter((item, index, items) => item && items.indexOf(item) === index).join(" ");
+
+      return {
+        deviceName,
+        label,
+        detail: `card ${cardIndex} ${cardToken}; device ${deviceIndex} ${deviceToken}`
+      };
+    })
+    .filter((device): device is { readonly deviceName: string; readonly label: string; readonly detail: string } => device !== undefined);
+}
+
+function hasAlsaCards(output: string): boolean {
+  return /(^|\n)card\s+\d+:/i.test(output);
 }
 
 function parsePactlSinkInputSources(output: string, backend: AudioBackendKind): readonly AudioInputSource[] {

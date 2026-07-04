@@ -6,24 +6,24 @@ use std::{
     time::{Duration, Instant},
 };
 
+struct BackgroundBinaryStatus {
+    binary: PathBuf,
+    available: bool,
+    note: Option<String>,
+}
+
 #[tauri::command]
 fn run_audio_command(
     command: String,
     args: Vec<String>,
     timeout_ms: Option<u64>,
 ) -> Result<String, String> {
-    if !matches!(
-        command.as_str(),
-        "aplay"
-            | "jack_connect"
-            | "jack_disconnect"
-            | "jack_lsp"
-            | "pactl"
-            | "pw-cli"
-            | "pw-link"
-            | "wpctl"
-    ) {
-        return Err(format!("command is not allowed: {command}"));
+    if !is_allowed_audio_command(&command, &args) {
+        return Err(format!(
+            "audio command is not allowed: {} {}",
+            command,
+            args.join(" ")
+        ));
     }
 
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(5_000).clamp(250, 30_000));
@@ -95,6 +95,7 @@ fn manage_startup(action: String) -> Result<String, String> {
             &path,
             &binary,
             "Startup status checked.",
+            true,
         )),
         "install" => {
             install_startup_entry(&path, &binary).map_err(|error| error.to_string())?;
@@ -102,6 +103,7 @@ fn manage_startup(action: String) -> Result<String, String> {
                 &path,
                 &binary,
                 "Loopwire will start with your desktop session.",
+                true,
             ))
         }
         "uninstall" => {
@@ -110,14 +112,17 @@ fn manage_startup(action: String) -> Result<String, String> {
                 &path,
                 &binary,
                 "Loopwire desktop autostart was removed.",
+                true,
             ))
         }
         "background_status" => {
-            let background_binary = background_binary_path(&binary)?;
+            let status = background_binary_status(&binary);
             Ok(background_startup_status_json(
                 &background_path,
-                &background_binary,
+                &status.binary,
                 "Background restore status checked.",
+                status.available,
+                status.note.as_deref(),
             ))
         }
         "background_install" => {
@@ -128,15 +133,20 @@ fn manage_startup(action: String) -> Result<String, String> {
                 &background_path,
                 &background_binary,
                 "Loopwire will restore audio through a user systemd unit.",
+                true,
+                None,
             ))
         }
         "background_uninstall" => {
             uninstall_background_startup_entry(&background_path)
                 .map_err(|error| error.to_string())?;
+            let status = background_binary_status(&binary);
             Ok(background_startup_status_json(
                 &background_path,
-                &binary,
+                &status.binary,
                 "Loopwire background restore was removed.",
+                status.available,
+                status.note.as_deref(),
             ))
         }
         _ => Err(format!("unsupported startup action: {action}")),
@@ -189,6 +199,126 @@ fn command_result_json(
     )
 }
 
+fn is_allowed_audio_command(command: &str, args: &[String]) -> bool {
+    match command {
+        "aplay" => args_match(args, &["-l"]),
+        "arecord" => args_match(args, &["-l"]),
+        "jack_connect" | "jack_disconnect" => {
+            args.len() == 2 && args.iter().all(|arg| is_port_name(arg))
+        }
+        "jack_lsp" => args.is_empty() || args_match(args, &["-c"]) || args_match(args, &["-p"]),
+        "pactl" => is_allowed_pactl_args(args),
+        "pw-cli" => is_allowed_pw_cli_args(args),
+        "pw-link" => is_allowed_pw_link_args(args),
+        "wpctl" => args_match(args, &["status"]),
+        _ => false,
+    }
+}
+
+fn is_allowed_pactl_args(args: &[String]) -> bool {
+    if args_match(args, &["info"])
+        || args_match(args, &["list", "sink-inputs"])
+        || args_match(args, &["list", "short", "modules"])
+        || args_match(args, &["list", "short", "sinks"])
+    {
+        return true;
+    }
+
+    match args.first().map(String::as_str) {
+        Some("load-module") => is_allowed_pactl_load_module(args),
+        Some("move-sink-input") => args.len() == 3 && args[1..].iter().all(|arg| is_name_arg(arg)),
+        Some("set-sink-input-mute") => {
+            args.len() == 3 && is_name_arg(&args[1]) && matches!(args[2].as_str(), "0" | "1")
+        }
+        Some("set-sink-input-volume") => {
+            args.len() == 3 && is_name_arg(&args[1]) && is_percent_arg(&args[2])
+        }
+        Some("unload-module") => args.len() == 2 && is_name_arg(&args[1]),
+        _ => false,
+    }
+}
+
+fn is_allowed_pactl_load_module(args: &[String]) -> bool {
+    if args.len() == 5 && args.get(1).map(String::as_str) == Some("module-loopback") {
+        return args[2].starts_with("source=")
+            && args[3].starts_with("sink=")
+            && args[4] == "latency_msec=20"
+            && args[2..4].iter().all(|arg| is_assignment_arg(arg));
+    }
+
+    args.len() == 5
+        && args.get(1).map(String::as_str) == Some("module-null-sink")
+        && args[2].starts_with("sink_name=")
+        && args[3].starts_with("channels=")
+        && args[4].starts_with("sink_properties=device.description=")
+        && args[2..].iter().all(|arg| is_assignment_arg(arg))
+}
+
+fn is_allowed_pw_cli_args(args: &[String]) -> bool {
+    if args_match(args, &["--version"])
+        || args_match(args, &["info", "0"])
+        || args_match(args, &["list-objects", "Node"])
+    {
+        return true;
+    }
+
+    match args.first().map(String::as_str) {
+        Some("create-node") => {
+            args.len() == 3
+                && args[1] == "adapter"
+                && args[2].starts_with("{ factory.name=support.null-audio-sink ")
+                && args[2].contains("media.class=Audio/Sink")
+                && has_no_control_chars(&args[2])
+        }
+        Some("destroy") => args.len() == 2 && is_name_arg(&args[1]),
+        _ => false,
+    }
+}
+
+fn is_allowed_pw_link_args(args: &[String]) -> bool {
+    if args_match(args, &["-o"]) || args_match(args, &["-i"]) || args_match(args, &["-l"]) {
+        return true;
+    }
+
+    if args.len() == 3 && args[0] == "-d" {
+        return args[1..].iter().all(|arg| is_port_name(arg));
+    }
+
+    args.len() == 2 && args.iter().all(|arg| is_port_name(arg))
+}
+
+fn args_match(args: &[String], expected: &[&str]) -> bool {
+    args.len() == expected.len()
+        && args
+            .iter()
+            .zip(expected.iter())
+            .all(|(actual, expected)| actual == expected)
+}
+
+fn is_assignment_arg(value: &str) -> bool {
+    value.contains('=') && has_no_control_chars(value)
+}
+
+fn is_name_arg(value: &str) -> bool {
+    !value.is_empty() && !value.starts_with('-') && has_no_control_chars(value)
+}
+
+fn is_percent_arg(value: &str) -> bool {
+    let Some(number) = value.strip_suffix('%') else {
+        return false;
+    };
+
+    !number.is_empty() && number.chars().all(|character| character.is_ascii_digit())
+}
+
+fn is_port_name(value: &str) -> bool {
+    is_name_arg(value) && value.contains(':')
+}
+
+fn has_no_control_chars(value: &str) -> bool {
+    !value.chars().any(char::is_control)
+}
+
 fn autostart_path() -> Result<PathBuf, String> {
     Ok(config_home()?.join("autostart").join("loopwire.desktop"))
 }
@@ -231,6 +361,21 @@ fn background_binary_path(current_binary: &Path) -> Result<PathBuf, String> {
     }
 
     resolve_background_binary_path(current_binary)
+}
+
+fn background_binary_status(current_binary: &Path) -> BackgroundBinaryStatus {
+    match background_binary_path(current_binary) {
+        Ok(binary) => BackgroundBinaryStatus {
+            binary,
+            available: true,
+            note: None,
+        },
+        Err(error) => BackgroundBinaryStatus {
+            binary: current_binary.to_path_buf(),
+            available: false,
+            note: Some(error),
+        },
+    }
 }
 
 fn resolve_background_binary_path(current_binary: &Path) -> Result<PathBuf, String> {
@@ -415,19 +560,26 @@ fn render_background_service(binary: &Path, state_path: &Path) -> String {
     )
 }
 
-fn startup_status_json(path: &Path, binary: &Path, message: &str) -> String {
+fn startup_status_json(path: &Path, binary: &Path, message: &str, available: bool) -> String {
     let enabled = path.is_file();
 
     format!(
-        "{{\"enabled\":{},\"path\":\"{}\",\"binary\":\"{}\",\"message\":\"{}\"}}",
+        "{{\"enabled\":{},\"available\":{},\"path\":\"{}\",\"binary\":\"{}\",\"message\":\"{}\"}}",
         if enabled { "true" } else { "false" },
+        if available { "true" } else { "false" },
         escape_json(&path.display().to_string()),
         escape_json(&binary.display().to_string()),
         escape_json(message)
     )
 }
 
-fn background_startup_status_json(path: &Path, binary: &Path, message: &str) -> String {
+fn background_startup_status_json(
+    path: &Path,
+    binary: &Path,
+    message: &str,
+    available: bool,
+    unavailable_note: Option<&str>,
+) -> String {
     let enabled = path.is_file()
         && background_wants_link(path)
             .map(|link| link.exists())
@@ -436,15 +588,37 @@ fn background_startup_status_json(path: &Path, binary: &Path, message: &str) -> 
     startup_status_json(
         path,
         binary,
-        message_for_background_status(enabled, message),
+        &message_for_background_status(enabled, available, message, unavailable_note),
+        available,
     )
 }
 
-fn message_for_background_status(enabled: bool, message: &str) -> &str {
+fn message_for_background_status(
+    enabled: bool,
+    available: bool,
+    message: &str,
+    unavailable_note: Option<&str>,
+) -> String {
+    if !available {
+        let suffix = unavailable_note
+            .filter(|note| !note.is_empty())
+            .map(|note| format!(" {note}"))
+            .unwrap_or_default();
+        let prefix = if enabled {
+            "Background restore is installed, but blocked"
+        } else if message.contains("removed") {
+            "Background restore was removed; enable is blocked"
+        } else {
+            "Background restore is blocked"
+        };
+
+        return format!("{prefix}: background launcher is unavailable.{suffix}");
+    }
+
     if enabled {
-        message
+        message.to_string()
     } else {
-        "Background restore is off."
+        "Background restore is off.".to_string()
     }
 }
 
@@ -492,16 +666,128 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::{
-        background_startup_status_json, install_background_startup_entry, install_startup_entry,
-        render_background_service, render_desktop_entry, resolve_background_binary_path,
-        startup_status_json, uninstall_background_startup_entry, uninstall_startup_entry,
-        write_state_file,
+        background_binary_status, background_startup_status_json, install_background_startup_entry,
+        install_startup_entry, is_allowed_audio_command, render_background_service,
+        render_desktop_entry, resolve_background_binary_path, startup_status_json,
+        uninstall_background_startup_entry, uninstall_startup_entry, write_state_file,
     };
     use std::{
         fs,
         path::{Path, PathBuf},
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    #[test]
+    fn allows_expected_audio_probe_commands() {
+        for (command, args) in [
+            ("aplay", vec!["-l"]),
+            ("arecord", vec!["-l"]),
+            ("jack_lsp", vec![]),
+            ("jack_lsp", vec!["-c"]),
+            ("jack_lsp", vec!["-p"]),
+            ("pactl", vec!["info"]),
+            ("pactl", vec!["list", "short", "modules"]),
+            ("pactl", vec!["list", "short", "sinks"]),
+            ("pactl", vec!["list", "sink-inputs"]),
+            ("pw-cli", vec!["--version"]),
+            ("pw-cli", vec!["info", "0"]),
+            ("pw-cli", vec!["list-objects", "Node"]),
+            ("pw-link", vec!["-o"]),
+            ("pw-link", vec!["-i"]),
+            ("pw-link", vec!["-l"]),
+            ("wpctl", vec!["status"]),
+        ] {
+            assert!(allows(command, &args), "{command} {args:?}");
+        }
+    }
+
+    #[test]
+    fn allows_expected_audio_mutation_commands() {
+        let pipewire_props = concat!(
+            "{ factory.name=support.null-audio-sink node.name=\"loopwire_program\" ",
+            "media.class=Audio/Sink }"
+        );
+
+        for (command, args) in [
+            (
+                "pactl",
+                vec![
+                    "load-module",
+                    "module-null-sink",
+                    "sink_name=loopwire_program",
+                    "channels=2",
+                    "sink_properties=device.description=loopwire_program",
+                ],
+            ),
+            (
+                "pactl",
+                vec![
+                    "load-module",
+                    "module-loopback",
+                    "source=loopwire_program.monitor",
+                    "sink=alsa_output.headphones",
+                    "latency_msec=20",
+                ],
+            ),
+            ("pactl", vec!["move-sink-input", "44", "loopwire_program"]),
+            ("pactl", vec!["set-sink-input-mute", "44", "1"]),
+            ("pactl", vec!["set-sink-input-volume", "44", "86%"]),
+            ("pactl", vec!["unload-module", "12"]),
+            ("pw-cli", vec!["create-node", "adapter", pipewire_props]),
+            ("pw-cli", vec!["destroy", "99"]),
+            (
+                "pw-link",
+                vec![
+                    "alsa_input.studio:capture_FL",
+                    "loopwire_program:playback_FL",
+                ],
+            ),
+            (
+                "pw-link",
+                vec![
+                    "-d",
+                    "alsa_input.studio:capture_FL",
+                    "loopwire_program:playback_FL",
+                ],
+            ),
+            (
+                "jack_connect",
+                vec!["studio_mic:capture_1", "loopwire_program:playback_1"],
+            ),
+            (
+                "jack_disconnect",
+                vec!["studio_mic:capture_1", "loopwire_program:playback_1"],
+            ),
+        ] {
+            assert!(allows(command, &args), "{command} {args:?}");
+        }
+    }
+
+    #[test]
+    fn rejects_audio_command_argument_shapes_outside_loopwire_contract() {
+        for (command, args) in [
+            ("sh", vec!["-c", "pactl info"]),
+            ("pactl", vec!["upload-sample", "/tmp/sample.wav"]),
+            ("pactl", vec!["set-default-sink", "alsa_output.headphones"]),
+            ("pactl", vec!["set-sink-input-mute", "44", "toggle"]),
+            ("pactl", vec!["set-sink-input-volume", "44", "86"]),
+            ("pw-cli", vec!["dump"]),
+            ("pw-cli", vec!["create-node", "adapter", "factory.name=bad"]),
+            ("pw-link", vec!["--help"]),
+            (
+                "pw-link",
+                vec!["-d", "missing-colon", "loopwire_program:playback_FL"],
+            ),
+            ("jack_lsp", vec!["--help"]),
+            (
+                "jack_connect",
+                vec!["--help", "loopwire_program:playback_1"],
+            ),
+            ("wpctl", vec!["set-volume", "@DEFAULT_AUDIO_SINK@", "0"]),
+        ] {
+            assert!(!allows(command, &args), "{command} {args:?}");
+        }
+    }
 
     #[test]
     fn renders_xdg_desktop_autostart_entry() {
@@ -593,6 +879,28 @@ mod tests {
     }
 
     #[test]
+    fn reports_missing_background_launcher_as_unavailable_status() {
+        let temp_dir = unique_temp_dir();
+        let gui = temp_dir.join("lib/loopwire/loopwire-gui");
+
+        fs::create_dir_all(gui.parent().expect("gui parent")).expect("create gui parent");
+        fs::write(&gui, "").expect("write gui");
+
+        let status = background_binary_status(&gui);
+
+        assert!(!status.available);
+        assert_eq!(status.binary, gui);
+        assert!(
+            status
+                .note
+                .expect("status note")
+                .contains("could not locate the Loopwire background restore launcher")
+        );
+
+        let _ = fs::remove_dir_all(temp_dir);
+    }
+
+    #[test]
     fn installs_and_removes_user_autostart_entry() {
         let temp_dir = unique_temp_dir();
         let path = temp_dir.join("autostart/loopwire.desktop");
@@ -601,11 +909,12 @@ mod tests {
         install_startup_entry(&path, binary).expect("install autostart entry");
         let installed = fs::read_to_string(&path).expect("read installed entry");
         assert!(installed.contains("Exec=\"/tmp/loopwire-test\""));
-        assert!(startup_status_json(&path, binary, "checked").contains("\"enabled\":true"));
+        assert!(startup_status_json(&path, binary, "checked", true).contains("\"enabled\":true"));
+        assert!(startup_status_json(&path, binary, "checked", true).contains("\"available\":true"));
 
         uninstall_startup_entry(&path).expect("uninstall autostart entry");
         assert!(!path.exists());
-        assert!(startup_status_json(&path, binary, "checked").contains("\"enabled\":false"));
+        assert!(startup_status_json(&path, binary, "checked", true).contains("\"enabled\":false"));
 
         let _ = fs::remove_dir_all(temp_dir);
     }
@@ -622,13 +931,29 @@ mod tests {
         assert!(installed.contains("ExecStart=\"/tmp/loopwire-test\" --background"));
         assert!(installed.contains("--mode live"));
         assert!(
-            background_startup_status_json(&path, binary, "checked").contains("\"enabled\":true")
+            background_startup_status_json(&path, binary, "checked", true, None)
+                .contains("\"enabled\":true")
+        );
+        assert!(
+            background_startup_status_json(&path, binary, "checked", true, None)
+                .contains("\"available\":true")
         );
 
         uninstall_background_startup_entry(&path).expect("uninstall background unit");
         assert!(!path.exists());
         assert!(
-            background_startup_status_json(&path, binary, "checked").contains("\"enabled\":false")
+            background_startup_status_json(&path, binary, "checked", true, None)
+                .contains("\"enabled\":false")
+        );
+        assert!(
+            background_startup_status_json(
+                &path,
+                binary,
+                "checked",
+                false,
+                Some("missing launcher")
+            )
+            .contains("background launcher is unavailable")
         );
 
         let _ = fs::remove_dir_all(temp_dir);
@@ -667,5 +992,13 @@ mod tests {
         let path = std::env::temp_dir().join(format!("loopwire-startup-test-{suffix}"));
         fs::create_dir_all(&path).expect("create temp dir");
         path
+    }
+
+    fn allows(command: &str, args: &[&str]) -> bool {
+        let owned_args = args
+            .iter()
+            .map(|arg| (*arg).to_string())
+            .collect::<Vec<_>>();
+        is_allowed_audio_command(command, &owned_args)
     }
 }

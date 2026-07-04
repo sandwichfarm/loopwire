@@ -4,9 +4,12 @@ set -euo pipefail
 repo="${LOOPWIRE_GITHUB_REPO:-}"
 tag="${LOOPWIRE_RELEASE_TAG:-}"
 public_key="${LOOPWIRE_RELEASE_PUBLIC_KEY:-packaging/release-signing-public.pem}"
+canonical_installer="${LOOPWIRE_INSTALLER_SCRIPT:-scripts/install.sh}"
+public_installer="${LOOPWIRE_PUBLIC_INSTALLER:-apps/docs/docs/public/install.sh}"
 require_gh="true"
 require_tag="true"
 require_public_key="true"
+require_clean_git="true"
 allow_candidate_notes="false"
 
 usage() {
@@ -16,13 +19,17 @@ Verify Loopwire release readiness without publishing.
 Usage:
   verify-release-readiness.sh --repo OWNER/REPO --tag vX.Y.Z [--public-key FILE]
   verify-release-readiness.sh --repo OWNER/REPO --tag vX.Y.Z --skip-gh --skip-tag
-  verify-release-readiness.sh --tag vX.Y.Z --skip-gh --skip-tag --skip-public-key
+  verify-release-readiness.sh --tag vX.Y.Z --skip-gh --skip-tag --skip-public-key --skip-clean-git
 
 Checks:
+  - release tag is v-prefixed semver without path separators,
+  - GitHub repository is OWNER/REPO when provided,
   - versioned release notes exist,
   - versioned release notes no longer carry release-candidate/not-published wording,
+  - public docs installer stays synchronized with the canonical installer,
   - release public key exists and parses,
-  - local or remote tag exists unless --skip-tag is passed,
+  - git checkout is clean unless --skip-clean-git is passed,
+  - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
   - GitHub repository is reachable unless --skip-gh is passed,
   - release/docs secrets are present unless --skip-gh is passed.
 
@@ -64,6 +71,10 @@ while [ "$#" -gt 0 ]; do
       require_public_key="false"
       shift
       ;;
+    --skip-clean-git)
+      require_clean_git="false"
+      shift
+      ;;
     --allow-candidate-notes)
       allow_candidate_notes="true"
       shift
@@ -79,10 +90,10 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$tag" ] || fail "missing --tag vX.Y.Z"
-case "$tag" in
-  v*) ;;
-  *) fail "release tag must start with v: $tag" ;;
-esac
+tag_pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
+if [[ ! "$tag" =~ $tag_pattern ]]; then
+  fail "release tag must be v-prefixed semver without path separators: $tag"
+fi
 
 if [ "$require_gh" = "true" ] && [ -z "$repo" ]; then
   command -v gh >/dev/null 2>&1 || fail "gh is required when --repo is omitted"
@@ -90,6 +101,12 @@ if [ "$require_gh" = "true" ] && [ -z "$repo" ]; then
 fi
 
 [ "$require_gh" = "false" ] || [ -n "$repo" ] || fail "missing --repo OWNER/REPO"
+if [ -n "$repo" ]; then
+  repo_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+  if [[ ! "$repo" =~ $repo_pattern ]]; then
+    fail "repository must use OWNER/REPO without URLs, spaces, or extra path segments: $repo"
+  fi
+fi
 
 failed=0
 version="${tag#v}"
@@ -138,20 +155,92 @@ fi
 
 check_release_notes_are_publishable "$release_notes"
 
+check_file "$canonical_installer" "canonical installer"
+check_file "$public_installer" "public docs installer"
+if [ -s "$canonical_installer" ] && [ -s "$public_installer" ]; then
+  if cmp -s "$canonical_installer" "$public_installer"; then
+    echo "ok: public docs installer matches canonical installer"
+  else
+    echo "invalid: public docs installer differs from canonical installer: $public_installer" >&2
+    failed=1
+  fi
+  if ! bash -n "$public_installer"; then
+    echo "invalid: public docs installer has shell syntax errors: $public_installer" >&2
+    failed=1
+  fi
+fi
+
 if [ "$require_public_key" = "true" ] && [ -s "$public_key" ] &&
   ! openssl pkey -pubin -in "$public_key" -noout >/dev/null 2>&1; then
   echo "invalid: release public key does not parse: $public_key" >&2
   failed=1
 fi
 
-if [ "$require_tag" = "true" ]; then
-  if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-    echo "ok: local tag exists: $tag"
-  elif git ls-remote --tags origin "refs/tags/${tag}" | grep -Fq "refs/tags/${tag}"; then
-    echo "ok: remote tag exists: $tag"
+if [ "$require_clean_git" = "true" ]; then
+  git_status="$(git status --short 2>/dev/null || true)"
+  if [ -z "$git_status" ]; then
+    echo "ok: git status is clean"
   else
-    echo "missing: local or remote tag: $tag" >&2
+    echo "invalid: git status is not clean" >&2
     failed=1
+  fi
+else
+  echo "skipped: clean git status check"
+fi
+
+current_head() {
+  git rev-parse HEAD 2>/dev/null || true
+}
+
+local_tag_commit() {
+  git rev-parse -q --verify "refs/tags/${tag}^{commit}" 2>/dev/null || true
+}
+
+remote_tag_commit() {
+  local direct_ref=""
+  local peeled_ref=""
+
+  peeled_ref="$(git ls-remote --tags origin "refs/tags/${tag}^{}" 2>/dev/null | awk '{ print $1 }' | head -1)"
+  if [ -n "$peeled_ref" ]; then
+    printf '%s\n' "$peeled_ref"
+    return
+  fi
+
+  direct_ref="$(git ls-remote --tags origin "refs/tags/${tag}" 2>/dev/null | awk '{ print $1 }' | head -1)"
+  [ -z "$direct_ref" ] || printf '%s\n' "$direct_ref"
+}
+
+check_tag_commit() {
+  local source="$1"
+  local commit="$2"
+  local head_commit="$3"
+
+  if [ "$commit" = "$head_commit" ]; then
+    echo "ok: ${source} tag points at current HEAD: $tag"
+  else
+    echo "invalid: ${source} tag does not point at current HEAD: $tag" >&2
+    failed=1
+  fi
+}
+
+if [ "$require_tag" = "true" ]; then
+  head_commit="$(current_head)"
+  local_commit="$(local_tag_commit)"
+  remote_commit=""
+
+  if [ -z "$head_commit" ]; then
+    echo "invalid: could not resolve current HEAD" >&2
+    failed=1
+  elif [ -n "$local_commit" ]; then
+    check_tag_commit "local" "$local_commit" "$head_commit"
+  else
+    remote_commit="$(remote_tag_commit)"
+    if [ -n "$remote_commit" ]; then
+      check_tag_commit "remote" "$remote_commit" "$head_commit"
+    else
+      echo "missing: local or remote tag: $tag" >&2
+      failed=1
+    fi
   fi
 else
   echo "skipped: tag existence check"
@@ -161,15 +250,20 @@ if [ "$require_gh" = "true" ]; then
   command -v gh >/dev/null 2>&1 || fail "gh is required"
   gh repo view "$repo" >/dev/null
 
-  secret_names="$(gh secret list --repo "$repo" 2>/dev/null | awk '{ print $1 }')"
-  for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY LOOPWIRE_RELEASE_PRIVATE_KEY; do
-    if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
-      echo "ok: GitHub secret present: $secret"
-    else
-      echo "missing: GitHub secret: $secret" >&2
-      failed=1
-    fi
-  done
+  if secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
+    secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
+    for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY LOOPWIRE_RELEASE_PRIVATE_KEY; do
+      if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
+        echo "ok: GitHub secret present: $secret"
+      else
+        echo "missing: GitHub secret: $secret" >&2
+        failed=1
+      fi
+    done
+  else
+    echo "error: unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
+    failed=1
+  fi
 
   if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
     echo "ok: GitHub release exists and will be updated: $repo@$tag"

@@ -23,6 +23,12 @@ require_contains packaging/nix/loopwire-bin.nix "github.com/sandwichfarm/loopwir
 require_contains packaging/nix/loopwire-bin.nix "install -Dm755 loopwire"
 require_contains packaging/nix/loopwire-bin.nix "nodejs"
 require_contains packaging/nix/loopwire-bin.nix '$out/lib/loopwire'
+require_contains flake.nix "packages = forEachSystem"
+require_contains flake.nix "loopwire-bin = loopwireBin"
+require_contains flake.nix "default = loopwireBin"
+require_contains flake.nix "pkgs.callPackage ./packaging/nix/loopwire-bin.nix"
+require_contains flake.nix "nixpkgs.lib.fakeHash"
+require_contains flake.nix "mkLoopwireBinPackage"
 require_contains packaging/README.md "same release artifacts"
 
 bash scripts/install.sh --dry-run >/dev/null

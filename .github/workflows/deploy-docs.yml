@@ -94,6 +94,7 @@ jobs:
           BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE }}
           BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
           BUNNY_STORAGE_ENDPOINT: ${{ secrets.BUNNY_STORAGE_ENDPOINT }}
+          BUNNY_REMOTE_PREFIX: ${{ secrets.BUNNY_REMOTE_PREFIX }}
           BUNNY_PULL_ZONE_HOSTNAME: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}
         run: |
           set -euo pipefail
@@ -115,10 +116,23 @@ jobs:
           BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE }}
           BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
           BUNNY_STORAGE_ENDPOINT: ${{ secrets.BUNNY_STORAGE_ENDPOINT }}
+          BUNNY_REMOTE_PREFIX: ${{ secrets.BUNNY_REMOTE_PREFIX }}
         run: bash scripts/deploy-docs-bunny.sh --dist apps/docs/docs/.vitepress/dist
 
       - name: Report pull-zone hostname
         if: ${{ steps.bunny.outputs.deploy == 'true' && steps.bunny.outputs.hostname == 'true' }}
         env:
           BUNNY_PULL_ZONE_HOSTNAME: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}
-        run: echo "Docs deployed to https://${BUNNY_PULL_ZONE_HOSTNAME}"
+          BUNNY_REMOTE_PREFIX: ${{ secrets.BUNNY_REMOTE_PREFIX }}
+        run: |
+          bash scripts/verify-docs-live.sh \
+            --hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
+            --remote-prefix "$BUNNY_REMOTE_PREFIX"
+
+          docs_url="https://${BUNNY_PULL_ZONE_HOSTNAME}"
+          prefix="${BUNNY_REMOTE_PREFIX#/}"
+          prefix="${prefix%/}"
+          if [ -n "$prefix" ]; then
+            docs_url="${docs_url}/${prefix}"
+          fi
+          echo "Docs deployed to ${docs_url}"

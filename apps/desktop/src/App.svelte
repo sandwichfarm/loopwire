@@ -3,6 +3,16 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
+    describeLiveApplyPreflight,
+    getNativeGainBlockerRoutes,
+    type LiveApplyPreflight
+  } from "./live-apply-preflight";
+  import {
+    describeSelectedRouteControlSemantics,
+    routeGainEditingLockedForBackend,
+    type RouteControlBackendCapability
+  } from "./route-control-semantics";
+  import {
     detectAudioBackends,
     enumerateInputSources,
     enumeratePlaybackDevices,
@@ -61,13 +71,13 @@
     type ConfigurationRuntimeResult,
     type LoopwireConfiguration,
     type LoopwireState,
+    type RuntimeLogEntry,
     type RuntimeOperation,
     type RuntimeTransactionReason
   } from "@loopwire/core";
 
   type ChromeMode = "native" | "custom";
   type HostApplyMode = "preview" | "live";
-  type RouteControlMode = "edge" | "stream" | "link" | "planned";
   type RuntimeBadge = "ready" | "applying" | "verified" | "rolled_back" | "failed";
   type SourceCandidate = {
     readonly id: string;
@@ -93,6 +103,7 @@
   };
   type StartupStatus = {
     readonly enabled: boolean;
+    readonly available: boolean;
     readonly path: string;
     readonly binary: string;
     readonly message: string;
@@ -109,14 +120,6 @@
     readonly routeCount: number;
     readonly mutedCount: number;
   };
-  type LiveApplyPreflight = {
-    readonly ok: boolean;
-    readonly mode: "ready" | "blocked";
-    readonly badge: string;
-    readonly message: string;
-    readonly blockers: readonly string[];
-  };
-
   const storageKey = "loopwire.state.v1";
   const chromeStorageKey = "loopwire.chrome.v1";
   const routingBoardTop = 150;
@@ -251,7 +254,12 @@
   let restoreNote = "";
   let runtimeStatus: RuntimeBadge = "ready";
   let runtimeNote = "Preview runtime ready.";
+  let runtimeActivity: readonly RuntimeLogEntry[] = [];
+  let runtimeActivityReason: RuntimeTransactionReason | undefined;
+  let configurationSwitchBusy = false;
+  let configurationSwitchToken = 0;
   let backendCandidates: readonly BackendCandidate[] = fallbackBackendCandidates;
+  let backendCapabilityReports: readonly RouteControlBackendCapability[] = [];
   let backendDetectionNote = "Browser preview uses packaged backend candidates.";
   let monitorTargetDevices: readonly AudioPlaybackDevice[] = [];
   let monitorTargetNote = "Choose a backend to list host monitor sinks.";
@@ -267,12 +275,16 @@
   let routeSourceId = "";
   let routeOutputId = "";
   let startupEnabled = false;
+  let startupAvailable = true;
   let startupBusy = false;
   let startupPath = "";
+  let startupBinary = "";
   let startupNote = "Desktop shell can check user autostart status.";
   let backgroundStartupEnabled = false;
+  let backgroundStartupAvailable = true;
   let backgroundStartupBusy = false;
   let backgroundStartupPath = "";
+  let backgroundStartupBinary = "";
   let backgroundStartupNote = "Desktop shell can check user background restore status.";
   let transferText = "";
   let transferNote = "Export the active configuration or paste a Loopwire configuration JSON payload.";
@@ -287,10 +299,30 @@
   $: hiddenMonitorCount = activeConfiguration.monitors.length - visibleMonitors.length;
   $: backendDecision = selectBackend(backendCandidates, state.selectedBackend);
   $: selectedBackend = state.selectedBackend ?? "";
-  $: routeControlSemantics = describeSelectedRouteControlSemantics(state.selectedBackend, backendDecision.mode);
+  $: selectedBackendCapability = backendCapabilityReports.find((report) => report.kind === state.selectedBackend);
+  $: routeControlSemantics = describeSelectedRouteControlSemantics(
+    state.selectedBackend,
+    backendDecision.mode,
+    selectedBackendCapability
+  );
   $: routingBoard = buildRoutingBoard(activeConfiguration.inputs, activeConfiguration.outputs, activeConfiguration.routes);
-  $: liveApplyPreflight = describeLiveApplyPreflight(activeConfiguration, state.selectedBackend);
+  $: liveApplyPreflight = describeLiveApplyPreflight(
+    activeConfiguration,
+    state.selectedBackend,
+    displayBackendName,
+    selectedBackendCapability
+  );
+  $: nativeGainBlockerRoutes = getNativeGainBlockerRoutes(
+    activeConfiguration,
+    state.selectedBackend,
+    selectedBackendCapability
+  );
+  $: canResetNativeRouteGains = nativeGainBlockerRoutes.length > 0;
+  $: routeGainEditingLocked = routeGainEditingLockedForBackend(state.selectedBackend, selectedBackendCapability);
   $: desktopRuntimeAvailable = hasTauriRuntime();
+  $: startupActionDisabled = startupBusy || !desktopRuntimeAvailable || (!startupAvailable && !startupEnabled);
+  $: backgroundStartupActionDisabled =
+    backgroundStartupBusy || !desktopRuntimeAvailable || (!backgroundStartupAvailable && !backgroundStartupEnabled);
   $: sourcePickerCandidates = detectedSourceCandidates.length > 0 ? detectedSourceCandidates : staticSourceCandidates;
   $: outputPickerCandidates = nativeBackendUsesHostTargets(state.selectedBackend)
     ? [...monitorTargetDevices.map(toHostOutputCandidate), ...appOutputCandidates]
@@ -412,10 +444,14 @@
   async function refreshStartupStatus(): Promise<void> {
     if (!hasTauriRuntime()) {
       startupEnabled = false;
+      startupAvailable = true;
       startupPath = "~/.config/autostart/loopwire.desktop";
+      startupBinary = "";
       startupNote = "Run the desktop shell to manage user-scoped XDG autostart.";
       backgroundStartupEnabled = false;
+      backgroundStartupAvailable = true;
       backgroundStartupPath = "~/.config/systemd/user/loopwire.service";
+      backgroundStartupBinary = "";
       backgroundStartupNote = "Run the desktop shell to manage user-scoped background restore.";
       return;
     }
@@ -427,6 +463,7 @@
   async function refreshBackendDetection(): Promise<void> {
     if (!hasTauriRuntime()) {
       backendCandidates = fallbackBackendCandidates;
+      backendCapabilityReports = [];
       backendDetectionNote = "Browser preview uses packaged backend candidates; run the desktop shell for host detection.";
       return;
     }
@@ -436,10 +473,12 @@
     try {
       const report = await detectAudioBackends(createTauriCommandRunner(), new Date(), "linux");
       backendCandidates = report.candidates;
+      backendCapabilityReports = report.reports;
       backendDetectionNote = describeBackendDetection(report);
       selectOnlyAvailableBackend(report.candidates);
     } catch (error) {
       backendCandidates = fallbackBackendCandidates;
+      backendCapabilityReports = [];
       backendDetectionNote = error instanceof Error ? `Backend detection failed: ${error.message}` : "Backend detection failed.";
     }
   }
@@ -460,9 +499,7 @@
       return;
     }
 
-    monitorTargetNote = backend === "jack"
-      ? "Listing JACK input ports."
-      : `Listing ${displayBackendName(backend)} playback sinks.`;
+    monitorTargetNote = describeMonitorTargetListing(backend);
 
     try {
       const report = await enumeratePlaybackDevices(createTauriCommandRunner(), backend, new Date());
@@ -490,9 +527,7 @@
       return;
     }
 
-    sourcePickerNote = backend === "jack"
-      ? "Listing JACK output ports."
-      : `Listing ${displayBackendName(backend)} running app streams.`;
+    sourcePickerNote = describeSourceListing(backend);
 
     try {
       const report = await enumerateInputSources(createTauriCommandRunner(), backend, new Date());
@@ -519,11 +554,14 @@
       const raw = await invoke<string>("manage_startup", { action });
       const status = parseStartupStatus(raw);
       startupEnabled = status.enabled;
+      startupAvailable = status.available;
       startupPath = status.path;
+      startupBinary = status.binary;
       startupNote = status.message;
-      runtimeStatus = "verified";
-      runtimeNote = status.enabled ? "Loopwire is set to start with this desktop session." : "Loopwire desktop autostart is off.";
+      runtimeStatus = status.available ? "verified" : "failed";
+      runtimeNote = describeStartupRuntimeNote(status, "desktop");
     } catch (error) {
+      startupAvailable = false;
       startupNote = error instanceof Error ? error.message : "Could not manage desktop autostart.";
       runtimeStatus = "failed";
       runtimeNote = startupNote;
@@ -541,13 +579,14 @@
       const raw = await invoke<string>("manage_startup", { action });
       const status = parseStartupStatus(raw);
       backgroundStartupEnabled = status.enabled;
+      backgroundStartupAvailable = status.available;
       backgroundStartupPath = status.path;
+      backgroundStartupBinary = status.binary;
       backgroundStartupNote = status.message;
-      runtimeStatus = "verified";
-      runtimeNote = status.enabled
-        ? "Loopwire will restore audio through a user systemd unit."
-        : "Loopwire background restore is off.";
+      runtimeStatus = status.available ? "verified" : "failed";
+      runtimeNote = describeStartupRuntimeNote(status, "background");
     } catch (error) {
+      backgroundStartupAvailable = false;
       backgroundStartupNote = error instanceof Error ? error.message : "Could not manage background restore.";
       runtimeStatus = "failed";
       runtimeNote = backgroundStartupNote;
@@ -565,12 +604,18 @@
   }
 
   async function chooseConfiguration(configurationId: string, sourceState: LoopwireState = state): Promise<ConfigurationRuntimeResult> {
+    const switchToken = ++configurationSwitchToken;
+    configurationSwitchBusy = true;
     const targetConfiguration = sourceState.configurations.find((configuration) => configuration.id === configurationId);
 
     if (!targetConfiguration) {
       const reason = `Unknown configuration: ${configurationId}`;
-      runtimeStatus = "failed";
-      runtimeNote = reason;
+      if (isCurrentConfigurationSwitch(switchToken)) {
+        runtimeStatus = "failed";
+        runtimeNote = reason;
+        configurationSwitchBusy = false;
+      }
+
       return {
         ok: false,
         status: "failed",
@@ -587,11 +632,15 @@
       };
     }
 
-    const preflight = describeLiveApplyPreflight(targetConfiguration, sourceState.selectedBackend);
+    const preflight = describeLiveApplyPreflight(targetConfiguration, sourceState.selectedBackend, displayBackendName);
 
     if (hostApplyMode === "live" && !preflight.ok) {
-      runtimeStatus = "failed";
-      runtimeNote = preflight.message;
+      if (isCurrentConfigurationSwitch(switchToken)) {
+        runtimeStatus = "failed";
+        runtimeNote = preflight.message;
+        configurationSwitchBusy = false;
+      }
+
       return {
         ok: false,
         status: "failed",
@@ -602,20 +651,49 @@
       };
     }
 
-    const result = await executeConfigurationSwitch(sourceState, configurationId);
+    let result: ConfigurationRuntimeResult;
 
-    if (result.ok) {
-      applyState(result.state);
+    try {
+      result = await executeConfigurationSwitch(sourceState, configurationId);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Configuration switch failed.";
+      result = {
+        ok: false,
+        status: "failed",
+        state: sourceState,
+        plan: createConfigurationSwitchPlan(sourceState, configurationId, new Date().toISOString()),
+        log: [],
+        reason
+      };
     }
 
-    updateRuntimeStatus(result);
+    if (isCurrentConfigurationSwitch(switchToken)) {
+      if (result.ok) {
+        applyState(result.state);
+      }
+
+      updateRuntimeStatus(result);
+      configurationSwitchBusy = false;
+    }
+
     return result;
   }
 
+  function isCurrentConfigurationSwitch(switchToken: number): boolean {
+    return switchToken === configurationSwitchToken;
+  }
+
   function chooseBackend(kind: AudioBackendKind): void {
+    const previousMode = hostApplyMode;
     applyState(setSelectedBackend(state, kind));
+
+    if (previousMode === "live") {
+      hostApplyMode = "preview";
+    }
+
     void refreshMonitorTargetDevices(kind);
     void refreshSourceCandidates(kind);
+    void verifyBackendSelection(kind, previousMode);
   }
 
   function handleBackendChange(event: Event): void {
@@ -644,6 +722,19 @@
     hostApplyMode = hostApplyMode === "preview" ? "live" : "preview";
     runtimeStatus = "ready";
     runtimeNote = hostApplyMode === "live" ? "Live host apply armed for the next switch." : "Preview runtime ready.";
+  }
+
+  async function verifyBackendSelection(kind: AudioBackendKind, previousMode: HostApplyMode): Promise<void> {
+    await verifyStartupState();
+
+    if (previousMode === "live") {
+      const verificationStatus = runtimeStatus;
+      const verificationNote = runtimeNote;
+      const disarmNote = `${displayBackendName(kind)} selected; live host apply was disarmed for preview verification.`;
+
+      runtimeStatus = runtimeStatus === "failed" ? "failed" : "ready";
+      runtimeNote = verificationStatus === "failed" ? `${disarmNote} ${verificationNote}` : disarmNote;
+    }
   }
 
   function toggleMonitor(monitorId: string): void {
@@ -858,6 +949,12 @@
   }
 
   function handleRouteGain(routeId: string, event: Event): void {
+    if (routeGainEditingLocked) {
+      runtimeStatus = "failed";
+      runtimeNote = routeGainLockRuntimeNote();
+      return;
+    }
+
     const gain = Number((event.currentTarget as HTMLInputElement).value) / 100;
     const updated = setRouteGain(state, activeConfiguration.id, routeId, gain, new Date().toISOString());
     applyState(updated.state);
@@ -880,15 +977,40 @@
     runtimeNote = `${describeRoute(routeId)} is ${route.muted ? "active" : "muted"} in the app runtime.`;
   }
 
+  function resetNativeRouteGains(): void {
+    if (nativeGainBlockerRoutes.length === 0 || !state.selectedBackend) {
+      return;
+    }
+
+    const updatedAt = new Date().toISOString();
+    let nextState = state;
+
+    for (const route of nativeGainBlockerRoutes) {
+      nextState = setRouteGain(nextState, activeConfiguration.id, route.id, 1, updatedAt).state;
+    }
+
+    applyState(nextState);
+    runtimeStatus = "verified";
+    const route = nativeGainBlockerRoutes[0];
+    runtimeNote =
+      nativeGainBlockerRoutes.length === 1 && route
+        ? `Reset ${describeRouteLabel(activeConfiguration, route)} to 100% for live apply.`
+        : `Reset ${nativeGainBlockerRoutes.length} route gains to 100% for ${displayBackendName(state.selectedBackend)} live apply.`;
+  }
+
   async function minimizeWindow(): Promise<void> {
     await runWindowAction("minimize");
+  }
+
+  async function toggleWindowMaximize(): Promise<void> {
+    await runWindowAction("toggleMaximize");
   }
 
   async function closeWindow(): Promise<void> {
     await runWindowAction("close");
   }
 
-  async function runWindowAction(action: "minimize" | "close"): Promise<void> {
+  async function runWindowAction(action: "minimize" | "toggleMaximize" | "close"): Promise<void> {
     if (!hasTauriRuntime()) {
       runtimeStatus = "failed";
       runtimeNote = "Window controls are available in the Tauri desktop shell.";
@@ -1106,20 +1228,62 @@
 
     return {
       enabled: parsed.enabled,
+      available: typeof parsed.available === "boolean" ? parsed.available : true,
       path: parsed.path,
       binary: typeof parsed.binary === "string" ? parsed.binary : "",
       message: typeof parsed.message === "string" ? parsed.message : "Startup status updated."
     };
   }
 
+  function describeStartupRuntimeNote(status: StartupStatus, mode: "desktop" | "background"): string {
+    if (!status.available) {
+      return status.message;
+    }
+
+    if (mode === "desktop") {
+      return status.enabled ? "Loopwire is set to start with this desktop session." : "Loopwire desktop autostart is off.";
+    }
+
+    return status.enabled ? "Loopwire will restore audio through a user systemd unit." : "Loopwire background restore is off.";
+  }
+
   function updateRuntimeStatus(result: ConfigurationRuntimeResult): void {
     runtimeStatus = result.status;
     runtimeNote = result.ok ? describeRuntimeSuccess(result) : result.reason;
+    runtimeActivity = result.log;
+    runtimeActivityReason = result.plan.reason;
   }
 
   function describeRuntimeSuccess(result: ConfigurationRuntimeResult): string {
     const lastEntry = result.log.at(-1);
     return lastEntry?.message ?? "Configuration verified in the app runtime.";
+  }
+
+  function runtimeActivityTitle(reason: RuntimeTransactionReason | undefined): string {
+    if (reason === "startup") {
+      return "Startup restore";
+    }
+
+    return "Configuration switch";
+  }
+
+  function runtimeOperationLabel(operation: RuntimeOperation): string {
+    const labels: Record<RuntimeOperation, string> = {
+      unload: "Unload",
+      apply: "Apply",
+      verify: "Verify",
+      rollback: "Rollback"
+    };
+
+    return labels[operation];
+  }
+
+  function runtimeActivityLabel(entry: RuntimeLogEntry): string {
+    return `${runtimeOperationLabel(entry.operation)} ${configurationNameForRuntimeEntry(entry)}`;
+  }
+
+  function configurationNameForRuntimeEntry(entry: RuntimeLogEntry): string {
+    return state.configurations.find((configuration) => configuration.id === entry.configurationId)?.name ?? entry.configurationId;
   }
 
   async function createNewConfiguration(): Promise<void> {
@@ -1156,10 +1320,30 @@
       return;
     }
 
-    const switchResult = await executeConfigurationSwitch(state, fallbackConfiguration.id);
+    const switchToken = ++configurationSwitchToken;
+    configurationSwitchBusy = true;
+    let switchResult: ConfigurationRuntimeResult;
+
+    try {
+      switchResult = await executeConfigurationSwitch(state, fallbackConfiguration.id);
+    } catch (error) {
+      switchResult = {
+        ok: false,
+        status: "failed",
+        state,
+        plan: createConfigurationSwitchPlan(state, fallbackConfiguration.id, new Date().toISOString()),
+        log: [],
+        reason: error instanceof Error ? error.message : "Configuration delete switch failed."
+      };
+    }
+
+    if (!isCurrentConfigurationSwitch(switchToken)) {
+      return;
+    }
 
     if (!switchResult.ok) {
       updateRuntimeStatus(switchResult);
+      configurationSwitchBusy = false;
       return;
     }
 
@@ -1167,6 +1351,7 @@
     applyState(deleted.state);
     runtimeStatus = "verified";
     runtimeNote = `Deleted ${deleted.removedConfiguration.name}; ${fallbackConfiguration.name} is verified in the app runtime.`;
+    configurationSwitchBusy = false;
   }
 
   function handleNameChange(event: Event): void {
@@ -1310,9 +1495,15 @@
 
   function describePlaybackDeviceReport(report: AudioPlaybackDeviceReport): string {
     if (report.devices.length > 0) {
-      return report.backend === "jack"
-        ? `Detected ${report.devices.length} JACK input target(s).`
-        : `Detected ${report.devices.length} ${displayBackendName(report.backend)} playback sink target(s).`;
+      if (report.backend === "jack") {
+        return `Detected ${report.devices.length} JACK input target(s).`;
+      }
+
+      if (report.backend === "alsa") {
+        return `Detected ${report.devices.length} ALSA playback device(s) for diagnostics.`;
+      }
+
+      return `Detected ${report.devices.length} ${displayBackendName(report.backend)} playback sink target(s).`;
     }
 
     return report.diagnostics[0]?.message ?? `No ${displayBackendName(report.backend)} playback sinks were listed.`;
@@ -1320,18 +1511,48 @@
 
   function describeInputSourceReport(report: AudioInputSourceReport): string {
     if (report.sources.length > 0) {
-      return report.backend === "jack"
-        ? `Detected ${report.sources.length} JACK output source(s).`
-        : `Detected ${report.sources.length} ${displayBackendName(report.backend)} running app stream(s).`;
+      if (report.backend === "jack") {
+        return `Detected ${report.sources.length} JACK output source(s).`;
+      }
+
+      if (report.backend === "alsa") {
+        return `Detected ${report.sources.length} ALSA capture device(s) for diagnostics.`;
+      }
+
+      return `Detected ${report.sources.length} ${displayBackendName(report.backend)} running app stream(s).`;
     }
 
     return report.diagnostics[0]?.message ?? `No ${displayBackendName(report.backend)} running app streams were listed.`;
   }
 
+  function describeMonitorTargetListing(backend: AudioBackendKind): string {
+    if (backend === "jack") {
+      return "Listing JACK input ports.";
+    }
+
+    if (backend === "alsa") {
+      return "Listing ALSA playback devices for diagnostics.";
+    }
+
+    return `Listing ${displayBackendName(backend)} playback sinks.`;
+  }
+
+  function describeSourceListing(backend: AudioBackendKind): string {
+    if (backend === "jack") {
+      return "Listing JACK output ports.";
+    }
+
+    if (backend === "alsa") {
+      return "Listing ALSA capture devices for diagnostics.";
+    }
+
+    return `Listing ${displayBackendName(backend)} running app streams.`;
+  }
+
   function toSourceCandidate(source: AudioInputSource): SourceCandidate {
     return {
       id: source.sourceId,
-      category: source.backend === "jack" ? "JACK ports" : "Running apps",
+      category: sourceCategory(source.backend),
       label: source.label,
       detail: source.detail ?? source.sourceName,
       channels: source.channels,
@@ -1344,7 +1565,7 @@
 
     return {
       id: `host-${device.backend}-${device.deviceName}`,
-      category: device.backend === "jack" ? "JACK targets" : "Host targets",
+      category: outputCategory(device.backend),
       label: device.label,
       detail,
       channels: 2,
@@ -1352,12 +1573,71 @@
     };
   }
 
+  function sourceCategory(backend: AudioBackendKind): string {
+    if (backend === "jack") {
+      return "JACK ports";
+    }
+
+    if (backend === "alsa") {
+      return "ALSA capture";
+    }
+
+    return "Running apps";
+  }
+
+  function outputCategory(backend: AudioBackendKind): string {
+    if (backend === "jack") {
+      return "JACK targets";
+    }
+
+    if (backend === "alsa") {
+      return "ALSA playback";
+    }
+
+    return "Host targets";
+  }
+
   function nativeBackendUsesHostTargets(kind: AudioBackendKind | undefined): boolean {
-    return kind === "pipewire" || kind === "jack";
+    return kind === "pipewire" || kind === "jack" || kind === "alsa";
   }
 
   function displayBackendName(kind: AudioBackendKind): string {
     return backendCandidates.find((candidate) => candidate.kind === kind)?.displayName ?? kind;
+  }
+
+  function routeGainControlLabel(routeId: string): string {
+    const base = `Gain for ${describeRoute(routeId)}`;
+    return routeGainEditingLocked && state.selectedBackend
+      ? `${base}; locked at 100% for ${displayBackendName(state.selectedBackend)} live apply`
+      : base;
+  }
+
+  function routeGainControlTitle(): string | undefined {
+    if (!routeGainEditingLocked || !state.selectedBackend) {
+      return undefined;
+    }
+
+    return routeControlSemantics.message;
+  }
+
+  function routeGainLockRuntimeNote(): string {
+    if (!state.selectedBackend) {
+      return "Choose a backend before editing route gain.";
+    }
+
+    return routeControlSemantics.message;
+  }
+
+  function startupBadge(enabled: boolean, available: boolean): string {
+    if (!available) {
+      return "blocked";
+    }
+
+    if (enabled) {
+      return "enabled";
+    }
+
+    return "off";
   }
 
   function monitorTargetKnown(deviceName: string): boolean {
@@ -1401,151 +1681,6 @@
     return "Host sink";
   }
 
-  function describeSelectedRouteControlSemantics(
-    backend: AudioBackendKind | undefined,
-    decisionMode: "auto" | "none" | "prompt"
-  ): {
-    readonly mode: RouteControlMode;
-    readonly badge: string;
-    readonly message: string;
-  } {
-    if (!backend && decisionMode === "prompt") {
-      return {
-        mode: "planned",
-        badge: "Choose",
-        message: "Choose a detected backend to see host route-control semantics."
-      };
-    }
-
-    if (!backend && decisionMode === "none") {
-      return {
-        mode: "planned",
-        badge: "No backend",
-        message: "No Linux audio backend probes succeeded; route controls stay in app preview."
-      };
-    }
-
-    if (backend) {
-      return describeRouteControlSemantics(backend);
-    }
-
-    return {
-      mode: "planned",
-      badge: "Choose",
-      message: "Choose a detected backend to see host route-control semantics."
-    };
-  }
-
-  function describeRouteControlSemantics(backend: AudioBackendKind): {
-    readonly mode: RouteControlMode;
-    readonly badge: string;
-    readonly message: string;
-  } {
-    if (backend === "pulseaudio") {
-      return {
-        mode: "stream",
-        badge: "Stream",
-        message: "PulseAudio gain and mute apply to whole matching streams, not separate route edges."
-      };
-    }
-
-    if (backend === "pipewire") {
-      return {
-        mode: "link",
-        badge: "Link",
-        message: "Native PipeWire applies route mute by disconnecting links; per-edge gain remains planned."
-      };
-    }
-
-    if (backend === "jack") {
-      return {
-        mode: "link",
-        badge: "Link",
-        message: "Native JACK applies route mute by disconnecting connections; per-edge gain remains planned."
-      };
-    }
-
-    return {
-      mode: "planned",
-      badge: "Planned",
-      message: `${backend.toUpperCase()} route apply and per-edge controls are not implemented yet.`
-    };
-  }
-
-  function describeLiveApplyPreflight(
-    configuration: LoopwireConfiguration,
-    backend: AudioBackendKind | undefined
-  ): LiveApplyPreflight {
-    const blockers = liveApplyBlockers(configuration, backend);
-
-    if (blockers.length === 0) {
-      return {
-        ok: true,
-        mode: "ready",
-        badge: "Ready",
-        message: backend
-          ? `${displayBackendName(backend)} live apply is ready for ${configuration.name}.`
-          : "Choose a backend before arming live apply.",
-        blockers
-      };
-    }
-
-    return {
-      ok: false,
-      mode: "blocked",
-      badge: "Blocked",
-      message: blockers.length > 1
-        ? `Resolve ${blockers.length} blockers before live apply can be armed.`
-        : blockers[0] ?? "Live apply is blocked.",
-      blockers
-    };
-  }
-
-  function liveApplyBlockers(
-    configuration: LoopwireConfiguration,
-    backend: AudioBackendKind | undefined
-  ): readonly string[] {
-    if (!backend) {
-      return ["Choose a detected backend before arming live apply."];
-    }
-
-    if (backend === "alsa") {
-      return ["ALSA live apply is not implemented; use PipeWire, PulseAudio, or JACK."];
-    }
-
-    if (backend === "pulseaudio") {
-      return [];
-    }
-
-    const inputs = new Map(configuration.inputs.map((input) => [input.id, input]));
-    const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
-    const nonUnityGainRoutes = configuration.routes.filter((route) => route.gain !== 1);
-    const missingSourceRoutes = configuration.routes.filter((route) => !inputs.get(route.from)?.deviceName?.trim());
-    const blockers: string[] = [];
-
-    if (nonUnityGainRoutes.length > 0) {
-      blockers.push(`${displayBackendName(backend)} live apply needs route gains at 100% until graph-edge gain lands.`);
-    }
-
-    if (missingSourceRoutes.length > 0) {
-      blockers.push(`${displayBackendName(backend)} live apply needs detected host source ports for routed inputs.`);
-    }
-
-    if (backend === "jack") {
-      const missingOutputRoutes = configuration.routes.filter((route) => !outputs.get(route.to)?.deviceName?.trim());
-      const missingMonitorTargets = (configuration.monitors ?? []).filter((monitor) => !monitor.deviceName?.trim());
-
-      if (missingOutputRoutes.length > 0) {
-        blockers.push("JACK live apply needs detected host output ports; virtual JACK ports are still planned.");
-      }
-
-      if (missingMonitorTargets.length > 0) {
-        blockers.push("JACK monitor routing needs detected host monitor target ports.");
-      }
-    }
-
-    return blockers;
-  }
 </script>
 
 <svelte:head>
@@ -1558,6 +1693,9 @@
       <span>Loopwire</span>
       <div class="chrome-buttons" aria-label="Window controls">
         <button type="button" aria-label="Minimize window" on:click={() => void minimizeWindow()}>−</button>
+        <button type="button" aria-label="Maximize or restore window" on:click={() => void toggleWindowMaximize()}>
+          □
+        </button>
         <button type="button" aria-label="Close window" on:click={() => void closeWindow()}>×</button>
       </div>
     </div>
@@ -1578,6 +1716,7 @@
           <button
             type="button"
             class:active={configuration.id === state.activeConfigurationId}
+            disabled={configurationSwitchBusy}
             on:click={() => void chooseConfiguration(configuration.id)}
           >
             <span>{configuration.name}</span>
@@ -1590,25 +1729,36 @@
       </div>
 
       <div class="configuration-actions" aria-label="Configuration actions">
-        <button type="button" on:click={() => void createNewConfiguration()}>New</button>
-        <button type="button" on:click={() => void duplicateActiveConfiguration()}>Duplicate</button>
-        <button type="button" disabled={state.configurations.length <= 1} on:click={() => void deleteActiveConfiguration()}>
+        <button type="button" disabled={configurationSwitchBusy} on:click={() => void createNewConfiguration()}>New</button>
+        <button type="button" disabled={configurationSwitchBusy} on:click={() => void duplicateActiveConfiguration()}>Duplicate</button>
+        <button
+          type="button"
+          disabled={configurationSwitchBusy || state.configurations.length <= 1}
+          on:click={() => void deleteActiveConfiguration()}
+        >
           Delete
         </button>
       </div>
 
-      <div class="boot-card" aria-label="Start on boot">
+      <div
+        class="boot-card"
+        class:blocked={!startupAvailable}
+        aria-label="Start on boot"
+      >
         <div>
           <span>Open on boot</span>
-          <strong>{startupEnabled ? "enabled" : "off"}</strong>
+          <strong>{startupBadge(startupEnabled, startupAvailable)}</strong>
         </div>
         <small>{startupNote}</small>
         <small class="path">{startupPath}</small>
+        {#if startupBinary}
+          <small class="path">Launcher {startupBinary}</small>
+        {/if}
         <div class="boot-actions">
           <button type="button" disabled={startupBusy} on:click={() => void refreshStartupStatus()}>Check</button>
           <button
             type="button"
-            disabled={startupBusy || !desktopRuntimeAvailable}
+            disabled={startupActionDisabled}
             on:click={() => void setStartupEnabled(!startupEnabled)}
           >
             {startupEnabled ? "Disable" : "Enable"}
@@ -1616,13 +1766,20 @@
         </div>
       </div>
 
-      <div class="boot-card" aria-label="Restore on boot">
+      <div
+        class="boot-card"
+        class:blocked={!backgroundStartupAvailable}
+        aria-label="Restore on boot"
+      >
         <div>
           <span>Restore on boot</span>
-          <strong>{backgroundStartupEnabled ? "enabled" : "off"}</strong>
+          <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable)}</strong>
         </div>
         <small>{backgroundStartupNote}</small>
         <small class="path">{backgroundStartupPath}</small>
+        {#if backgroundStartupBinary}
+          <small class="path">Launcher {backgroundStartupBinary}</small>
+        {/if}
         <div class="boot-actions">
           <button
             type="button"
@@ -1633,7 +1790,7 @@
           </button>
           <button
             type="button"
-            disabled={backgroundStartupBusy || !desktopRuntimeAvailable}
+            disabled={backgroundStartupActionDisabled}
             on:click={() => void setBackgroundStartupEnabled(!backgroundStartupEnabled)}
           >
             {backgroundStartupEnabled ? "Disable" : "Enable"}
@@ -1742,6 +1899,20 @@
           <p>{runtimeNote}</p>
         </div>
 
+        {#if runtimeActivity.length > 0}
+          <div class="runtime-ledger" aria-label={runtimeActivityTitle(runtimeActivityReason)}>
+            <span>{runtimeActivityTitle(runtimeActivityReason)}</span>
+            <ol>
+              {#each runtimeActivity as entry}
+                <li class:failed={!entry.ok}>
+                  <strong>{runtimeActivityLabel(entry)}</strong>
+                  <small>{entry.message}</small>
+                </li>
+              {/each}
+            </ol>
+          </div>
+        {/if}
+
         <div class="status-strip backend-detection-strip" data-mode={backendDecision.mode}>
           <span>Probe</span>
           <p>{backendDetectionNote}</p>
@@ -1768,6 +1939,11 @@
               </ul>
             {/if}
           </div>
+          {#if canResetNativeRouteGains}
+            <button type="button" class="preflight-action" on:click={resetNativeRouteGains}>
+              Reset gains
+            </button>
+          {/if}
         </div>
       </div>
 
@@ -1986,7 +2162,7 @@
                 <strong>{Math.round(route.gain * 100)}%</strong>
                 <span>{describeEndpoint(route.to)}</span>
               </div>
-              <label class="route-slider">
+              <label class="route-slider" class:locked={routeGainEditingLocked}>
                 <span>Gain</span>
                 <input
                   type="range"
@@ -1994,7 +2170,9 @@
                   max="100"
                   step="1"
                   value={Math.round(route.gain * 100)}
-                  aria-label={`Gain for ${describeRoute(route.id)}`}
+                  disabled={routeGainEditingLocked}
+                  aria-label={routeGainControlLabel(route.id)}
+                  title={routeGainControlTitle()}
                   on:input={(event) => handleRouteGain(route.id, event)}
                 />
               </label>
@@ -2334,6 +2512,10 @@
     border-radius: 8px;
   }
 
+  .boot-card.blocked {
+    border-left-color: #f7b74a;
+  }
+
   .boot-card > div:first-child {
     display: flex;
     align-items: center;
@@ -2549,6 +2731,56 @@
     background: #eb532f;
   }
 
+  .runtime-ledger {
+    display: grid;
+    grid-template-columns: minmax(110px, auto) 1fr;
+    gap: 12px;
+    padding: 12px 14px;
+    color: #d8d0bf;
+    background: #171817;
+    border: 1px solid rgba(244, 239, 226, 0.12);
+    border-radius: 8px;
+  }
+
+  .runtime-ledger > span {
+    color: #46d6c8;
+    font-size: 0.74rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .runtime-ledger ol {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .runtime-ledger li {
+    display: grid;
+    grid-template-columns: minmax(92px, 150px) 1fr;
+    gap: 10px;
+    align-items: baseline;
+    min-height: 24px;
+    padding-left: 12px;
+    border-left: 3px solid #c9f05a;
+  }
+
+  .runtime-ledger li.failed {
+    border-left-color: #eb532f;
+  }
+
+  .runtime-ledger strong {
+    color: #f4efe2;
+    font-size: 0.82rem;
+  }
+
+  .runtime-ledger small {
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+
   .semantics-strip {
     color: #f4efe2;
     background: #20201d;
@@ -2606,6 +2838,22 @@
     content: "";
     background: #eb532f;
     border-radius: 999px;
+  }
+
+  .preflight-action {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 12px;
+    color: #101113;
+    font-size: 0.78rem;
+    font-weight: 900;
+    background: #c9f05a;
+    border: 0;
+    border-radius: 6px;
+  }
+
+  .preflight-action:hover {
+    background: #f4efe2;
   }
 
   .semantics-strip[data-mode="stream"],
@@ -2997,10 +3245,19 @@
     font-weight: 800;
   }
 
+  .route-slider.locked {
+    color: #9f9789;
+  }
+
   .route-slider input {
     width: 100%;
     min-width: 0;
     accent-color: #46d6c8;
+  }
+
+  .route-slider input:disabled {
+    cursor: not-allowed;
+    accent-color: #9f9789;
   }
 
   .route-actions {
@@ -3155,6 +3412,11 @@
 
     .route-create button {
       width: 100%;
+    }
+
+    .runtime-ledger,
+    .runtime-ledger li {
+      grid-template-columns: 1fr;
     }
 
     .brand-block h1 {

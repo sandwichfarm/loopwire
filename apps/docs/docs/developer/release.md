@@ -13,7 +13,8 @@ pnpm verify:docs
 This creates temporary release artifacts with `scripts/package-release.sh`, verifies reproducible output for identical
 input, signs and validates `SHA256SUMS`, installs the generated host-architecture tarball through `scripts/install.sh`,
 and runs the installed binary from a temp prefix. The smoke also checks `loopwire --background --help` from the extracted
-tarball and the installed prefix, proving the packaged restore entrypoint is present.
+tarball and the installed prefix, proving the packaged restore entrypoint is present. Installer smokes also reject
+signed artifacts whose tar members contain unsafe absolute or parent-traversing paths before extraction.
 `verify:docs` confirms the public install, support, troubleshooting, screenshot, and release-note docs stay linked in
 the VitePress navigation.
 
@@ -27,26 +28,124 @@ pnpm collect:evidence -- --output-dir .release-evidence/v0.1.0 --profile full --
 
 The collector writes command logs plus `release-evidence.json`, including git state, tool versions, command exit codes,
 backend detection, Rust compile status, workflow parsing, release-readiness preflight state, and GSD milestone state.
-The full profile records the strict publish preflight and published-release installer smoke as optional evidence, and
-the manifest exposes parsed `release.findings` plus `release.blockers` from the readiness log. This lets a candidate
-bundle show current blockers without failing evidence collection. Use `--profile quick` inside VM runs when a full
-workspace check has already been captured separately.
+The full profile records read-only DSP provider plan evidence as required evidence, and records the strict publish
+preflight, published-release installer smoke, and VM bundle verification as optional evidence. The manifest exposes
+parsed `release.findings` plus `release.blockers` from the readiness log. This lets a candidate bundle show current
+blockers without failing evidence collection. Use `--profile quick` inside VM runs when a full workspace check has
+already been captured separately.
 
-For final release evidence after the GitHub Release exists, make published-release installer smoke mandatory:
+For final release evidence after the GitHub Release, docs deployment, and VM bundles exist, make published-release
+installer smoke, live docs smoke, and all VM evidence mandatory:
 
 ```bash
 pnpm collect:evidence -- \
   --output-dir .release-evidence/v0.1.0-published \
   --profile full \
   --release-tag v0.1.0 \
-  --require-published-release
+  --require-published-release \
+  --require-live-docs \
+  --docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
+  --require-vm-evidence \
+  --require-dsp-provider-plan \
+  --vm-target all \
+  --vm-evidence-dir '.vm/evidence/{target}'
 ```
+
+The live docs command runs `scripts/verify-docs-live.sh` against the pull-zone URL, verifies the deployed homepage and
+`/install.sh`, and compares the deployed installer with `apps/docs/docs/public/install.sh`.
+
+The VM evidence command expands `--vm-target all` from `vm/targets.tsv` and runs `scripts/verify-vm-evidence.sh`
+against each selected bundle. When `--require-published-release` is also present, every VM verifier requires
+`published-release-smoke.log` and the successful `published-release-smoke` command ledger row from the guest.
+Every evidence bundle also records `vm-launch-plan.tsv` from
+`bash scripts/vm-matrix.sh render-launch-plan --all`, so the release archive carries the operator handoff for every
+declared VM target, deterministic SSH port, dry-run launch command, and paired evidence-pull command.
+The DSP provider plan command runs `scripts/collect-dsp-provider-plan.sh` against
+`scripts/fixtures/dsp-provider-configuration.json` without `--execute`, records the expected read-source, write-output,
+and verify-output operation rows, and binds the configuration path plus frame count in `release-evidence.json`. It proves
+the release still exposes the provider contract without mutating host audio.
+
+The tag release workflow collects the published-release portion automatically after `gh release create` or upload
+finishes. It runs `pnpm collect:evidence` with `--require-published-release --require-dsp-provider-plan`, verifies the
+bundle with `pnpm verify:release-evidence`, writes `loopwire-release-evidence-<tag>.tar.gz` into the release directory,
+regenerates the signed `SHA256SUMS` manifest so the evidence archive is checksummed, uploads the archive plus updated
+manifest files to the GitHub Release, and uploads a matching `loopwire-release-evidence-<tag>` workflow artifact. VM
+evidence remains operator-collected because GitHub-hosted runners do not provide the declared desktop/audio VM matrix.
+
+The evidence collector and verifier enforce the same v-prefixed semver tag rule as the release workflow. A path-like
+tag such as `v0.1.0/preview` is rejected before command planning, manifest acceptance, or archive attachment.
+Release proof commands also require repository identity in `OWNER/REPO` form; URLs, spaces, or extra path segments are
+rejected before GitHub access or evidence verification.
 
 Preview the evidence command plan without running commands or writing files:
 
 ```bash
-pnpm collect:evidence -- --list-commands --profile full --require-published-release
+pnpm collect:evidence -- --list-commands --profile full --require-published-release --require-vm-evidence --vm-target all
 ```
+
+Verify an already collected final evidence bundle before attaching it to a release or PR:
+
+```bash
+pnpm verify:release-evidence -- \
+  --evidence-dir .release-evidence/v0.1.0-published \
+  --public-key packaging/release-signing-public.pem \
+  --git-head "$(git rev-parse HEAD)" \
+  --require-published-release \
+  --require-live-docs \
+  --require-vm-evidence \
+  --require-all-vm-targets \
+  --require-vm-launch-plan \
+  --require-dsp-provider-plan \
+  --require-no-release-blockers \
+  --require-clean-git
+```
+
+The verifier checks `release-evidence.json`, validates git source metadata (`git.head`, `git.origin`, and
+`git.statusShort`), proves required commands succeeded, and requires non-empty command logs. Add `--git-head` for final
+release bundles that must match the resolved release tag commit. Add `--require-clean-git` for final release bundles
+that must prove the evidence came from a clean checkout.
+The verifier rejects command log paths that escape the evidence directory or resolve through symlinks. Required VM
+evidence must name known `vm/targets.tsv` target ids exactly once, keep each `evidenceDir` relative and target-scoped,
+and show the matching
+`bash scripts/verify-vm-evidence.sh --target ... --evidence-dir ...` command row. With `--require-all-vm-targets`, the
+same check also rejects evidence that misses any target from `vm/targets.tsv`.
+With `--require-vm-launch-plan`, the verifier also requires a successful `vm-launch-plan` command row, validates the
+`vm-launch-plan.tsv` header and one row for every target, and checks that each row pairs the rendered
+`scripts/vm-matrix.sh launch` command with the matching `scripts/collect-vm-evidence-ssh.sh --execute` command.
+With `--require-dsp-provider-plan`, the verifier also requires a successful `dsp-provider-plan` command row that invokes
+`pnpm dsp:plan` in read-only mode and validates `dsp-provider-plan.tsv` contains read-source, write-output, and
+verify-output rows for the manifest-bound frame count.
+When `--require-live-docs` is present, the verifier requires a successful `docs-live-smoke` command row that executed
+`bash scripts/verify-docs-live.sh` against the public installer and the same deployed docs base URL or hostname plus
+remote prefix recorded in `release-evidence.json`.
+When `--require-published-release` is present, the verifier requires a successful `published-release-smoke` command row
+that executed `bash scripts/verify-published-release.sh` with the same repo, tag, and public key recorded in
+`release-evidence.json`. Pass `--public-key` for final release bundles so the manifest must match the same signing
+public key used to verify the release assets. Pass `--git-head` so the evidence manifest must match the tag commit the
+release workflow checked out. Those rows are tokenized and must invoke the expected script directly, so an echo command
+that only prints the expected verifier path and flags is rejected.
+
+After the GitHub Release exists, Bunny.net docs are live, and all VM bundles have been copied back and promoted, run the
+single final proof gate:
+
+```bash
+pnpm verify:final-release -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head "$(git rev-parse refs/tags/v0.1.0^{commit})" \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
+  --docs-remote-prefix "$BUNNY_REMOTE_PREFIX" \
+  --vm-evidence-root .vm/evidence \
+  --support-matrix apps/docs/docs/guide/support-matrix.md
+```
+
+This wrapper runs the published-release verifier with the public evidence archive gate, the live docs smoke, strict
+final release-evidence verification, every target-specific VM evidence verifier with installed-release smoke,
+support-matrix verification with installed-release smoke required for `Verified` rows, read-only DSP provider plan
+evidence, and the docs contract. Use `--dry-run` first to print the exact command plan without touching network,
+release assets, docs URLs, or VM evidence.
 
 Parse an existing release-readiness log without rerunning release checks:
 
@@ -60,9 +159,12 @@ For user-facing bug reports and compatibility triage, collect the smaller redact
 pnpm collect:support -- --output-dir .support/$(date +%Y%m%d-%H%M%S) --profile quick
 ```
 
-Use `--profile full` when the maintainer also needs `pnpm check` and Tauri Rust compile logs. The support bundle writes
-`support-bundle.json`, `command-results.tsv`, `notes.md`, backend detection, host diagnostics, and autostart status.
-It never uploads data automatically.
+Use `--profile full` when the maintainer also needs `pnpm check` and Tauri shell verification logs. The support bundle
+writes `support-bundle.json`, `command-results.tsv`, `notes.md`, backend detection, host diagnostics, and autostart
+status. The manifest also summarizes `detect-audio.json` as `audio.backends`, including availability, route-control
+scope, per-edge gain/mute flags, diagnostics, and known gaps. When `--configuration` or `--state-file` is provided, it
+also writes `jack-port-requirements.json` and summarizes read-only JACK readiness as `jack` in the manifest, including
+matched and missing ports for each requirement. It never uploads data automatically.
 
 ## Published Release Smoke
 
@@ -85,12 +187,18 @@ After a tag workflow publishes assets, verify the release surface itself:
 pnpm verify:published-release -- \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
-  --public-key packaging/release-signing-public.pem
+  --public-key packaging/release-signing-public.pem \
+  --require-release-evidence
 ```
 
 The script downloads release assets with `gh`, requires the `x86_64` and `aarch64` canonical tarballs, verifies the
-signed manifest and checksum entries, installs from the downloaded asset directory, and runs the installed binary. This
-must pass before docs or package templates claim a public release is installable.
+signed manifest and checksum entries, optionally requires `loopwire-release-evidence-<tag>.tar.gz` to be listed in the
+signed `SHA256SUMS` manifest, verifies that evidence archive against the expected `release.tag` and repository,
+public key, rejects unsafe archive paths before extraction, rejects unsafe manifest command log paths during evidence
+verification, installs from the downloaded asset directory, and runs the installed binary. This must pass before docs or
+package templates claim a public release is installable.
+When local `--release-dir` verification omits `--tag`, the verifier derives the expected tag from the single evidence
+archive filename and rejects any mismatch with `release-evidence.json`.
 
 ## Artifact Contract
 
@@ -100,9 +208,15 @@ The curl installer and binary package templates expect these files in each GitHu
 - `loopwire-linux-aarch64.tar.gz`
 - `SHA256SUMS`
 - `SHA256SUMS.sig`
+- `loopwire-release-evidence-<tag>.tar.gz` for completed tag releases
 
 Tauri bundle outputs for AppImage, deb, and rpm are release attachments too, but package managers should still anchor on
 the canonical tarballs unless a channel-specific package requires a native format.
+
+The public docs asset `apps/docs/docs/public/install.sh` is kept byte-for-byte synchronized with `scripts/install.sh`.
+That makes `https://loopwire.app/install.sh` deployable through the VitePress/Bunny.net docs pipeline without creating a
+second installer contract. Do not advertise the curl command as live until the published release verifier passes against
+signed GitHub Release assets.
 
 Each canonical tarball contains a `loopwire` launcher plus installed support files under `libexec/loopwire/`:
 
@@ -119,22 +233,29 @@ the workflow expects `apps/docs/docs/release-notes/0.1.0.md`.
 
 ## GitHub Release Workflow
 
-`.github/workflows/release.yml` runs on `v*` tag pushes or manual dispatch with an existing `v`-prefixed tag. The
+`.github/workflows/release.yml` runs on `v*` tag pushes or manual dispatch with an existing `v`-prefixed semver tag. The
 workflow:
 
-1. Builds Linux artifacts through a matrix for `x86_64` on `ubuntu-22.04` and `aarch64` on `ubuntu-22.04-arm`.
-2. Uses Ubuntu 22.04-family runners so Linux builds keep an older supported glibc baseline.
-3. Installs the current Tauri v2 Linux prerequisites, including WebKitGTK 4.1 development packages.
-4. Runs `pnpm check` and `cargo check` on each architecture.
-5. Builds Tauri Linux bundles on each architecture.
-6. Requires versioned release notes for the tag and rejects release-candidate/not-published wording.
-7. Stages architecture-specific release attachments with `scripts/stage-release-artifacts.sh`.
-8. Installs each generated architecture tarball from its local release directory with signature verification.
-9. Uploads the architecture artifacts to the publish job.
-10. Regenerates one combined `SHA256SUMS` and `SHA256SUMS.sig` covering every staged release attachment.
-11. Installs the generated host tarball from the combined local release directory with signature verification.
-12. Creates or updates the GitHub Release with the generated artifacts and versioned release notes.
-13. Downloads the published GitHub Release assets and runs a post-publish installer smoke.
+1. Resolves the release tag from the push ref or manual input, rejects non-semver or path-like tag names, and checks
+   out that tag in detached mode before any build or publish work.
+2. Builds Linux artifacts through a matrix for `x86_64` on `ubuntu-22.04` and `aarch64` on `ubuntu-22.04-arm`.
+3. Uses Ubuntu 22.04-family runners so Linux builds keep an older supported glibc baseline.
+4. Installs the current Tauri v2 Linux prerequisites, including WebKitGTK 4.1 development packages.
+5. Runs `pnpm check`, including `pnpm verify:tauri`, on each architecture.
+6. Builds Tauri Linux bundles on each architecture.
+7. Requires versioned release notes for the tag, checks the tag points at the detached checkout, and rejects
+   release-candidate/not-published wording.
+8. Stages architecture-specific release attachments with `scripts/stage-release-artifacts.sh`.
+9. Installs each generated architecture tarball from its local release directory with signature verification.
+10. Uploads the architecture artifacts to the publish job.
+11. Regenerates one combined `SHA256SUMS` and `SHA256SUMS.sig` covering every staged release attachment.
+12. Installs the generated host tarball from the combined local release directory with signature verification.
+13. Creates or updates the GitHub Release with the generated artifacts and versioned release notes.
+14. Downloads the published GitHub Release assets and runs a post-publish installer smoke.
+15. Collects and verifies published-release evidence.
+16. Regenerates and re-signs `SHA256SUMS` so `loopwire-release-evidence-<tag>.tar.gz` is part of the signed manifest.
+17. Uploads the evidence archive plus updated `SHA256SUMS` and `SHA256SUMS.sig`, then verifies the published release
+    with `--require-release-evidence`.
 
 The baseline follows Tauri's current Linux distribution guidance: build on the oldest supported base that provides
 WebKitGTK 4.1, with Ubuntu 22.04 or Debian 12 as suitable examples.
@@ -154,9 +275,12 @@ pnpm verify:release-readiness -- \
   --public-key packaging/release-signing-public.pem
 ```
 
-The preflight does not publish. It checks versioned release notes, rejects release-candidate/not-published wording,
-validates the signing public key, checks local or remote tag visibility, verifies repository access, and confirms
-required GitHub secrets for release and Bunny.net docs deployment.
+The preflight does not publish. It requires a v-prefixed semver release tag without path separators, checks versioned
+release notes, rejects release-candidate/not-published wording, verifies that the public docs `/install.sh` asset
+matches the canonical installer, validates the signing public key, requires a clean git checkout, checks that the local
+or remote tag resolves to the current checkout commit, verifies repository access, and confirms required GitHub secrets
+for release and Bunny.net docs deployment. Candidate evidence collection passes `--skip-clean-git` because it is
+allowed to record in-progress source state without claiming final release readiness.
 
 ## Workflow Contract
 
@@ -165,8 +289,9 @@ pnpm verify:workflows
 ```
 
 The workflow contract parser validates CI, continuous host diagnostics, docs deployment, release publication, and VM
-matrix workflow files. It checks the release workflow still requires versioned notes, signing secrets, generated and
-published install smokes, and that VM/support-matrix changes trigger VM matrix validation.
+matrix workflow files. It checks the release workflow still checks out the resolved tag before build/publish work,
+keeps tag verification enabled in the release-readiness step, requires versioned notes, signing secrets, generated and
+published install smokes, and confirms VM/support-matrix changes trigger VM matrix validation.
 
 ## Signing Key Setup
 
@@ -179,7 +304,8 @@ pnpm release:prepare-key -- \
   --public-key-out packaging/release-signing-public.pem
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
-  --release-private-key-file /secure/loopwire-release-private.pem
+  --release-private-key-file /secure/loopwire-release-private.pem \
+  --release-public-key-file packaging/release-signing-public.pem
 ```
 
 `release:prepare-key` refuses to write the private key inside the repository, refuses to overwrite existing key files
@@ -199,11 +325,18 @@ bash scripts/setup-github-secrets.sh \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
   --release-private-key-file /secure/loopwire-release-private.pem \
+  --release-public-key-file packaging/release-signing-public.pem \
   --dry-run
 ```
 
 `--check` reads secret names only. `--dry-run` validates inputs and prints secret names that would be set without
-printing secret values or writing to GitHub.
+printing secret values or writing to GitHub. When `--release-public-key-file` is supplied, the helper parses the private
+key, parses the public key, derives the public key from the private key, and fails before any secret write if the pair
+does not match. If the GitHub CLI cannot read repository secret names, `--check` and the release readiness preflight
+fail with the underlying `gh secret list` error instead of reporting those secrets as missing.
+The helper rejects Bunny values that would fail deployment: storage zones cannot contain slashes, storage endpoints
+cannot contain newlines, pull-zone hostnames must be hostnames rather than URLs or paths, and remote prefixes cannot
+contain `.` or `..` path segments.
 
 ## Boundaries
 
@@ -247,7 +380,9 @@ If Bunny.net secrets are missing, the deploy job emits a notice and skips upload
 Deployment uses `scripts/deploy-docs-bunny.sh`, which uploads raw files with Bunny Edge Storage's `PUT` endpoint and
 the storage-zone password in the `AccessKey` header. The script defaults to `https://storage.bunnycdn.com`, and
 `BUNNY_STORAGE_ENDPOINT` can point at a regional endpoint such as `https://ny.storage.bunnycdn.com` when the storage
-zone is not in Bunny's default region.
+zone is not in Bunny's default region. `BUNNY_REMOTE_PREFIX` can deploy the site under a path inside the storage zone,
+which is useful when one zone serves multiple preview or product directories. The helper rejects unsafe `.` or `..`
+remote-prefix segments before upload planning.
 
 Preview the upload plan without contacting Bunny.net:
 
@@ -257,8 +392,16 @@ bash scripts/deploy-docs-bunny.sh \
   --dist apps/docs/docs/.vitepress/dist \
   --storage-zone loopwire-docs \
   --storage-endpoint ny.storage.bunnycdn.com \
+  --remote-prefix loopwire \
   --dry-run
 ```
+
+The deploy helper fails closed if the built dist omits `index.html` or `install.sh`; the dry-run should include
+`install.sh`, which is the public curl installer endpoint once the docs site is deployed.
+When `BUNNY_PULL_ZONE_HOSTNAME` is configured, the deploy workflow also runs
+`scripts/verify-docs-live.sh --hostname "$BUNNY_PULL_ZONE_HOSTNAME" --remote-prefix "$BUNNY_REMOTE_PREFIX"` after
+upload. That smoke fetches the deployed homepage and `/install.sh` from the same pull-zone prefix used for upload,
+checks the installer parses as shell, and compares it with the local public installer.
 
 The GitHub secret helper can set or audit the deployment secrets:
 
@@ -268,5 +411,6 @@ bash scripts/setup-github-secrets.sh \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
   --storage-endpoint ny.storage.bunnycdn.com \
+  --remote-prefix loopwire \
   --dry-run
 ```

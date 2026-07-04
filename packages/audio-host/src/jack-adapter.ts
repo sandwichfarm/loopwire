@@ -1,3 +1,4 @@
+import { sinkNameForMonitor, sinkNameForOutput } from "./runtime-adapter.js";
 import type { HostRuntimeConfiguration, HostRuntimeEndpoint, HostRuntimeOperationResult } from "./runtime-adapter.js";
 import type { CommandResult, CommandRunner } from "./types.js";
 
@@ -6,6 +7,52 @@ export type JackRuntimeMode = "dry-run" | "apply";
 export interface JackRuntimeAdapterOptions {
   readonly mode?: JackRuntimeMode;
   readonly timeoutMs?: number;
+  readonly clientPrefix?: string;
+  readonly virtualPortProvider?: JackVirtualPortProvider;
+}
+
+export interface JackVirtualPortCommandProviderOptions {
+  readonly command?: string;
+  readonly timeoutMs?: number;
+}
+
+export interface JackPortRequirementOptions {
+  readonly clientPrefix?: string;
+}
+
+export type JackPortRequirementKind = "route-source" | "route-target" | "monitor-source" | "monitor-target";
+
+export interface JackPortRequirement {
+  readonly endpointId: string;
+  readonly endpointLabel: string;
+  readonly kind: JackPortRequirementKind;
+  readonly deviceName: string;
+  readonly source: "configured" | "loopwire-owned";
+  readonly channelCount: number;
+  readonly suggestedPorts: readonly string[];
+}
+
+export interface JackPortReadinessRequirement extends JackPortRequirement {
+  readonly ready: boolean;
+  readonly matchedPorts: readonly string[];
+  readonly missingPorts: readonly string[];
+}
+
+export interface JackPortReadinessReport {
+  readonly ok: boolean;
+  readonly requirements: readonly JackPortReadinessRequirement[];
+  readonly portCount: number;
+  readonly missingCount: number;
+}
+
+export interface JackVirtualPortProvisionPlan {
+  readonly configurationId: string;
+  readonly requirements: readonly JackPortReadinessRequirement[];
+  readonly missingPorts: readonly string[];
+}
+
+export interface JackVirtualPortProvider {
+  ensurePorts(plan: JackVirtualPortProvisionPlan): HostRuntimeOperationResult | Promise<HostRuntimeOperationResult>;
 }
 
 export interface JackRuntimeCommandLogEntry {
@@ -25,6 +72,8 @@ export interface JackGraphRuntimeAdapter {
 
 interface JackRuntimeContext {
   readonly mode: JackRuntimeMode;
+  readonly clientPrefix: string;
+  readonly virtualPortProvider?: JackVirtualPortProvider;
   runJack(
     operation: JackRuntimeCommandLogEntry["operation"],
     command: JackRuntimeCommandLogEntry["command"],
@@ -54,6 +103,7 @@ interface PreparedJackConnectionPlans extends JackConnectionPlanResult {
 }
 
 const defaultTimeoutMs = 5000;
+const defaultClientPrefix = "loopwire";
 
 export function createJackGraphRuntimeAdapter(
   runner: CommandRunner,
@@ -71,6 +121,114 @@ export function createJackGraphRuntimeAdapter(
   };
 }
 
+export function createJackVirtualPortCommandProvider(
+  runner: CommandRunner,
+  options: JackVirtualPortCommandProviderOptions = {}
+): JackVirtualPortProvider {
+  const command = options.command ?? "loopwire-jack-ports";
+
+  return {
+    async ensurePorts(plan) {
+      const args = jackVirtualPortProviderArgs(plan);
+      const result = await runner.run(
+        command,
+        args,
+        options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}
+      );
+
+      if (result.exitCode !== 0) {
+        return {
+          ok: false,
+          message: `JACK virtual port provider failed: ${firstLine(result.stderr) ?? firstLine(result.stdout) ?? `exit ${result.exitCode}`}`
+        };
+      }
+
+      return {
+        ok: true,
+        message: firstLine(result.stdout) ?? "JACK virtual port provider completed"
+      };
+    }
+  };
+}
+
+function jackVirtualPortProviderArgs(plan: JackVirtualPortProvisionPlan): readonly string[] {
+  return [
+    "ensure",
+    "--configuration-id",
+    plan.configurationId,
+    ...plan.requirements.flatMap((requirement) => [
+      "--requirement",
+      [
+        requirement.kind,
+        requirement.source,
+        requirement.endpointId,
+        requirement.deviceName,
+        String(requirement.channelCount)
+      ].join(":")
+    ]),
+    ...plan.missingPorts.flatMap((port) => ["--port", port])
+  ];
+}
+
+export function describeJackPortRequirements(
+  configuration: HostRuntimeConfiguration,
+  options: JackPortRequirementOptions = {}
+): readonly JackPortRequirement[] {
+  const clientPrefix = sanitizeName(options.clientPrefix ?? defaultClientPrefix);
+  const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
+  const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+  const requirements: JackPortRequirement[] = [];
+
+  for (const route of configuration.routes ?? []) {
+    const source = inputs.get(route.from);
+    const target = outputs.get(route.to);
+
+    if (!source || !target) {
+      continue;
+    }
+
+    const channelCount = Math.min(source.channels, target.channels);
+    requirements.push(jackPortRequirement(clientPrefix, configuration, source, "route-source", channelCount));
+    requirements.push(jackPortRequirement(clientPrefix, configuration, target, "route-target", channelCount));
+  }
+
+  for (const output of configuration.outputs) {
+    for (const monitor of configuration.monitors ?? []) {
+      const channelCount = Math.min(output.channels, monitor.channels);
+      requirements.push(jackPortRequirement(clientPrefix, configuration, output, "monitor-source", channelCount));
+      requirements.push(jackPortRequirement(clientPrefix, configuration, monitor, "monitor-target", channelCount));
+    }
+  }
+
+  return requirements;
+}
+
+export function describeJackPortReadiness(
+  configuration: HostRuntimeConfiguration,
+  ports: readonly string[],
+  options: JackPortRequirementOptions = {}
+): JackPortReadinessReport {
+  const requirements = describeJackPortRequirements(configuration, options).map((requirement) => {
+    const matchedPorts = matchingJackPorts(requirement.kind, requirement.deviceName, ports).slice(0, requirement.channelCount);
+    const missingPorts = missingSuggestedJackPorts(requirement.kind, requirement.deviceName, requirement.channelCount, ports);
+
+    return {
+      ...requirement,
+      ready: matchedPorts.length >= requirement.channelCount,
+      matchedPorts,
+      missingPorts
+    };
+  });
+  const missingCount = requirements.reduce((count, requirement) => count + requirement.missingPorts.length, 0);
+
+  return {
+    ok: missingCount === 0,
+    requirements,
+    portCount: ports.length,
+    missingCount
+  };
+}
+
 function createJackRuntimeContext(
   runner: CommandRunner,
   options: JackRuntimeAdapterOptions,
@@ -78,9 +236,12 @@ function createJackRuntimeContext(
 ): JackRuntimeContext {
   const mode = options.mode ?? "dry-run";
   const timeoutMs = options.timeoutMs ?? defaultTimeoutMs;
+  const clientPrefix = sanitizeName(options.clientPrefix ?? defaultClientPrefix);
 
   return {
     mode,
+    clientPrefix,
+    ...(options.virtualPortProvider ? { virtualPortProvider: options.virtualPortProvider } : {}),
     async runJack(operation, command, args) {
       commandLog.push({ operation, command, args, skipped: mode === "dry-run" });
 
@@ -257,7 +418,18 @@ async function prepareJackConnectionPlans(
     return failed("Could not list JACK connections", connections);
   }
 
-  const planResult = createJackConnectionPlans(configuration, parsePorts(ports.stdout));
+  const ensuredPorts = await ensureLoopwireOwnedJackPorts(
+    context,
+    configuration,
+    parsePorts(ports.stdout),
+    operation
+  );
+
+  if (!isJackPortList(ensuredPorts)) {
+    return ensuredPorts;
+  }
+
+  const planResult = createJackConnectionPlans(configuration, ensuredPorts.ports, context.clientPrefix);
 
   if (!isJackConnectionPlanResult(planResult)) {
     return planResult;
@@ -270,7 +442,73 @@ async function prepareJackConnectionPlans(
   };
 }
 
+async function ensureLoopwireOwnedJackPorts(
+  context: JackRuntimeContext,
+  configuration: HostRuntimeConfiguration,
+  ports: readonly string[],
+  operation: JackRuntimeCommandLogEntry["operation"]
+): Promise<{ readonly ports: readonly string[] } | HostRuntimeOperationResult> {
+  if (!context.virtualPortProvider) {
+    return { ports };
+  }
+
+  const readiness = describeJackPortReadiness(configuration, ports, { clientPrefix: context.clientPrefix });
+  const missingRequirements = readiness.requirements.filter((requirement) => !requirement.ready);
+  const missingLoopwireRequirements = missingRequirements.filter((requirement) => requirement.source === "loopwire-owned");
+
+  if (missingLoopwireRequirements.length === 0 || missingRequirements.length !== missingLoopwireRequirements.length) {
+    return { ports };
+  }
+
+  const plan: JackVirtualPortProvisionPlan = {
+    configurationId: configuration.id,
+    requirements: missingLoopwireRequirements,
+    missingPorts: uniqueSorted(missingLoopwireRequirements.flatMap((requirement) => requirement.missingPorts))
+  };
+  const result = await context.virtualPortProvider.ensurePorts(plan);
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      message: `Could not create Loopwire JACK virtual ports: ${result.message ?? "provider failed"}`
+    };
+  }
+
+  const refreshed = await context.runJack(operation, "jack_lsp", []);
+
+  if (refreshed.exitCode !== 0) {
+    return failed("Could not list JACK ports after virtual port creation", refreshed);
+  }
+
+  const refreshedPorts = parsePorts(refreshed.stdout);
+  const remainingMissingPorts = describeJackPortReadiness(configuration, refreshedPorts, {
+    clientPrefix: context.clientPrefix
+  }).requirements
+    .filter((requirement) => !requirement.ready && requirement.source === "loopwire-owned")
+    .flatMap((requirement) => requirement.missingPorts);
+
+  if (remainingMissingPorts.length > 0) {
+    return {
+      ok: false,
+      message: `Loopwire JACK virtual port provider did not create required ports: ${uniqueSorted(
+        remainingMissingPorts
+      ).join(", ")}`
+    };
+  }
+
+  return { ports: refreshedPorts };
+}
+
+function isJackPortList(
+  result: { readonly ports: readonly string[] } | HostRuntimeOperationResult
+): result is { readonly ports: readonly string[] } {
+  return "ports" in result;
+}
+
 function validateJackConfiguration(configuration: HostRuntimeConfiguration): HostRuntimeOperationResult {
+  const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
+  const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+
   for (const route of configuration.routes ?? []) {
     if (route.gain !== undefined && route.gain !== 1) {
       return {
@@ -278,15 +516,14 @@ function validateJackConfiguration(configuration: HostRuntimeConfiguration): Hos
         message: `Route ${route.id} has gain ${route.gain}; native JACK connections only support unity gain for now`
       };
     }
-  }
 
-  for (const monitor of configuration.monitors ?? []) {
-    if (!normalizedDeviceName(monitor)) {
-      return {
-        ok: false,
-        message: `Monitor ${monitor.id} needs a deviceName; native JACK monitor routing requires an existing sink`
-      };
+    const source = inputs.get(route.from);
+    const target = outputs.get(route.to);
+
+    if (!source || !target) {
+      return { ok: false, message: `Route ${route.id} references an unknown endpoint` };
     }
+
   }
 
   return { ok: true };
@@ -299,7 +536,8 @@ function activeJackPlanCount(configuration: HostRuntimeConfiguration): number {
 
 function createJackConnectionPlans(
   configuration: HostRuntimeConfiguration,
-  ports: readonly string[]
+  ports: readonly string[],
+  clientPrefix: string
 ): JackConnectionPlanResult | HostRuntimeOperationResult {
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
@@ -313,23 +551,25 @@ function createJackConnectionPlans(
       return { ok: false, message: `Route ${route.id} references an unknown endpoint` };
     }
 
-    const sourceDeviceName = normalizedDeviceName(source);
-    const targetDeviceName = normalizedDeviceName(target);
-
-    if (!sourceDeviceName || !targetDeviceName) {
-      return { ok: false, message: `Route ${route.id} needs input and output deviceName for native JACK connections` };
-    }
+    const sourceDeviceName = jackEndpointDeviceName(clientPrefix, configuration, source, "input");
+    const targetDeviceName = jackEndpointDeviceName(clientPrefix, configuration, target, "output");
 
     const sourcePorts = selectEndpointPorts(ports, source, sourceDeviceName);
     const targetPorts = selectEndpointPorts(ports, target, targetDeviceName);
     const channelCount = Math.min(source.channels, target.channels);
 
     if (sourcePorts.length < channelCount) {
-      return { ok: false, message: `Missing JACK output ports for ${source.label} (${sourceDeviceName})` };
+      return {
+        ok: false,
+        message: missingJackPortsMessage("output", source.label, sourceDeviceName, "route-source", channelCount, ports)
+      };
     }
 
     if (targetPorts.length < channelCount) {
-      return { ok: false, message: `Missing JACK input ports for ${target.label} (${targetDeviceName})` };
+      return {
+        ok: false,
+        message: missingJackPortsMessage("input", target.label, targetDeviceName, "route-target", channelCount, ports)
+      };
     }
 
     plans.push({
@@ -344,33 +584,26 @@ function createJackConnectionPlans(
   }
 
   for (const output of configuration.outputs) {
-    const outputDeviceName = normalizedDeviceName(output);
-
-    if (!outputDeviceName) {
-      continue;
-    }
-
+    const outputDeviceName = jackEndpointDeviceName(clientPrefix, configuration, output, "output");
     const outputMonitorPorts = selectMonitorSourcePorts(ports, output, outputDeviceName);
 
     for (const monitor of configuration.monitors ?? []) {
-      const monitorDeviceName = normalizedDeviceName(monitor);
-
-      if (!monitorDeviceName) {
-        return {
-          ok: false,
-          message: `Monitor ${monitor.id} needs a deviceName; native JACK monitor routing requires an existing sink`
-        };
-      }
-
+      const monitorDeviceName = jackEndpointDeviceName(clientPrefix, configuration, monitor, "monitor");
       const monitorTargetPorts = selectEndpointPorts(ports, monitor, monitorDeviceName);
       const channelCount = Math.min(output.channels, monitor.channels);
 
       if (outputMonitorPorts.length < channelCount) {
-        return { ok: false, message: `Missing JACK monitor output ports for ${output.label} (${outputDeviceName})` };
+        return {
+          ok: false,
+          message: missingJackPortsMessage("monitor output", output.label, outputDeviceName, "monitor-source", channelCount, ports)
+        };
       }
 
       if (monitorTargetPorts.length < channelCount) {
-        return { ok: false, message: `Missing JACK input ports for ${monitor.label} (${monitorDeviceName})` };
+        return {
+          ok: false,
+          message: missingJackPortsMessage("input", monitor.label, monitorDeviceName, "monitor-target", channelCount, ports)
+        };
       }
 
       plans.push({
@@ -421,6 +654,119 @@ function selectMonitorSourcePorts(
 function normalizedDeviceName(endpoint: HostRuntimeEndpoint): string | undefined {
   const value = endpoint.deviceName?.trim();
   return value ? value : undefined;
+}
+
+type JackEndpointKind = "input" | "output" | "monitor";
+
+function jackEndpointDeviceName(
+  clientPrefix: string,
+  configuration: HostRuntimeConfiguration,
+  endpoint: HostRuntimeEndpoint,
+  kind: JackEndpointKind
+): string {
+  const explicitDeviceName = normalizedDeviceName(endpoint);
+
+  if (explicitDeviceName) {
+    return explicitDeviceName;
+  }
+
+  if (kind === "input") {
+    return [
+      sanitizeName(clientPrefix),
+      sanitizeName(configuration.id),
+      "input",
+      sanitizeName(endpoint.id)
+    ].join("_").slice(0, 80);
+  }
+
+  if (kind === "monitor") {
+    return sinkNameForMonitor(clientPrefix, configuration, endpoint);
+  }
+
+  return sinkNameForOutput(clientPrefix, configuration, endpoint);
+}
+
+function jackPortRequirement(
+  clientPrefix: string,
+  configuration: HostRuntimeConfiguration,
+  endpoint: HostRuntimeEndpoint,
+  kind: JackPortRequirementKind,
+  channelCount: number
+): JackPortRequirement {
+  const endpointKind = kind === "route-source"
+    ? "input"
+    : kind === "monitor-target"
+      ? "monitor"
+      : "output";
+  const deviceName = jackEndpointDeviceName(clientPrefix, configuration, endpoint, endpointKind);
+
+  return {
+    endpointId: endpoint.id,
+    endpointLabel: endpoint.label,
+    kind,
+    deviceName,
+    source: normalizedDeviceName(endpoint) ? "configured" : "loopwire-owned",
+    channelCount,
+    suggestedPorts: suggestedJackPorts(deviceName, kind, channelCount)
+  };
+}
+
+function suggestedJackPorts(
+  deviceName: string,
+  kind: JackPortRequirementKind,
+  channelCount: number
+): readonly string[] {
+  const suffix = kind === "route-source"
+    ? "capture"
+    : kind === "monitor-source"
+      ? "monitor"
+      : "playback";
+
+  return Array.from({ length: Math.max(1, channelCount) }, (_, index) => `${deviceName}:${suffix}_${index + 1}`);
+}
+
+function matchingJackPorts(
+  kind: JackPortRequirementKind,
+  deviceName: string,
+  ports: readonly string[]
+): readonly string[] {
+  if (kind === "monitor-source") {
+    return ports.filter((port) => port.startsWith(`${deviceName}:monitor_`));
+  }
+
+  return ports.filter((port) => port === deviceName || port.startsWith(`${deviceName}:`));
+}
+
+function missingSuggestedJackPorts(
+  kind: JackPortRequirementKind,
+  deviceName: string,
+  channelCount: number,
+  ports: readonly string[]
+): readonly string[] {
+  const missingCount = Math.max(0, channelCount - matchingJackPorts(kind, deviceName, ports).length);
+
+  if (missingCount === 0) {
+    return [];
+  }
+
+  const portSet = new Set(ports);
+  return suggestedJackPorts(deviceName, kind, channelCount)
+    .filter((port) => !portSet.has(port))
+    .slice(0, missingCount);
+}
+
+function missingJackPortsMessage(
+  role: string,
+  label: string,
+  deviceName: string,
+  kind: JackPortRequirementKind,
+  channelCount: number,
+  ports: readonly string[]
+): string {
+  const missingPorts = missingSuggestedJackPorts(kind, deviceName, channelCount, ports);
+  const suffix = missingPorts.length > 0 ? `: ${missingPorts.join(", ")}` : "";
+
+  return `Missing JACK ${role} ports for ${label} (${deviceName})${suffix}`;
 }
 
 async function disconnectJackPairs(
@@ -478,4 +824,18 @@ function failed(message: string, result: CommandResult): HostRuntimeOperationRes
 
 function firstLine(output: string): string | undefined {
   return output.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+}
+
+function uniqueSorted(values: readonly string[]): readonly string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function sanitizeName(value: string): string {
+  const sanitized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return sanitized || "unnamed";
 }

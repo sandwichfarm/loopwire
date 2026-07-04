@@ -16,6 +16,7 @@ Check the unavailable backend's diagnostic message. Common causes:
 - `pactl info` fails: PulseAudio compatibility is not running.
 - `jack_lsp` missing: JACK tooling is not installed, so JACK stays unavailable.
 - `aplay -l` has no cards: ALSA playback devices are not visible to the session.
+- `arecord -l` has no cards: ALSA capture devices are not visible to the session.
 
 ## PulseAudio Compatibility Is Available But Streams Do Not Move
 
@@ -55,8 +56,15 @@ PulseAudio compatibility adapter for stream-level gain until true per-edge PipeW
 
 ## Native JACK Route Does Not Connect
 
-The native JACK adapter connects existing ports. Each routed input and output endpoint must have a host `deviceName`
-that matches a visible `jack_lsp` port prefix.
+The native JACK adapter connects existing ports. Each routed input and output endpoint can use a host `deviceName` that
+matches a visible `jack_lsp` port prefix. App-owned endpoints can omit `deviceName` only when another Loopwire-owned
+JACK client has already created the deterministic ports:
+
+- input source: `loopwire_<configuration>_input_<input>`
+- output bus: `loopwire_<configuration>_<output>`
+- monitor target: `loopwire_<configuration>_monitor_<monitor>`
+
+The names are lowercased, sanitized, and truncated to 80 characters.
 
 Useful read-only inspection:
 
@@ -65,11 +73,12 @@ jack_lsp
 jack_lsp -c
 ```
 
-In the desktop shell, choose a detected JACK target from the output picker for host-backed outputs. Loopwire avoids
-auto-routing app-only demo inputs into that target because JACK cannot connect them until real virtual ports exist.
+In the desktop shell, choose a detected JACK target from the output picker for host-backed outputs. App-only endpoints
+can pass the static preflight, but live apply still fails closed unless the matching JACK ports already exist.
 
 If a route is muted, native JACK apply disconnects the configured connection and verification fails if that connection
-is still present. Non-unity route gain still fails closed before host commands.
+is still present. Non-unity route gain fails before host commands. Missing route or monitor ports fail after read-only
+`jack_lsp` inspection and before any `jack_connect` mutation.
 
 ## Live Host Apply Fails Closed
 
@@ -143,11 +152,12 @@ running from a GUI binary that does not own `--background`. Install the packaged
 
 Loopwire uses native chrome where the desktop environment provides it and custom chrome when the window manager needs a
 fallback. In the desktop shell, switching to **Custom** asks Tauri for an undecorated window, persists that preference,
-and shows Loopwire-owned drag, minimize, and close controls. Browser preview can show the fallback controls, but cannot
-change platform window decorations.
+and shows Loopwire-owned drag, minimize, maximize/restore, and close controls. Browser preview can show the fallback
+controls, but cannot change platform window decorations.
 
-If close or minimize controls are missing, capture the desktop environment, session type, compositor, the selected
-chrome mode, and a screenshot, then compare against the VM matrix target that most closely matches the machine.
+If close, maximize/restore, or minimize controls are missing, capture the desktop environment, session type, compositor,
+the selected chrome mode, and a screenshot, then compare against the VM matrix target that most closely matches the
+machine.
 
 ## Installer Fails Signature Verification
 
@@ -169,6 +179,12 @@ Start with a redacted support bundle:
 pnpm collect:support -- --output-dir .support/$(date +%Y%m%d-%H%M%S) --profile quick
 ```
 
+For JACK reports tied to a saved configuration export, include read-only port readiness:
+
+```bash
+pnpm collect:support -- --output-dir .support/jack-case --configuration exported-loopwire-config.json
+```
+
 Review the generated directory before sharing it. The collector redacts local user, host, home directory, runtime uid
 paths, process ids, cookies, and email-like values, but you should still remove anything private before attaching it.
 
@@ -182,3 +198,9 @@ Attach:
 - Install channel and artifact version.
 - Screenshot for UI issues.
 - Exact route/configuration steps that reproduce the issue.
+
+`support-bundle.json` includes an `audio.backends` summary with backend availability, route-control scope, per-edge
+gain/mute support, diagnostics, and known gaps. That summary is the fastest way to tell whether a report came from
+PipeWire, PulseAudio compatibility, JACK, or ALSA diagnostics-only mode without reading every raw command log first.
+When a configuration or state file is provided, the manifest also includes `jack.status` and
+`jack-port-requirements.json` with read-only JACK readiness results.

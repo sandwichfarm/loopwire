@@ -10,7 +10,8 @@ describe("detectAudioBackends", () => {
         "wpctl status": { stdout: "PipeWire 'pipewire-0' [1.4.9, host, cookie:1]\n" },
         "pactl info": { stdout: "Server Name: PulseAudio (on PipeWire 1.4.9)\nServer Version: 15.0.0\n" },
         jack_lsp: { exitCode: 1, stderr: "Cannot connect to server\n" },
-        "aplay -l": { stdout: "card 0: PCH [HDA Intel PCH], device 0: ALC [ALC]\n" }
+        "aplay -l": { stdout: "card 0: PCH [HDA Intel PCH], device 0: ALC [ALC]\n" },
+        "arecord -l": { stdout: "card 1: USB [USB Audio], device 0: Mic [Mic]\n" }
       }),
       new Date("2026-07-03T12:00:00.000Z"),
       "linux"
@@ -50,14 +51,69 @@ describe("detectAudioBackends", () => {
         supportsPerEdgeGain: false,
         supportsPerEdgeMute: false
       },
-      gaps: ["true per-edge mixing beyond sink-input controls"]
+      gaps: ["one output per source", "true per-edge mixing beyond sink-input controls"]
     });
     expect(report.reports.find((item) => item.kind === "jack")).toMatchObject({
       availability: "unavailable"
     });
     expect(report.reports.find((item) => item.kind === "alsa")).toMatchObject({
-      availability: "available"
+      availability: "available",
+      operations: {
+        enumerateDevices: "implemented",
+        routeAudio: "unavailable",
+        apply: "unavailable",
+        verify: "unavailable",
+        rollback: "unavailable"
+      },
+      mixing: {
+        controlScope: "unavailable",
+        supportsPerEdgeGain: false,
+        supportsPerEdgeMute: false
+      },
+      gaps: ["diagnostics only; use PipeWire, PulseAudio, or JACK for routing"]
     });
+    expect(report.reports.find((item) => item.kind === "alsa")?.commands).toEqual([
+      expect.objectContaining({ command: "aplay", args: ["-l"], available: true }),
+      expect.objectContaining({ command: "arecord", args: ["-l"], available: true })
+    ]);
+    expect(report.reports.find((item) => item.kind === "alsa")?.diagnostics[0]).toMatchObject({
+      level: "info",
+      code: "ALSA_DEVICES_AVAILABLE",
+      message: "ALSA playback and capture devices were listed."
+    });
+  });
+
+  it("keeps ALSA diagnostics available when only capture hardware is visible", async () => {
+    const report = await detectAudioBackends(
+      createFakeRunner({
+        "aplay -l": { exitCode: 1, stderr: "no soundcards found\n" },
+        "arecord -l": { stdout: "card 3: USB [USB Audio], device 0: Mic [Mic]\n" }
+      }),
+      new Date("2026-07-03T12:00:00.000Z"),
+      "linux"
+    );
+
+    const alsa = report.reports.find((item) => item.kind === "alsa");
+
+    expect(alsa).toMatchObject({
+      availability: "available",
+      diagnostics: [
+        {
+          level: "info",
+          code: "ALSA_DEVICES_PARTIAL",
+          message: "ALSA capture devices were listed, but playback devices were not listed."
+        },
+        {
+          level: "warning",
+          code: "ALSA_PLAYBACK_DEVICES_UNAVAILABLE",
+          message: "Missing ALSA playback side. Probe result: no soundcards found."
+        }
+      ]
+    });
+    expect(alsa?.commands).toEqual([
+      expect.objectContaining({ command: "aplay", args: ["-l"], available: false }),
+      expect.objectContaining({ command: "arecord", args: ["-l"], available: true })
+    ]);
   });
 
   it("uses pw-cli info fallback when wpctl is missing", async () => {
@@ -286,20 +342,52 @@ describe("enumeratePlaybackDevices", () => {
     });
   });
 
-  it("keeps unsupported backends in manual monitor-target mode", async () => {
+  it("lists ALSA playback hardware as diagnostic monitor target candidates", async () => {
     const report = await enumeratePlaybackDevices(
       createFakeRunner({
-        "aplay -l": { stdout: "card 0: PCH [HDA Intel PCH], device 0: ALC [ALC]\n" }
+        "aplay -l": {
+          stdout: [
+            "card 0: PCH [HDA Intel PCH], device 0: ALC1220 Analog [ALC1220 Analog]",
+            "card 2: Q802USB [Q802USB], device 0: USB Audio [USB Audio]"
+          ].join("\n")
+        }
+      }),
+      "alsa",
+      new Date("2026-07-03T12:20:00.000Z")
+    );
+
+    expect(report.devices).toEqual([
+      {
+        backend: "alsa",
+        deviceName: "hw:0,0",
+        label: "HDA Intel PCH ALC1220 Analog",
+        detail: "card 0 PCH; device 0 ALC1220 Analog"
+      },
+      {
+        backend: "alsa",
+        deviceName: "hw:2,0",
+        label: "Q802USB USB Audio",
+        detail: "card 2 Q802USB; device 0 USB Audio"
+      }
+    ]);
+    expect(report.diagnostics[0]).toMatchObject({ level: "info", code: "PLAYBACK_DEVICES_AVAILABLE" });
+    expect(report.commands[0]).toMatchObject({ command: "aplay", args: ["-l"], available: true });
+  });
+
+  it("reports ALSA playback enumeration failure without throwing", async () => {
+    const report = await enumeratePlaybackDevices(
+      createFakeRunner({
+        "aplay -l": { exitCode: 1, stderr: "no soundcards found\n" }
       }),
       "alsa",
       new Date("2026-07-03T12:20:00.000Z")
     );
 
     expect(report.devices).toEqual([]);
-    expect(report.commands).toEqual([]);
     expect(report.diagnostics[0]).toMatchObject({
       level: "warning",
-      code: "PLAYBACK_ENUMERATION_MANUAL"
+      code: "PLAYBACK_ENUMERATION_FAILED",
+      message: "Could not list ALSA playback devices. Probe result: no soundcards found."
     });
   });
 });
@@ -490,20 +578,56 @@ describe("enumerateInputSources", () => {
     });
   });
 
-  it("keeps unsupported backends in static source mode", async () => {
+  it("lists ALSA capture hardware as source candidates", async () => {
     const report = await enumerateInputSources(
       createFakeRunner({
-        "aplay -l": { stdout: "card 0: PCH [HDA Intel PCH], device 0: ALC [ALC]\n" }
+        "arecord -l": {
+          stdout: [
+            "card 1: Pro40 [Saffire Pro40], device 0: DICE [DICE]",
+            "card 2: Q802USB [Q802USB], device 0: USB Audio [USB Audio]"
+          ].join("\n")
+        }
+      }),
+      "alsa",
+      new Date("2026-07-03T12:35:00.000Z")
+    );
+
+    expect(report.sources).toEqual([
+      {
+        backend: "alsa",
+        sourceId: "hw-1-0",
+        sourceName: "hw:1,0",
+        label: "Saffire Pro40 DICE",
+        detail: "card 1 Pro40; device 0 DICE",
+        channels: 2
+      },
+      {
+        backend: "alsa",
+        sourceId: "hw-2-0",
+        sourceName: "hw:2,0",
+        label: "Q802USB USB Audio",
+        detail: "card 2 Q802USB; device 0 USB Audio",
+        channels: 2
+      }
+    ]);
+    expect(report.diagnostics[0]).toMatchObject({ level: "info", code: "INPUT_SOURCES_AVAILABLE" });
+    expect(report.commands[0]).toMatchObject({ command: "arecord", args: ["-l"], available: true });
+  });
+
+  it("reports ALSA capture enumeration failure without throwing", async () => {
+    const report = await enumerateInputSources(
+      createFakeRunner({
+        "arecord -l": { exitCode: 1, stderr: "no soundcards found\n" }
       }),
       "alsa",
       new Date("2026-07-03T12:35:00.000Z")
     );
 
     expect(report.sources).toEqual([]);
-    expect(report.commands).toEqual([]);
     expect(report.diagnostics[0]).toMatchObject({
       level: "warning",
-      code: "INPUT_SOURCE_ENUMERATION_MANUAL"
+      code: "INPUT_SOURCE_ENUMERATION_FAILED",
+      message: "Could not list ALSA capture devices. Probe result: no soundcards found."
     });
   });
 });

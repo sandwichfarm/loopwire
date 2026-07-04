@@ -23,6 +23,8 @@ In the desktop shell, use the sidebar startup cards:
 Browser preview does not write startup files. It shows the paths and asks you to use the desktop shell.
 Source-checkout Tauri runs do not install a background-capable GUI binary; use the source checkout CLI path below until
 you test an installed package or set `LOOPWIRE_BACKGROUND_BINARY` to a compatible launcher.
+The restore-on-boot status card stays readable when that launcher is missing: it reports the unit path, marks restore
+as blocked, and disables only the unsafe enable action. If a unit already exists, the desktop can still remove it.
 
 ## CLI Fallback
 
@@ -82,7 +84,7 @@ Description=Loopwire audio routing restore
 
 [Service]
 Type=simple
-ExecStart="/home/me/.local/bin/loopwire" --background
+ExecStart="/home/me/.local/bin/loopwire" --background --state-file "%h/.config/loopwire/state.json" --mode preview
 Restart=on-failure
 RestartSec=2
 ```
@@ -92,8 +94,9 @@ core/audio-host restore engine used by source checkouts.
 
 The desktop shell resolves the packaged launcher from the installed GUI path before writing this service. It refuses to
 install a background unit if it can only find the GUI binary, because `--background` belongs to the `loopwire` launcher.
-The shell then writes the unit and a user-scoped `default.target.wants/loopwire.service` link. It does not run `sudo`
-or modify `/etc/systemd`.
+The status check remains non-destructive when that launcher is missing, so users can see why enable is blocked instead
+of getting a failed status check. The shell then writes the unit and a user-scoped
+`default.target.wants/loopwire.service` link. It does not run `sudo` or modify `/etc/systemd`.
 
 ## Source Background Restore Path
 
@@ -138,6 +141,40 @@ Each retry refresh only moves and controls newly visible matching sink inputs, t
 absent when the window closes, the JSON output keeps `pendingStreamRefresh.cleared` false instead of pretending the
 streams were present.
 
+For JACK restore, a persisted configuration can use deterministic Loopwire-owned ports only after a JACK provider
+creates them. The background runner can call an explicit provider command before connecting those ports:
+
+```bash
+pnpm restore:background -- \
+  --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json" \
+  --backend jack \
+  --mode live \
+  --jack-provider-command loopwire-jack-ports \
+  --pretty
+```
+
+The provider command receives stable `ensure --configuration-id ... --requirement ... --port ...` arguments from the
+runtime. Loopwire re-runs `jack_lsp` after the provider exits and still fails closed if the expected ports are missing.
+
+For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
+configuration transaction, per-edge gain/mute math, and verification sequence:
+
+```bash
+pnpm restore:background -- \
+  --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json" \
+  --backend dsp \
+  --mode live \
+  --dsp-provider-command loopwire-dsp-provider \
+  --dsp-frame-count 480 \
+  --pretty
+```
+
+The provider command receives `read-source` as stable arguments and returns JSON channel buffers on stdout. Loopwire
+sends rendered output buffers to `write-output` and `verify-output` as JSON stdin. The source checkout and packaged
+systemd helpers can pass the same `--backend dsp`, `--dsp-provider-command`, `--dsp-provider-timeout-ms`, and
+`--dsp-frame-count` flags. Run `pnpm dsp:plan` first to inspect the bounded provider operations, then run
+`pnpm dsp:verify` with the provider command before enabling boot restore. No DSP provider binary is bundled yet.
+
 Preview the service:
 
 ```bash
@@ -145,7 +182,10 @@ bash scripts/manage-autostart.sh render \
   --mode systemd \
   --source-dir "$PWD" \
   --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json" \
-  --restore-mode preview
+  --restore-mode live \
+  --dsp-provider-command loopwire-dsp-provider \
+  --dsp-provider-timeout-ms 5000 \
+  --dsp-frame-count 480
 ```
 
 Dry-run enabling it:
@@ -176,6 +216,11 @@ RestartSec=2
 [Install]
 WantedBy=default.target
 ```
+
+For JACK boot restore, the helper appends the same `--jack-provider-command` and `--jack-provider-timeout-ms` flags to
+the generated `ExecStart` line. For DSP provider restore, the helper appends `--backend dsp` plus the DSP provider
+flags. Packaged services pass those flags after `loopwire --background`; source-checkout services pass them after
+`pnpm restore:background --`, so both boot paths keep the same runtime contract.
 
 The helper supports both the packaged launcher path through `--binary "$HOME/.local/bin/loopwire"` and the source
 checkout path through `--source-dir "$PWD"`.

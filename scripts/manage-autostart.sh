@@ -14,15 +14,20 @@ state_file="${LOOPWIRE_STATE_FILE:-$config_home/loopwire/state.json}"
 restore_mode="${LOOPWIRE_RESTORE_MODE:-preview}"
 retry_pending_ms="${LOOPWIRE_RESTORE_RETRY_PENDING_MS:-0}"
 retry_interval_ms="${LOOPWIRE_RESTORE_RETRY_INTERVAL_MS:-1000}"
+jack_provider_command="${LOOPWIRE_JACK_PROVIDER_COMMAND:-}"
+jack_provider_timeout_ms="${LOOPWIRE_JACK_PROVIDER_TIMEOUT_MS:-5000}"
+dsp_provider_command="${LOOPWIRE_DSP_PROVIDER_COMMAND:-}"
+dsp_provider_timeout_ms="${LOOPWIRE_DSP_PROVIDER_TIMEOUT_MS:-5000}"
+dsp_frame_count="${LOOPWIRE_DSP_FRAME_COUNT:-}"
 
 usage() {
   cat <<'USAGE'
 Manage Loopwire user-scoped startup.
 
 Usage:
-  manage-autostart.sh render [--mode desktop|systemd] [--binary PATH] [--source-dir DIR]
-  manage-autostart.sh install [--mode desktop|systemd] [--binary PATH] [--source-dir DIR] [--dry-run]
-  manage-autostart.sh enable [--mode desktop|systemd] [--binary PATH] [--source-dir DIR] [--dry-run]
+  manage-autostart.sh render [--mode desktop|systemd] [--binary PATH] [--source-dir DIR] [restore options]
+  manage-autostart.sh install [--mode desktop|systemd] [--binary PATH] [--source-dir DIR] [restore options] [--dry-run]
+  manage-autostart.sh enable [--mode desktop|systemd] [--binary PATH] [--source-dir DIR] [restore options] [--dry-run]
   manage-autostart.sh disable [--mode desktop|systemd] [--dry-run]
   manage-autostart.sh uninstall [--mode desktop|systemd] [--dry-run]
   manage-autostart.sh status [--mode desktop|systemd]
@@ -42,6 +47,15 @@ Environment:
                                Live PulseAudio pending-stream refresh window, default 0
   LOOPWIRE_RESTORE_RETRY_INTERVAL_MS
                                Live PulseAudio pending-stream refresh interval, default 1000
+  LOOPWIRE_JACK_PROVIDER_COMMAND
+                               JACK virtual-port provider command for background restore
+  LOOPWIRE_JACK_PROVIDER_TIMEOUT_MS
+                               JACK virtual-port provider timeout, default 5000
+  LOOPWIRE_DSP_PROVIDER_COMMAND
+                               DSP provider command for --backend dsp background restore
+  LOOPWIRE_DSP_PROVIDER_TIMEOUT_MS
+                               DSP provider operation timeout, default 5000
+  LOOPWIRE_DSP_FRAME_COUNT     Optional DSP source frame count
   LOOPWIRE_XDG_AUTOSTART_DIR   Override XDG autostart directory
   LOOPWIRE_SYSTEMD_USER_DIR    Override systemd user unit directory
 
@@ -88,6 +102,26 @@ while [ "$#" -gt 0 ]; do
       retry_interval_ms="${2:?missing value for --retry-interval-ms}"
       shift 2
       ;;
+    --jack-provider-command)
+      jack_provider_command="${2:?missing value for --jack-provider-command}"
+      shift 2
+      ;;
+    --jack-provider-timeout-ms)
+      jack_provider_timeout_ms="${2:?missing value for --jack-provider-timeout-ms}"
+      shift 2
+      ;;
+    --dsp-provider-command)
+      dsp_provider_command="${2:?missing value for --dsp-provider-command}"
+      shift 2
+      ;;
+    --dsp-provider-timeout-ms)
+      dsp_provider_timeout_ms="${2:?missing value for --dsp-provider-timeout-ms}"
+      shift 2
+      ;;
+    --dsp-frame-count)
+      dsp_frame_count="${2:?missing value for --dsp-frame-count}"
+      shift 2
+      ;;
     --dry-run)
       dry_run="true"
       shift
@@ -125,8 +159,19 @@ esac
 
 [[ "$retry_pending_ms" =~ ^[0-9]+$ ]] || fail "--retry-pending-ms must be a non-negative integer"
 [[ "$retry_interval_ms" =~ ^[1-9][0-9]*$ ]] || fail "--retry-interval-ms must be greater than zero"
+[[ "$jack_provider_timeout_ms" =~ ^[1-9][0-9]*$ ]] || fail "--jack-provider-timeout-ms must be greater than zero"
+[[ "$dsp_provider_timeout_ms" =~ ^[1-9][0-9]*$ ]] || fail "--dsp-provider-timeout-ms must be greater than zero"
 if [ "$retry_pending_ms" != "0" ] && [ "$restore_mode" != "live" ]; then
   fail "--retry-pending-ms requires --restore-mode live"
+fi
+if [ -n "$dsp_frame_count" ] && ! [[ "$dsp_frame_count" =~ ^[1-9][0-9]*$ ]]; then
+  fail "--dsp-frame-count must be greater than zero"
+fi
+if [ -n "$dsp_frame_count" ] && [ -z "$dsp_provider_command" ]; then
+  fail "--dsp-frame-count requires --dsp-provider-command"
+fi
+if [ -n "$dsp_provider_command" ] && [ -n "$jack_provider_command" ]; then
+  fail "--dsp-provider-command cannot be combined with --jack-provider-command"
 fi
 
 desktop_entry_path="${autostart_dir}/loopwire.desktop"
@@ -147,17 +192,38 @@ desktop_exec() {
   printf '"%s"' "$binary"
 }
 
+restore_args() {
+  reject_unsafe_path "$state_file"
+  printf ' --state-file "%s" --mode %s' "$state_file" "$restore_mode"
+
+  if [ "$retry_pending_ms" != "0" ]; then
+    printf ' --retry-pending-ms %s --retry-interval-ms %s' "$retry_pending_ms" "$retry_interval_ms"
+  fi
+
+  if [ -n "$dsp_provider_command" ]; then
+    reject_unsafe_path "$dsp_provider_command"
+    printf ' --backend dsp --dsp-provider-command "%s" --dsp-provider-timeout-ms %s' \
+      "$dsp_provider_command" \
+      "$dsp_provider_timeout_ms"
+
+    if [ -n "$dsp_frame_count" ]; then
+      printf ' --dsp-frame-count %s' "$dsp_frame_count"
+    fi
+  fi
+
+  if [ -n "$jack_provider_command" ]; then
+    reject_unsafe_path "$jack_provider_command"
+    printf ' --jack-provider-command "%s" --jack-provider-timeout-ms %s' \
+      "$jack_provider_command" \
+      "$jack_provider_timeout_ms"
+  fi
+}
+
 systemd_exec() {
   if [ -n "$source_dir" ]; then
     reject_unsafe_path "$source_dir"
-    reject_unsafe_path "$state_file"
-    printf 'pnpm --dir "%s" restore:background -- --state-file "%s" --mode %s' \
-      "$source_dir" \
-      "$state_file" \
-      "$restore_mode"
-    if [ "$retry_pending_ms" != "0" ]; then
-      printf ' --retry-pending-ms %s --retry-interval-ms %s' "$retry_pending_ms" "$retry_interval_ms"
-    fi
+    printf 'pnpm --dir "%s" restore:background --' "$source_dir"
+    restore_args
     return
   fi
 
@@ -167,6 +233,8 @@ systemd_exec() {
   if [ -n "$background_args" ]; then
     printf ' %s' "$background_args"
   fi
+
+  restore_args
 }
 
 render_desktop() {

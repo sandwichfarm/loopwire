@@ -3,13 +3,14 @@ set -euo pipefail
 
 target=""
 evidence_dir=""
+require_published_release="false"
 
 usage() {
   cat <<'USAGE'
 Verify Loopwire VM evidence.
 
 Usage:
-  verify-vm-evidence.sh --target TARGET --evidence-dir DIR
+  verify-vm-evidence.sh --target TARGET --evidence-dir DIR [--require-published-release]
 
 Required files:
   pnpm-check.log
@@ -26,11 +27,13 @@ Required files:
   screenshot.png
   notes.md
   command-results.tsv
+  published-release-smoke.log (when --require-published-release is passed, or when present in command-results.tsv)
 
 The target must exist in vm/targets.tsv. This verifier checks that the evidence bundle has the expected files and that
 the backend detection JSON contains the target platform and reports array. It also checks command-results.tsv to prove
 the required guest commands, including desktop launch smoke, completed successfully. The environment manifest must
-match the selected VM target's distro, desktop/session, audio stack, and architecture.
+match the selected VM target's distro, desktop/session, audio stack, and architecture. With --require-published-release,
+the bundle must also prove an installed release smoke through scripts/verify-published-release.sh.
 USAGE
 }
 
@@ -48,6 +51,10 @@ while [ "$#" -gt 0 ]; do
     --evidence-dir)
       evidence_dir="${2:-}"
       shift 2
+      ;;
+    --require-published-release)
+      require_published_release="true"
+      shift
       ;;
     -h | --help)
       usage
@@ -81,6 +88,10 @@ for required in \
   screenshot.png; do
   [ -s "$evidence_dir/$required" ] || fail "missing or empty evidence file: $required"
 done
+
+if [ "$require_published_release" = "true" ]; then
+  [ -s "$evidence_dir/published-release-smoke.log" ] || fail "missing or empty evidence file: published-release-smoke.log"
+fi
 
 node -e '
 const fs = require("node:fs");
@@ -137,7 +148,8 @@ function expectedDistroId(value) {
     Fedora: "fedora",
     "Ubuntu LTS": "ubuntu",
     "Debian stable": "debian",
-    NixOS: "nixos"
+    NixOS: "nixos",
+    "openSUSE Tumbleweed": "opensuse-tumbleweed"
   };
 
   return known[value] ?? value.toLowerCase();
@@ -168,6 +180,8 @@ function matchesDesktop(observedValue, expectedValue) {
 node -e '
 const fs = require("node:fs");
 const path = process.argv[1];
+const target = process.argv[2];
+const targetFile = process.argv[3];
 const data = JSON.parse(fs.readFileSync(path, "utf8"));
 if (data.platform !== "linux") {
   throw new Error("detect-audio.json platform must be linux");
@@ -175,7 +189,42 @@ if (data.platform !== "linux") {
 if (!Array.isArray(data.reports) || data.reports.length === 0) {
   throw new Error("detect-audio.json must contain backend reports");
 }
-' "$evidence_dir/detect-audio.json"
+
+const targetRow = fs.readFileSync(targetFile, "utf8")
+  .split(/\r?\n/)
+  .find((line) => line && !line.trim().startsWith("#") && line.split("\t")[0] === target);
+
+if (!targetRow) {
+  throw new Error(`unknown VM target: ${target}`);
+}
+
+const expectedAudio = targetRow.split("\t")[5];
+const requiredBackends = requiredBackendsForAudio(expectedAudio);
+const missing = requiredBackends.filter((kind) => !backendAvailable(data.reports, kind));
+
+if (missing.length > 0) {
+  throw new Error(`target audio stack ${expectedAudio} requires available backend report(s): ${missing.join(", ")}`);
+}
+
+function backendAvailable(reports, kind) {
+  return reports.some((report) => report.kind === kind && report.availability === "available");
+}
+
+function requiredBackendsForAudio(value) {
+  const requirements = {
+    "PipeWire/WirePlumber": ["pipewire"],
+    "PipeWire/PulseAudio compatibility": ["pipewire", "pulseaudio"],
+    PulseAudio: ["pulseaudio"],
+    JACK: ["jack"]
+  };
+  const required = requirements[value];
+  if (!required) {
+    throw new Error(`unsupported target audio stack: ${value}`);
+  }
+
+  return required;
+}
+' "$evidence_dir/detect-audio.json" "$target" vm/targets.tsv
 
 node -e '
 const fs = require("node:fs");
@@ -190,6 +239,20 @@ if (data.redacted !== true) {
 if (!Array.isArray(data.commands) || data.commands.length === 0) {
   throw new Error("support-bundle.json must contain command results");
 }
+if (data.audio?.status !== "parsed") {
+  throw new Error("support-bundle.json must include parsed audio backend summary");
+}
+if (!Array.isArray(data.audio.backends) || data.audio.backends.length === 0) {
+  throw new Error("support-bundle.json audio summary must contain backend rows");
+}
+for (const backend of data.audio.backends) {
+  if (!backend.kind || !backend.availability || !backend.controlScope) {
+    throw new Error("support-bundle.json audio backend rows must include kind, availability, and controlScope");
+  }
+  if (!Array.isArray(backend.gaps)) {
+    throw new Error("support-bundle.json audio backend rows must include gaps arrays");
+  }
+}
 ' "$evidence_dir/support-bundle/support-bundle.json"
 
 node -e '
@@ -197,6 +260,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const resultsPath = process.argv[1];
 const evidenceDir = process.argv[2];
+const requirePublishedRelease = process.argv[3] === "true";
 const required = new Map([
   ["pnpm-check", "pnpm-check.log"],
   ["desktop-launch", "desktop-launch.log"],
@@ -206,6 +270,13 @@ const required = new Map([
   ["autostart", "autostart.log"],
   ["support-bundle", "support-bundle.log"]
 ]);
+const optional = new Map([
+  ["published-release-smoke", "published-release-smoke.log"]
+]);
+
+if (requirePublishedRelease) {
+  required.set("published-release-smoke", "published-release-smoke.log");
+}
 
 const rows = fs.readFileSync(resultsPath, "utf8")
   .split(/\r?\n/)
@@ -221,8 +292,21 @@ const rows = fs.readFileSync(resultsPath, "utf8")
   });
 
 for (const [name, expectedLog] of required) {
+  validateCommand(name, expectedLog, true);
+}
+
+for (const [name, expectedLog] of optional) {
+  validateCommand(name, expectedLog, false);
+}
+
+function validateCommand(name, expectedLog, requiredCommand) {
   const row = rows.find((candidate) => candidate.name === name);
   if (!row) {
+    const optionalLog = path.join(evidenceDir, expectedLog);
+    if (!requiredCommand && !fs.existsSync(optionalLog)) {
+      return;
+    }
+
     throw new Error(`command-results.tsv missing required command: ${name}`);
   }
 
@@ -243,7 +327,7 @@ for (const [name, expectedLog] of required) {
     throw new Error(`${name} log is missing or empty: ${row.log}`);
   }
 }
-' "$evidence_dir/command-results.tsv" "$evidence_dir"
+' "$evidence_dir/command-results.tsv" "$evidence_dir" "$require_published_release"
 
 node -e '
 const fs = require("node:fs");

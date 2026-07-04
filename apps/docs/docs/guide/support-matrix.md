@@ -22,11 +22,15 @@ Use `scripts/collect-vm-evidence-ssh.sh` after a VM is reachable over SSH to run
 bundle back, and verify it locally before changing a row to `Verified`. Guest evidence includes a redacted support
 bundle plus a desktop launch smoke so maintainers can inspect backend diagnostics without relying only on screenshot or
 pass/fail status. It also includes `environment.json`, which must match the target distro, desktop/session, audio
-stack, and architecture before a row can be promoted.
+stack, and architecture before a row can be promoted. The matching `detect-audio.json` must also report the target
+audio backend as available, so a JACK or PulseAudio row cannot be promoted with only generic Linux evidence.
 After evidence verifies, promote the row with `pnpm vm:promote-evidence -- --target <target>`. Use `--dry-run` first
-to preview the docs change without editing the matrix.
+to preview the docs change without editing the matrix. For final release support claims, pass
+`--require-published-release` so promotion also proves the guest installed and ran the signed published artifact.
 Run `pnpm vm:host-plan` for cross-distro host setup hints and target-specific image, cloud-init, launch, and evidence
 handoff commands.
+Run `pnpm vm:render-ssh-plan -- --all --output .vm/ssh-targets.tsv` to generate the multi-guest TSV consumed by
+`pnpm vm:collect-matrix`.
 
 | Target | Desktop/session | Audio stack | Current status |
 |--------|-----------------|-------------|----------------|
@@ -34,19 +38,21 @@ handoff commands.
 | `fedora-kde-pipewire` | KDE Plasma on Wayland | PipeWire/WirePlumber | Manual VM |
 | `fedora-kde-jack` | KDE Plasma on Wayland | JACK | Manual VM |
 | `ubuntu-gnome-pipewire` | GNOME on Wayland | PipeWire/PulseAudio compatibility | Manual VM |
+| `ubuntu-gnome-pipewire-aarch64` | GNOME on Wayland | PipeWire/PulseAudio compatibility | Manual VM |
 | `debian-xfce-pulseaudio` | Xfce on X11 | PulseAudio | Manual VM |
 | `nixos-gnome-pipewire` | GNOME on Wayland | PipeWire/WirePlumber | Manual VM |
 | `fedora-sway-pipewire` | Sway on Wayland | PipeWire/WirePlumber | Manual VM |
+| `opensuse-kde-pipewire` | KDE Plasma on Wayland | PipeWire/WirePlumber | Manual VM |
 
 ## Audio Backends
 
 | Backend | Detection | Host mutation | Notes |
 |---------|-----------|---------------|-------|
 | PipeWire native | Verified probes and port listing | Virtual sinks, routes, mute, monitor links | Per-edge gain planned. |
-| PulseAudio compatibility | Verified read-only probes | Verified with fake runners | Sinks, monitor loopbacks, and stream routes. |
+| PulseAudio compatibility | Verified read-only probes | Verified with fake runners | Sinks, monitors, routes; one output per source. |
 | Native PulseAudio | Verified read-only probes | Same `pactl` adapter path | Needs manual VM proof on a non-PipeWire PulseAudio host. |
 | JACK | Verified probes and port listing | Existing-port routes, route mute, and monitor links | Virtual ports and gain still planned. |
-| ALSA | Playback-device detection | Not a routing backend | Used for diagnostics and hardware visibility. |
+| ALSA | Playback/capture hardware detection | Not a routing backend | Used for diagnostics and hardware visibility. |
 
 Host adapters are dry-run by default. Live apply is session-local and requires the desktop `Host apply` control plus
 the Tauri shell command bridge.
@@ -59,7 +65,9 @@ the Tauri shell command bridge.
 | Signed curl installer | `pnpm verify:install`, `pnpm verify:release` | Blocked on tagged artifacts and public key. |
 | AppImage, deb, rpm | Local Tauri bundle smoke | Blocked on release publishing. |
 | AUR `loopwire-bin` | `pnpm verify:aur` on Arch with `makepkg` | Blocked on tagged artifacts. |
-| Nix package template | `pnpm verify:packaging` | Needs Nix VM or Nix-enabled CI proof. |
+| Nix flake package template | `pnpm verify:packaging` | Blocked on real release hashes and Nix build proof. |
+
+The flake package output is `packages.<system>.loopwire-bin`; it uses fake hashes until published artifacts exist.
 
 ## Desktop Integration
 

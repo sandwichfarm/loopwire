@@ -27,6 +27,7 @@ export interface CommandRunner {
 
 export interface CommandRunOptions {
   readonly timeoutMs?: number;
+  readonly input?: string;
 }
 
 export type CapabilityState = "implemented" | "planned" | "unavailable";

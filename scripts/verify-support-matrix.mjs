@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
 const evidenceRoot = readOption("--evidence-root") ?? join(root, ".vm/evidence");
+const matrixPath = readOption("--matrix") ?? join(root, "apps/docs/docs/guide/support-matrix.md");
+const requirePublishedRelease = args.includes("--require-published-release");
 const allowedStatuses = new Set(["Manual VM", "Verified"]);
 
 if (args.includes("-h") || args.includes("--help")) {
@@ -17,7 +19,7 @@ if (args.includes("-h") || args.includes("--help")) {
 validateArgs();
 
 const targets = readTargets(join(root, "vm/targets.tsv"));
-const rows = readMatrixRows(join(root, "apps/docs/docs/guide/support-matrix.md"));
+const rows = readMatrixRows(matrixPath);
 const errors = [];
 let evidenceBacked = 0;
 
@@ -80,9 +82,10 @@ function usage() {
   console.log(`Verify Loopwire support matrix rows against VM target metadata and evidence.
 
 Usage:
-  verify-support-matrix.mjs [--evidence-root DIR]
+  verify-support-matrix.mjs [--evidence-root DIR] [--matrix FILE] [--require-published-release]
 
 Rows marked Verified require a passing target evidence bundle. Rows with passing evidence must be marked Verified.
+Use --require-published-release for final release support claims that must prove installed-release smoke.
 `);
 }
 
@@ -92,19 +95,27 @@ function readOption(name) {
 }
 
 function validateArgs() {
+  const valueOptions = new Set(["--evidence-root", "--matrix"]);
+  const flagOptions = new Set(["--require-published-release"]);
+
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg !== "--evidence-root") {
-      console.error(`verify-support-matrix: unknown argument: ${arg}`);
-      process.exit(2);
+    if (valueOptions.has(arg)) {
+      if (!args[index + 1] || args[index + 1].startsWith("--")) {
+        console.error(`verify-support-matrix: missing value for ${arg}`);
+        process.exit(2);
+      }
+
+      index += 1;
+      continue;
     }
 
-    if (!args[index + 1] || args[index + 1].startsWith("--")) {
-      console.error("verify-support-matrix: missing value for --evidence-root");
-      process.exit(2);
+    if (flagOptions.has(arg)) {
+      continue;
     }
 
-    index += 1;
+    console.error(`verify-support-matrix: unknown argument: ${arg}`);
+    process.exit(2);
   }
 }
 
@@ -141,9 +152,14 @@ function readMatrixRows(path) {
 }
 
 function verifyEvidence(target, evidenceDir) {
+  const verifierArgs = ["scripts/verify-vm-evidence.sh", "--target", target, "--evidence-dir", evidenceDir];
+  if (requirePublishedRelease) {
+    verifierArgs.push("--require-published-release");
+  }
+
   const result = spawnSync(
     "bash",
-    ["scripts/verify-vm-evidence.sh", "--target", target, "--evidence-dir", evidenceDir],
+    verifierArgs,
     { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 }
   );
 

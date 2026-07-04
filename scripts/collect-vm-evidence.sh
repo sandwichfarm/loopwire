@@ -10,6 +10,11 @@ screenshot_file=""
 screenshot_command=""
 desktop_port="5181"
 operator_note=""
+published_release_dir=""
+published_release_repo=""
+published_release_tag=""
+release_public_key=""
+require_published_release="false"
 failed=0
 last_status=0
 
@@ -24,6 +29,11 @@ Options:
   --screenshot-file FILE       Copy an already captured screenshot to screenshot.png.
   --screenshot-command CMD     Run CMD with LOOPWIRE_SCREENSHOT_PATH set to screenshot.png.
   --desktop-port PORT          Local port for the desktop launch smoke. Defaults to 5181.
+  --published-release-dir DIR  Run installed-release smoke against a signed local release directory.
+  --published-release-repo REPO Run installed-release smoke against a GitHub release repository.
+  --published-release-tag TAG  GitHub release tag for --published-release-repo.
+  --release-public-key FILE    Public key for published-release signature verification.
+  --require-published-release  Require published-release smoke arguments and fail if they are absent.
   --note TEXT                  Append operator context to notes.md.
 
 The script runs inside a guest VM from a checked-out Loopwire repository. It writes the files expected by
@@ -73,6 +83,26 @@ while [ "$#" -gt 0 ]; do
       desktop_port="${2:-}"
       shift 2
       ;;
+    --published-release-dir)
+      published_release_dir="${2:-}"
+      shift 2
+      ;;
+    --published-release-repo)
+      published_release_repo="${2:-}"
+      shift 2
+      ;;
+    --published-release-tag)
+      published_release_tag="${2:-}"
+      shift 2
+      ;;
+    --release-public-key)
+      release_public_key="${2:-}"
+      shift 2
+      ;;
+    --require-published-release)
+      require_published_release="true"
+      shift
+      ;;
     --note)
       operator_note="${2:-}"
       shift 2
@@ -91,6 +121,21 @@ done
 [ -n "$output_dir" ] || fail "missing --output-dir"
 [ -f "$target_file" ] || fail "missing target file: $target_file"
 validate_tcp_port "$desktop_port" "--desktop-port"
+
+if [ -n "$published_release_dir" ] && [ -n "$published_release_repo" ]; then
+  fail "use either --published-release-dir or --published-release-repo, not both"
+fi
+
+if [ "$require_published_release" = "true" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
+  fail "--require-published-release requires --published-release-dir or --published-release-repo"
+fi
+
+if [ -n "$published_release_dir" ] || [ -n "$published_release_repo" ]; then
+  [ -n "$release_public_key" ] || fail "published release smoke requires --release-public-key"
+  if [ -n "$published_release_repo" ] && [ -z "$published_release_tag" ]; then
+    fail "--published-release-repo requires --published-release-tag"
+  fi
+fi
 
 target_row="$(awk -F '\t' -v id="$target" '$1 == id { print; found = 1 } END { if (!found) exit 1 }' "$target_file")" ||
   fail "unknown VM target: $target"
@@ -302,6 +347,26 @@ run_support_bundle() {
     --profile quick
 }
 
+run_published_release_smoke() {
+  if [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
+    return 0
+  fi
+
+  if [ -n "$published_release_dir" ]; then
+    run_logged "published-release-smoke" "published-release-smoke.log" \
+      bash scripts/verify-published-release.sh \
+      --release-dir "$published_release_dir" \
+      --public-key "$release_public_key"
+    return 0
+  fi
+
+  run_logged "published-release-smoke" "published-release-smoke.log" \
+    bash scripts/verify-published-release.sh \
+    --repo "$published_release_repo" \
+    --tag "$published_release_tag" \
+    --public-key "$release_public_key"
+}
+
 capture_screenshot() {
   local screenshot_path="$output_dir/screenshot.png"
   rm -f "$screenshot_path"
@@ -354,10 +419,15 @@ run_audio_detect
 run_logged "ct-host-check" "ct-host-check.log" bash scripts/ct-host-check.sh
 run_logged "autostart" "autostart.log" pnpm verify:autostart
 run_support_bundle
+run_published_release_smoke
 capture_screenshot
 
-if bash scripts/verify-vm-evidence.sh --target "$target" --evidence-dir "$output_dir" \
-  >"$output_dir/vm-evidence-verify.log" 2>&1; then
+verify_args=(--target "$target" --evidence-dir "$output_dir")
+if [ "$require_published_release" = "true" ]; then
+  verify_args+=(--require-published-release)
+fi
+
+if bash scripts/verify-vm-evidence.sh "${verify_args[@]}" >"$output_dir/vm-evidence-verify.log" 2>&1; then
   record_result "verify-vm-evidence" "vm-evidence-verify.log" 0 "$(date --iso-8601=seconds)" \
     "$(date --iso-8601=seconds)"
 else

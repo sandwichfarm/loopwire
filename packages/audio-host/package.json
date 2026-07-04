@@ -18,9 +18,12 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "pnpm --filter @loopwire/core build && tsc -p tsconfig.json",
+    "test": "pnpm --filter @loopwire/core build && vitest run",
+    "typecheck": "pnpm --filter @loopwire/core build && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@loopwire/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "26.1.0",

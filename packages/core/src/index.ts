@@ -63,6 +63,25 @@ export {
   type RuntimeTransactionReason
 } from "./runtime.js";
 export {
+  createDspMixPlan,
+  listDspSourceRequests,
+  renderDspMixPlan,
+  runDspMixCycle,
+  type DspChannelPair,
+  type DspMixCycleOptions,
+  type DspMixCyclePorts,
+  type DspMixCycleResult,
+  type DspMixPlan,
+  type DspOutputPlan,
+  type DspRenderedOutput,
+  type DspRenderOptions,
+  type DspRenderResult,
+  type DspRouteContribution,
+  type DspSourceBufferResult,
+  type DspSourceRequest,
+  type DspSourceBuffers
+} from "./dsp-mix.js";
+export {
   audioBackendKinds,
   schemaVersion,
   type AudioBackendKind,

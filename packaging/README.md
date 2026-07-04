@@ -46,9 +46,13 @@ submit anything to AUR.
 
 ## Nix
 
-`packaging/nix/loopwire-bin.nix` packages the same binary release artifacts. Pass `version` and per-system `hashes`
-from release metadata. Do not expose it as a release-ready flake package until hashes are real and `nix build` has been
-run against published artifacts.
+`flake.nix` exposes `packages.<system>.loopwire-bin` and `packages.<system>.default` from
+`packaging/nix/loopwire-bin.nix` for `x86_64-linux` and `aarch64-linux`. The default flake package intentionally uses
+`nixpkgs.lib.fakeHash` until the first public release provides real artifact hashes.
+
+After a release exists, use `lib.<system>.mkLoopwireBinPackage` with the published version and per-system hashes from
+release metadata. Do not describe the flake package as release-ready until those hashes are real and `nix build` has
+been run against published artifacts.
 
 ## Smoke
 
@@ -72,4 +76,5 @@ launcher.
 `verify:aur` renders the AUR template from generated local artifacts, runs `makepkg --nodeps` in a temp directory, and
 checks the package archive contains `usr/bin/loopwire`. It skips cleanly on hosts without `makepkg`.
 
-`verify:packaging` statically checks that package metadata points at the same release artifact names as the installer.
+`verify:packaging` statically checks that package metadata points at the same release artifact names as the installer
+and that the flake exposes the binary package template without replacing fake hashes with unverified values.

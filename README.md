@@ -20,6 +20,8 @@ Useful commands:
 pnpm --filter @loopwire/core test
 pnpm detect:audio
 pnpm collect:support -- --output-dir .support/$(date +%Y%m%d-%H%M%S) --profile quick
+pnpm jack:ports -- --configuration exported-loopwire-config.json --format tsv
+pnpm jack:verify -- --configuration exported-loopwire-config.json
 pnpm --filter @loopwire/desktop dev
 pnpm --filter @loopwire/docs docs:dev
 pnpm verify:scripts
@@ -52,6 +54,8 @@ PipeWire live apply can create Loopwire-owned virtual output and monitor sinks, 
 disconnect muted links, and target existing host-backed outputs or physical monitor sinks. JACK live apply is limited
 to existing-port `jack_connect`/`jack_disconnect` routes and existing physical monitor sinks. PulseAudio compatibility
 live apply covers Loopwire-owned null sinks, monitor loopbacks, and matched stream controls.
+Command-backed DSP providers can be inspected with `pnpm dsp:plan` and explicitly exercised with `pnpm dsp:verify`
+before they are wired into background restore.
 
 Cross-system validation is tracked in `vm/targets.tsv` and operated through `scripts/vm-matrix.sh`. It currently covers
 manual VM targets for Arch, Fedora, Ubuntu LTS, Debian stable, NixOS, Hyprland, KDE Plasma, GNOME, Xfce, Sway, Wayland,
@@ -63,7 +67,10 @@ User-scoped startup can be managed from the desktop sidebar. **Open on boot** ma
 Release tarballs and package templates install a `loopwire --background` entrypoint for packaged background restore.
 
 Installer and package metadata smoke tests are local-only for now: `verify:install` builds a fake release artifact and
-proves checksum rejection, while `verify:packaging` checks that AUR/Nix templates point at the same artifact names.
+proves checksum rejection, while `verify:packaging` checks that AUR and flake package templates point at the same
+artifact names. The docs site carries `/install.sh` as a synced public copy of `scripts/install.sh`, but the curl
+installer is not advertised as live until signed GitHub Release assets exist. The flake package still uses fake hashes
+until published artifacts provide real release hashes.
 
 ## GSD
 

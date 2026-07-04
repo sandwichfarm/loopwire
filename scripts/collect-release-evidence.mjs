@@ -10,9 +10,25 @@ const releaseTag = readOption("--release-tag") ?? process.env.LOOPWIRE_RELEASE_T
 const releaseRepo = readOption("--repo") ?? process.env.LOOPWIRE_GITHUB_REPO ?? "sandwichfarm/loopwire";
 const releasePublicKey =
   readOption("--public-key") ?? process.env.LOOPWIRE_RELEASE_PUBLIC_KEY ?? "packaging/release-signing-public.pem";
+const docsLiveBaseUrl = readOption("--docs-base-url") ?? process.env.LOOPWIRE_DOCS_BASE_URL ?? "";
+const docsLiveHostname = readOption("--docs-hostname") ?? process.env.BUNNY_PULL_ZONE_HOSTNAME ?? "";
+const docsLiveRemotePrefix = readOption("--docs-remote-prefix") ?? process.env.BUNNY_REMOTE_PREFIX ?? "";
+const vmTargetInput = readOptions("--vm-target");
+const configuredVmTargets = splitList(process.env.LOOPWIRE_VM_TARGETS ?? process.env.LOOPWIRE_VM_TARGET);
+const vmEvidenceDirPattern = readOption("--vm-evidence-dir") ?? process.env.LOOPWIRE_VM_EVIDENCE_DIR ?? ".vm/evidence/{target}";
+const vmLaunchImageRoot = readOption("--vm-launch-image-root") ?? process.env.LOOPWIRE_VM_IMAGE_ROOT ?? ".vm/images";
+const vmLaunchStartPort = readOption("--vm-launch-start-port") ?? process.env.LOOPWIRE_VM_LAUNCH_START_PORT ?? "2222";
+const dspConfiguration =
+  readOption("--dsp-configuration") ??
+  process.env.LOOPWIRE_DSP_CONFIGURATION ??
+  "scripts/fixtures/dsp-provider-configuration.json";
+const dspFrameCount = readOption("--dsp-frame-count") ?? process.env.LOOPWIRE_DSP_FRAME_COUNT ?? "16";
 const wantsHelp = args.includes("-h") || args.includes("--help");
 const listCommands = args.includes("--list-commands");
 const requirePublishedRelease = args.includes("--require-published-release");
+const requireVmEvidence = args.includes("--require-vm-evidence");
+const requireLiveDocs = args.includes("--require-live-docs");
+const requireDspProviderPlan = args.includes("--require-dsp-provider-plan");
 const summarizeReleaseReadinessLog = readOption("--summarize-release-readiness-log");
 
 if (wantsHelp) {
@@ -30,6 +46,23 @@ if (summarizeReleaseReadinessLog) {
 if (!["quick", "full"].includes(profile)) {
   fail(`unsupported --profile: ${profile}`);
 }
+
+validateReleaseTag(releaseTag);
+validateReleaseRepo(releaseRepo);
+validateSingleLine(vmLaunchImageRoot, "VM launch image root");
+validateTcpPort(vmLaunchStartPort, "VM launch start port");
+validateRelativePath(dspConfiguration, "DSP provider configuration");
+validatePositiveInteger(dspFrameCount, "DSP provider frame count");
+
+if (requireLiveDocs && !docsLiveBaseUrl && !docsLiveHostname) {
+  fail("--require-live-docs needs --docs-base-url or --docs-hostname");
+}
+
+const vmTargets = expandVmTargets(vmTargetInput.length > 0 ? vmTargetInput : configuredVmTargets);
+const vmEvidenceTargets = vmTargets.map((target) => ({
+  target,
+  evidenceDir: resolveVmEvidenceDir(target)
+}));
 
 if (listCommands) {
   const commands = evidenceCommands(profile).map(({ name, command, log, required = true }) => ({
@@ -75,6 +108,25 @@ const manifest = {
     repo: releaseRepo,
     tag: releaseTag,
     publicKey: releasePublicKey,
+    docsLive: {
+      baseUrl: docsLiveBaseUrl,
+      hostname: docsLiveHostname,
+      remotePrefix: docsLiveRemotePrefix,
+      required: requireLiveDocs
+    },
+    vmEvidence: {
+      targets: vmEvidenceTargets,
+      required: requireVmEvidence
+    },
+    vmLaunchPlan: {
+      imageRoot: vmLaunchImageRoot,
+      startPort: vmLaunchStartPort
+    },
+    dspProviderPlan: {
+      configuration: dspConfiguration,
+      frameCount: dspFrameCount,
+      required: isDspProviderPlanRequired(profile)
+    },
     findings: releaseFindings,
     blockers: releaseFindings.filter((finding) => finding.severity === "blocker")
   },
@@ -100,7 +152,7 @@ function usage() {
 
 Usage:
   collect-release-evidence.mjs --output-dir DIR [--profile quick|full] [--release-tag vX.Y.Z]
-  collect-release-evidence.mjs --list-commands [--profile quick|full] [--require-published-release]
+  collect-release-evidence.mjs --list-commands [--profile quick|full] [release evidence options]
 
 Profiles:
   quick  Script/docs/VM metadata checks plus backend detection and Rust compile.
@@ -113,6 +165,37 @@ Release options:
   --require-published-release
                      Include published-release installer smoke as required evidence.
                      Full profile includes it as optional evidence by default.
+  --docs-base-url URL
+                     Deployed docs URL for live docs smoke. Defaults to LOOPWIRE_DOCS_BASE_URL.
+  --docs-hostname HOST
+                     Bunny pull-zone hostname for live docs smoke. Defaults to BUNNY_PULL_ZONE_HOSTNAME.
+  --docs-remote-prefix PATH
+                     Optional docs path prefix. Defaults to BUNNY_REMOTE_PREFIX.
+  --require-live-docs
+                     Include deployed homepage plus /install.sh smoke as required evidence.
+                     Full profile includes it as optional evidence when a docs URL/hostname is configured.
+  --vm-target TARGET VM target id for verified VM bundle evidence. Repeatable.
+                     Use "all" to expand every target from vm/targets.tsv.
+                     Defaults to LOOPWIRE_VM_TARGET or arch-hyprland-pipewire.
+  --vm-evidence-dir DIR
+                     VM evidence bundle to verify. Use {target} for multiple targets.
+                     Defaults to LOOPWIRE_VM_EVIDENCE_DIR or .vm/evidence/{target}.
+  --vm-launch-image-root DIR
+                     Image-root placeholder for matrix launch planning.
+                     Defaults to LOOPWIRE_VM_IMAGE_ROOT or .vm/images.
+  --vm-launch-start-port PORT
+                     First SSH port for matrix launch planning. Defaults to 2222.
+  --require-vm-evidence
+                     Include verified VM evidence as required evidence.
+                     Full profile includes it as optional evidence by default.
+  --dsp-configuration FILE
+                     Configuration used for read-only DSP provider plan evidence.
+                     Defaults to scripts/fixtures/dsp-provider-configuration.json.
+  --dsp-frame-count N
+                     Source frames requested in DSP provider plan evidence. Defaults to 16.
+  --require-dsp-provider-plan
+                     Include read-only DSP provider plan evidence in quick profile.
+                     Full profile includes it as required evidence by default.
   --list-commands    Print the command plan as JSON without running commands or writing files.
   --summarize-release-readiness-log FILE
                      Parse a release-readiness log into JSON findings without running commands.
@@ -126,6 +209,166 @@ Writes:
 function fail(message) {
   console.error(`collect-release-evidence: ${message}`);
   process.exit(1);
+}
+
+function validateReleaseTag(tag) {
+  const tagPattern = /^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$/;
+
+  if (typeof tag !== "string" || !tagPattern.test(tag)) {
+    fail(`release tag must be v-prefixed semver without path separators: ${tag ?? "<missing>"}`);
+  }
+}
+
+function validateReleaseRepo(repo) {
+  const repoPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+
+  if (typeof repo !== "string" || !repoPattern.test(repo)) {
+    fail(`repository must use OWNER/REPO without URLs, spaces, or extra path segments: ${repo ?? "<missing>"}`);
+  }
+}
+
+function validateSingleLine(value, label) {
+  if (typeof value !== "string" || value.length === 0) {
+    fail(`${label} must be non-empty`);
+  }
+
+  if (value.includes("\0") || /[\r\n]/.test(value)) {
+    fail(`${label} must be a single safe value`);
+  }
+}
+
+function validateTcpPort(value, label) {
+  if (!/^[0-9]+$/.test(String(value))) {
+    fail(`${label} must be a number from 1 to 65535`);
+  }
+
+  const parsed = Number(value);
+  if (parsed < 1 || parsed > 65535) {
+    fail(`${label} must be a number from 1 to 65535`);
+  }
+}
+
+function validatePositiveInteger(value, label) {
+  if (!/^[1-9][0-9]*$/.test(String(value))) {
+    fail(`${label} must be a positive integer`);
+  }
+}
+
+function validateRelativePath(value, label) {
+  validateSingleLine(value, label);
+
+  if (value.startsWith("/") || value.split(/[\\/]+/).includes("..")) {
+    fail(`${label} must be a relative path without parent traversal`);
+  }
+}
+
+function expandVmTargets(inputTargets) {
+  const requestedTargets = inputTargets.length > 0 ? inputTargets.flatMap(splitList) : ["arch-hyprland-pipewire"];
+  const knownTargets = readKnownVmTargets();
+  const expandedTargets = requestedTargets.flatMap((target) => (target === "all" ? knownTargets : [target]));
+  const uniqueTargets = [...new Set(expandedTargets)];
+
+  for (const target of uniqueTargets) {
+    if (!knownTargets.includes(target)) {
+      fail(`unknown VM target: ${target}`);
+    }
+  }
+
+  if (uniqueTargets.length === 0) {
+    fail("at least one VM target is required");
+  }
+
+  return uniqueTargets;
+}
+
+function readKnownVmTargets() {
+  return readFileSync("vm/targets.tsv", "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => line.split(/\t/)[0]);
+}
+
+function resolveVmEvidenceDir(target) {
+  if (vmEvidenceDirPattern.includes("{target}")) {
+    return vmEvidenceDirPattern.replaceAll("{target}", target);
+  }
+
+  if (vmTargets.length > 1) {
+    fail("--vm-evidence-dir must include {target} when multiple VM targets are selected");
+  }
+
+  return vmEvidenceDirPattern;
+}
+
+function vmEvidenceCommandFor({ target, evidenceDir }) {
+  const command = [
+    "bash",
+    "scripts/verify-vm-evidence.sh",
+    "--target",
+    target,
+    "--evidence-dir",
+    evidenceDir
+  ];
+
+  if (requirePublishedRelease) {
+    command.push("--require-published-release");
+  }
+
+  return command;
+}
+
+function vmEvidenceName(target) {
+  return vmEvidenceTargets.length === 1 ? "vm-evidence" : `vm-evidence:${target}`;
+}
+
+function vmEvidenceLog(target) {
+  return vmEvidenceTargets.length === 1 ? "vm-evidence.log" : `vm-evidence-${target}.log`;
+}
+
+function docsLiveCommand() {
+  const command = [
+    "bash",
+    "scripts/verify-docs-live.sh",
+    "--expected-installer",
+    "apps/docs/docs/public/install.sh"
+  ];
+
+  if (docsLiveBaseUrl) {
+    command.push("--base-url", docsLiveBaseUrl);
+  } else {
+    command.push("--hostname", docsLiveHostname);
+    if (docsLiveRemotePrefix) {
+      command.push("--remote-prefix", docsLiveRemotePrefix);
+    }
+  }
+
+  return {
+    name: "docs-live-smoke",
+    command: shellCommand(command),
+    log: "docs-live-smoke.log",
+    required: requireLiveDocs
+  };
+}
+
+function isDspProviderPlanRequired(selectedProfile) {
+  return selectedProfile === "full" || requireDspProviderPlan;
+}
+
+function dspProviderPlanCommand(selectedProfile) {
+  return {
+    name: "dsp-provider-plan",
+    command: shellCommand([
+      "bash",
+      "scripts/collect-dsp-provider-plan.sh",
+      "--configuration",
+      dspConfiguration,
+      "--frame-count",
+      dspFrameCount,
+    ]),
+    log: "dsp-provider-plan.tsv",
+    required: isDspProviderPlanRequired(selectedProfile)
+  };
 }
 
 function evidenceCommands(selectedProfile) {
@@ -143,6 +386,7 @@ function evidenceCommands(selectedProfile) {
       "--skip-gh",
       "--skip-tag",
       "--skip-public-key",
+      "--skip-clean-git",
       "--allow-candidate-notes"
     ]),
     log: "release-readiness-candidate.log"
@@ -162,18 +406,39 @@ function evidenceCommands(selectedProfile) {
     log: "published-release-smoke.log",
     required: requirePublishedRelease
   };
+  const vmEvidence = vmEvidenceTargets.map((target) => ({
+    name: vmEvidenceName(target.target),
+    command: shellCommand(vmEvidenceCommandFor(target)),
+    log: vmEvidenceLog(target.target),
+    required: requireVmEvidence
+  }));
+  const docsLiveSmoke = docsLiveBaseUrl || docsLiveHostname || requireLiveDocs ? docsLiveCommand() : null;
 
   const common = [
     releaseCandidateReadiness,
+    {
+      name: "vm-launch-plan",
+      command: shellCommand([
+        "bash",
+        "scripts/vm-matrix.sh",
+        "render-launch-plan",
+        "--all",
+        "--image-root",
+        vmLaunchImageRoot,
+        "--start-port",
+        vmLaunchStartPort
+      ]),
+      log: "vm-launch-plan.tsv"
+    },
     {
       name: "audio-detect",
       command: "pnpm --filter @loopwire/audio-host build && node scripts/detect-audio-backends.mjs --pretty",
       log: "audio-detect.json"
     },
     {
-      name: "tauri-cargo-check",
-      command: "cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
-      log: "tauri-cargo-check.log"
+      name: "tauri-verify",
+      command: "pnpm verify:tauri",
+      log: "tauri-verify.log"
     }
   ];
 
@@ -184,13 +449,20 @@ function evidenceCommands(selectedProfile) {
       { name: "verify-docs", command: "pnpm verify:docs", log: "verify-docs.log" },
       ...common
     ];
+    const requiredEvidence = [
+      ...(requirePublishedRelease ? [publishedReleaseSmoke] : []),
+      ...(requireLiveDocs ? [docsLiveSmoke] : []),
+      ...(requireVmEvidence ? vmEvidence : []),
+      ...(requireDspProviderPlan ? [dspProviderPlanCommand(selectedProfile)] : [])
+    ];
 
-    return requirePublishedRelease ? [...commands, publishedReleaseSmoke] : commands;
+    return [...commands, ...requiredEvidence];
   }
 
   return [
     { name: "workspace-check", command: "pnpm check", log: "workspace-check.log" },
     ...common,
+    dspProviderPlanCommand(selectedProfile),
     {
       name: "release-readiness-publish-preflight",
       command: shellCommand([
@@ -207,6 +479,8 @@ function evidenceCommands(selectedProfile) {
       required: false
     },
     publishedReleaseSmoke,
+    ...(docsLiveSmoke ? [docsLiveSmoke] : []),
+    ...vmEvidence,
     {
       name: "workflow-yaml-parse",
       command: "ruby -e 'require \"yaml\"; Dir[\".github/workflows/*.yml\"].sort.each { |path| YAML.load_file(path); puts path }'",
@@ -215,6 +489,35 @@ function evidenceCommands(selectedProfile) {
     { name: "gsd-milestone-state", command: "gsd-sdk query init.milestone-op", log: "gsd-milestone-state.json" },
     { name: "gsd-roadmap-analyze", command: "gsd-sdk query roadmap.analyze", log: "gsd-roadmap-analyze.json" }
   ];
+}
+
+function readOptions(name) {
+  const values = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] !== name) {
+      continue;
+    }
+
+    const value = args[index + 1];
+    if (!value || value.startsWith("--")) {
+      fail(`${name} requires a value`);
+    }
+    values.push(value);
+  }
+
+  return values;
+}
+
+function splitList(value) {
+  if (!value) {
+    return [];
+  }
+
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
 
 function runEvidenceCommand({ name, command, log, required = true }) {

@@ -42,6 +42,9 @@ tar -C "$payload_dir/bin" -czf "$release_dir/$asset" loopwire
 (
   cd "$release_dir"
   sha256sum "$asset" >SHA256SUMS
+  printf '%s  %s\n' \
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" \
+    "loopwire-release-evidence-v0.1.0.tar.gz" >>SHA256SUMS
 )
 
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "$private_key" >/dev/null 2>&1
@@ -71,5 +74,27 @@ if bash scripts/install.sh --base-url "file://$bad_release" --prefix "$tmp_dir/b
   echo "Installer accepted an artifact with a bad checksum." >&2
   exit 1
 fi
+
+unsafe_release="$tmp_dir/unsafe-release"
+unsafe_payload="$tmp_dir/unsafe-payload"
+unsafe_log="$tmp_dir/unsafe-install.log"
+mkdir -p "$unsafe_release" "$unsafe_payload"
+printf '%s\n' "unsafe" >"$unsafe_payload/loopwire"
+tar -C "$unsafe_payload" --transform 's#loopwire#../escape#' -czf "$unsafe_release/$asset" loopwire >/dev/null 2>&1
+(
+  cd "$unsafe_release"
+  sha256sum "$asset" >SHA256SUMS
+)
+bash scripts/sign-release-artifacts.sh --release-dir "$unsafe_release" --private-key "$private_key" >/dev/null
+
+if bash scripts/install.sh --base-url "file://$unsafe_release" --prefix "$tmp_dir/unsafe-prefix" --public-key "$public_key" \
+  >"$unsafe_log" 2>&1; then
+  echo "Installer accepted an unsafe archive path." >&2
+  exit 1
+fi
+grep -F "Release artifact contains a parent path component" "$unsafe_log" >/dev/null || {
+  echo "Installer did not report the unsafe archive path." >&2
+  exit 1
+}
 
 echo "Installer local artifact smoke passed."

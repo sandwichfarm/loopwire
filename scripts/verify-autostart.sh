@@ -20,8 +20,15 @@ assert_contains() {
 desktop_render="$tmp_dir/desktop.render"
 systemd_render="$tmp_dir/systemd.render"
 source_systemd_render="$tmp_dir/source-systemd.render"
+source_jack_systemd_render="$tmp_dir/source-jack-systemd.render"
+packaged_jack_systemd_render="$tmp_dir/packaged-jack-systemd.render"
+source_dsp_systemd_render="$tmp_dir/source-dsp-systemd.render"
+packaged_dsp_systemd_render="$tmp_dir/packaged-dsp-systemd.render"
 state_file="$tmp_dir/state.json"
 restore_output="$tmp_dir/restore-output.json"
+dsp_restore_output="$tmp_dir/dsp-restore-output.json"
+dsp_provider="$tmp_dir/dsp-provider.sh"
+dsp_provider_log="$tmp_dir/dsp-provider.log"
 
 bash scripts/manage-autostart.sh render --mode desktop --binary /tmp/loopwire >"$desktop_render"
 bash scripts/manage-autostart.sh render --mode systemd --binary /tmp/loopwire >"$systemd_render"
@@ -32,18 +39,78 @@ bash scripts/manage-autostart.sh render \
   --restore-mode live \
   --retry-pending-ms 5000 \
   --retry-interval-ms 500 >"$source_systemd_render"
+bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --state-file "$state_file" \
+  --restore-mode live \
+  --jack-provider-command loopwire-jack-ports \
+  --jack-provider-timeout-ms 7000 >"$source_jack_systemd_render"
+bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --binary /tmp/loopwire \
+  --state-file "$state_file" \
+  --restore-mode live \
+  --jack-provider-command loopwire-jack-ports \
+  --jack-provider-timeout-ms 7000 >"$packaged_jack_systemd_render"
+bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --state-file "$state_file" \
+  --restore-mode live \
+  --dsp-provider-command loopwire-dsp-provider \
+  --dsp-provider-timeout-ms 7000 \
+  --dsp-frame-count 2 >"$source_dsp_systemd_render"
+bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --binary /tmp/loopwire \
+  --state-file "$state_file" \
+  --restore-mode live \
+  --dsp-provider-command loopwire-dsp-provider \
+  --dsp-provider-timeout-ms 7000 \
+  --dsp-frame-count 2 >"$packaged_dsp_systemd_render"
 
 assert_contains "$desktop_render" "Exec=\"/tmp/loopwire\""
-assert_contains "$systemd_render" "ExecStart=\"/tmp/loopwire\" --background"
+assert_contains "$systemd_render" "ExecStart=\"/tmp/loopwire\" --background --state-file"
 assert_contains "$source_systemd_render" "ExecStart=pnpm --dir \"/tmp/loopwire-source\" restore:background"
 assert_contains "$source_systemd_render" "--state-file \"$state_file\" --mode live"
 assert_contains "$source_systemd_render" "--retry-pending-ms 5000 --retry-interval-ms 500"
+assert_contains "$source_jack_systemd_render" "--jack-provider-command \"loopwire-jack-ports\" --jack-provider-timeout-ms 7000"
+assert_contains "$packaged_jack_systemd_render" "ExecStart=\"/tmp/loopwire\" --background --state-file \"$state_file\" --mode live"
+assert_contains "$packaged_jack_systemd_render" "--jack-provider-command \"loopwire-jack-ports\" --jack-provider-timeout-ms 7000"
+assert_contains "$source_dsp_systemd_render" "ExecStart=pnpm --dir \"/tmp/loopwire-source\" restore:background"
+assert_contains "$source_dsp_systemd_render" "--backend dsp --dsp-provider-command \"loopwire-dsp-provider\""
+assert_contains "$source_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-frame-count 2"
+assert_contains "$packaged_dsp_systemd_render" "ExecStart=\"/tmp/loopwire\" --background --state-file \"$state_file\" --mode live"
+assert_contains "$packaged_dsp_systemd_render" "--backend dsp --dsp-provider-command \"loopwire-dsp-provider\""
+assert_contains "$packaged_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-frame-count 2"
 if bash scripts/manage-autostart.sh render \
   --mode systemd \
   --source-dir /tmp/loopwire-source \
   --restore-mode preview \
   --retry-pending-ms 5000 >/dev/null 2>&1; then
   echo "manage-autostart accepted pending retry without live restore mode." >&2
+  exit 1
+fi
+if bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --jack-provider-timeout-ms 0 >/dev/null 2>&1; then
+  echo "manage-autostart accepted invalid JACK provider timeout." >&2
+  exit 1
+fi
+if bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --dsp-provider-timeout-ms 0 >/dev/null 2>&1; then
+  echo "manage-autostart accepted invalid DSP provider timeout." >&2
+  exit 1
+fi
+if bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --dsp-frame-count 2 >/dev/null 2>&1; then
+  echo "manage-autostart accepted DSP frame count without DSP provider command." >&2
   exit 1
 fi
 
@@ -82,6 +149,42 @@ assert_contains "$restore_output" '"operations": ['
 assert_contains "$restore_output" '"apply"'
 assert_contains "$restore_output" '"verify"'
 
+cat >"$dsp_provider" <<SH
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "\$*" >>"$dsp_provider_log"
+case "\$1" in
+  read-source)
+    printf '{"channels":[[1,1],[1,1]]}\n'
+    ;;
+  write-output | verify-output)
+    cat >/dev/null
+    printf '{"ok":true}\n'
+    ;;
+  clear-output)
+    printf 'cleared\n'
+    ;;
+  *)
+    echo "unexpected operation: \$1" >&2
+    exit 2
+    ;;
+esac
+SH
+chmod +x "$dsp_provider"
+pnpm restore:background -- \
+  --state-file "$state_file" \
+  --backend dsp \
+  --mode live \
+  --dsp-provider-command "$dsp_provider" \
+  --dsp-frame-count 2 \
+  --pretty >"$dsp_restore_output"
+assert_contains "$dsp_restore_output" '"status": "verified"'
+assert_contains "$dsp_restore_output" '"backend": "dsp"'
+assert_contains "$dsp_restore_output" '"dspProviderCommand":'
+assert_contains "$dsp_provider_log" "read-source --source-id mic --channels 2 --frames 2"
+assert_contains "$dsp_provider_log" "write-output --output-id program --channels 2 --frames 2 --peak 1"
+assert_contains "$dsp_provider_log" "verify-output --output-id program --channels 2 --frames 2 --peak 1"
+
 XDG_CONFIG_HOME="$tmp_dir/config" bash scripts/manage-autostart.sh install --mode desktop --binary /tmp/loopwire
 desktop_file="$tmp_dir/config/autostart/loopwire.desktop"
 [ -f "$desktop_file" ] || {
@@ -98,7 +201,7 @@ systemd_file="$tmp_dir/systemd/loopwire.service"
   exit 1
 }
 assert_contains "$systemd_file" "Description=Loopwire audio routing restore"
-assert_contains "$systemd_file" "ExecStart=\"/tmp/loopwire\" --background"
+assert_contains "$systemd_file" "ExecStart=\"/tmp/loopwire\" --background --state-file"
 
 bash scripts/manage-autostart.sh enable --mode systemd --binary /tmp/loopwire --dry-run >/dev/null
 bash scripts/manage-autostart.sh uninstall --mode desktop --binary /tmp/loopwire --dry-run >/dev/null

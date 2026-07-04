@@ -3,6 +3,8 @@ arch-hyprland-pipewire	Arch Linux	pacman	Hyprland	Wayland	PipeWire/WirePlumber	x
 fedora-kde-pipewire	Fedora	dnf	KDE Plasma	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Mainstream Wayland desktop path with PipeWire defaults.
 fedora-kde-jack	Fedora	dnf	KDE Plasma	Wayland	JACK	x86_64	manual-vm	Professional-audio session target for native JACK port routing.
 ubuntu-gnome-pipewire	Ubuntu LTS	apt	GNOME	Wayland	PipeWire/PulseAudio compatibility	x86_64	manual-vm	LTS desktop and installer smoke target.
+ubuntu-gnome-pipewire-aarch64	Ubuntu LTS	apt	GNOME	Wayland	PipeWire/PulseAudio compatibility	aarch64	manual-vm	ARM64 LTS desktop release-smoke target.
 debian-xfce-pulseaudio	Debian stable	apt	Xfce	X11	PulseAudio	x86_64	manual-vm	Conservative X11 native PulseAudio target.
 nixos-gnome-pipewire	NixOS	nix	GNOME	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Declarative system path and flake/package smoke target.
 fedora-sway-pipewire	Fedora	dnf	Sway	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Minimal Wayland compositor target for non-full-DE coverage.
+opensuse-kde-pipewire	openSUSE Tumbleweed	zypper	KDE Plasma	Wayland	PipeWire/WirePlumber	x86_64	manual-vm	Rolling KDE path outside Fedora.

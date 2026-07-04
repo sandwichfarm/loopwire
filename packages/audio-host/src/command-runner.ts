@@ -14,7 +14,7 @@ export function createNodeCommandRunner(): CommandRunner {
 function runCommand(command: string, args: readonly string[], options: CommandRunOptions = {}): Promise<CommandResult> {
   return new Promise((resolve) => {
     const child = spawn(command, [...args], {
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"]
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -39,6 +39,10 @@ function runCommand(command: string, args: readonly string[], options: CommandRu
 
     child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
     child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+    child.stdin.on("error", () => {
+      // The process may exit before it reads stdin. The exit status still carries the failure.
+    });
+    child.stdin.end(options.input ?? "");
 
     child.on("error", (error: NodeJS.ErrnoException) => {
       finish({

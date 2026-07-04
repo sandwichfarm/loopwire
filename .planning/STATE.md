@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T01:52:41+02:00"
-last_activity: 2026-07-04 - VM evidence collectors reject invalid handoff ports
+last_updated: "2026-07-04T12:44:55+02:00"
+last_activity: 2026-07-04 - strict all-target VM matrix collection
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - VM evidence collectors now validate SSH and desktop smoke ports before starting SSH, Vite,
-or guest collection commands. Release publication and real VM proof remain gated until the real signing key is
-generated, the public key is committed, a tag exists, GitHub secrets are configured, and operator-run VM evidence
-exists.
+Last activity: 2026-07-04 - `scripts/collect-vm-matrix-evidence.sh` now supports `--require-all-targets` and validates
+the whole SSH plan before printing collector commands or running SSH. Final-release VM collection dry-runs now fail
+fast when a hand-edited plan omits any `vm/targets.tsv` target.
+Phase 12 remains gated on real signing key material, a public release, configured GitHub/Bunny secrets, host QEMU/Nix
+tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -38,18 +39,26 @@ exists.
   sinks, running stream enumeration, matched stream moves, stream-level volume/mute, monitor loopbacks, and physical
   monitor sink targets. Native PipeWire covers Loopwire-owned virtual output and monitor sinks, existing route links,
   route mute by disconnecting configured links, physical monitor sink links, and rollback/unload cleanup for selected
-  virtual nodes. Native JACK covers read-only port enumeration plus existing route links, route mute by disconnecting
-  configured connections, and physical monitor sink links when route endpoints have host device names. Backend DSP,
-  JACK virtual ports, and graph-edge gain implementation remain planned.
+  virtual nodes. ALSA covers read-only playback/capture hardware diagnostics only. Native JACK covers read-only port
+  enumeration, existing route links, app endpoint resolution to pre-existing Loopwire-owned JACK ports, route mute by
+  disconnecting configured connections, and monitor sink links. Pure DSP mix math and an injected audio-host DSP graph
+  adapter now exist, DSP rollback now restores the rollback configuration through the core switch transaction contract,
+  the DSP adapter now exposes an explicit core configuration runtime wrapper for startup/switch transactions, the
+  audio-host DSP adapter now has a command-backed provider port helper, background restore can drive an explicit DSP
+  provider command, `pnpm dsp:plan`/`pnpm dsp:verify` can preflight that provider command, and desktop route-control UX
+  is driven by detected backend mixing semantics. Native JACK now has an injected virtual-port provider hook, but a
+  bundled live backend DSP provider, a bundled JACK virtual port provider/client, and native host graph-edge gain
+  implementation remain planned.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before artifacts exist.
 - A real project release public key has not been generated or committed yet. `pnpm release:prepare-key` now provides
-  the guarded ceremony, but do not claim public signed installer readiness until `packaging/release-signing-public.pem`
-  exists and a tagged release workflow has passed.
+  the guarded ceremony, and `scripts/setup-github-secrets.sh --release-public-key-file ...` can validate the private
+  key before setting `LOOPWIRE_RELEASE_PRIVATE_KEY`, but do not claim public signed installer readiness until
+  `packaging/release-signing-public.pem` exists and a tagged release workflow has passed.
 
 - Nix package metadata is smoke-tested structurally, but Nix build proof still needs a Nix-enabled host or VM target.
-- JACK virtual ports, backend DSP/graph-edge gain, and published release proof remain the major product gap for a
-  fully functional Loopback-class app.
+- JACK virtual ports, live backend DSP insertion/graph-edge gain, and published release proof remain the major product
+  gaps for a fully functional Loopback-class app.
 - Packaged background restore is now release-shaped through `loopwire --background`, but public release proof still
   requires signed published artifacts.
 - Public release proof is gated on an explicit versioned release decision, real signing key material, tag push, and VM
@@ -844,6 +853,45 @@ exists.
   `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm check` passed. The script verifier exercised dry-run preview,
   temp-matrix promotion, already-verified no-op behavior, and failed-evidence rejection. No real VM was launched, no
   image was downloaded, and no real support matrix row was promoted.
+- 2026-07-04 VM launch input guard: `scripts/vm-matrix.sh launch` now rejects invalid memory, CPU count, SSH port,
+  and backing image-format values before printing or executing QEMU commands.
+- 2026-07-04 VM launch input validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. `bash -n
+  scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, targeted launch rejection assertions,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `git diff --check`, and touched-file line-length checks
+  passed. `scripts/verify-scripts.sh` now covers non-numeric memory, too-small memory, invalid CPU count, and
+  unsupported image format launch requests. VM matrix docs, unreleased notes, and `scripts/verify-docs.sh` document and
+  guard the launch input contract. No VM was launched, no image was downloaded, and no support matrix row was promoted.
+- 2026-07-04 GitHub secret helper Bunny validation: `scripts/setup-github-secrets.sh` now rejects Bunny storage zones
+  with slashes, storage endpoints with newlines, pull-zone hostnames that are URLs or paths, and remote prefixes with
+  `.` or `..` path segments before dry-run output or `gh secret set`.
+- 2026-07-04 GitHub secret helper Bunny validation evidence: codebase-memory MCP `index_status` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. `bash -n
+  scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, targeted helper rejection
+  assertions, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, and `git diff --check` passed. Release docs,
+  unreleased notes, and `scripts/verify-docs.sh` document and guard the secret helper's Bunny validation contract. No
+  GitHub secrets were written and no Bunny deployment or live docs smoke was performed.
+- 2026-07-04 Bunny prefixed live-smoke alignment: `.github/workflows/deploy-docs.yml` now passes
+  `--remote-prefix "$BUNNY_REMOTE_PREFIX"` to `scripts/verify-docs-live.sh` and reports the prefixed deployment URL.
+  This keeps post-upload verification aligned with the deploy helper when one storage zone serves multiple paths.
+- 2026-07-04 Bunny prefixed live-smoke validation: codebase-memory MCP `index_status` failed with `Transport closed`,
+  so this slice used focused shell reads after the required graph attempt. `bash -n scripts/verify-github-workflows.sh
+  scripts/verify-docs.sh`, Ruby YAML parsing for `.github/workflows/deploy-docs.yml`,
+  `bash scripts/verify-github-workflows.sh`, `pnpm verify:docs`, `pnpm verify:workflows`, `pnpm check`,
+  `git diff --check`, and touched-file line-length checks passed. Release docs, unreleased notes, and
+  `scripts/verify-docs.sh` document and guard the prefixed live-smoke path. No Bunny deployment or live docs smoke was
+  performed.
+- 2026-07-04 installer archive path guard: `scripts/install.sh` now lists the signed/checksummed release tarball before
+  extraction and rejects empty, absolute, or parent-traversing archive member paths. The VitePress public
+  `apps/docs/docs/public/install.sh` asset was synced byte-for-byte from the canonical installer.
+- 2026-07-04 installer archive path validation: codebase-memory MCP `index_status` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. `bash -n scripts/install.sh
+  apps/docs/docs/public/install.sh scripts/verify-install.sh scripts/verify-docs.sh`, `pnpm verify:install`,
+  `pnpm verify:docs`, `cmp -s scripts/install.sh apps/docs/docs/public/install.sh`, `pnpm verify:scripts`,
+  `pnpm check`, `git diff --check`, and touched-file line-length checks passed. `scripts/verify-install.sh` now signs
+  a malicious tarball containing `../escape` and proves the installer rejects it before extraction. No public release,
+  tag push, secret write, Bunny deployment, live URL smoke, VM launch, image download, or support matrix promotion was
+  performed.
 - 2026-07-04 release blocker manifest: `scripts/collect-release-evidence.mjs` now stores parsed
   `release.findings` and `release.blockers` in `release-evidence.json` from release-readiness logs, and
   `--summarize-release-readiness-log` can parse an existing preflight log without rerunning release checks.
@@ -889,3 +937,960 @@ exists.
   `pnpm verify:docs`, `pnpm verify:vm`, `pnpm check`, touched-file trailing-whitespace and line-length checks, and
   `git diff --check` passed. No VM was launched, no image was downloaded, no public release, secret write, key
   generation, tag push, host audio mutation, or support matrix promotion was performed.
+- 2026-07-04 installed-release VM evidence gate: `scripts/collect-vm-evidence.sh` can now run
+  `scripts/verify-published-release.sh` inside a guest from either a guest-visible signed release directory or a GitHub
+  release repo/tag, recording `published-release-smoke.log` and a `published-release-smoke` command ledger row.
+  `scripts/verify-vm-evidence.sh --require-published-release` now rejects VM bundles that do not prove installed
+  release smoke, and `scripts/collect-vm-evidence-ssh.sh` forwards the same strict release-smoke options into the guest
+  and the host-side verifier.
+- 2026-07-04 installed-release VM evidence validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempt. Focused syntax/help
+  checks, missing-release-input rejection, SSH dry-run readback with `--published-release-dir`, `--release-public-key`,
+  and `--require-published-release`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:vm`, `pnpm check`,
+  touched-file trailing-whitespace and line-length checks, and `git diff --check` passed. No VM was launched, no image
+  was downloaded, no public release, secret write, key generation, tag push, host audio mutation, or support matrix
+  promotion was performed.
+- 2026-07-04 release evidence VM gate: `scripts/collect-release-evidence.mjs` now supports `--vm-target`,
+  `--vm-evidence-dir`, and `--require-vm-evidence`. Full-profile evidence includes VM bundle verification as optional
+  context by default, while quick or full profiles can make `scripts/verify-vm-evidence.sh` mandatory. When
+  `--require-published-release` is also set, the VM verifier command inherits `--require-published-release`.
+- 2026-07-04 release evidence VM gate validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. `node --check
+  scripts/collect-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`, help readback,
+  optional full-profile command-plan readback, required quick command-plan readback with published-release strictness,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:vm`, `pnpm check`, touched-file trailing-whitespace and
+  line-length checks, and `git diff --check` passed. No VM was launched, no image was downloaded, no public release,
+  secret write, key generation, tag push, host audio mutation, or support matrix promotion was performed.
+- 2026-07-04 all-target release evidence gate: `scripts/collect-release-evidence.mjs` now expands
+  `--vm-target all` from `vm/targets.tsv`, validates unknown target ids, supports repeated or comma-separated target
+  values, and requires `{target}` in `--vm-evidence-dir` when multiple VM targets are selected. Multi-target command
+  plans generate one `vm-evidence:<target>` verifier and log per target.
+- 2026-07-04 all-target release evidence validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `node --check scripts/collect-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  all-target command-plan readback proving seven VM verifier commands with `--require-published-release`, negative
+  readback for a shared multi-target evidence directory, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:vm`,
+  `pnpm check`, touched-file trailing-whitespace and line-length checks, and `git diff --check` passed. No VM was
+  launched, no image was downloaded, no public release, secret write, key generation, tag push, host audio mutation, or
+  support matrix promotion was performed.
+- 2026-07-04 release evidence bundle verifier: added `scripts/verify-release-evidence.mjs` and
+  `pnpm verify:release-evidence` to audit an existing `release-evidence.json` bundle. The verifier checks manifest
+  `ok`, required command success, non-empty command logs, optional published-release smoke, optional VM evidence, full
+  `vm/targets.tsv` coverage, and optional blocker-free readiness.
+- 2026-07-04 release evidence bundle verifier validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `node --check scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  verifier help readback, fixture final-evidence acceptance, fixture incomplete-VM-target rejection, fixture
+  release-blocker rejection, fixture empty-log rejection, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:vm`,
+  `pnpm check`, touched-file trailing-whitespace and line-length checks, and `git diff --check` passed. No VM was
+  launched, no image was downloaded, no public release, secret write, key generation, tag push, host audio mutation, or
+  support matrix promotion was performed.
+- 2026-07-04 release workflow evidence artifact: `.github/workflows/release.yml` now installs the publish-job evidence
+  dependencies, runs `pnpm collect:evidence -- --require-published-release` after the published-release smoke, verifies
+  the bundle with `pnpm verify:release-evidence`, and uploads `loopwire-release-evidence-<tag>` with 90-day retention.
+  VM evidence remains operator-collected outside GitHub-hosted runners.
+- 2026-07-04 release workflow evidence validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh scripts/verify-scripts.sh`, Ruby workflow YAML
+  parse, `pnpm verify:workflows`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, touched-file
+  trailing-whitespace and line-length checks, and `git diff --check` passed. The release workflow itself was not run
+  because there is no real signing key, tag, GitHub Release, or configured release secret yet.
+- 2026-07-04 public release evidence asset: `.github/workflows/release.yml` now packages the verified release evidence
+  directory as `loopwire-release-evidence-<tag>.tar.gz`, uploads that archive to the GitHub Release with
+  `gh release upload --clobber`, and keeps the evidence directory plus archive in the workflow artifact.
+- 2026-07-04 public release evidence asset validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh scripts/verify-scripts.sh`, Ruby workflow YAML
+  parse, `pnpm verify:workflows`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, touched-file
+  trailing-whitespace and line-length checks, and `git diff --check` passed. The release workflow itself was not run
+  because there is no real signing key, tag, GitHub Release, or configured release secret yet.
+- 2026-07-04 public evidence archive gate: `scripts/verify-published-release.sh` now supports
+  `--require-release-evidence`, requires `loopwire-release-evidence-<tag>.tar.gz`, extracts it, and verifies the bundle
+  with `scripts/verify-release-evidence.mjs --require-published-release --require-no-release-blockers`. The release
+  workflow runs this gate after uploading the archive to the GitHub Release.
+- 2026-07-04 public evidence archive validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. `bash -n
+  scripts/verify-published-release.sh scripts/verify-scripts.sh scripts/verify-github-workflows.sh
+  scripts/verify-docs.sh`, `pnpm verify:workflows`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, Ruby
+  release-workflow YAML parse, and `git diff --check` passed. `pnpm verify:scripts` now covers missing evidence archive
+  rejection, valid archive acceptance, and blocker archive rejection. No VM was launched, no image was downloaded, no
+  public release, secret write, key generation, tag push, host audio mutation, or support matrix promotion was
+  performed.
+- 2026-07-04 public evidence archive hardening: `scripts/verify-release-evidence.mjs` now accepts `--release-tag` and
+  `--repo` and rejects manifest mismatches. `scripts/verify-published-release.sh --require-release-evidence` now passes
+  those expected values when known and validates archive member paths before extraction so absolute paths and `..`
+  components are rejected.
+- 2026-07-04 public evidence archive hardening validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `node --check scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-published-release.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm verify:workflows`, `pnpm check`, touched-file line-length checks, and `git diff --check` passed.
+  `pnpm verify:scripts` now covers direct evidence tag/repo mismatch rejection, public evidence tag mismatch rejection,
+  and unsafe tar path rejection. No VM was launched, no image was downloaded, no public release, secret write, key
+  generation, tag push, host audio mutation, or support matrix promotion was performed.
+- 2026-07-04 native route-gain blocker UX: desktop live-apply preflight now names the native PipeWire/JACK routes
+  blocked by non-100% gain and shows a `Reset gains` action when those blockers are present. The action resets affected
+  app-state route gains to 100% and preserves other blockers such as missing native source ports.
+- 2026-07-04 native route-gain blocker UX validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/core test`,
+  `pnpm --filter @loopwire/audio-host test`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:docs`,
+  `pnpm check`, Playwright desktop/mobile checks against `http://127.0.0.1:4182`, touched-file line-length checks, and
+  `git diff --check` passed. The Playwright check selected PipeWire, verified the route-specific gain blocker and
+  `Reset gains` button, clicked it, confirmed all route gains changed to 100%, confirmed the gain blocker disappeared,
+  confirmed missing-host-source blockers remained, and confirmed zero horizontal overflow. No host audio mutation,
+  public release, VM launch, image download, key generation, secret write, tag push, or support matrix promotion was
+  performed.
+- 2026-07-04 native host-binding blocker UX: desktop live-apply preflight now names the affected source, output, and
+  monitor labels for native PipeWire/JACK host-binding blockers instead of only naming the blocker category.
+- 2026-07-04 native host-binding blocker UX validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:docs`,
+  `pnpm --filter @loopwire/core test`, `pnpm --filter @loopwire/audio-host test`, `pnpm check`, Playwright
+  desktop/mobile checks against `http://127.0.0.1:4183`, touched-file line-length checks, and `git diff --check`
+  passed. The Playwright check selected PipeWire, verified route-specific gain blockers, verified source-specific host
+  binding blockers for `Studio Mic` and `Browser Audio`, and confirmed zero horizontal overflow. No host audio mutation,
+  public release, VM launch, image download, key generation, secret write, tag push, or support matrix promotion was
+  performed.
+- 2026-07-04 custom chrome maximize/restore: desktop custom chrome fallback now exposes Loopwire-owned minimize,
+  maximize/restore, and close controls for undecorated Tauri windows. The maximize/restore control calls Tauri
+  `toggleMaximize()` and shares the same browser-preview fallback note as the existing window controls.
+- 2026-07-04 custom chrome maximize/restore validation: codebase-memory MCP `index_status` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:docs`,
+  `bash -n scripts/verify-docs.sh`, `pnpm check`, Playwright desktop/mobile checks against
+  `http://127.0.0.1:4184`, touched-file line-length checks, and `git diff --check` passed. The Playwright check
+  selected custom chrome, verified minimize, maximize/restore, and close controls, clicked maximize/restore, confirmed
+  the expected browser-preview Tauri fallback message, and confirmed zero horizontal overflow. No host audio mutation,
+  public release, VM launch, image download, key generation, secret write, tag push, or support matrix promotion was
+  performed.
+- 2026-07-04 native JACK virtual-port blockers: the JACK adapter now validates route sources, route targets, and
+  monitor source outputs before any `jack_lsp`, `jack_connect`, or `jack_disconnect` command. App-only endpoints that
+  still require virtual JACK ports fail closed with endpoint-specific messages instead of probing the host first.
+- 2026-07-04 native JACK virtual-port blockers validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempt. Test-first
+  validation produced the expected red run: `pnpm --filter @loopwire/audio-host test` failed 3 tests for virtual JACK
+  route input, route output, and monitor source-output blockers before adapter changes. After implementation,
+  `pnpm --filter @loopwire/audio-host typecheck`, `pnpm --filter @loopwire/audio-host test`, `pnpm verify:docs`,
+  `bash -n scripts/verify-docs.sh`, `pnpm check`, touched-file line-length checks, and `git diff --check` passed. No
+  host audio mutation, public release, VM launch, image download, key generation, secret write, tag push, or support
+  matrix promotion was performed.
+- 2026-07-04 Tauri bridge argument policy: the Tauri `run_audio_command` boundary now validates both command names and
+  argument shapes against Loopwire's detector/runtime contract before spawning any live audio process. The policy allows
+  current `aplay`, `wpctl`, `pactl`, `pw-cli`, `pw-link`, `jack_lsp`, `jack_connect`, and `jack_disconnect` operations
+  while rejecting unrelated subcommands, option expansion, and non-port mutation arguments.
+- 2026-07-04 Tauri bridge argument policy validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo test --manifest-path
+  apps/desktop/src-tauri/Cargo.toml`, `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`,
+  `pnpm verify:docs`, `bash -n scripts/verify-docs.sh`, `pnpm check`, touched-file line-length checks, and
+  `git diff --check` passed. The Tauri unit suite now has 12 passing tests, including allowed probe/mutation command
+  shapes and rejected out-of-contract host command shapes. No host audio mutation, public release, VM launch, image
+  download, key generation, secret write, tag push, or support matrix promotion was performed.
+- 2026-07-04 Tauri verification gate: `pnpm check` now runs `pnpm check:verify`, which includes `pnpm verify:tauri`.
+  The new Tauri verifier runs Rust format checks, compile checks, and the Tauri unit suite. CI and release workflows
+  rely on that workspace gate instead of carrying separate cargo-only checks, and release/support evidence now records
+  `tauri-verify.log`.
+- 2026-07-04 Tauri verification gate validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. Current Tauri Linux
+  prerequisite package groups were checked against the official Tauri v2 prerequisites, and Arch package availability
+  was checked locally with `pacman -Ss`. `bash -n scripts/verify-tauri.sh scripts/verify-scripts.sh
+  scripts/verify-github-workflows.sh scripts/verify-docs.sh scripts/vm-matrix.sh scripts/collect-vm-evidence.sh
+  scripts/collect-vm-evidence-ssh.sh`, `pnpm verify:vm`, `pnpm verify:docs`, `pnpm verify:workflows`,
+  `pnpm verify:scripts`, `pnpm verify:tauri`, `node scripts/collect-release-evidence.mjs --list-commands
+  --profile quick`, `pnpm check`, stale active-reference search, touched-file line-length checks, and
+  `git diff --check` passed. No host audio mutation, public release, VM launch, image download, key generation, secret
+  write, tag push, or support matrix promotion was performed.
+- 2026-07-04 openSUSE VM matrix coverage: added `opensuse-kde-pipewire` to `vm/targets.tsv` and the support matrix as
+  a Manual VM target for openSUSE Tumbleweed, KDE Plasma, Wayland, and PipeWire/WirePlumber. `scripts/vm-matrix.sh`
+  now treats `zypper` as a supported package family, renders openSUSE guest bootstrap commands with Rust, pinned pnpm,
+  PipeWire/WirePlumber, and Tauri openSUSE prerequisites, and rejects rendered zypper handoffs that are missing
+  WebKitGTK, Rust cargo, build pattern, or pinned pnpm coverage.
+- 2026-07-04 openSUSE VM matrix validation: codebase-memory MCP `index_repository` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. The zypper Tauri prerequisite set was checked
+  against the official Tauri v2 openSUSE guidance. `bash -n scripts/vm-matrix.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh scripts/verify-vm-evidence.sh`, `pnpm verify:vm`, `pnpm verify:docs`,
+  `bash scripts/vm-matrix.sh plan --target opensuse-kde-pipewire`, `pnpm verify:scripts`,
+  `node scripts/collect-release-evidence.mjs --list-commands --profile quick --require-published-release
+  --require-vm-evidence --vm-target all --vm-evidence-dir '.vm/evidence/{target}' --release-tag v0.1.0 --repo
+  sandwichfarm/loopwire --public-key packaging/release-signing-public.pem`, `pnpm check`, touched-file line-length
+  checks, and `git diff --check` passed. The release evidence command plan now expands to 8 VM evidence commands,
+  including `vm-evidence:opensuse-kde-pipewire`. No host audio mutation, public release, VM launch, image download, key
+  generation, secret write, tag push, or support matrix promotion was performed.
+- 2026-07-04 AArch64 VM matrix coverage: added `ubuntu-gnome-pipewire-aarch64` to `vm/targets.tsv` and the support
+  matrix as a Manual VM target for Ubuntu LTS, GNOME, Wayland, PipeWire/PulseAudio compatibility, and AArch64.
+  `scripts/vm-matrix.sh launch` now accepts `--firmware`, prints `qemu-system-aarch64`, `-machine virt`, and
+  `-cpu max` for AArch64 dry-runs, and rejects AArch64 `--execute` without an operator-owned UEFI firmware path.
+- 2026-07-04 AArch64 VM matrix validation: codebase-memory MCP `index_repository` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. `bash -n scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:vm`, `pnpm verify:docs`,
+  `bash scripts/vm-matrix.sh launch --target ubuntu-gnome-pipewire-aarch64 --image
+  /operator/images/ubuntu-aarch64.qcow2 --ssh-port 2422`, `pnpm verify:scripts`, `pnpm check`,
+  `node scripts/collect-release-evidence.mjs --list-commands --profile quick --require-published-release
+  --require-vm-evidence --vm-target all --vm-evidence-dir '.vm/evidence/{target}' --release-tag v0.1.0 --repo
+  sandwichfarm/loopwire --public-key packaging/release-signing-public.pem`, touched-file line-length checks, and
+  `git diff --check` passed. The release evidence command plan now expands to 9 VM evidence commands, including
+  `vm-evidence:ubuntu-gnome-pipewire-aarch64`. No host audio mutation, public release, VM launch, image download, key
+  generation, secret write, tag push, or support matrix promotion was performed.
+- 2026-07-04 GitHub secret check hardening: `scripts/setup-github-secrets.sh --check` and
+  `scripts/verify-release-readiness.sh` now preserve `gh secret list` failures instead of treating unreadable secret
+  names as ordinary missing secrets. `scripts/verify-scripts.sh` covers the success path and failure path with a fake
+  `gh` executable, so the contract is reproducible without live credentials.
+- 2026-07-04 GitHub secret check validation: codebase-memory MCP `index_repository` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. `bash -n scripts/setup-github-secrets.sh
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, and `pnpm check` passed. A manual dry-run with a nonexistent private key file failed closed as
+  expected. No GitHub secrets were read beyond names, no secret values were printed, no secret was written, no public
+  release was created, no tag was pushed, no VM was launched, and no support matrix row was promoted.
+- 2026-07-04 Bunny remote-prefix deployment support: `.github/workflows/deploy-docs.yml` now passes optional
+  `BUNNY_REMOTE_PREFIX` into the Bunny deploy step, and `scripts/setup-github-secrets.sh` can print, check, dry-run, and
+  set the optional `BUNNY_REMOTE_PREFIX` secret alongside `BUNNY_STORAGE_ENDPOINT` and `BUNNY_PULL_ZONE_HOSTNAME`.
+  The required Bunny deploy secret pair remains `BUNNY_STORAGE_ZONE` plus `BUNNY_ACCESS_KEY`.
+- 2026-07-04 Bunny remote-prefix validation: codebase-memory MCP `index_repository` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. `bash -n scripts/setup-github-secrets.sh
+  scripts/verify-github-workflows.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, and `pnpm check` passed. `scripts/verify-scripts.sh` now proves the
+  dry-run names `BUNNY_REMOTE_PREFIX` without printing its value, and fake-`gh` check mode reports the optional secret.
+  No Bunny deployment was performed, no GitHub secrets were written, no public release was created, no tag was pushed,
+  no VM was launched, and no support matrix row was promoted.
+- 2026-07-04 VM host setup dry-run helper: `scripts/vm-matrix.sh host-setup` and `pnpm vm:host-setup` now print
+  `package-family=*`, one `install-command=*`, required VM host tools, and the target-aware `verify-command=*`.
+  The command is dry-run-only and rejects `--execute`, so it cannot install packages on the operator host.
+- 2026-07-04 VM host setup validation: codebase-memory MCP `index_repository` failed with `Transport closed`, so this
+  slice used focused shell reads after the required graph attempt. `bash -n scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, direct apt/AArch64 and pnpm zypper host-setup dry-runs,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:vm`, and `pnpm check` passed. The new verifier caught and
+  fixed a shell scoping regression where host package-family detection overwrote the selected NixOS guest family in
+  `vm:doctor`. No package installation, VM launch, image download, host audio mutation, public release, secret write,
+  tag push, or support matrix promotion was performed.
+- 2026-07-04 JACK Loopwire-owned port resolution: native JACK now resolves app route inputs, route outputs, and monitor
+  targets without host `deviceName` values to deterministic Loopwire-owned JACK port names. It connects only when those
+  ports already exist and still does not create JACK clients or ports. Desktop JACK preflight now lets those endpoints
+  reach the runtime `jack_lsp` probe while continuing to block non-100% native gain.
+- 2026-07-04 JACK port resolution validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. The new JACK regression tests first failed on
+  the old missing-`deviceName` rejection, then `pnpm --filter @loopwire/audio-host test -- jack-adapter.test.ts` passed
+  with 73 tests. `pnpm --filter @loopwire/audio-host typecheck`, `pnpm --filter @loopwire/desktop typecheck`,
+  `pnpm verify:docs`, `pnpm check`, touched-file line-length checks, and `git diff --check` passed. No JACK host audio
+  mutation, VM launch, image download, package installation, public release, secret write, tag push, or support matrix
+  promotion was performed.
+- 2026-07-04 release evidence path hardening: `scripts/verify-release-evidence.mjs` now rejects command log paths that
+  contain parent traversal, escape the evidence directory after realpath resolution, resolve through symlinks, or point
+  to non-file entries. This keeps published release evidence archives from proving commands with logs outside the
+  attached evidence bundle.
+- 2026-07-04 release evidence path validation: codebase-memory MCP `index_repository` failed with `Transport closed`,
+  so this slice used focused shell reads after the required graph attempt. The new verifier regression first failed
+  because `../outside.log` was accepted. After implementation, `pnpm verify:scripts` and `pnpm verify:docs` passed. No
+  package installation, VM launch, image download, host audio mutation, public release, secret write, tag push, Bunny
+  deployment, or support matrix promotion was performed.
+- 2026-07-04 backend selector live-disarm UX: changing the selected backend now persists the new backend, refreshes
+  source and monitor candidates, disarms any live host-apply session, and runs preview verification against the active
+  configuration. If preview verification fails, the disarm note preserves the verification failure detail.
+- 2026-07-04 backend selector validation: codebase-memory MCP `index_repository` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. `pnpm --filter @loopwire/desktop typecheck`,
+  `pnpm --filter @loopwire/desktop build`, and `pnpm verify:docs` passed. Playwright against
+  `http://127.0.0.1:4185/` selected PulseAudio, armed live apply, switched to PipeWire, verified the host-apply control
+  returned to `Preview`, verified the runtime note says live apply was disarmed for preview verification, and confirmed
+  zero horizontal overflow. No live host audio mutation, package installation, VM launch, image download, public
+  release, secret write, tag push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 configuration switch transaction guard: desktop configuration switches and fallback delete switches now use a
+  tokenized busy state. The latest switch can update runtime state and unblock the sidebar, while stale async results are
+  ignored instead of replacing the latest selected configuration.
+- 2026-07-04 configuration switch validation: codebase-memory MCP `index_repository` and `search_graph` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`, and `pnpm verify:docs` passed.
+  Playwright against `http://127.0.0.1:4186/` switched from Studio to Call, verified the switch persisted after reload,
+  verified configuration buttons were enabled after the transaction, and confirmed zero horizontal overflow on desktop and
+  mobile. No live host audio mutation, package installation, VM launch, image download, public release, secret write, tag
+  push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 configuration switch full check: `pnpm check`, touched-file line-length check, `git diff --check`, and
+  `gsd-sdk query roadmap.analyze` passed. Roadmap analysis still shows Phase 12 as the only incomplete phase at 80%
+  milestone progress.
+- 2026-07-04 release evidence VM-row hardening: `scripts/verify-release-evidence.mjs` now validates required VM evidence
+  target rows before trusting command results. It rejects unknown target ids, duplicate target ids, absolute or
+  parent-traversing `evidenceDir` values, evidence dirs that omit the target id as a path segment, and VM command rows
+  that do not call `scripts/verify-vm-evidence.sh` with the matching `--target` and `--evidence-dir`.
+- 2026-07-04 release evidence VM-row validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, and `pnpm verify:docs` passed. No package installation, VM launch, image download, host audio
+  mutation, public release, secret write, tag push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 ALSA playback/capture diagnostics: `@loopwire/audio-host` now enumerates ALSA playback hardware with
+  `aplay -l` and ALSA capture hardware with `arecord -l`. The desktop labels ALSA source/output candidates as diagnostics,
+  the Tauri bridge allows only `arecord -l` for ALSA capture probing, and ALSA live apply remains blocked.
+- 2026-07-04 ALSA diagnostics validation: codebase-memory MCP `index_status`, `search_graph`, and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/audio-host test -- detectors.test.ts`, `pnpm --filter @loopwire/audio-host typecheck`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`,
+  `cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check`,
+  `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`, `pnpm verify:tauri`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm check`, `git diff --check`, touched-file line-length checks, and
+  `gsd-sdk query roadmap.analyze` passed. `pnpm detect:audio` confirmed read-only ALSA availability on this host,
+  `aplay -l` listed playback hardware, and `arecord -l` listed capture hardware. No live host audio mutation,
+  ALSA route/apply implementation, package installation, VM launch, image download, public release, secret write,
+  tag push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 ALSA capability detection correction: ALSA backend detection now probes both `aplay -l` and `arecord -l`,
+  keeps playback-only or capture-only visibility available for diagnostics, and reports `createVirtualDevice`,
+  `routeAudio`, `monitorAudio`, `apply`, `verify`, and `rollback` as unavailable instead of planned.
+- 2026-07-04 ALSA capability validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/audio-host test -- detectors.test.ts` passed with 76 tests,
+  `pnpm --filter @loopwire/audio-host typecheck`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`,
+  `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed. `pnpm detect:audio`
+  confirmed ALSA commands now include both `aplay -l` and `arecord -l`, with route/apply/verify/rollback unavailable.
+  No live host audio mutation, ALSA routing implementation, package installation, VM launch, image download, public
+  release, secret write, tag push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 VM matrix-wide doctor: `scripts/vm-matrix.sh doctor --all` now prints a `target-check=*` block for every
+  target in `vm/targets.tsv`, including architecture-specific QEMU checks, guest evidence commands, host pull commands,
+  KVM status, and host install hints. It fails closed if any target lacks required launch tools and rejects `--all`
+  together with `--target`.
+- 2026-07-04 VM matrix-wide doctor validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct `doctor --all` readback, conflicting
+  `doctor --all --target` rejection, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:vm`, `pnpm check`,
+  `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed. No package
+  installation, VM launch, image download, host audio mutation, public release, secret write, tag push, Bunny deployment,
+  or support matrix promotion was performed.
+- 2026-07-04 VM all-target host setup: `scripts/vm-matrix.sh host-setup --all` now prints `target-scope=all`, all QEMU
+  system tools required by `vm/targets.tsv`, the shared launch support tools, and
+  `verify-command=bash scripts/vm-matrix.sh doctor --all`. It remains dry-run-only and rejects `--all` together with
+  `--target`.
+- 2026-07-04 VM all-target host setup validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct `host-setup --all` readback,
+  conflicting `host-setup --all --target` rejection, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:vm`,
+  `pnpm check`, `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed. No
+  package installation, VM launch, image download, host audio mutation, public release, secret write, tag push, Bunny
+  deployment, or support matrix promotion was performed.
+- 2026-07-04 release evidence source-state hardening: `scripts/verify-release-evidence.mjs` now rejects manifests that
+  omit valid git metadata, require a 40-character `git.head`, reject unavailable or unsafe git fields, and support
+  `--require-clean-git` for final release bundles. The release workflow passes the expected tag and repository into the
+  direct evidence verification step before attaching `loopwire-release-evidence-<tag>.tar.gz`.
+- 2026-07-04 release evidence source-state validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-github-workflows.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:workflows`, real
+  `pnpm collect:evidence -- --output-dir /tmp/loopwire-release-evidence.xiH9qF --profile quick --release-tag v0.1.0`,
+  `pnpm verify:release-evidence -- --evidence-dir /tmp/loopwire-release-evidence.xiH9qF --release-tag v0.1.0 --repo
+  sandwichfarm/loopwire`, and a negative `--require-clean-git` check against the current dirty tree passed. No package
+  installation, VM launch, image download, host audio mutation, public release, secret write, tag push, Bunny deployment,
+  or support matrix promotion was performed.
+- 2026-07-04 product requirements evidence gate: added `scripts/verify-requirements.sh`, wired `pnpm verify:requirements`
+  into `pnpm check:verify`, and updated `.planning/REQUIREMENTS.md` so v1 requirements are complete only where current
+  source/docs/workflow/package/test anchors prove them. `SHIP-01..SHIP-03` remain pending.
+- 2026-07-04 product requirements gate validation: codebase-memory MCP `index_status`, `search_graph`, and
+  `index_repository` failed with `Transport closed`, so this slice used focused shell reads after the required graph
+  attempts. The first `pnpm verify:requirements` run failed on an over-specific homepage install anchor and then passed
+  after using the current source-install evidence. `pnpm verify:docs` initially recursed because a new assertion used
+  shell backticks inside double quotes; the verifier session was interrupted and the assertion was fixed with single
+  quotes. `bash -n scripts/verify-requirements.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:requirements`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:workflows`, `pnpm check`,
+  `git diff --check`, and touched-file line-length checks passed. No package installation, VM launch, image download,
+  host audio mutation, public release, secret write, tag push, Bunny deployment, or support matrix promotion was
+  performed.
+- 2026-07-04 VM architecture-scoped host setup: `scripts/vm-matrix.sh host-setup --family dnf --all` now prints a
+  Fedora install command that includes `qemu-system-aarch64`, and `scripts/vm-matrix.sh host-setup --family zypper
+  --all` now prints an openSUSE install command that includes both `qemu-x86` and `qemu-arm`. Targeted AArch64
+  host-plan output now prints Fedora and openSUSE AArch64 package hints.
+- 2026-07-04 VM architecture-scoped host setup validation: codebase-memory MCP `index_status` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. Official package lookup
+  confirmed Fedora exposes `qemu-system-aarch64` and openSUSE exposes `qemu-arm`. `bash -n
+  scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct `host-setup --family dnf --all`,
+  direct `host-setup --family zypper --all`, direct AArch64 `host-plan` readback, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm verify:vm`, `pnpm check`, `git diff --check`, and touched-file line-length checks
+  passed. No package installation, VM launch, image download, host audio mutation, public release, secret write, tag
+  push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 Nix flake package template: `flake.nix` now exposes `packages.<system>.loopwire-bin` and
+  `packages.<system>.default` for `x86_64-linux` and `aarch64-linux` through `packaging/nix/loopwire-bin.nix`. The
+  default package intentionally uses `nixpkgs.lib.fakeHash` until published artifacts provide real release hashes, and
+  `lib.<system>.mkLoopwireBinPackage` lets release automation or downstream consumers inject the real version and
+  hashes.
+- 2026-07-04 Nix flake package-template validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/verify-packaging.sh scripts/verify-docs.sh`, `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm check`,
+  `git diff --check`, and touched-file line-length checks passed. `nix` is not installed on this host, so no
+  `nix flake show` or `nix build` proof was produced. No package installation, VM launch, image download, host audio
+  mutation, public release, secret write, tag push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 public installer endpoint plumbing: `apps/docs/docs/public/install.sh` now mirrors `scripts/install.sh`
+  byte-for-byte, so the VitePress/Bunny docs deployment can serve `/install.sh` without introducing a second installer
+  contract. `scripts/verify-docs.sh` rejects drift and runs shell syntax checks against the public asset; `pnpm
+  build:docs` emitted `apps/docs/docs/.vitepress/dist/install.sh`, and a direct `cmp` proved it matched
+  `scripts/install.sh`.
+- 2026-07-04 public installer endpoint validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  apps/docs/docs/public/install.sh scripts/install.sh scripts/verify-docs.sh scripts/verify-scripts.sh`, public
+  installer drift `cmp`, `pnpm verify:docs`, `pnpm --filter @loopwire/docs docs:build`, built-dist installer `cmp`,
+  `pnpm verify:scripts`, `pnpm check`, `git diff --check`, and touched-file line-length checks passed. No package
+  installation, VM launch, image download, host audio mutation, public release, secret write, tag push, Bunny
+  deployment, or support matrix promotion was performed.
+- 2026-07-04 public installer release-gate hardening: `scripts/verify-release-readiness.sh` now checks the canonical
+  installer and public docs installer, rejects byte drift between them, and runs `bash -n` on the public docs installer.
+  `scripts/verify-scripts.sh` now proves Bunny.net dry-run output includes `install.sh` and covers both synced and stale
+  public-installer readiness cases.
+- 2026-07-04 public installer release-gate validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, touched-file line-length checks, `pnpm check`, `git diff --check`, and
+  `gsd-sdk query roadmap.analyze` passed. No package installation, VM launch, image download, host audio mutation,
+  public release, secret write, tag push, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 Bunny docs dist gate: `scripts/deploy-docs-bunny.sh` now requires non-empty built `index.html` and
+  `install.sh` files, runs `bash -n` on the built public installer, and rejects unsafe `.` or `..` segments in
+  `BUNNY_REMOTE_PREFIX` before dry-run or live upload planning.
+- 2026-07-04 Bunny docs dist-gate validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/deploy-docs-bunny.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, touched-file line-length checks, `pnpm check`, `git diff --check`, and
+  `gsd-sdk query roadmap.analyze` passed. `pnpm verify:scripts` covers positive `install.sh` dry-run upload plus
+  negative missing-`install.sh`, missing-`index.html`, and unsafe-remote-prefix cases. No package installation, VM
+  launch, image download, host audio mutation, public release, secret write, tag push, Bunny deployment, or support
+  matrix promotion was performed.
+- 2026-07-04 Bunny pull-zone smoke wiring: added `scripts/verify-docs-live.sh` and `pnpm verify:docs-live` to fetch a
+  deployed docs homepage plus `/install.sh`, verify the installer parses as shell, and compare it byte-for-byte with the
+  local public installer. `.github/workflows/deploy-docs.yml` now runs that smoke after upload when
+  `BUNNY_PULL_ZONE_HOSTNAME` is configured.
+- 2026-07-04 Bunny pull-zone smoke validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/verify-docs-live.sh scripts/verify-scripts.sh scripts/verify-docs.sh scripts/verify-github-workflows.sh`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:workflows`, touched-file line-length checks, `pnpm check`,
+  `git diff --check`, and `gsd-sdk query roadmap.analyze` passed. `pnpm verify:scripts` covers a fake-curl positive
+  pull-zone smoke plus stale deployed installer and unsafe remote-prefix rejection. No package installation, VM launch,
+  image download, host audio mutation, public release, secret write, tag push, Bunny deployment, live URL smoke, or
+  support matrix promotion was performed.
+- 2026-07-04 release evidence live-docs gate: `scripts/collect-release-evidence.mjs` now supports
+  `--require-live-docs`, docs URL/hostname/remote-prefix options, records `release.docsLive`, and schedules the
+  `docs-live-smoke` command. `scripts/verify-release-evidence.mjs` now rejects final evidence when
+  `--require-live-docs` is set without a required passing `docs-live-smoke` row.
+- 2026-07-04 release evidence live-docs gate validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`, `bash -n
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:scripts`, command-plan readback
+  for `--require-live-docs`, `pnpm check`, `git diff --check`, touched-file line-length checks, and
+  `gsd-sdk query roadmap.analyze` passed. No package installation, VM launch, image download, host audio mutation,
+  public release, secret write, tag push, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 matrix VM evidence collection: `scripts/collect-vm-matrix-evidence.sh` and `pnpm vm:collect-matrix` can
+  read a tab-separated guest plan, reject unknown or duplicate targets and invalid ports, forward published-release
+  smoke flags, and expand each row into `scripts/collect-vm-evidence-ssh.sh` with target-scoped local evidence paths.
+- 2026-07-04 matrix VM evidence validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/collect-vm-matrix-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm vm:collect-matrix -- --help`, direct dry-run plan readback, touched-file line-length
+  checks, `pnpm check`, `git diff --check`, and `gsd-sdk query roadmap.analyze` passed. No package installation, VM
+  launch, image download, host audio mutation, public release, secret write, tag push, Bunny deployment, live URL smoke,
+  or support matrix promotion was performed.
+- 2026-07-04 JACK desktop preflight tightening: the desktop now blocks JACK live apply before arming when any routed
+  source, routed output, monitor source output, or monitor target lacks a host binding to an existing JACK port. This
+  moves a predictable `jack_lsp`/missing-port failure into the preflight strip without claiming Loopwire can create
+  JACK ports.
+- 2026-07-04 JACK desktop preflight validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, touched-file line-length checks, and
+  `git diff --check` passed. No live JACK server, host audio mutation, VM launch, package install, public release,
+  Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 desktop preflight test surface: live-apply preflight rules moved from private `App.svelte` helpers into
+  `apps/desktop/src/live-apply-preflight.ts`, and the Svelte shell now imports the pure helper. Focused Vitest coverage
+  protects no-backend, ALSA diagnostics-only, PulseAudio ready, PipeWire gain/source blockers, JACK gain/port blockers,
+  and native gain route filtering.
+- 2026-07-04 desktop preflight test validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/desktop test -- src/live-apply-preflight.test.ts`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, touched-file line-length checks, `git diff --check`,
+  `pnpm check`, and `gsd-sdk query roadmap.analyze` passed. No live JACK server, host audio mutation, VM launch,
+  package install, public release, Bunny deployment, or support matrix promotion was performed.
+- 2026-07-04 VM SSH plan generation: `scripts/vm-matrix.sh render-ssh-plan` and `pnpm vm:render-ssh-plan` can emit the
+  `collect-vm-matrix-evidence.sh` TSV for one target or all targets, with target-scoped `.vm/evidence/<target>` output
+  paths, configurable guest user/host/identity, optional desktop smoke port, and unique forwarded SSH ports.
+- 2026-07-04 VM SSH plan validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, single-target render readback,
+  all-target render readback, invalid start-port rejection, `pnpm verify:vm`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm vm:render-ssh-plan -- --target ubuntu-gnome-pipewire-aarch64 --start-port 2422
+  --desktop-port 5199`, generated-plan-to-collector dry-run smoke, `pnpm check`, and GSD milestone/roadmap queries
+  passed. No package installation, VM launch, image download, host audio mutation, public release, secret write, tag
+  push, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 support bundle backend summary: `scripts/collect-support-bundle.mjs` now keeps `detect-audio.json` valid
+  JSON by suppressing build chatter and writes `audio.backends` into `support-bundle.json`. Each row summarizes backend
+  kind, availability, transport, route-control scope, per-edge gain/mute flags, diagnostics, and known gaps.
+- 2026-07-04 support bundle backend validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/collect-support-bundle.mjs`, `bash -n scripts/verify-vm-evidence.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:docs`, direct quick support-bundle smoke with parsed PipeWire, PulseAudio,
+  JACK, and ALSA backend rows, `pnpm verify:scripts`, audio-host tests/typecheck, `pnpm verify:vm`, touched-file
+  line-length checks, `git diff --check`, and `pnpm check` passed. No package installation, VM launch, image download,
+  host audio mutation, public release, secret write, tag push, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 shared JACK port requirements: `packages/audio-host/src/jack-adapter.ts` now exports
+  `describeJackPortRequirements`, a pure helper that uses the same deterministic naming path as the JACK runtime
+  adapter. The helper reports configured vs Loopwire-owned requirements, channel counts, deterministic client names,
+  and suggested channel ports. Desktop preflight now uses the helper when naming unbound JACK endpoint blockers.
+- 2026-07-04 shared JACK port validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/audio-host test -- jack-adapter.test.ts`,
+  `pnpm --filter @loopwire/desktop test -- src/live-apply-preflight.test.ts`,
+  `pnpm --filter @loopwire/audio-host typecheck`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`,
+  audio-host tests, desktop tests, `pnpm check`, `git diff --check`, touched-file line-length checks, and
+  `gsd-sdk query roadmap.analyze` plus `gsd-sdk query init.milestone-op` passed after the helper and preflight wiring.
+  `apps/desktop/vitest.config.ts` now mirrors the Vite source aliases so desktop tests do not depend on stale built
+  `dist` exports. A final codebase-memory MCP retry still failed with `Transport closed`. No live JACK server, host
+  audio mutation, VM launch, package install, public release, secret write, tag push, Bunny deployment, live URL smoke,
+  or support matrix promotion was performed.
+- 2026-07-04 JACK port CLI handoff: added `scripts/describe-jack-ports.mjs` and `pnpm jack:ports`. The command reads a
+  Loopwire configuration export, raw configuration JSON, or persisted state file, then prints shared JACK port
+  requirements as JSON or TSV. `--loopwire-owned-only` filters to endpoints that still need pre-existing
+  Loopwire-owned JACK clients, making pro-audio session templates and support handoffs easier without touching JACK.
+- 2026-07-04 JACK port CLI validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/describe-jack-ports.mjs`, `pnpm jack:ports -- --help`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm check`, `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed.
+  `pnpm verify:scripts` includes deterministic JSON and TSV smoke coverage for `describe-jack-ports.mjs`. A final
+  codebase-memory MCP retry still failed with `Transport closed`. No live JACK server, host audio mutation, VM launch,
+  package install, public release, secret write, tag push, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 JACK readiness verifier: `scripts/describe-jack-ports.mjs --verify` and `pnpm jack:verify` now compare
+  required configured/Loopwire-owned JACK ports against live `jack_lsp` output or `--ports-file` fixtures. The JSON and
+  TSV output now include per-requirement readiness, matched ports, and missing suggested ports, and the command exits
+  nonzero when required port matches are absent.
+- 2026-07-04 JACK readiness validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/describe-jack-ports.mjs`, `pnpm jack:verify -- --help`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm check`, `git diff --check`, touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. `pnpm verify:scripts` covers positive JSON/TSV captured-port readiness and
+  a negative missing-port case. A final codebase-memory MCP retry still failed with `Transport closed`. No live JACK
+  server, host audio mutation, VM launch, package install, public release, secret write, tag push, Bunny deployment,
+  live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 support bundle JACK readiness: `scripts/collect-support-bundle.mjs` accepts `--configuration` or
+  `--state-file` plus optional `--jack-ports-file`, runs the read-only JACK readiness verifier, writes
+  `jack-port-requirements.json`, and summarizes readiness as `jack` in `support-bundle.json`. Default support bundles
+  keep `jack.status = "not_requested"` so users without a saved Loopwire configuration do not get noisy failures.
+- 2026-07-04 support bundle JACK validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts. `node --check
+  scripts/collect-support-bundle.mjs`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `git diff --check`,
+  touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed.
+  `pnpm verify:scripts` proves default support bundles mark JACK readiness as not requested and configuration-backed
+  bundles include a parsed passing JACK readiness summary. A final codebase-memory MCP retry still failed with
+  `Transport closed`. No live JACK server, host audio mutation, VM launch, package install, public release, secret
+  write, tag push, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 VM target audio proof: `scripts/verify-vm-evidence.sh` now rejects VM evidence whose `detect-audio.json`
+  does not report the selected target's expected backend as available. The guard maps `PipeWire/WirePlumber` to
+  PipeWire, `PipeWire/PulseAudio compatibility` to PipeWire plus PulseAudio, `PulseAudio` to PulseAudio, and `JACK` to
+  JACK.
+- 2026-07-04 VM target audio validation: codebase-memory MCP `index_status`, `search_graph`, `list_projects`, and
+  `index_repository` failed with `Transport closed`, so this slice used focused shell reads after the required graph
+  attempts. `bash -n scripts/verify-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:vm`, and `pnpm check` passed. `pnpm verify:scripts` now
+  includes a negative case proving VM evidence is rejected when the target PipeWire backend report is unavailable. No
+  VM was launched and no support matrix row was promoted.
+- 2026-07-04 published-release evidence binding: `scripts/verify-release-evidence.mjs` now validates that a required
+  `published-release-smoke` row ran `scripts/verify-published-release.sh` with the manifest repo, tag, and public key.
+  This prevents a green evidence bundle from substituting a fake successful command row for real published-artifact
+  install smoke.
+- 2026-07-04 published-release evidence validation: codebase-memory MCP `index_status`, `search_graph`,
+  `search_code`, and `index_repository` failed with `Transport closed`, so this slice used focused shell reads after
+  the required graph attempts. `node --check scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm check` passed. `pnpm verify:scripts` now includes a negative
+  case proving fake `published-release-smoke` rows are rejected. No public release, tag push, secret write, Bunny
+  deployment, live URL smoke, VM launch, or support matrix promotion was performed.
+- 2026-07-04 PulseAudio detection gap: `packages/audio-host` now reports `one output per source` in PulseAudio backend
+  gaps and warning text, matching the runtime adapter and desktop preflight fail-closed behavior for source fan-out.
+  Support matrix, backend docs, unreleased notes, and docs verification now pin the same limitation for support bundles
+  and release notes.
+- 2026-07-04 PulseAudio detection validation: the detector regression test first failed while the implementation still
+  omitted `one output per source`, then passed after the detector update. Codebase-memory MCP `index_status` and
+  `index_repository` failed with `Transport closed`, so this slice used focused shell reads after the required graph
+  attempts. `pnpm --filter @loopwire/audio-host test -- detectors.test.ts`, audio-host typecheck, `pnpm verify:docs`,
+  `pnpm check`, `git diff --check`, touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. No host audio mutation, VM launch, package install, public release, tag
+  push, secret write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 final evidence command hardening: `scripts/verify-release-evidence.mjs` now tokenizes command rows for
+  required final proof commands. Published-release, live-docs, and VM evidence rows must directly invoke the expected
+  `bash scripts/...` verifier with exact binding flags, so a manifest cannot pass by recording an `echo` command that
+  merely prints the expected verifier path and arguments.
+- 2026-07-04 final evidence command validation: the new `pnpm verify:scripts` regression first failed because the old
+  verifier accepted an echo-disguised VM evidence command, then passed after tokenized validation was added.
+  Codebase-memory MCP `index_status` and `index_repository` failed with `Transport closed`, so this slice used focused
+  shell reads after the required graph attempts. `node --check scripts/verify-release-evidence.mjs`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. No host audio mutation, VM launch,
+  package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 release readiness tag fidelity: `scripts/verify-release-readiness.sh` now resolves local or remote
+  release tags to commits and rejects tags that do not point at the current checkout `HEAD`. This prevents a stale tag
+  from satisfying the publish preflight for different source content.
+- 2026-07-04 release readiness tag validation: `pnpm verify:scripts` now creates a temporary git repo, passes readiness
+  while `v0.1.0` points at `HEAD`, advances `HEAD`, and proves the same tag is rejected as stale. Codebase-memory MCP
+  `index_status` and `index_repository` failed with `Transport closed`, so this slice used focused shell reads after
+  the required graph attempts. `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. Real release readiness still failed
+  closed on missing public key, candidate notes, missing tag, and missing GitHub secrets. No host audio mutation, VM
+  launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 release readiness clean checkout: `scripts/verify-release-readiness.sh` now requires a clean git checkout
+  by default and exposes `--skip-clean-git` for explicit candidate evidence collection. The release evidence collector
+  uses that opt-out only for candidate bundles so dirty release-prep work cannot accidentally satisfy the final publish
+  preflight.
+- 2026-07-04 release readiness clean-check validation: Codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `node --check scripts/collect-release-evidence.mjs`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`,
+  touched-file line-length checks, `git diff --check`, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. Real release readiness still failed closed on missing public key, candidate
+  notes, dirty git status, missing tag, and missing GitHub secrets. No host audio mutation, VM launch, package install,
+  public release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 native route gain lock: Desktop route-control semantics moved into a tested helper, and selected native
+  PipeWire/JACK backends now lock route gain sliders because those adapters can only apply link mute/unmute today.
+  Existing non-unity route state stays visible, route mute stays usable, and the existing `Reset gains` action remains
+  the explicit repair path before live apply.
+- 2026-07-04 native route gain lock validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/desktop test -- route-control-semantics.test.ts live-apply-preflight.test.ts`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, and `pnpm --filter @loopwire/desktop build`
+  passed. Playwright desktop and mobile smokes against `http://127.0.0.1:4190/` selected PipeWire, confirmed all route
+  gain sliders were disabled with locked accessible labels, captured screenshots under `/tmp`, and found zero
+  horizontal overflow. No host audio mutation, VM launch, package install, public release, tag push, secret write,
+  Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 runtime activity ledger: Desktop startup restore and configuration clicks now persist the last runtime
+  plan log in app state and render an inspectable ledger for startup restore or configuration switch operations. The
+  ledger shows unload, apply, verify, and rollback rows from `ConfigurationRuntimeResult.log`, so clicking a
+  configuration exposes the actual switch sequence instead of only the final status message.
+- 2026-07-04 runtime activity ledger validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`,
+  `pnpm --filter @loopwire/desktop test -- live-apply-preflight.test.ts route-control-semantics.test.ts`, and
+  `pnpm verify:docs` passed. Playwright desktop and mobile smokes against `http://127.0.0.1:4191/` verified startup
+  restore ledger presence, clicked `Stream`, confirmed `Unload Studio`, `Apply Stream`, and `Verify Stream` rows,
+  confirmed `Stream` became active, captured screenshots under `/tmp`, and found zero horizontal overflow. No host
+  audio mutation, VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke,
+  or support matrix promotion was performed.
+- 2026-07-04 release workflow tag checkout: `.github/workflows/release.yml` now validates the resolved release tag as a
+  git tag name, fetches tags, resolves `refs/tags/<tag>^{commit}`, and checks out the commit detached in both the
+  `build-linux` and `publish-release` jobs before release notes, build, publish, or evidence steps. The build job no
+  longer passes `--skip-tag`, so `scripts/verify-release-readiness.sh` also checks that the selected tag points at the
+  detached checkout.
+- 2026-07-04 release workflow tag-checkout validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh`, Ruby YAML parsing for
+  `.github/workflows/release.yml`, `bash scripts/verify-github-workflows.sh`, `pnpm verify:docs`,
+  `pnpm verify:workflows`, `pnpm check`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. No host audio mutation, VM launch,
+  package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 release tag path hardening: `.github/workflows/release.yml` and
+  `scripts/verify-release-readiness.sh` now require v-prefixed semver release tags without path separators. This
+  rejects tags like `v0.1.0/preview` before release-note, evidence-directory, or evidence-archive paths are derived
+  from the tag.
+- 2026-07-04 release tag path validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-github-workflows.sh
+  scripts/verify-docs.sh`, direct tag-regex smoke, expected-failure readiness smoke for `v0.1.0/preview`,
+  `bash scripts/verify-github-workflows.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`,
+  `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed. No host audio
+  mutation, VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or
+  support matrix promotion was performed.
+- 2026-07-04 release evidence tag contract: `scripts/collect-release-evidence.mjs` and
+  `scripts/verify-release-evidence.mjs` now enforce the same v-prefixed semver release tag rule as the release
+  workflow and readiness preflight. Path-like tags are rejected before command planning, manifest acceptance, or final
+  evidence verification.
+- 2026-07-04 release evidence tag validation: codebase-memory MCP `index_status` and `index_repository` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `node --check scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`,
+  `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`, expected-failure collector smoke for
+  `v0.1.0/preview`, prerelease command-plan smoke for `v0.1.0-rc.1`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm check`, `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed.
+  No host audio mutation, VM launch, package install, public release, tag push, secret write, Bunny deployment, live
+  URL smoke, or support matrix promotion was performed.
+- 2026-07-04 release proof repository contract: `scripts/verify-release-readiness.sh`,
+  `scripts/verify-published-release.sh`, `scripts/collect-release-evidence.mjs`, and
+  `scripts/verify-release-evidence.mjs` now require release repository identities in `OWNER/REPO` form. URL-like
+  values, spaces, and extra path segments are rejected before GitHub access, command planning, manifest acceptance, or
+  final evidence verification.
+- 2026-07-04 release proof repository validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `bash -n scripts/verify-release-readiness.sh scripts/verify-published-release.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `node --check scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`,
+  targeted negative smokes for URL-like and path-like repositories, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm check`, `git diff --check`, touched-file line-length checks, and `gsd-sdk query roadmap.analyze` passed.
+  No host audio mutation, VM launch, package install, public release, tag push, secret write, Bunny deployment, live
+  URL smoke, or support matrix promotion was performed.
+- 2026-07-04 local release evidence archive tag binding: `scripts/verify-published-release.sh` now derives the expected
+  evidence tag from the single `loopwire-release-evidence-<tag>.tar.gz` asset in `--release-dir` mode when `--tag` is
+  omitted. The extracted `release-evidence.json` must match that archive-name tag before local signed release-directory
+  proof can pass.
+- 2026-07-04 local release evidence archive validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `bash -n
+  scripts/verify-published-release.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `node --check
+  scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. `pnpm verify:scripts` now proves local
+  release-directory verification passes without an explicit `--tag` when the evidence archive name and manifest agree,
+  and rejects archive-name/manifest tag drift. No host audio mutation, VM launch, package install, public release, tag
+  push, secret write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 live-docs release evidence binding: `scripts/verify-release-evidence.mjs` now requires
+  `docs-live-smoke` command rows to use the same docs base URL or hostname plus remote prefix recorded in
+  `release-evidence.json`. The verifier still requires the public installer path and direct
+  `bash scripts/verify-docs-live.sh` invocation.
+- 2026-07-04 live-docs release evidence validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts. `pnpm
+  verify:scripts` first failed because the old verifier accepted a live-docs command for `wrong-docs.example.test`, then
+  passed after binding validation was added. `node --check scripts/verify-release-evidence.mjs
+  scripts/collect-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file
+  line-length checks, `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. Release docs,
+  unreleased notes, and `scripts/verify-docs.sh` now document and guard the deployment binding. No host audio mutation,
+  VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support
+  matrix promotion was performed.
+- 2026-07-04 release evidence public-key binding: `scripts/verify-release-evidence.mjs` now accepts `--public-key` and
+  requires `release.publicKey` to match it. `scripts/verify-published-release.sh --require-release-evidence` forwards
+  the same public key used to verify `SHA256SUMS.sig`, so the public evidence archive cannot prove install smoke with a
+  different signing trust root.
+- 2026-07-04 release evidence public-key validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm verify:scripts` first failed because the old verifier accepted a release evidence manifest and
+  `published-release-smoke` command using `packaging/other-release-signing-public.pem`; after implementation it passed
+  with the wrong-key negative case and local signed release-directory fixture rebound to the generated temp public key.
+  `node --check scripts/verify-release-evidence.mjs scripts/collect-release-evidence.mjs`,
+  `bash -n scripts/verify-published-release.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file
+  line-length checks, `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. Release docs,
+  unreleased notes, and `scripts/verify-docs.sh` now document and guard the public-key binding. No host audio mutation,
+  VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 release evidence git-head binding: `scripts/verify-release-evidence.mjs` now accepts `--git-head` and
+  rejects evidence whose `git.head` differs from the expected release commit. The release workflow exports the resolved
+  tag commit as `LOOPWIRE_RELEASE_COMMIT`, verifies the collected evidence with that SHA and the release public key, and
+  passes the same SHA into `scripts/verify-published-release.sh --require-release-evidence`.
+- 2026-07-04 release evidence git-head validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm verify:scripts` first failed because the old verifier ignored `--git-head` and accepted a wrong expected commit;
+  after implementation it passed with direct verifier and published-release archive wrong-head negative cases.
+  `node --check scripts/verify-release-evidence.mjs scripts/collect-release-evidence.mjs`,
+  `bash -n scripts/verify-published-release.sh scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-github-workflows.sh`, `pnpm verify:docs`, `pnpm verify:workflows`, Ruby workflow YAML parsing,
+  `pnpm verify:scripts`, `pnpm check`, `git diff --check`, and touched-file line-length checks passed. Release docs,
+  unreleased notes, `scripts/verify-docs.sh`, and `scripts/verify-github-workflows.sh` now document and guard the
+  git-head binding. No host audio mutation, VM launch, package install, public release, tag push, secret write, Bunny
+  deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 final release proof wrapper: `scripts/verify-final-release-proof.sh` and `pnpm verify:final-release` now
+  provide one strict final gate for the full stop condition. The wrapper verifies signed published release assets with
+  `--require-release-evidence`, live docs smoke, final release evidence with published-release/live-docs/all-VM-target
+  requirements, each `vm/targets.tsv` evidence bundle with installed-release smoke, support-matrix promotion, and the
+  docs contract. `--dry-run` prints the full command plan without touching network, release assets, docs URLs, or VM
+  evidence.
+- 2026-07-04 final release proof wrapper validation: codebase-memory MCP `index_status` and `index_repository` failed
+  with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `pnpm verify:final-release -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --git-head 0123456789abcdef0123456789abcdef01234567 --release-evidence-dir
+  .release-evidence/v0.1.0-published --docs-hostname docs.example.test --docs-remote-prefix preview --vm-evidence-root
+  .vm/evidence --dry-run` passed and printed published-release, live-docs, release-evidence, all nine VM evidence,
+  support-matrix, and docs-contract commands. `pnpm verify:scripts`, `pnpm verify:docs`, `bash -n` for the final proof
+  wrapper and script/doc guards, touched-file line-length checks, and `git diff --check` passed. No host audio mutation,
+  VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix
+  promotion was performed.
+- 2026-07-04 final support-matrix strictness: `scripts/verify-support-matrix.mjs` now accepts `--matrix` and
+  `--require-published-release`; final proof passes the release support-matrix path and requires installed-release
+  smoke for every `Verified` row. `pnpm verify:scripts` proves strict mode rejects a forced `Verified` row whose
+  evidence bundle has no `published-release-smoke`, then accepts the same target after the release-smoke row and log are
+  present.
+- 2026-07-04 final support-matrix strictness validation: codebase-memory MCP `index_status` and `index_repository`
+  failed with `Transport closed`, so this slice used focused shell reads after the required graph attempts.
+  `bash -n scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `node --check scripts/verify-support-matrix.mjs`, touched-file line-length checks, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. The final proof dry-run with
+  `--support-matrix apps/docs/docs/guide/support-matrix.md` printed support-matrix verification with
+  `--require-published-release`. No host audio mutation, VM launch, package install, public release, tag push, secret
+  write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 VM evidence status inventory: `scripts/vm-matrix.sh evidence-status` and `pnpm vm:evidence-status` now
+  report `status=missing`, `status=invalid`, or `status=verified` for target-scoped evidence bundles under an
+  evidence root. The command prints the matching verifier command, collector handoff for missing targets, and a
+  checked/verified/missing/invalid summary without promoting support-matrix rows.
+- 2026-07-04 VM evidence status validation: codebase-memory MCP `index_status` failed with `Transport closed`, so this
+  slice used focused shell reads after the required graph attempt. `bash -n scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, package JSON parsing, direct and pnpm missing-evidence smokes,
+  touched-file line-length checks, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:vm`, `pnpm check`,
+  `pnpm detect:audio`, all-target `evidence-status` against an empty temp root, `git diff --check`,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. `pnpm verify:scripts` also covers a
+  verified fixture bundle, strict-mode rejection before `published-release-smoke`, and strict-mode success after that
+  smoke row exists. No host audio mutation, VM launch, package install, public release, tag push, secret write, Bunny
+  deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 all-target VM evidence promotion: `scripts/promote-vm-evidence.mjs` now accepts `--all` and
+  `--evidence-root`, verifies each existing target-scoped evidence bundle before promotion, reports missing evidence
+  directories, fails invalid evidence, and writes all support-matrix row promotions in one guarded operation. The
+  existing single-target path still supports `--target`, `--evidence-dir`, `--matrix`, `--dry-run`, and
+  `--require-published-release`.
+- 2026-07-04 all-target VM evidence promotion validation: codebase-memory MCP `index_status` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt.
+  `node --check scripts/promote-vm-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  promotion help readback, touched-file line-length checks, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm verify:vm`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. `pnpm verify:scripts` proves all-target dry-run does not mutate the matrix,
+  reports missing target evidence, promotes the verified fixture row after release-smoke evidence exists, and rejects
+  invalid `--all --target` and `--all --evidence-dir` argument combinations. No host audio mutation, VM launch,
+  package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or real support matrix
+  promotion was performed.
+- 2026-07-04 JACK readiness contract: `packages/audio-host` now exports `describeJackPortReadiness`, a shared matcher
+  that reports per-requirement readiness, matched ports, missing ports, and port counts from the same deterministic
+  JACK requirement helper used by runtime plans. Native JACK apply/verify failures for missing host or Loopwire-owned
+  ports now include the exact suggested channel ports before any `jack_connect` mutation.
+- 2026-07-04 JACK readiness contract validation: codebase-memory MCP was unavailable or insufficient (`Transport
+  closed` / oversized output), so this slice used focused shell reads after the graph attempts.
+  `pnpm --filter @loopwire/audio-host test -- --runInBand`, `pnpm --filter @loopwire/audio-host typecheck`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file
+  line-length checks, `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed.
+  `pnpm jack:verify -- --configuration <tmp> --ports-file <tmp> --pretty` also passed against a temporary normalized
+  JACK fixture. No host audio mutation, VM launch, package install, public release, tag push, secret write, Bunny
+  deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 core DSP mix planner: `packages/core/src/dsp-mix.ts` now exports `createDspMixPlan` and
+  `renderDspMixPlan`. The pure planner derives output contribution plans from a valid configuration, applies per-edge
+  gain/mute to supplied planar `Float32Array` source buffers, sums active routes without clamping float headroom,
+  reports missing source buffers, and covers one-source-to-many-output routing math.
+- 2026-07-04 core DSP mix validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so this slice
+  used focused shell reads after the required graph attempt. The first `pnpm --filter @loopwire/core test --
+  --runInBand` run failed because `createDspMixPlan` did not exist. After implementation,
+  `pnpm --filter @loopwire/core test -- --runInBand`, `pnpm --filter @loopwire/core typecheck`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. No host audio mutation, live backend
+  DSP insertion, VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke,
+  or support matrix promotion was performed.
+- 2026-07-04 core DSP cycle runner: `packages/core/src/dsp-mix.ts` now exports `listDspSourceRequests` and
+  `runDspMixCycle`. The cycle runner deduplicates required sources, reads buffers through injected source ports,
+  renders the shared DSP mix plan, writes rendered outputs through injected output ports, can fail closed before writes
+  when required source buffers are missing, and reports write failures with the outputs already written.
+- 2026-07-04 core DSP cycle validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so this
+  slice used focused shell reads after the required graph attempt. The first `pnpm --filter @loopwire/core test --
+  --runInBand` run failed because `listDspSourceRequests` and `runDspMixCycle` did not exist. After implementation,
+  `pnpm --filter @loopwire/core test -- --runInBand`, `pnpm --filter @loopwire/core typecheck`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. No host audio mutation, live backend
+  DSP insertion, VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke,
+  or support matrix promotion was performed.
+- 2026-07-04 audio-host DSP graph adapter: `packages/audio-host/src/dsp-adapter.ts` now wraps the core DSP cycle
+  runner behind injected runtime ports. It supports dry-run planning, apply-mode source reads and output writes,
+  fail-closed missing-source behavior, verifier-driven output checks, and clear-on-rollback/unload behavior without
+  touching live PipeWire or JACK state.
+- 2026-07-04 audio-host DSP adapter validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. `pnpm --filter @loopwire/audio-host test --
+  --runInBand`, `pnpm --filter @loopwire/audio-host typecheck`, `pnpm verify:docs`, `pnpm verify:scripts`,
+  `pnpm check`, `pnpm detect:audio`, `git diff --check`, source/docs touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. Early `pnpm verify:docs` runs caught
+  line-wrapped guard phrases before the final docs contract passed. No host audio mutation, live backend DSP insertion,
+  VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or support
+  matrix promotion was performed.
+- 2026-07-04 data-driven route-control semantics: `apps/desktop/src/route-control-semantics.ts`,
+  `apps/desktop/src/live-apply-preflight.ts`, and `apps/desktop/src/App.svelte` now consume detected backend mixing
+  reports for route-control status, route-gain locking, and live-apply preflight. Synthetic graph-edge capability
+  tests prove PipeWire-style reports can unlock per-route gain while still blocking missing source ports, and JACK-style
+  graph-edge reports with virtual-device creation can skip the old link-only gain/port blockers.
+- 2026-07-04 data-driven route-control validation: codebase-memory MCP `search_graph` failed with `Transport closed`,
+  so this slice used focused shell reads after the required graph attempt. The first
+  `pnpm --filter @loopwire/desktop test -- --runInBand` run failed because helper logic ignored graph-edge capability
+  reports. After implementation, `pnpm --filter @loopwire/desktop test -- --runInBand`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, source/docs/GSD touched-file
+  line-length checks, `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.milestone-op` passed. The live detection
+  smoke still reports PipeWire as link-only and PulseAudio compatibility as stream-level, so no live graph-edge DSP
+  behavior was claimed.
+- 2026-07-04 DSP runtime rollback contract: `packages/audio-host/src/dsp-adapter.ts` now treats `unload` as clear-only
+  and `rollback` as a restore operation. Rollback clears the last written DSP outputs when a clear port is supplied,
+  then re-renders the rollback configuration through the same injected source/output ports. This aligns the adapter
+  with `@loopwire/core` configuration switch semantics, where a failed apply or verify rolls back to the previous
+  configuration.
+- 2026-07-04 DSP rollback validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so this slice
+  used focused shell reads after the required graph attempt. The first `pnpm --filter @loopwire/audio-host test --
+  --runInBand` run failed because rollback only cleared outputs and did not restore the previous DSP mix through
+  `applyConfigurationSwitch`. After implementation, `pnpm --filter @loopwire/audio-host test -- --runInBand`,
+  `pnpm --filter @loopwire/audio-host typecheck`, `pnpm --filter @loopwire/core test -- --runInBand`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, `git diff --check`,
+  source/docs/GSD touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. No live host audio mutation, VM launch, package install, public release,
+  tag push, secret write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 DSP configuration runtime wrapper: `packages/audio-host/src/dsp-adapter.ts` now exports
+  `createDspConfigurationRuntimeAdapter`, a first-class `ConfigurationRuntimeAdapter` wrapper around the injected DSP
+  graph adapter. The wrapper makes startup re-apply and configuration switch transactions call through the exact core
+  runtime contract instead of relying on structural method compatibility.
+- 2026-07-04 DSP configuration runtime wrapper validation: codebase-memory MCP `search_graph` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. The first
+  `pnpm --filter @loopwire/audio-host test -- --runInBand` run failed because
+  `createDspConfigurationRuntimeAdapter` did not exist. After implementation,
+  `pnpm --filter @loopwire/audio-host test -- --runInBand`, `pnpm --filter @loopwire/audio-host typecheck`,
+  `pnpm --filter @loopwire/core test -- --runInBand`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`,
+  `pnpm detect:audio`, `git diff --check`, touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. No live host audio mutation, VM launch, package install, public release,
+  tag push, secret write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 JACK injected virtual-port provider: `packages/audio-host/src/jack-adapter.ts` now accepts an injected
+  `JackVirtualPortProvider`. When all missing readiness requirements are Loopwire-owned JACK ports, apply/verify/unload
+  can ask the provider to create those ports, re-run `jack_lsp`, and continue only if the required ports exist.
+  Configured host-port gaps still fail through the existing missing-port path, and the shipped desktop path still does
+  not bundle a real JACK client provider.
+- 2026-07-04 JACK injected provider validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so
+  this slice used focused shell reads after the required graph attempt. The first
+  `pnpm --filter @loopwire/audio-host test -- --runInBand` run failed because the adapter did not consult a virtual-port
+  provider. After implementation, `pnpm --filter @loopwire/audio-host test -- --runInBand`,
+  `pnpm --filter @loopwire/audio-host typecheck`, `pnpm verify:docs`, and touched-file line-length checks passed before
+  the broader gate run. Final validation passed with `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`,
+  `git diff --check`, touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op`. No live JACK server, host audio mutation, VM launch, package install, public
+  release, tag push, secret write, Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 command-backed JACK provider: `packages/audio-host/src/jack-adapter.ts` now exports
+  `createJackVirtualPortCommandProvider`, which maps a `JackVirtualPortProvisionPlan` to stable
+  `ensure --configuration-id ... --requirement ... --port ...` command arguments and preserves provider stderr on
+  failure. `scripts/restore-background.mjs` accepts `--jack-provider-command` and
+  `--jack-provider-timeout-ms`, then passes the command-backed provider into JACK startup restore.
+- 2026-07-04 command-backed JACK provider validation: codebase-memory MCP `search_graph` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. The first
+  `pnpm --filter @loopwire/audio-host test -- --runInBand` run failed because
+  `createJackVirtualPortCommandProvider` did not exist. After implementation,
+  `pnpm --filter @loopwire/audio-host test -- --runInBand`, `pnpm --filter @loopwire/audio-host typecheck`,
+  `node --check scripts/restore-background.mjs`, `pnpm verify:scripts`, `pnpm verify:docs`, and touched-file
+  line-length checks passed before the broader gate run. Final validation passed with `pnpm check`,
+  `pnpm detect:audio`, `git diff --check`, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op`. No real JACK provider binary was executed, and no live JACK server, host audio
+  mutation, VM launch, package install, public release, tag push, secret write, Bunny deployment, live URL smoke, or
+  support matrix promotion was performed.
+- 2026-07-04 boot restore and VM launch surface: `scripts/manage-autostart.sh` now uses one restore-argument renderer
+  for source-checkout and packaged systemd units, so boot restore preserves state file, mode, PulseAudio retry, and
+  JACK provider flags. `pnpm vm:launch` now forwards to the dry-run-first VM launch planner.
+- 2026-07-04 boot restore and VM launch validation: codebase-memory MCP `search_graph` failed with `Transport closed`,
+  so this slice used focused shell reads after the required graph attempt. The first `pnpm verify:autostart` run failed
+  because `manage-autostart.sh` rejected `--jack-provider-command`. After implementation, `bash -n` for touched shell
+  scripts, `pnpm vm:launch -- --target arch-hyprland-pipewire --image /operator/images/arch.qcow2 --ssh-port 2322`,
+  `pnpm verify:autostart`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:vm`, `pnpm check`,
+  `pnpm detect:audio`, `git diff --check`, touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.milestone-op` passed. The VM launch dry-run wrote no `.vm/run` state. No real JACK provider
+  binary was executed, and no live VM, host audio mutation, package install, public release, tag push, secret write,
+  Bunny deployment, live URL smoke, or support matrix promotion was performed.
+- 2026-07-04 VM launch-plan surface: `scripts/vm-matrix.sh render-launch-plan` now emits TSV rows with target,
+  operator-owned image placeholder, image format, firmware placeholder, SSH port, memory, CPU count, dry-run launch
+  command, and matching evidence-pull command. `pnpm vm:render-launch-plan` exposes the same all-target handoff.
+- 2026-07-04 VM launch-plan validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so this
+  slice used focused shell reads after the required graph attempt. `bash -n scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, direct `pnpm vm:render-launch-plan -- --all --image-root
+  /operator/images --start-port 2600` readback, `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm verify:vm`
+  passed before the broader gate run. No VM was launched, no `.vm/run` state was written, no image was downloaded, and
+  no support matrix row was promoted.
+- 2026-07-04 final release VM launch-plan evidence: `scripts/collect-release-evidence.mjs` now records
+  `vm-launch-plan.tsv` in every evidence profile plus `release.vmLaunchPlan` metadata for image root and start port.
+  `scripts/verify-release-evidence.mjs --require-vm-launch-plan` now requires a successful `vm-launch-plan` command,
+  validates the `render-launch-plan --all` invocation, checks every `vm/targets.tsv` row in the TSV log, and verifies
+  the paired dry-run `scripts/vm-matrix.sh launch` and `scripts/collect-vm-evidence-ssh.sh --execute` commands.
+- 2026-07-04 final release VM launch-plan validation: codebase-memory MCP `search_graph` failed with
+  `Transport closed`, so this slice used focused shell reads after the required graph attempt. `node --check
+  scripts/collect-release-evidence.mjs`, `node --check scripts/verify-release-evidence.mjs`,
+  `bash -n scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, and `pnpm verify:docs` passed before the broader gate run. No VM was launched, no `.vm/run`
+  state was written, no image was downloaded, no public release was created, no secret was written, and no support
+  matrix row was promoted. Final validation also passed with `pnpm verify:vm`, `pnpm check`, `pnpm detect:audio`,
+  `git diff --check`, touched-file line-length checks, `gsd-sdk query roadmap.analyze`, and
+  `gsd-sdk query init.phase-op 12`.
+- 2026-07-04 VM matrix runbook generation: `scripts/vm-matrix.sh render-runbook` now renders a markdown operator
+  runbook from `vm/targets.tsv` for `--target` or `--all`, reusing the launch/evidence command builders and the same
+  port/resource validation as launch-plan rendering. `package.json` exposes `pnpm vm:render-runbook`, and docs explain
+  that it is non-mutating until an operator runs printed `--execute` commands.
+- 2026-07-04 VM matrix runbook validation: codebase-memory MCP `search_graph` failed with `Transport closed`, so this
+  slice used focused shell reads after the required graph attempt. `bash -n scripts/vm-matrix.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, touched-file line-length checks, direct
+  `pnpm vm:render-runbook -- --target arch-hyprland-pipewire --image-root /operator/images --start-port 2600`
+  readback, `pnpm verify:scripts`, and `pnpm verify:docs` passed before the broader gate run. No VM was launched,
+  no `.vm/run` state was written, no image was downloaded, no package was installed, no public release was created,
+  no secret was written, and no support matrix row was promoted. Final validation also passed with `pnpm verify:vm`,
+  `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file line-length checks,
+  `gsd-sdk query roadmap.analyze`, and `gsd-sdk query init.phase-op 12`.

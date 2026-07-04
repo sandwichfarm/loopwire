@@ -14,6 +14,11 @@ remote_output_dir=""
 local_output_dir=""
 screenshot_command=""
 desktop_port=""
+published_release_dir=""
+published_release_repo=""
+published_release_tag=""
+release_public_key=""
+require_published_release="false"
 operator_note=""
 execute="false"
 
@@ -33,6 +38,11 @@ Options:
   --local-output-dir DIR            Local evidence dir. Defaults to .vm/evidence/TARGET.
   --screenshot-command CMD          Guest screenshot command for collect-vm-evidence.sh.
   --desktop-port PORT               Guest desktop launch smoke port for collect-vm-evidence.sh.
+  --published-release-dir DIR       Guest-visible signed release directory for installed-release smoke.
+  --published-release-repo REPO     GitHub repository for installed-release smoke.
+  --published-release-tag TAG       GitHub release tag for installed-release smoke.
+  --release-public-key FILE         Guest-visible release public key for signature verification.
+  --require-published-release       Require installed-release smoke in guest evidence verification.
   --note TEXT                       Append operator context to guest notes.md.
   --execute                         Run SSH/SCP and verify local evidence. Default is dry-run.
 
@@ -136,6 +146,26 @@ while [ "$#" -gt 0 ]; do
       desktop_port="${2:-}"
       shift 2
       ;;
+    --published-release-dir)
+      published_release_dir="${2:-}"
+      shift 2
+      ;;
+    --published-release-repo)
+      published_release_repo="${2:-}"
+      shift 2
+      ;;
+    --published-release-tag)
+      published_release_tag="${2:-}"
+      shift 2
+      ;;
+    --release-public-key)
+      release_public_key="${2:-}"
+      shift 2
+      ;;
+    --require-published-release)
+      require_published_release="true"
+      shift
+      ;;
     --note)
       operator_note="${2:-}"
       shift 2
@@ -162,6 +192,21 @@ if [ -n "$desktop_port" ]; then
   validate_tcp_port "$desktop_port" "--desktop-port"
 fi
 
+if [ -n "$published_release_dir" ] && [ -n "$published_release_repo" ]; then
+  fail "use either --published-release-dir or --published-release-repo, not both"
+fi
+
+if [ "$require_published_release" = "true" ] && [ -z "$published_release_dir" ] && [ -z "$published_release_repo" ]; then
+  fail "--require-published-release requires --published-release-dir or --published-release-repo"
+fi
+
+if [ -n "$published_release_dir" ] || [ -n "$published_release_repo" ]; then
+  [ -n "$release_public_key" ] || fail "published release smoke requires --release-public-key"
+  if [ -n "$published_release_repo" ] && [ -z "$published_release_tag" ]; then
+    fail "--published-release-repo requires --published-release-tag"
+  fi
+fi
+
 remote_output_dir="${remote_output_dir:-.vm/evidence/$target}"
 local_output_dir="${local_output_dir:-.vm/evidence/$target}"
 
@@ -183,6 +228,22 @@ if [ -n "$desktop_port" ]; then
   collector_args+=(--desktop-port "$desktop_port")
 fi
 
+if [ -n "$published_release_dir" ]; then
+  collector_args+=(--published-release-dir "$published_release_dir")
+fi
+
+if [ -n "$published_release_repo" ]; then
+  collector_args+=(--published-release-repo "$published_release_repo" --published-release-tag "$published_release_tag")
+fi
+
+if [ -n "$release_public_key" ]; then
+  collector_args+=(--release-public-key "$release_public_key")
+fi
+
+if [ "$require_published_release" = "true" ]; then
+  collector_args+=(--require-published-release)
+fi
+
 if [ -n "$operator_note" ]; then
   collector_args+=(--note "$operator_note")
 fi
@@ -194,6 +255,9 @@ done
 
 scp_source="$(ssh_target):$(remote_evidence_path)/."
 verify_command=(bash scripts/verify-vm-evidence.sh --target "$target" --evidence-dir "$local_output_dir")
+if [ "$require_published_release" = "true" ]; then
+  verify_command+=(--require-published-release)
+fi
 
 echo "Target: $target"
 echo "Guest: $(ssh_target)"

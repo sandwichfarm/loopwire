@@ -255,6 +255,35 @@ describe("createPactlVirtualSinkRuntimeAdapter", () => {
     ]);
   });
 
+  it("rejects PulseAudio routes that fan one source out to multiple outputs", async () => {
+    const duplicateSourceConfiguration: HostRuntimeConfiguration = {
+      ...routedConfiguration,
+      outputs: [
+        ...(routedConfiguration.outputs ?? []),
+        { id: "Monitor", label: "Monitor", channels: 2 }
+      ],
+      routes: [
+        ...(routedConfiguration.routes ?? []),
+        { id: "firefox-monitor", from: "firefox", to: "Monitor", gain: 0.8, muted: false }
+      ]
+    };
+    const { runner, calls } = createRecordingRunner({});
+    const adapter = createPactlVirtualSinkRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(duplicateSourceConfiguration);
+    const refreshed = await adapter.refreshRoutes(duplicateSourceConfiguration);
+    const verified = await adapter.verify(duplicateSourceConfiguration);
+
+    expect(result).toEqual({
+      ok: false,
+      message:
+        "PulseAudio compatibility cannot route one source to multiple outputs: Firefox uses routes firefox-program, firefox-monitor"
+    });
+    expect(refreshed).toEqual(result);
+    expect(verified).toEqual(result);
+    expect(calls).toEqual([]);
+  });
+
   it("creates monitor sinks and loopbacks for configured monitors", async () => {
     const outputLoad = expectedPactlLoadWithName("monitored_mix", "program", "program", "monitored_mix");
     const headphonesLoad = expectedMonitorLoad("monitored_mix", "headphones", "headphones");

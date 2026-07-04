@@ -146,6 +146,11 @@ async function applyPactlVirtualSinks(
     return { ok: false, message: "Configuration has no outputs to materialize as virtual sinks" };
   }
 
+  const routeShape = validatePactlStreamRouteShape(configuration);
+  if (!routeShape.ok) {
+    return routeShape;
+  }
+
   const existing = await unloadPactlVirtualSinks(context, configuration);
   if (!existing.ok) {
     return existing;
@@ -195,6 +200,11 @@ async function verifyPactlVirtualSinks(
   context: PactlRuntimeContext,
   configuration: HostRuntimeConfiguration
 ): Promise<HostRuntimeOperationResult> {
+  const routeShape = validatePactlStreamRouteShape(configuration);
+  if (!routeShape.ok) {
+    return routeShape;
+  }
+
   const expectedSinkNames = expectedVirtualSinkNames(context.sinkPrefix, configuration);
   const listed = await context.runPactl("verify", ["list", "short", "sinks"]);
 
@@ -305,6 +315,11 @@ async function routeConfiguredSinkInputs(
   configuration: HostRuntimeConfiguration,
   loadedModuleIds: readonly string[]
 ): Promise<HostRuntimeOperationResult> {
+  const routeShape = validatePactlStreamRouteShape(configuration);
+  if (!routeShape.ok) {
+    return routeShape;
+  }
+
   const routePlans = createSinkInputRoutePlans(context.sinkPrefix, configuration);
 
   if (routePlans.length === 0) {
@@ -602,6 +617,31 @@ function createSinkInputRoutePlans(
         }
       ];
     });
+}
+
+function validatePactlStreamRouteShape(configuration: HostRuntimeConfiguration): HostRuntimeOperationResult {
+  const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
+  const routesBySource = new Map<string, HostRuntimeRoute[]>();
+
+  for (const route of configuration.routes ?? []) {
+    routesBySource.set(route.from, [...(routesBySource.get(route.from) ?? []), route]);
+  }
+
+  const duplicateSourceRoutes = [...routesBySource.entries()].filter(([, routes]) => routes.length > 1);
+
+  if (duplicateSourceRoutes.length === 0) {
+    return { ok: true };
+  }
+
+  const details = duplicateSourceRoutes.map(([sourceId, routes]) => {
+    const sourceLabel = inputs.get(sourceId)?.label ?? sourceId;
+    return `${sourceLabel} uses routes ${routes.map((route) => route.id).join(", ")}`;
+  });
+
+  return {
+    ok: false,
+    message: `PulseAudio compatibility cannot route one source to multiple outputs: ${details.join("; ")}`
+  };
 }
 
 function routeSourceTokens(input: HostRuntimeEndpoint): readonly string[] {

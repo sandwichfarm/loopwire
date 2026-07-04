@@ -54,6 +54,3 @@ jobs:
 
       - name: Run workspace checks
         run: pnpm check
-
-      - name: Check Tauri crate graph
-        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml

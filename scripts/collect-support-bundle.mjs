@@ -1,12 +1,16 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { arch, hostname, platform, release, type, userInfo } from "node:os";
 
 const args = process.argv.slice(2);
+const configurationFile = readOption("--configuration");
+const configurationId = readOption("--configuration-id");
+const jackPortsFile = readOption("--jack-ports-file");
 const outputDir = readOption("--output-dir");
 const profile = readOption("--profile") ?? "quick";
+const stateFile = readOption("--state-file");
 
 if (args.includes("-h") || args.includes("--help")) {
   usage();
@@ -27,6 +31,8 @@ mkdirSync(outputDir, { recursive: true });
 const redact = createRedactor();
 const commands = supportCommands(profile);
 const results = commands.map((command) => runSupportCommand(command, redact));
+const audio = summarizeAudioDetection(outputDir);
+const jack = summarizeJackReadiness(outputDir);
 const manifest = {
   kind: "loopwire.support-bundle",
   version: 1,
@@ -55,6 +61,8 @@ const manifest = {
     cargo: redact(readCommand("cargo --version", true)),
     tauri: redact(readCommand("cargo tauri --version", true))
   },
+  audio,
+  jack,
   commands: results
 };
 
@@ -74,10 +82,12 @@ function usage() {
 
 Usage:
   collect-support-bundle.mjs --output-dir DIR [--profile quick|full]
+                             [--configuration FILE | --state-file FILE [--configuration-id ID]]
+                             [--jack-ports-file FILE]
 
 Profiles:
   quick  Backend detection, host diagnostics, and autostart status.
-  full   Quick profile plus workspace check and Tauri Rust compile.
+  full   Quick profile plus workspace check and Tauri shell verification.
 
 Writes:
   support-bundle.json
@@ -87,6 +97,12 @@ Writes:
   ct-host-check.log
   autostart-status.log
   optional full-profile command logs
+
+Optional JACK readiness input:
+  --configuration FILE       Loopwire configuration export or raw configuration JSON for JACK readiness.
+  --state-file FILE          Persisted Loopwire state for JACK readiness.
+  --configuration-id ID      Select a configuration from --state-file.
+  --jack-ports-file FILE     Verify against captured jack_lsp output instead of live jack_lsp.
 `);
 }
 
@@ -99,7 +115,7 @@ function supportCommands(selectedProfile) {
   const quick = [
     {
       name: "detect-audio",
-      command: "pnpm --filter @loopwire/audio-host build >/dev/null && node scripts/detect-audio-backends.mjs --pretty",
+      command: "pnpm --filter @loopwire/audio-host build >/dev/null 2>&1 && node scripts/detect-audio-backends.mjs --pretty",
       log: "detect-audio.json"
     },
     {
@@ -113,24 +129,70 @@ function supportCommands(selectedProfile) {
       log: "autostart-status.log"
     }
   ];
+  const jackCommand = jackReadinessCommand();
+  const quickWithOptionalJack = jackCommand ? [...quick, jackCommand] : quick;
 
   if (selectedProfile === "quick") {
-    return quick;
+    return quickWithOptionalJack;
   }
 
   return [
-    ...quick,
+    ...quickWithOptionalJack,
     {
       name: "workspace-check",
       command: "pnpm check",
       log: "workspace-check.log"
     },
     {
-      name: "tauri-cargo-check",
-      command: "cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
-      log: "tauri-cargo-check.log"
+      name: "tauri-verify",
+      command: "pnpm verify:tauri",
+      log: "tauri-verify.log"
     }
   ];
+}
+
+function jackReadinessCommand() {
+  const selectorArgs = [];
+
+  if (configurationFile) {
+    if (configurationId) {
+      fail("--configuration-id can only be used with --state-file", 2);
+    }
+
+    selectorArgs.push("--configuration", configurationFile);
+  } else if (stateFile) {
+    selectorArgs.push("--state-file", stateFile);
+
+    if (configurationId) {
+      selectorArgs.push("--configuration-id", configurationId);
+    }
+  } else if (configurationId) {
+    fail("--configuration-id requires --state-file", 2);
+  } else if (jackPortsFile) {
+    fail("--jack-ports-file requires --configuration or --state-file", 2);
+  } else {
+    return undefined;
+  }
+
+  const portsArgs = jackPortsFile ? ["--ports-file", jackPortsFile] : [];
+  const commandArgs = [
+    "node",
+    "scripts/describe-jack-ports.mjs",
+    "--verify",
+    "--pretty",
+    ...selectorArgs,
+    ...portsArgs
+  ];
+
+  return {
+    name: "jack-readiness",
+    command: [
+      "pnpm --filter @loopwire/core build >/dev/null 2>&1",
+      "pnpm --filter @loopwire/audio-host build >/dev/null 2>&1",
+      commandArgs.map(shellQuote).join(" ")
+    ].join(" && "),
+    log: "jack-port-requirements.json"
+  };
 }
 
 function runSupportCommand({ name, command, log }, redact) {
@@ -194,12 +256,95 @@ function writeNotes(targetDir, manifest) {
     "- support-bundle.json: manifest, tool versions, git state, command statuses.",
     "- command-results.tsv: command ledger.",
     "- detect-audio.json: backend detection and capability report.",
+    "- support-bundle.json audio.backends: summarized backend availability, route-control scope, and known gaps.",
+    "- jack-port-requirements.json: present only when a Loopwire configuration/state is provided for JACK readiness.",
     "- ct-host-check.log: redacted host audio diagnostics.",
     "- autostart-status.log: user-scoped startup status.",
-    "- workspace-check.log and tauri-cargo-check.log: present only in the full profile."
+    "- workspace-check.log and tauri-verify.log: present only in the full profile."
   ];
 
   writeFileSync(join(targetDir, "notes.md"), `${lines.join("\n")}\n`);
+}
+
+function summarizeAudioDetection(targetDir) {
+  const detectAudioPath = join(targetDir, "detect-audio.json");
+
+  try {
+    const report = JSON.parse(readFileSync(detectAudioPath, "utf8"));
+    if (!Array.isArray(report.reports)) {
+      return { status: "invalid", backends: [], message: "detect-audio.json did not contain a reports array." };
+    }
+
+    return {
+      status: "parsed",
+      generatedAt: report.generatedAt ?? "",
+      platform: report.platform ?? "",
+      backends: report.reports.map((backend) => ({
+        kind: backend.kind ?? "unknown",
+        displayName: backend.displayName ?? String(backend.kind ?? "unknown"),
+        availability: backend.availability ?? "unavailable",
+        transport: backend.transport ?? "unknown",
+        controlScope: backend.mixing?.controlScope ?? "unknown",
+        supportsPerEdgeGain: backend.mixing?.supportsPerEdgeGain === true,
+        supportsPerEdgeMute: backend.mixing?.supportsPerEdgeMute === true,
+        gaps: Array.isArray(backend.gaps) ? backend.gaps : [],
+        diagnostics: Array.isArray(backend.diagnostics)
+          ? backend.diagnostics.map((diagnostic) => ({
+            level: diagnostic.level ?? "warning",
+            code: diagnostic.code ?? "UNKNOWN",
+            message: diagnostic.message ?? ""
+          }))
+          : []
+      }))
+    };
+  } catch (error) {
+    return {
+      status: "invalid",
+      backends: [],
+      message: error instanceof Error ? error.message : "detect-audio.json could not be parsed."
+    };
+  }
+}
+
+function summarizeJackReadiness(targetDir) {
+  const jackPath = join(targetDir, "jack-port-requirements.json");
+
+  try {
+    const report = JSON.parse(readFileSync(jackPath, "utf8"));
+    if (!Array.isArray(report.requirements)) {
+      return { status: "invalid", message: "jack-port-requirements.json did not contain requirements." };
+    }
+
+    return {
+      status: "parsed",
+      ok: report.ok === true,
+      configurationId: report.configurationId ?? "",
+      configurationName: report.configurationName ?? "",
+      portSource: report.portSource ?? "",
+      portCount: Number.isInteger(report.portCount) ? report.portCount : 0,
+      missingCount: Number.isInteger(report.missingCount) ? report.missingCount : 0,
+      requirements: report.requirements.map((requirement) => ({
+        kind: requirement.kind ?? "unknown",
+        endpointId: requirement.endpointId ?? "",
+        endpointLabel: requirement.endpointLabel ?? "",
+        source: requirement.source ?? "unknown",
+        deviceName: requirement.deviceName ?? "",
+        channelCount: Number.isInteger(requirement.channelCount) ? requirement.channelCount : 0,
+        ready: requirement.ready === true,
+        matchedPorts: Array.isArray(requirement.matchedPorts) ? requirement.matchedPorts : [],
+        missingPorts: Array.isArray(requirement.missingPorts) ? requirement.missingPorts : []
+      }))
+    };
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { status: "not_requested" };
+    }
+
+    return {
+      status: "invalid",
+      message: error instanceof Error ? error.message : "jack-port-requirements.json could not be parsed."
+    };
+  }
 }
 
 function createRedactor() {
@@ -235,4 +380,8 @@ function safeUserName() {
   } catch {
     return "";
   }
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
 }

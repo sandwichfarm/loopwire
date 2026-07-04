@@ -32,6 +32,8 @@ verification path.
 - Invalid imports are rejected without changing the current state.
 - Legacy persisted payloads are migrated into the current schema in core tests.
 - Failed apply or verify operations roll back to the previous app-runtime configuration.
+- Configuration switches are serialized in the desktop shell. While unload, apply, verify, or rollback is in flight,
+  configuration actions are disabled and stale async switch results cannot replace the latest selected configuration.
 - Route edits update the saved configuration immediately, but they do not change host audio yet.
 - The source picker can list detected PipeWire output ports, JACK output ports, or PulseAudio-compatible running app
   streams in the desktop shell and falls back to static candidates when stream enumeration is unavailable.
@@ -56,25 +58,49 @@ verification path.
 
 The PulseAudio compatibility adapter can create Loopwire-owned sinks, move matching streams, apply stream-level
 volume/mute, and create monitor loopbacks through guarded `pactl` calls. Direct host mutation still belongs behind an
-explicit apply path; dry-run and fake-runner tests remain the default verification surface.
+explicit apply path; dry-run and fake-runner tests remain the default verification surface. Because PulseAudio controls
+whole sink-input streams, it can route each source to only one output at a time. The adapter and desktop preflight reject
+multiple routes from the same source instead of moving one stream through several outputs where only the final move would
+win.
 
 Native PipeWire can create Loopwire-owned virtual output and monitor sinks, link existing source ports into those
-sinks, disconnect muted route edges, and route to physical monitor sink targets. JACK can link existing ports,
-disconnect muted route edges, and route to physical monitor sink targets. JACK virtual ports and true mixer-style gain
-remain planned backend work.
+sinks, disconnect muted route edges, and route to physical monitor sink targets. JACK can link existing host ports or
+pre-existing Loopwire-owned JACK ports, disconnect muted route edges, and route to physical or Loopwire-owned monitor
+targets. JACK virtual port creation and true mixer-style gain remain planned backend work.
 
 The desktop exposes a `Host apply` control. `Preview` mode runs selected backend adapters without mutating the host.
 `Live armed` mode is session-local and routes commands through the Tauri command bridge, which only allows `pactl`,
 `pw-cli`, `pw-link`, `jack_lsp`, `jack_connect`, and `jack_disconnect` without invoking a shell.
+Changing the selected backend immediately re-verifies the active configuration in preview mode and disarms any previous
+live-apply session, so backend changes cannot silently carry a live mutation state across audio systems.
+After startup restore or a configuration click, the desktop shows a runtime activity ledger with the exact unload,
+apply, verify, and rollback operations that ran, so switch behavior is inspectable instead of being reduced to a single
+status line.
 
 Before live mode can be armed, the desktop runs a static preflight against the selected backend and configuration. It
-blocks known-failing live applies such as no selected backend, native PipeWire/JACK routes with non-100% gain, missing
-host source ports for native routes, and JACK outputs or monitors that still need virtual-port support.
+blocks known-failing live applies such as no selected backend, PulseAudio routes that fan one source out to multiple
+outputs, native PipeWire/JACK routes with non-100% gain, and missing host source ports for native PipeWire routes.
+JACK live apply also requires every routed source, routed output, monitor source, and monitor target to be bound to an
+existing JACK port before arming, because Loopwire does not create JACK client ports yet.
+For unbound JACK endpoints, the blocker includes the deterministic Loopwire-owned client name that the runtime adapter
+would probe, such as `loopwire_<configuration>_<endpoint>`, so the required external JACK client/port binding is
+visible before any host command runs.
+The same list is available for automation with
+`pnpm jack:ports -- --configuration exported-loopwire-config.json --format tsv`.
+After creating the external JACK clients, run
+`pnpm jack:verify -- --configuration exported-loopwire-config.json` to confirm the port set is ready before arming live
+apply.
 When more than one issue is present, the preflight strip lists every blocker so the configuration can be fixed without
-trial-and-error.
+trial-and-error. Native backend preflight names the affected routes, sources, outputs, and monitors instead of only
+describing the blocker category.
+For native PipeWire or JACK, the preflight strip also offers a `Reset gains` action when non-100% route gains are the
+blocking issue, bringing all affected routes back to 100% without touching host audio.
+When a native PipeWire or JACK backend is selected, route gain sliders become read-only because those backends are
+link-only today; mute stays available and `Reset gains` remains the repair path for older configurations.
 
-The desktop also exposes selected-backend route-control semantics. PulseAudio compatibility is stream-level, native
-PipeWire and JACK are link-only with route mute support, and true graph-edge gain remains a backend capability gap.
+The desktop also exposes selected-backend route-control semantics from detected backend mixing semantics. PulseAudio compatibility is
+stream-level, native PipeWire and JACK are link-only with route mute support, ALSA route controls are unavailable, and
+true graph-edge gain remains a backend capability gap until a live DSP backend reports graph-edge gain support.
 
 ## Monitors
 

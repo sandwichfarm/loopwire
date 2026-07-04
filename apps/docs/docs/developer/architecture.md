@@ -20,7 +20,8 @@ The third slice adds configuration CRUD, versioned import/export, legacy persist
 an app-runtime transaction port for unload, apply, verify, and rollback.
 The fourth slice adds keyboard-accessible route gain/mute controls, on-demand backend diagnostics, responsive visual QA,
 and guarded Tauri custom chrome actions. The desktop defaults to native decorations, but the custom chrome preference
-is persisted and requests an undecorated Tauri window before showing Loopwire-owned drag, minimize, and close controls.
+is persisted and requests an undecorated Tauri window before showing Loopwire-owned drag, minimize, maximize/restore,
+and close controls.
 
 The first host mutation primitives now live in `@loopwire/audio-host`. A guarded native PipeWire adapter links existing
 PipeWire ports through `pw-link`, creates Loopwire-owned virtual output and monitor sinks through `pw-cli create-node adapter`,
@@ -49,16 +50,35 @@ The core package owns configuration state and exposes pure operations for:
 The desktop app currently injects an app-local runtime adapter. That adapter proves transaction ordering and rollback
 behavior without mutating the host graph. The desktop can also inject selected host adapters in preview or live mode.
 Live mode is session-local, requires the Tauri shell, and routes commands through an allowlisted bridge for `pactl`,
-`pw-link`, and `pw-cli`.
+`pw-link`, `pw-cli`, `jack_lsp`, `jack_connect`, and `jack_disconnect`.
 
 The desktop runs live-apply preflight before arming host mutation. The preflight catches static backend/configuration
 mismatches that would fail before useful host work starts, including missing backend selection, non-unity native
-PipeWire/JACK route gain, missing native source ports, and JACK virtual-port gaps.
+PipeWire/JACK route gain, missing native source ports, and JACK virtual-port gaps. JACK deterministic port names come
+from the shared audio-host requirement helper, keeping desktop blocker text aligned with the runtime adapter's
+`jack_lsp` probe expectations.
+The `pnpm jack:ports` command is the CLI surface for that same helper, so support scripts and pro-audio session
+templates can inspect required JACK clients without touching the host graph. `pnpm jack:verify` adds the read-only
+readiness check by comparing those requirements against live `jack_lsp` output or a saved port-list fixture. The native
+JACK runtime can call an injected JACK virtual port provider for missing Loopwire-owned ports and then re-probe
+`jack_lsp`, but the shipped desktop path does not yet bundle a real JACK client provider.
 
 Route gain and mute edits are persisted as configuration changes. The PulseAudio compatibility adapter can apply them
 to currently present matching sink inputs. Native PipeWire and JACK enforce route mute by disconnecting configured
 existing graph edges, but still reject non-unity gain before host commands because plain link operations do not provide
 per-edge gain.
+
+`@loopwire/core` also includes a pure DSP mix planner, renderer, and cycle runner. It turns a configuration into
+per-output contribution plans, applies per-edge gain and mute to planar `Float32Array` source buffers, sums active
+routes without clamping float headroom, and reports missing source buffers. The cycle runner reads each source once
+through an injected source port and writes rendered outputs through injected output ports, so future graph-edge DSP
+adapters have a typed execution contract. `@loopwire/audio-host` wraps that contract with an injected DSP graph adapter
+for dry-run planning, apply-mode render/write, verifier-driven output checks, clear-on-unload behavior, and
+restore-on-rollback behavior. It also exposes a first-class configuration runtime adapter wrapper for the core
+startup and switch transaction contract. The package also includes a command-backed DSP provider helper that maps
+`read-source`, `write-output`, `verify-output`, and `clear-output` operations to a provider command, with rendered
+buffers sent as JSON stdin for write and verify operations.
+It does not yet connect live host capture streams to host playback or virtual device injection.
 
 ## Backend Contract Direction
 
@@ -73,16 +93,18 @@ Every backend adapter must eventually provide:
 - typed errors with next actions.
 
 No UI component should call PipeWire, PulseAudio, JACK, ALSA, systemd, or shell commands directly.
+Desktop route-control status and live-apply preflight consume detected backend mixing semantics instead of hardcoded
+backend names, so graph-edge-capable adapters can unlock route gain without another UI contract change.
 
 The Tauri command bridge is the only desktop live-command boundary. It rejects commands outside the explicit audio
-allowlist and runs arguments without a shell.
+allowlist, rejects argument shapes outside Loopwire's detector/runtime contract, and runs arguments without a shell.
 
 Current read-only probes:
 
 - PipeWire: `wpctl status`, `pw-cli --version`, fallback `pw-cli info 0`.
 - PulseAudio: `pactl info`.
 - JACK: `jack_lsp`.
-- ALSA: `aplay -l`.
+- ALSA: `aplay -l`, `arecord -l`.
 
 Current host mutation primitive:
 

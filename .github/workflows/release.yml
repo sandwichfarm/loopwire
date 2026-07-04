@@ -44,15 +44,25 @@ jobs:
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             release_tag="${{ inputs.tag }}"
           fi
-          case "$release_tag" in
-            v*) ;;
-            *)
-              echo "Release tag must start with v: ${release_tag}" >&2
-              exit 1
-              ;;
-          esac
+          tag_pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
+          if [[ ! "$release_tag" =~ $tag_pattern ]]; then
+            echo "Release tag must be v-prefixed semver without path separators: ${release_tag}" >&2
+            exit 1
+          fi
+          if ! git check-ref-format --allow-onelevel "$release_tag"; then
+            echo "Release tag is not a valid git tag name: ${release_tag}" >&2
+            exit 1
+          fi
+          git fetch --force --tags
+          tag_ref="refs/tags/${release_tag}"
+          if ! release_commit="$(git rev-parse -q --verify "${tag_ref}^{commit}")"; then
+            echo "Release tag does not exist in this checkout: ${release_tag}" >&2
+            exit 1
+          fi
+          git checkout --detach "$release_commit"
           printf 'LOOPWIRE_RELEASE_TAG=%s\n' "$release_tag" >>"$GITHUB_ENV"
           printf 'LOOPWIRE_RELEASE_VERSION=%s\n' "${release_tag#v}" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_RELEASE_COMMIT=%s\n' "$release_commit" >>"$GITHUB_ENV"
 
       - name: Require versioned release notes
         run: |
@@ -65,7 +75,6 @@ jobs:
           bash scripts/verify-release-readiness.sh \
             --tag "$LOOPWIRE_RELEASE_TAG" \
             --skip-gh \
-            --skip-tag \
             --skip-public-key
           printf 'LOOPWIRE_RELEASE_NOTES_FILE=%s\n' "$release_notes" >>"$GITHUB_ENV"
 
@@ -101,9 +110,6 @@ jobs:
 
       - name: Run workspace checks
         run: pnpm check
-
-      - name: Check Tauri crate graph
-        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 
       - name: Build Tauri Linux bundles
         run: pnpm --filter @loopwire/desktop tauri:build
@@ -163,7 +169,7 @@ jobs:
     name: Publish GitHub release
     needs: build-linux
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.0
@@ -177,13 +183,22 @@ jobs:
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             release_tag="${{ inputs.tag }}"
           fi
-          case "$release_tag" in
-            v*) ;;
-            *)
-              echo "Release tag must start with v: ${release_tag}" >&2
-              exit 1
-              ;;
-          esac
+          tag_pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
+          if [[ ! "$release_tag" =~ $tag_pattern ]]; then
+            echo "Release tag must be v-prefixed semver without path separators: ${release_tag}" >&2
+            exit 1
+          fi
+          if ! git check-ref-format --allow-onelevel "$release_tag"; then
+            echo "Release tag is not a valid git tag name: ${release_tag}" >&2
+            exit 1
+          fi
+          git fetch --force --tags
+          tag_ref="refs/tags/${release_tag}"
+          if ! release_commit="$(git rev-parse -q --verify "${tag_ref}^{commit}")"; then
+            echo "Release tag does not exist in this checkout: ${release_tag}" >&2
+            exit 1
+          fi
+          git checkout --detach "$release_commit"
           release_notes="apps/docs/docs/release-notes/${release_tag#v}.md"
           if [ ! -f "$release_notes" ]; then
             echo "::error::Missing versioned release notes: ${release_notes}"
@@ -191,7 +206,37 @@ jobs:
           fi
           printf 'LOOPWIRE_RELEASE_TAG=%s\n' "$release_tag" >>"$GITHUB_ENV"
           printf 'LOOPWIRE_RELEASE_VERSION=%s\n' "${release_tag#v}" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_RELEASE_COMMIT=%s\n' "$release_commit" >>"$GITHUB_ENV"
           printf 'LOOPWIRE_RELEASE_NOTES_FILE=%s\n' "$release_notes" >>"$GITHUB_ENV"
+
+      - name: Install evidence collection dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Download architecture artifacts
         uses: actions/download-artifact@v8.0.1
@@ -276,3 +321,72 @@ jobs:
             --base-url "file://${published_dir}" \
             --prefix "$RUNNER_TEMP/loopwire-published-bin" \
             --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE"
+
+      - name: Collect published release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LOOPWIRE_RELEASE_PRIVATE_KEY: ${{ secrets.LOOPWIRE_RELEASE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LOOPWIRE_RELEASE_PRIVATE_KEY:-}" ]; then
+            echo "Missing LOOPWIRE_RELEASE_PRIVATE_KEY repository secret." >&2
+            exit 1
+          fi
+          evidence_dir="dist/release-evidence/${LOOPWIRE_RELEASE_TAG}"
+          pnpm collect:evidence -- \
+            --output-dir "$evidence_dir" \
+            --profile quick \
+            --release-tag "$LOOPWIRE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE" \
+            --require-published-release \
+            --require-dsp-provider-plan
+          pnpm verify:release-evidence -- \
+            --evidence-dir "$evidence_dir" \
+            --release-tag "$LOOPWIRE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --require-published-release \
+            --require-dsp-provider-plan \
+            --require-no-release-blockers
+          evidence_archive="dist/release/loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"
+          tar -C "dist/release-evidence" -czf "$evidence_archive" "$LOOPWIRE_RELEASE_TAG"
+          private_key_file="$RUNNER_TEMP/loopwire-release-private.pem"
+          printf '%s\n' "$LOOPWIRE_RELEASE_PRIVATE_KEY" >"$private_key_file"
+          chmod 0600 "$private_key_file"
+          (
+            cd dist/release
+            find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%f\n' \
+              | sort \
+              | xargs sha256sum >SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
+          bash scripts/sign-release-artifacts.sh \
+            --release-dir dist/release \
+            --private-key "$private_key_file"
+          bash scripts/verify-release-signature.sh \
+            --release-dir dist/release \
+            --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE"
+          gh release upload "$LOOPWIRE_RELEASE_TAG" \
+            dist/release/SHA256SUMS \
+            dist/release/SHA256SUMS.sig \
+            "$evidence_archive" \
+            --clobber
+          bash scripts/verify-published-release.sh \
+            --repo "$GITHUB_REPOSITORY" \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --require-release-evidence
+          printf 'LOOPWIRE_RELEASE_EVIDENCE_ARCHIVE=%s\n' "$evidence_archive" >>"$GITHUB_ENV"
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-release-evidence-${{ env.LOOPWIRE_RELEASE_TAG }}
+          path: |
+            dist/release-evidence/${{ env.LOOPWIRE_RELEASE_TAG }}
+            ${{ env.LOOPWIRE_RELEASE_EVIDENCE_ARCHIVE }}
+          if-no-files-found: error
+          retention-days: 90

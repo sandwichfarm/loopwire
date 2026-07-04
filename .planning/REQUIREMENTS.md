@@ -14,11 +14,11 @@
 
 ### Audio Backend Compatibility
 
-- [ ] **BACKEND-01**: App detects available PipeWire, PulseAudio, JACK, and ALSA candidates.
-- [ ] **BACKEND-02**: App auto-selects one backend when exactly one viable backend exists.
-- [ ] **BACKEND-03**: App prompts the user when more than one viable backend exists.
-- [ ] **BACKEND-04**: User can change backend selection in settings.
-- [ ] **BACKEND-05**: Backend adapters expose capability, diagnostics, apply, verify, and rollback contracts.
+- [x] **BACKEND-01**: App detects available PipeWire, PulseAudio, JACK, and ALSA candidates.
+- [x] **BACKEND-02**: App auto-selects one backend when exactly one viable backend exists.
+- [x] **BACKEND-03**: App prompts the user when more than one viable backend exists.
+- [x] **BACKEND-04**: User can change backend selection in settings.
+- [x] **BACKEND-05**: Backend adapters expose capability, diagnostics, apply, verify, and rollback contracts.
 
 ### Configuration Runtime
 
@@ -29,25 +29,25 @@
 
 ### Linux Integration
 
-- [ ] **LINUX-01**: App supports common DE and WM environments without assuming one compositor.
-- [ ] **LINUX-02**: App provides a clear user-scoped start-on-boot path.
-- [ ] **LINUX-03**: Installer detects Linux architecture and package format without forcing system changes.
-- [ ] **LINUX-04**: Packaging path exists for curl installer, AUR, Nix flake, and future distro packages.
+- [x] **LINUX-01**: App supports common DE and WM environments without assuming one compositor.
+- [x] **LINUX-02**: App provides a clear user-scoped start-on-boot path.
+- [x] **LINUX-03**: Installer detects Linux architecture and package format without forcing system changes.
+- [x] **LINUX-04**: Packaging path exists for curl installer, AUR, Nix flake, and future distro packages.
 
 ### Documentation and Website
 
-- [ ] **DOCS-01**: VitePress builds docs and the public website.
-- [ ] **DOCS-02**: Website includes above-the-fold title, subline, product screenshot, and installation instructions.
-- [ ] **DOCS-03**: Docs include backend support, architecture, install, troubleshooting, and start-on-boot guidance.
-- [ ] **DOCS-04**: Release notes and docs update with every user-visible release.
+- [x] **DOCS-01**: VitePress builds docs and the public website.
+- [x] **DOCS-02**: Website includes above-the-fold title, subline, product screenshot, and installation instructions.
+- [x] **DOCS-03**: Docs include backend support, architecture, install, troubleshooting, and start-on-boot guidance.
+- [x] **DOCS-04**: Release notes and docs update with every user-visible release.
 
 ### Quality and Delivery
 
-- [ ] **QUAL-01**: Domain behavior has unit and property-style tests.
-- [ ] **QUAL-02**: CI runs install, typecheck, tests, builds, docs build, and script syntax checks.
-- [ ] **QUAL-03**: Continuous testing covers heavier Linux/audio checks where host runners are available.
-- [ ] **QUAL-04**: CD can deploy the VitePress website to Bunny.net from protected workflows.
-- [ ] **QUAL-05**: Helper script sets required GitHub secrets for Bunny.net deployment.
+- [x] **QUAL-01**: Domain behavior has unit and property-style tests.
+- [x] **QUAL-02**: CI runs install, typecheck, tests, builds, docs build, and script syntax checks.
+- [x] **QUAL-03**: Continuous testing covers heavier Linux/audio checks where host runners are available.
+- [x] **QUAL-04**: CD can deploy the VitePress website to Bunny.net from protected workflows.
+- [x] **QUAL-05**: Helper script sets required GitHub secrets for Bunny.net deployment.
 
 ## v2 Requirements
 
@@ -88,11 +88,11 @@ Requirements for the next milestone.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | UX-01..UX-04 | Phase 1, Phase 4 | Complete |
-| BACKEND-01..BACKEND-05 | Phase 1, Phase 2 | In Progress |
-| CONFIG-01..CONFIG-04 | Phase 1, Phase 3 | In Progress |
-| LINUX-01..LINUX-04 | Phase 1, Phase 5 | In Progress |
-| DOCS-01..DOCS-04 | Phase 1, Phase 6 | In Progress |
-| QUAL-01..QUAL-05 | Phase 1, Phase 7 | In Progress |
+| BACKEND-01..BACKEND-05 | Phase 1, Phase 2 | Complete |
+| CONFIG-01..CONFIG-04 | Phase 1, Phase 3 | Complete |
+| LINUX-01..LINUX-04 | Phase 1, Phase 5 | Complete |
+| DOCS-01..DOCS-04 | Phase 1, Phase 6 | Complete |
+| QUAL-01..QUAL-05 | Phase 1, Phase 7 | Complete |
 | ROUTE-01 | Phase 8 | Complete |
 | ROUTE-02, ROUTE-03 | Phase 10 | Complete |
 | ROUTE-04 | Phase 9 | Complete |
@@ -100,11 +100,11 @@ Requirements for the next milestone.
 | SHIP-01..SHIP-03 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: 26 total
+- v1 requirements: 26 total, 26 complete
 - v2 milestone requirements: 8 total
 - Mapped to phases: 34
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-07-03 after v0.2 production routing milestone start*
+*Last updated: 2026-07-04 after support bundle backend summaries*

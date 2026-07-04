@@ -3,14 +3,17 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const validBackends = new Set(["pipewire", "pulseaudio", "jack"]);
+const validBackends = new Set(["pipewire", "pulseaudio", "jack", "dsp"]);
 const validModes = new Set(["preview", "live"]);
 
 function usage() {
   console.log(`Restore the persisted Loopwire configuration without opening the UI.
 
 Usage:
-  restore-background.mjs [--state-file FILE] [--backend pipewire|pulseaudio|jack] [--mode preview|live]
+  restore-background.mjs [--state-file FILE] [--backend pipewire|pulseaudio|jack|dsp] [--mode preview|live]
+                         [--jack-provider-command COMMAND] [--jack-provider-timeout-ms MS]
+                         [--dsp-provider-command COMMAND] [--dsp-provider-timeout-ms MS]
+                         [--dsp-frame-count FRAMES]
                          [--retry-pending-ms MS] [--retry-interval-ms MS] [--pretty]
 
 Defaults:
@@ -20,6 +23,16 @@ Defaults:
                 Live PulseAudio-only window for refreshing pending app-stream routes, default 0
   --retry-interval-ms
                 PulseAudio pending refresh interval, default 1000
+  --jack-provider-command
+                Optional command that creates missing Loopwire-owned JACK ports during JACK live restore
+  --jack-provider-timeout-ms
+                Timeout for the JACK provider command, default 5000
+  --dsp-provider-command
+                Command-backed DSP provider used when --backend dsp is selected
+  --dsp-provider-timeout-ms
+                Timeout for DSP provider operations, default 5000
+  --dsp-frame-count
+                Optional source frame count requested from the DSP provider
 
 Preview mode runs the same startup plan through dry-run host adapters. Live mode mutates host audio through the
 selected backend adapter and should only be used from an explicit user startup decision.`);
@@ -29,6 +42,11 @@ function parseArgs(argv) {
   const parsed = {
     stateFile: defaultStateFile(),
     backend: undefined,
+    jackProviderCommand: undefined,
+    jackProviderTimeoutMs: 5000,
+    dspProviderCommand: undefined,
+    dspProviderTimeoutMs: 5000,
+    dspFrameCount: undefined,
     mode: "preview",
     retryPendingMs: 0,
     retryIntervalMs: 1000,
@@ -51,6 +69,26 @@ function parseArgs(argv) {
         break;
       case "--mode":
         parsed.mode = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--jack-provider-command":
+        parsed.jackProviderCommand = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--jack-provider-timeout-ms":
+        parsed.jackProviderTimeoutMs = parsePositiveInteger(requiredValue(argv, index, arg), arg);
+        index += 1;
+        break;
+      case "--dsp-provider-command":
+        parsed.dspProviderCommand = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--dsp-provider-timeout-ms":
+        parsed.dspProviderTimeoutMs = parsePositiveInteger(requiredValue(argv, index, arg), arg);
+        index += 1;
+        break;
+      case "--dsp-frame-count":
+        parsed.dspFrameCount = parsePositiveInteger(requiredValue(argv, index, arg), arg);
         index += 1;
         break;
       case "--retry-pending-ms":
@@ -84,6 +122,22 @@ function parseArgs(argv) {
 
   if (parsed.retryPendingMs > 0 && parsed.mode !== "live") {
     throw new Error("--retry-pending-ms requires --mode live");
+  }
+
+  if (parsed.dspProviderCommand && parsed.backend !== "dsp") {
+    throw new Error("--dsp-provider-command requires --backend dsp");
+  }
+
+  if (parsed.backend === "dsp" && !parsed.dspProviderCommand) {
+    throw new Error("--backend dsp requires --dsp-provider-command");
+  }
+
+  if (parsed.dspFrameCount !== undefined && !parsed.dspProviderCommand) {
+    throw new Error("--dsp-frame-count requires --dsp-provider-command");
+  }
+
+  if (parsed.dspProviderCommand && parsed.jackProviderCommand) {
+    throw new Error("--dsp-provider-command cannot be combined with --jack-provider-command");
   }
 
   return parsed;
@@ -148,7 +202,7 @@ async function main() {
     selectBackend,
     mode: args.mode
   });
-  const adapter = createRuntimeAdapter(audioHost, runner, selectedBackend, args.mode);
+  const adapter = createRuntimeAdapter(audioHost, runner, selectedBackend, args.mode, args);
   const result = await verifyStartupConfiguration(restored.state, adapter, new Date().toISOString());
   const pendingStreamRefresh = await refreshPendingPulseAudioRoutes({
     adapter,
@@ -166,6 +220,13 @@ async function main() {
     status: pendingStreamRefresh.failure ? "failed" : result.status,
     mode: args.mode,
     backend: selectedBackend,
+    ...(args.jackProviderCommand && selectedBackend === "jack" ? { jackVirtualPortProvider: args.jackProviderCommand } : {}),
+    ...(selectedBackend === "dsp"
+      ? {
+          dspProviderCommand: args.dspProviderCommand,
+          ...(args.dspFrameCount !== undefined ? { dspFrameCount: args.dspFrameCount } : {})
+        }
+      : {}),
     stateFile: args.stateFile,
     activeConfigurationId: result.state.activeConfigurationId,
     appliedAt: result.state.appliedAt,
@@ -199,6 +260,10 @@ function selectRestoreBackend({ requestedBackend, persistedBackend, detection, s
       return backend;
     }
 
+    if (backend === "dsp") {
+      return backend;
+    }
+
     const candidate = detection.candidates.find((item) => item.kind === backend);
     if (!candidate || candidate.availability !== "available") {
       throw new Error(`Selected backend is not available for background restore: ${backend}`);
@@ -219,9 +284,9 @@ function selectRestoreBackend({ requestedBackend, persistedBackend, detection, s
   throw new Error(decision.reason);
 }
 
-function createRuntimeAdapter(audioHost, runner, backend, mode) {
+function createRuntimeAdapter(audioHost, runner, backend, mode, options) {
   const hostMode = mode === "live" ? "apply" : "dry-run";
-  const adapter = createHostAdapter(audioHost, runner, backend, hostMode);
+  const adapter = createHostAdapter(audioHost, runner, backend, hostMode, options);
   const runtimeAdapter = {
     unload: (configuration) => adapter.unload(toHostRuntimeConfiguration(configuration)),
     apply: (configuration) => adapter.apply(toHostRuntimeConfiguration(configuration)),
@@ -239,7 +304,20 @@ function createRuntimeAdapter(audioHost, runner, backend, mode) {
   return runtimeAdapter;
 }
 
-function createHostAdapter(audioHost, runner, backend, mode) {
+function createHostAdapter(audioHost, runner, backend, mode, options) {
+  if (backend === "dsp") {
+    return audioHost.createDspGraphRuntimeAdapter(
+      audioHost.createDspRuntimeCommandPorts(runner, {
+        command: options.dspProviderCommand,
+        timeoutMs: options.dspProviderTimeoutMs
+      }),
+      {
+        mode,
+        ...(options.dspFrameCount !== undefined ? { frameCount: options.dspFrameCount } : {})
+      }
+    );
+  }
+
   if (backend === "pipewire") {
     return audioHost.createPipeWireGraphRuntimeAdapter(runner, { mode });
   }
@@ -252,7 +330,17 @@ function createHostAdapter(audioHost, runner, backend, mode) {
   }
 
   if (backend === "jack") {
-    return audioHost.createJackGraphRuntimeAdapter(runner, { mode });
+    const virtualPortProvider = options.jackProviderCommand
+      ? audioHost.createJackVirtualPortCommandProvider(runner, {
+          command: options.jackProviderCommand,
+          timeoutMs: options.jackProviderTimeoutMs
+        })
+      : undefined;
+
+    return audioHost.createJackGraphRuntimeAdapter(runner, {
+      mode,
+      ...(virtualPortProvider ? { virtualPortProvider } : {})
+    });
   }
 
   throw new Error(`Background restore does not support backend: ${backend}`);

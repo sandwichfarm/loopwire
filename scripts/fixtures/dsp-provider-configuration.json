@@ -1,0 +1,52 @@
+{
+  "id": "release-dsp-proof",
+  "name": "Release DSP Proof",
+  "description": "Stable release evidence topology for command-backed DSP provider planning.",
+  "inputs": [
+    {
+      "id": "mic",
+      "label": "Studio Mic",
+      "role": "input",
+      "channels": 2
+    },
+    {
+      "id": "browser",
+      "label": "Browser Audio",
+      "role": "input",
+      "channels": 2
+    }
+  ],
+  "outputs": [
+    {
+      "id": "mix",
+      "label": "Main Mix",
+      "role": "output",
+      "channels": 2
+    }
+  ],
+  "monitors": [
+    {
+      "id": "headphones",
+      "label": "Headphones",
+      "role": "monitor",
+      "channels": 2
+    }
+  ],
+  "routes": [
+    {
+      "id": "mic-mix",
+      "from": "mic",
+      "to": "mix",
+      "gain": 0.86,
+      "muted": false
+    },
+    {
+      "id": "browser-mix",
+      "from": "browser",
+      "to": "mix",
+      "gain": 0.5,
+      "muted": false
+    }
+  ],
+  "updatedAt": "2026-07-04T00:00:00.000Z"
+}

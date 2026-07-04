@@ -99,7 +99,20 @@ normalize_prefix() {
   reject_unsafe_value "$prefix" "remote prefix"
   prefix="${prefix#/}"
   prefix="${prefix%/}"
+  case "$prefix" in
+    "." | ".." | ./* | ../* | */../* | */.. | */./* | */.)
+      fail "remote prefix must not contain . or .. path segments"
+      ;;
+  esac
   printf '%s\n' "$prefix"
+}
+
+require_dist_file() {
+  relative_path="$1"
+  label="$2"
+  path="${dist_dir}/${relative_path}"
+
+  [ -s "$path" ] || fail "docs dist is missing ${label}: ${relative_path}"
 }
 
 remote_path_for_file() {
@@ -149,6 +162,10 @@ command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
 
 storage_endpoint="$(normalize_endpoint "$storage_endpoint")"
 remote_prefix="$(normalize_prefix "$remote_prefix")"
+
+require_dist_file "index.html" "homepage"
+require_dist_file "install.sh" "public installer"
+bash -n "${dist_dir}/install.sh" || fail "public installer has shell syntax errors: install.sh"
 
 file_count=0
 while IFS= read -r -d '' file; do

@@ -20,6 +20,10 @@ exist, the public entry point will follow this shape:
 curl -fsSL https://loopwire.app/install.sh | bash
 ```
 
+The VitePress public asset at `/install.sh` is a byte-for-byte copy of `scripts/install.sh`, so the docs site can serve
+the same installer once Bunny.net deployment is enabled. It is not a release claim until signed GitHub Release assets,
+`SHA256SUMS`, `SHA256SUMS.sig`, and the release public key exist.
+
 The installer must detect OS and architecture, download a release artifact, verify signed checksums, and avoid
 persistent system changes unless the user explicitly opts in.
 
@@ -32,11 +36,11 @@ pnpm verify:aur
 ```
 
 `verify:install` creates a local fake release, signs `SHA256SUMS`, verifies `SHA256SUMS.sig`, installs into a temporary
-prefix, runs the installed binary, and confirms a tampered artifact is rejected. `verify:release` uses the release
-packager itself, confirms same-input artifact reproducibility, checks multi-architecture checksum entries, and then
-round-trips the signed generated artifact through the installer. `verify:aur` renders the AUR template from local
-generated artifacts and runs `makepkg` in a temp directory when available. These commands do not touch system paths or
-the network.
+prefix, runs the installed binary, and confirms tampered or unsafe archive artifacts are rejected. `verify:release`
+uses the release packager itself, confirms same-input artifact reproducibility, checks multi-architecture checksum
+entries, and then round-trips the signed generated artifact through the installer. `verify:aur` renders the AUR
+template from local generated artifacts and runs `makepkg` in a temp directory when available. These commands do not
+touch system paths or the network.
 
 ## Startup Helper
 
@@ -51,14 +55,17 @@ pnpm restore:background -- --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopw
 The desktop mode writes `~/.config/autostart/loopwire.desktop`. Release tarballs install a `loopwire --background`
 entrypoint for packaged user systemd restore. Source checkouts can also render a user systemd unit with
 `--source-dir "$PWD"` that runs `pnpm restore:background` against the Tauri-written state file. For live PulseAudio
-source restores, add `--retry-pending-ms` and `--retry-interval-ms` to refresh late-starting app streams.
+source restores, add `--retry-pending-ms` and `--retry-interval-ms` to refresh late-starting app streams. For JACK
+restore, add `--jack-provider-command` so the generated service can create deterministic Loopwire-owned ports before
+connecting them.
 
 ## Package Channels
 
 Package metadata templates now exist under `packaging/`:
 
 - `packaging/aur/PKGBUILD.in` for future AUR `loopwire-bin`.
-- `packaging/nix/loopwire-bin.nix` for future Nix binary packages.
+- `flake.nix` exposes `packages.<system>.loopwire-bin` from `packaging/nix/loopwire-bin.nix`, currently with fake
+  hashes until the first public release provides real artifact hashes.
 - AppImage, deb, and rpm artifacts through Tauri bundling.
 
 Run the metadata smoke:
