@@ -5,12 +5,15 @@ repo="${LOOPWIRE_GITHUB_REPO:-sandwichfarm/loopwire}"
 tag=""
 release_dir="dist/release"
 private_key_file="${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE:-}"
-public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY:-}"
+public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY_FILE:-${LOOPWIRE_RELEASE_PUBLIC_KEY:-}}"
 evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
+env_file=""
 asset_name=""
 dry_run="false"
 all_targets="false"
 targets=()
+private_key_file_explicit="false"
+public_key_file_explicit="false"
 
 usage() {
   cat <<'USAGE'
@@ -20,12 +23,15 @@ Usage:
   prepare-vm-evidence-release-asset.sh --tag vX.Y.Z --private-key FILE [--public-key FILE]
                                        [--repo OWNER/REPO] [--release-dir DIR]
                                        [--evidence-root DIR] [--asset-name NAME]
-                                       [--target TARGET ... | --all] [--dry-run]
+                                       [--env-file FILE] [--target TARGET ... | --all] [--dry-run]
 
 The script packages verified VM evidence with scripts/package-vm-evidence.sh, writes it into the release directory,
 regenerates SHA256SUMS for every release attachment, signs SHA256SUMS, verifies the VM evidence archive with
 scripts/verify-release-asset-checksum.sh, and prints the exact gh release upload --clobber command for publishing the
 archive plus refreshed manifest files.
+
+--env-file accepts the same local release secret file used by scripts/setup-github-secrets.sh, but this helper only
+consumes LOOPWIRE_RELEASE_PRIVATE_KEY_FILE and LOOPWIRE_RELEASE_PUBLIC_KEY_FILE. Bunny storage credentials are ignored.
 
 It does not upload to GitHub. Run the printed gh command only after reviewing the regenerated release directory.
 USAGE
@@ -90,8 +96,91 @@ refresh_manifest() {
   )
 }
 
+strip_wrapping_quotes() {
+  local value="$1"
+
+  case "$value" in
+    \"*\")
+      value="${value#\"}"
+      value="${value%\"}"
+      ;;
+    \'*\')
+      value="${value#\'}"
+      value="${value%\'}"
+      ;;
+  esac
+
+  printf '%s\n' "$value"
+}
+
+assign_env_file_value() {
+  local key="$1"
+  local value="$2"
+
+  reject_unsafe_value "$value" "env-file value for ${key}"
+
+  case "$key" in
+    LOOPWIRE_RELEASE_PRIVATE_KEY_FILE)
+      [ "$private_key_file_explicit" = "true" ] || private_key_file="$value"
+      ;;
+    LOOPWIRE_RELEASE_PUBLIC_KEY_FILE)
+      [ "$public_key_file_explicit" = "true" ] || public_key_file="$value"
+      ;;
+    BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY | BUNNY_STORAGE_ENDPOINT | BUNNY_PULL_ZONE_HOSTNAME | BUNNY_REMOTE_PREFIX)
+      ;;
+    *)
+      fail "unsupported key in --env-file: $key"
+      ;;
+  esac
+}
+
+load_env_file() {
+  local line
+  local line_no=0
+  local key
+  local value
+
+  [ -f "$env_file" ] || fail "env file does not exist: $env_file"
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_no=$((line_no + 1))
+    line="${line%$'\r'}"
+
+    case "$line" in
+      "" | \#*)
+        continue
+        ;;
+      export\ *)
+        line="${line#export }"
+        ;;
+    esac
+
+    case "$line" in
+      *=*)
+        key="${line%%=*}"
+        value="${line#*=}"
+        ;;
+      *)
+        fail "invalid --env-file line ${line_no}: expected KEY=VALUE"
+        ;;
+    esac
+
+    case "$key" in
+      *[!A-Z0-9_]* | "")
+        fail "invalid --env-file key on line ${line_no}: $key"
+        ;;
+    esac
+
+    value="$(strip_wrapping_quotes "$value")"
+    assign_env_file_value "$key" "$value"
+  done <"$env_file"
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --)
+      shift
+      ;;
     --repo)
       repo="${2:?missing value for --repo}"
       shift 2
@@ -106,10 +195,16 @@ while [ "$#" -gt 0 ]; do
       ;;
     --private-key)
       private_key_file="${2:?missing value for --private-key}"
+      private_key_file_explicit="true"
       shift 2
       ;;
     --public-key)
       public_key_file="${2:?missing value for --public-key}"
+      public_key_file_explicit="true"
+      shift 2
+      ;;
+    --env-file)
+      env_file="${2:?missing value for --env-file}"
       shift 2
       ;;
     --evidence-root)
@@ -142,6 +237,8 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+[ -z "$env_file" ] || load_env_file
+
 [ -n "$repo" ] || fail "missing --repo OWNER/REPO"
 [ -n "$tag" ] || fail "missing --tag vX.Y.Z"
 [ -n "$release_dir" ] || fail "missing --release-dir DIR"
@@ -152,6 +249,7 @@ reject_unsafe_value "$release_dir" "release directory"
 reject_unsafe_value "$private_key_file" "private key path"
 reject_unsafe_value "$public_key_file" "public key path"
 reject_unsafe_value "$evidence_root" "evidence root"
+reject_unsafe_value "$env_file" "env file"
 
 if [ "$all_targets" = "true" ] && [ "${#targets[@]}" -gt 0 ]; then
   fail "use either --all or --target, not both"

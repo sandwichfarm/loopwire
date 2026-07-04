@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T00:51:00+02:00"
-last_activity: 2026-07-05 - Final release handoff/status can reuse the local release env file safely
+last_updated: "2026-07-05T01:04:00+02:00"
+last_activity: 2026-07-05 - VM evidence release asset prep can reuse the local release env file
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:handoff` and `pnpm release:status` can now reuse the local release env file
-for safe handoff fields while ignoring Bunny storage credentials, so VM evidence signing paths and docs host/prefix
-flow through the final proof plan without printing access keys. Phase 12 remains gated on configuring Bunny secrets,
+Last activity: 2026-07-05 - `pnpm vm:prepare-release-evidence` now accepts the package-script `--` separator and
+`--env-file`, so the signed VM evidence release asset step can reuse the same local release env file as secret setup,
+handoff, and status while ignoring Bunny storage credentials. Phase 12 remains gated on configuring Bunny secrets,
 public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -84,6 +84,18 @@ public GitHub Release install, Bunny deployment proof, and operator-run VM evide
 
 ## Verification Log
 
+- 2026-07-05 VM evidence asset env-file support: `scripts/prepare-vm-evidence-release-asset.sh` now accepts
+  `--env-file`, reads `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, supports the
+  package-script `--` separator, and keeps Bunny storage credentials ignored. `scripts/verify-scripts.sh` covers help
+  text, package-script separator parsing, env-file dry-run rendering, CLI override precedence, no access-key leakage,
+  and an actual signed VM evidence release asset smoke driven by an env file. Release docs and unreleased notes now use
+  the shared local release env file for VM evidence asset preparation. Validation passed: `bash -n
+  scripts/prepare-vm-evidence-release-asset.sh scripts/verify-scripts.sh`, focused
+  `pnpm vm:prepare-release-evidence -- --env-file <tmp> --dry-run` output/no-leak check, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `git diff --check`, and `pnpm check`. Live pinned `pnpm release:status -- --docs-deployment-run-id
+  28722219761 --env-file <tmp>` still blocks on missing Bunny deployment artifact, absent GitHub Release, absent Final
+  Release Proof run, and missing published-release-bound VM evidence, while rendering the env-file private-key path
+  without printing the env-file Bunny access key.
 - 2026-07-05 Final handoff env-file reuse: `scripts/plan-final-release-handoff.sh` now accepts `--env-file` and reads
   safe handoff fields from the local release env file: `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
   `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. It ignores Bunny storage

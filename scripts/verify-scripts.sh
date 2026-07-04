@@ -1295,6 +1295,14 @@ printf '%s\n' "$package_vm_evidence_help" | grep -F -- "vm-evidence/<target>" >/
   exit 1
 }
 prepare_vm_release_help="$(bash scripts/prepare-vm-evidence-release-asset.sh --help)"
+bash scripts/prepare-vm-evidence-release-asset.sh -- --help >/dev/null || {
+  echo "verify-scripts: VM evidence release helper does not accept the package-script argument separator" >&2
+  exit 1
+}
+printf '%s\n' "$prepare_vm_release_help" | grep -F -- "--env-file FILE" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper help is missing env-file support" >&2
+  exit 1
+}
 printf '%s\n' "$prepare_vm_release_help" | grep -F -- "regenerates SHA256SUMS" >/dev/null || {
   echo "verify-scripts: VM evidence release helper help is missing manifest refresh behavior" >&2
   exit 1
@@ -1326,6 +1334,63 @@ printf '%s\n' "$prepare_vm_release_dry_run" | grep -F -- "dry-run: upload VM evi
   echo "verify-scripts: VM evidence release helper dry-run is missing upload step" >&2
   exit 1
 }
+prepare_vm_release_env_file="$(mktemp)"
+cat >"$prepare_vm_release_env_file" <<'EOF'
+BUNNY_STORAGE_ZONE=env-loopwire-docs
+BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
+BUNNY_REMOTE_PREFIX=env-preview
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=packaging/release-signing-public.pem
+EOF
+prepare_vm_release_env_dry_run="$(
+  bash scripts/prepare-vm-evidence-release-asset.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --release-dir dist/release \
+    --env-file "$prepare_vm_release_env_file" \
+    --evidence-root .vm/evidence \
+    --all \
+    --dry-run
+)"
+prepare_vm_release_env_override_dry_run="$(
+  bash scripts/prepare-vm-evidence-release-asset.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --release-dir dist/release \
+    --env-file "$prepare_vm_release_env_file" \
+    --private-key /secure/cli-loopwire-release-private.pem \
+    --public-key /secure/cli-loopwire-release-public.pem \
+    --evidence-root .vm/evidence \
+    --all \
+    --dry-run
+)"
+rm -f "$prepare_vm_release_env_file"
+printf '%s\n' "$prepare_vm_release_env_dry_run" | grep -F -- "--private-key /secure/env-loopwire-release-private.pem" \
+  >/dev/null || {
+    echo "verify-scripts: VM evidence release helper env-file dry-run did not use private key path" >&2
+    exit 1
+  }
+printf '%s\n' "$prepare_vm_release_env_dry_run" | grep -F -- "--public-key packaging/release-signing-public.pem" \
+  >/dev/null || {
+    echo "verify-scripts: VM evidence release helper env-file dry-run did not use public key path" >&2
+    exit 1
+  }
+if printf '%s\n' "$prepare_vm_release_env_dry_run" | grep -F "env-access-key-that-must-not-print" >/dev/null; then
+  echo "verify-scripts: VM evidence release helper env-file dry-run leaked Bunny access key" >&2
+  exit 1
+fi
+printf '%s\n' "$prepare_vm_release_env_override_dry_run" |
+  grep -F -- "--private-key /secure/cli-loopwire-release-private.pem" >/dev/null || {
+    echo "verify-scripts: VM evidence release helper CLI private key did not override env-file value" >&2
+    exit 1
+  }
+printf '%s\n' "$prepare_vm_release_env_override_dry_run" |
+  grep -F -- "--public-key /secure/cli-loopwire-release-public.pem" >/dev/null || {
+    echo "verify-scripts: VM evidence release helper CLI public key did not override env-file value" >&2
+    exit 1
+  }
 single_ssh_plan="$(
   bash scripts/vm-matrix.sh render-ssh-plan \
     --target fedora-kde-jack \
@@ -5602,13 +5667,22 @@ vm_release_dir="$tmp_dir/vm-evidence-release-dir"
 mkdir -p "$vm_release_dir"
 printf '%s\n' "fake release payload" >"$vm_release_dir/loopwire-linux-x86_64.tar.gz"
 refresh_published_release_manifest "$vm_release_dir" "$private_key_file"
+vm_release_env_file="$tmp_dir/vm-evidence-release.env"
+cat >"$vm_release_env_file" <<EOF
+BUNNY_STORAGE_ZONE=env-loopwire-docs
+BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
+BUNNY_REMOTE_PREFIX=env-preview
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$private_key_file
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=$public_key_file
+EOF
 vm_release_prepare_output="$(
   bash scripts/prepare-vm-evidence-release-asset.sh \
     --repo sandwichfarm/loopwire \
     --tag v0.1.0 \
     --release-dir "$vm_release_dir" \
-    --private-key "$private_key_file" \
-    --public-key "$public_key_file" \
+    --env-file "$vm_release_env_file" \
     --evidence-root "$status_root" \
     --target arch-hyprland-pipewire
 )"
@@ -5620,6 +5694,10 @@ printf '%s\n' "$vm_release_prepare_output" | grep -F "gh release upload v0.1.0" 
   echo "verify-scripts: VM evidence release helper did not print upload command" >&2
   exit 1
 }
+if printf '%s\n' "$vm_release_prepare_output" | grep -F "env-access-key-that-must-not-print" >/dev/null; then
+  echo "verify-scripts: VM evidence release helper leaked Bunny access key" >&2
+  exit 1
+fi
 bash scripts/verify-release-asset-checksum.sh \
   --release-dir "$vm_release_dir" \
   --asset loopwire-vm-evidence-v0.1.0.tar.gz \

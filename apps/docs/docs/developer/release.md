@@ -415,8 +415,7 @@ pnpm vm:prepare-release-evidence -- \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --release-dir dist/release \
-  --private-key "$LOOPWIRE_RELEASE_PRIVATE_KEY_FILE" \
-  --public-key packaging/release-signing-public.pem \
+  --env-file /secure/loopwire-release-secrets.env \
   --evidence-root .vm/evidence \
   --all
 ```
@@ -424,7 +423,9 @@ pnpm vm:prepare-release-evidence -- \
 The helper reruns the packager, regenerates and re-signs `SHA256SUMS`, verifies
 `loopwire-vm-evidence-<tag>.tar.gz` with `scripts/verify-release-asset-checksum.sh`, and prints the exact
 `gh release upload --clobber` command for the archive plus refreshed manifest files. Final proof can then prove the VM
-evidence archive is a signed release asset before extraction.
+evidence archive is a signed release asset before extraction. `--env-file` consumes only
+`LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE` for this helper; Bunny storage credentials
+are ignored so access keys never appear in the dry-run or upload handoff output.
 
 This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
 release evidence archive, and VM evidence archive all exist.

@@ -303,6 +303,8 @@ These notes describe source-tree progress. They are not a public release announc
   `loopwire-vm-evidence-<tag>.tar.gz` with the `vm-evidence/<target>` layout expected by final release proof.
 - New `pnpm vm:prepare-release-evidence` command prepares that VM evidence tarball inside a release directory,
   regenerates and re-signs `SHA256SUMS`, verifies the archive entry, and prints the exact GitHub upload command.
+- `pnpm vm:prepare-release-evidence` can now read release signing key paths from the local release env file, matching
+  the secret setup and final handoff ceremony while ignoring Bunny storage credentials.
 - VM evidence packaging now validates the completed tarball with `scripts/extract-safe-tar.sh`, so unsafe archive
   members fail before the archive is attached to a public release.
 - Published release verification can now require that public evidence archive with `--require-release-evidence`, extract
