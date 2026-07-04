@@ -28,7 +28,8 @@ Checks:
   - versioned release notes no longer carry release-candidate/not-published wording,
   - public docs installer stays synchronized with the canonical installer,
   - docs deployment manifest verifier is present, parseable, and wired into the deploy workflow,
-  - final release proof workflow, safe archive extractor, and VM evidence packager are present, parseable, and wired,
+  - final release proof workflow, asset-name validator, safe archive extractor, and VM evidence packager are present,
+    parseable, and wired,
   - release public key exists and parses,
   - git checkout is clean unless --skip-clean-git is passed,
   - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
@@ -161,6 +162,7 @@ check_file "$canonical_installer" "canonical installer"
 check_file "$public_installer" "public docs installer"
 check_file "scripts/verify-docs-deployment-manifest.mjs" "docs deployment manifest verifier"
 check_file "scripts/verify-final-release-proof.sh" "final release proof verifier"
+check_file "scripts/validate-release-asset-name.sh" "release evidence asset-name validator"
 check_file "scripts/extract-safe-tar.sh" "safe release archive extractor"
 check_file "scripts/package-vm-evidence.sh" "VM evidence packager"
 check_file "package.json" "package manifest"
@@ -188,9 +190,11 @@ if [ -s "scripts/verify-docs-deployment-manifest.mjs" ]; then
   fi
 fi
 
-if [ -s "scripts/verify-final-release-proof.sh" ] && [ -s "scripts/extract-safe-tar.sh" ] &&
+if [ -s "scripts/verify-final-release-proof.sh" ] && [ -s "scripts/validate-release-asset-name.sh" ] &&
+  [ -s "scripts/extract-safe-tar.sh" ] &&
   [ -s "scripts/package-vm-evidence.sh" ]; then
-  if bash -n scripts/verify-final-release-proof.sh scripts/extract-safe-tar.sh scripts/package-vm-evidence.sh; then
+  if bash -n scripts/verify-final-release-proof.sh scripts/validate-release-asset-name.sh \
+    scripts/extract-safe-tar.sh scripts/package-vm-evidence.sh; then
     echo "ok: final proof scripts parse"
   else
     echo "invalid: final proof scripts have shell syntax errors" >&2
@@ -244,6 +248,7 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
   release_evidence_asset='loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
   vm_evidence_asset='loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
   if grep -F -- "scripts/verify-final-release-proof.sh" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "scripts/validate-release-asset-name.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/extract-safe-tar.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "$release_evidence_asset" "$final_proof_workflow" >/dev/null &&
     grep -F -- "$vm_evidence_asset" "$final_proof_workflow" >/dev/null &&

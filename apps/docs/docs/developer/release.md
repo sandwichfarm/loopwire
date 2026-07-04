@@ -149,6 +149,12 @@ evidence, and the docs contract. Use `--dry-run` first to print the exact comman
 release assets, docs URLs, or VM evidence. Add `--plan-output dist/release/final-release-proof-plan.txt` to dry-run
 mode when you need a durable handoff artifact for release review or CI logs.
 
+The manual final release proof workflow defaults to `loopwire-release-evidence-<tag>.tar.gz` and
+`loopwire-vm-evidence-<tag>.tar.gz`. If custom asset inputs are supplied, they are validated with
+`scripts/validate-release-asset-name.sh` before `gh release download`: names must be basename-only `.tar.gz` assets,
+must match the selected release tag and evidence kind, and must not contain traversal, URL syntax, or glob
+metacharacters.
+
 Parse an existing release-readiness log without rerunning release checks:
 
 ```bash

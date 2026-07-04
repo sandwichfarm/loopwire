@@ -25,6 +25,7 @@ bash -n \
   scripts/verify-release-readiness.sh \
   scripts/verify-published-release.sh \
   scripts/verify-final-release-proof.sh \
+  scripts/validate-release-asset-name.sh \
   scripts/extract-safe-tar.sh \
   scripts/collect-dsp-provider-plan.sh \
   scripts/package-vm-evidence.sh \
@@ -106,7 +107,7 @@ printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest v
   exit 1
 }
 printf '%s\n' "$release_readiness_help" |
-  grep -F -- "final release proof workflow, safe archive extractor, and VM evidence packager" >/dev/null || {
+  grep -F -- "final release proof workflow, asset-name validator" >/dev/null || {
     echo "verify-scripts: release readiness help is missing final proof wiring check" >&2
     exit 1
   }
@@ -307,6 +308,42 @@ if bash scripts/verify-final-release-proof.sh \
   --docs-base-url https://docs.example.test \
   --plan-output /tmp/loopwire-final-proof-plan.txt >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted plan output without dry-run" >&2
+  exit 1
+fi
+bash scripts/validate-release-asset-name.sh \
+  --kind release-evidence \
+  --tag v0.1.0 \
+  --asset loopwire-release-evidence-v0.1.0.tar.gz >/dev/null
+bash scripts/validate-release-asset-name.sh \
+  --kind vm-evidence \
+  --tag v0.1.0 \
+  --asset loopwire-vm-evidence-v0.1.0-operator-run.tar.gz >/dev/null
+if bash scripts/validate-release-asset-name.sh \
+  --kind release-evidence \
+  --tag v0.1.0 \
+  --asset ../loopwire-release-evidence-v0.1.0.tar.gz >/dev/null 2>&1; then
+  echo "verify-scripts: release asset validator accepted path traversal" >&2
+  exit 1
+fi
+if bash scripts/validate-release-asset-name.sh \
+  --kind release-evidence \
+  --tag v0.1.0 \
+  --asset 'loopwire-release-evidence-v0.1.0*.tar.gz' >/dev/null 2>&1; then
+  echo "verify-scripts: release asset validator accepted a glob pattern" >&2
+  exit 1
+fi
+if bash scripts/validate-release-asset-name.sh \
+  --kind vm-evidence \
+  --tag v0.1.0 \
+  --asset loopwire-release-evidence-v0.1.0.tar.gz >/dev/null 2>&1; then
+  echo "verify-scripts: release asset validator accepted the wrong evidence kind" >&2
+  exit 1
+fi
+if bash scripts/validate-release-asset-name.sh \
+  --kind vm-evidence \
+  --tag v0.1.0 \
+  --asset loopwire-vm-evidence-v0.2.0.tar.gz >/dev/null 2>&1; then
+  echo "verify-scripts: release asset validator accepted a mismatched tag" >&2
   exit 1
 fi
 printf '%s\n' "$release_readiness_help" | grep -F -- "--skip-clean-git" >/dev/null || {
@@ -2936,6 +2973,7 @@ mkdir -p "$release_tag_repo/scripts" \
 cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release-readiness.sh"
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
+cp scripts/validate-release-asset-name.sh "$release_tag_repo/scripts/validate-release-asset-name.sh"
 cp scripts/extract-safe-tar.sh "$release_tag_repo/scripts/extract-safe-tar.sh"
 cp scripts/package-vm-evidence.sh "$release_tag_repo/scripts/package-vm-evidence.sh"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"

@@ -2200,6 +2200,21 @@
   `index_status` reported ready with 2,547 nodes and 5,405 edges. The graph excludes `scripts/` and `apps/docs/`, so
   this slice is covered by shell/docs verification rather than code graph symbols. `pnpm detect:audio` reported
   PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
+- `scripts/validate-release-asset-name.sh` now validates final proof release and VM evidence asset names before the
+  workflow calls `gh release download`, keeping custom dispatch inputs basename-only, tag-bound, evidence-kind-bound,
+  and free of traversal, URL syntax, or glob metacharacters.
+- Focused validation passed: `bash -n scripts/validate-release-asset-name.sh scripts/verify-release-readiness.sh
+  scripts/verify-scripts.sh scripts/verify-github-workflows.sh`, direct positive and negative asset-name validator
+  smokes, `pnpm verify:workflows`, `pnpm verify:docs`, offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:requirements`, added-line length scan, and
+  `git diff --check`.
+- Full validation passed: `pnpm verify:scripts`, `pnpm check`, `pnpm detect:audio`, GSD roadmap/phase queries, and
+  codebase-memory MCP fast reindex/status. `index_status` reported ready with 2,555 nodes and 5,415 edges. The graph
+  excludes `scripts/` and `apps/docs/`, so this slice is covered by shell/docs verification rather than code graph
+  symbols. `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains
+  unavailable because `jack_lsp` is missing. No VM launch, public release, release asset upload, Bunny deployment, or
+  support-matrix promotion was performed.
 
 ## Evidence Missing
 

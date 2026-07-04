@@ -125,6 +125,12 @@ jobs:
           if [ -z "$archive" ]; then
             archive="loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"
           fi
+          archive="$(
+            bash scripts/validate-release-asset-name.sh \
+              --kind release-evidence \
+              --tag "$LOOPWIRE_RELEASE_TAG" \
+              --asset "$archive"
+          )"
           mkdir -p dist/final-proof/downloads dist/final-proof/release-evidence
           gh release download "$LOOPWIRE_RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
@@ -151,6 +157,12 @@ jobs:
           if [ -z "$archive" ]; then
             archive="loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"
           fi
+          archive="$(
+            bash scripts/validate-release-asset-name.sh \
+              --kind vm-evidence \
+              --tag "$LOOPWIRE_RELEASE_TAG" \
+              --asset "$archive"
+          )"
           mkdir -p dist/final-proof/downloads dist/final-proof/vm-evidence
           gh release download "$LOOPWIRE_RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \

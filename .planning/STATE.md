@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:02:07+02:00"
-last_activity: 2026-07-04 - VM evidence archive packaging validates final-proof-safe tarballs
+last_updated: "2026-07-04T15:22:00+02:00"
+last_activity: 2026-07-04 - final release proof validates custom evidence asset names before download
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/package-vm-evidence.sh` now validates the completed
-`loopwire-vm-evidence-<tag>.tar.gz` archive with `scripts/extract-safe-tar.sh`, and script verification rejects
-symlinked evidence members before they can become final proof material. Phase 12 remains gated on a public release,
-configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - the final release proof workflow now validates custom release and VM evidence asset names
+with `scripts/validate-release-asset-name.sh` before `gh release download`, rejecting traversal, URL-like names, glob
+patterns, wrong evidence-kind prefixes, and tag mismatches. Phase 12 remains gated on a public release, configured
+Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1951,6 +1951,12 @@ configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, an
   `pnpm verify:docs`, Ruby workflow YAML parsing for `.github/workflows/final-release-proof.yml`, `git diff --check`,
   and an added-line length scan passed. No release asset, VM evidence archive, Bunny deployment, live URL smoke,
   tag push, or public release was created.
+- 2026-07-04 final proof asset-name validation: `.github/workflows/final-release-proof.yml` now validates optional
+  release and VM evidence asset inputs with `scripts/validate-release-asset-name.sh` before download path construction.
+  The validator accepts basename-only tag-bound evidence tarballs and rejects traversal, URL-like names, glob patterns,
+  wrong evidence-kind prefixes, and tag mismatches. Codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready with 2555 nodes and 5415 edges, and graph search found the final proof
+  workflow surface before implementation.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

@@ -106,8 +106,11 @@ assert_contains ".github/workflows/final-release-proof.yml" "release_evidence_as
 assert_contains ".github/workflows/final-release-proof.yml" "vm_evidence_asset"
 assert_contains ".github/workflows/final-release-proof.yml" "gh release download"
 assert_contains ".github/workflows/final-release-proof.yml" "scripts/extract-safe-tar.sh"
+assert_contains ".github/workflows/final-release-proof.yml" "scripts/validate-release-asset-name.sh"
 assert_contains ".github/workflows/final-release-proof.yml" '--label "release evidence archive"'
 assert_contains ".github/workflows/final-release-proof.yml" '--label "VM evidence archive"'
+assert_contains ".github/workflows/final-release-proof.yml" "--kind release-evidence"
+assert_contains ".github/workflows/final-release-proof.yml" "--kind vm-evidence"
 assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
 assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
 assert_contains ".github/workflows/final-release-proof.yml" "Release evidence archive must contain"
