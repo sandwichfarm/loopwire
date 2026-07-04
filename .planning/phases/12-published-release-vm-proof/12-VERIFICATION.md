@@ -2215,6 +2215,19 @@
   symbols. `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains
   unavailable because `jack_lsp` is missing. No VM launch, public release, release asset upload, Bunny deployment, or
   support-matrix promotion was performed.
+- `scripts/verify-published-release.sh` now extracts required published release evidence archives with
+  `scripts/extract-safe-tar.sh`, aligning the post-publish verifier with final-proof archive safety. This rejects
+  symlink/hardlink archive members before evidence verification reads extracted manifests or command logs.
+- Focused validation passed: `bash -n scripts/verify-published-release.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:requirements`, `git diff --check`, added-line length scan,
+  and GSD roadmap/phase queries. `pnpm verify:scripts` rejects a signed fake release whose evidence archive contains a
+  symlinked manifest member.
+- Full validation passed: `pnpm check`, `pnpm detect:audio`, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,554 nodes and 5,404 edges. `pnpm detect:audio` reported PipeWire, PulseAudio
+  compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing. No VM launch, public
+  release, release asset upload, Bunny deployment, or support-matrix promotion was performed.
 
 ## Evidence Missing
 

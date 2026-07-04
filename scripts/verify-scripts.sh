@@ -3174,6 +3174,23 @@ if bash scripts/verify-published-release.sh \
   echo "verify-scripts: published release verifier accepted an unsafe evidence archive path" >&2
   exit 1
 fi
+link_evidence_release_dir="$tmp_dir/link-evidence-published-release"
+link_evidence_archive_src="$tmp_dir/link-evidence-archive-src"
+cp -R "$published_release_dir" "$link_evidence_release_dir"
+mkdir -p "$link_evidence_archive_src/v0.1.0"
+ln -s release-evidence.json "$link_evidence_archive_src/v0.1.0/release-evidence.json"
+tar -C "$link_evidence_archive_src" \
+  -czf "$link_evidence_release_dir/loopwire-release-evidence-v0.1.0.tar.gz" \
+  v0.1.0
+refresh_published_release_manifest "$link_evidence_release_dir" "$private_key_file"
+if bash scripts/verify-published-release.sh \
+  --release-dir "$link_evidence_release_dir" \
+  --public-key "$public_key_file" \
+  --tag v0.1.0 \
+  --require-release-evidence >/dev/null 2>&1; then
+  echo "verify-scripts: published release verifier accepted a linked evidence archive member" >&2
+  exit 1
+fi
 blocked_evidence_release_dir="$tmp_dir/blocked-evidence-published-release"
 blocked_evidence_archive_src="$tmp_dir/blocked-evidence-archive-src"
 cp -R "$published_release_dir" "$blocked_evidence_release_dir"

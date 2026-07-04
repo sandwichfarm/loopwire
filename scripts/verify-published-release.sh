@@ -130,8 +130,10 @@ verify_release_evidence_archive() {
   command -v tar >/dev/null 2>&1 || fail "tar is required for release evidence verification"
 
   mkdir -p "$evidence_extract_dir"
-  validate_release_evidence_archive_members "$archive"
-  tar -xzf "$archive" -C "$evidence_extract_dir"
+  bash scripts/extract-safe-tar.sh \
+    --archive "$archive" \
+    --output-dir "$evidence_extract_dir" \
+    --label "release evidence archive" >/dev/null
 
   if [ -n "$tag" ] && [ -d "$evidence_extract_dir/$tag" ]; then
     evidence_dir="$evidence_extract_dir/$tag"
@@ -176,31 +178,6 @@ release_evidence_tag_from_archive() {
   fi
 
   printf '%s\n' "$archive_tag"
-}
-
-validate_release_evidence_archive_members() {
-  local archive="$1"
-  local listing="$tmp_dir/release-evidence-tar-list.txt"
-  local entry
-  local part
-  local -a parts=()
-
-  tar -tzf "$archive" >"$listing" || fail "failed to list release evidence archive: $(basename "$archive")"
-  [ -s "$listing" ] || fail "release evidence archive is empty: $(basename "$archive")"
-
-  while IFS= read -r entry; do
-    [ -n "$entry" ] || fail "release evidence archive contains an empty path"
-    case "$entry" in
-      /*)
-        fail "release evidence archive contains an absolute path: $entry"
-        ;;
-    esac
-
-    IFS="/" read -r -a parts <<<"$entry"
-    for part in "${parts[@]}"; do
-      [ "$part" != ".." ] || fail "release evidence archive contains a parent path component: $entry"
-    done
-  done <"$listing"
 }
 
 tmp_dir="$(mktemp -d)"

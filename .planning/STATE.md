@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:22:00+02:00"
-last_activity: 2026-07-04 - final release proof validates custom evidence asset names before download
+last_updated: "2026-07-04T15:43:00+02:00"
+last_activity: 2026-07-04 - published release evidence extraction uses the shared safe tar validator
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - the final release proof workflow now validates custom release and VM evidence asset names
-with `scripts/validate-release-asset-name.sh` before `gh release download`, rejecting traversal, URL-like names, glob
-patterns, wrong evidence-kind prefixes, and tag mismatches. Phase 12 remains gated on a public release, configured
-Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-published-release.sh` now extracts required release evidence archives
+through `scripts/extract-safe-tar.sh`, so published-release proof rejects unsafe paths and link members before
+project-specific evidence verification. Phase 12 remains gated on a public release, configured Bunny secrets, live
+Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1957,6 +1957,19 @@ Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-
   wrong evidence-kind prefixes, and tag mismatches. Codebase-memory MCP `index_status` reported
   `home-sandwich-Develop-loopwire` ready with 2555 nodes and 5415 edges, and graph search found the final proof
   workflow surface before implementation.
+- 2026-07-04 published-release safe extraction: `scripts/verify-published-release.sh` now uses
+  `scripts/extract-safe-tar.sh` for required `loopwire-release-evidence-<tag>.tar.gz` extraction, replacing its local
+  path-only checker with the same absolute-path, traversal, dot-segment, duplicate-separator, symlink, and hardlink
+  guard used by final proof. Codebase-memory MCP `index_status` reported ready, and graph search found the published
+  release verifier and release-evidence surfaces before implementation.
+- 2026-07-04 published-release safe extraction validation: `bash -n scripts/verify-published-release.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, offline
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm verify:requirements`, `pnpm check`, `pnpm detect:audio`, `git diff --check`, added-line length scan, GSD
+  roadmap/phase queries, and codebase-memory MCP fast reindex/status passed. `pnpm verify:scripts` rejects a signed
+  fake release whose evidence archive contains a symlinked manifest member. No VM launch, public release, release asset
+  upload, Bunny deployment, or support-matrix promotion was performed.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

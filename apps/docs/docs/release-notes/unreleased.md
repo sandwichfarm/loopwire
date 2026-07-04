@@ -239,8 +239,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Published release verification can now require that public evidence archive with `--require-release-evidence`, extract
   it, and reject archives with missing published-release smoke or blocker findings.
 - Published release evidence archive verification now binds the manifest to the expected `release.tag` and repo. It
-  rejects unsafe archive paths before extraction, and rejects manifest command logs that escape the evidence directory
-  or resolve through symlinks.
+  rejects unsafe archive paths before extraction, rejects link members with `scripts/extract-safe-tar.sh`, and rejects
+  manifest command logs that escape the evidence directory or resolve through symlinks.
 - Local release-directory verification now derives the expected evidence tag from the single
   `loopwire-release-evidence-<tag>.tar.gz` asset when `--tag` is omitted, rejecting archive-name and manifest tag drift.
 - Release evidence verification now validates source-state metadata such as `git.head` and `git.statusShort`, and final
