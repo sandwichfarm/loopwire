@@ -220,6 +220,20 @@ printf '%s\n' "$release_handoff_help" | grep -F -- "--release-private-key-file F
   echo "verify-scripts: release handoff help is missing VM evidence private key support" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_help" | grep -F -- "--env-file FILE" >/dev/null || {
+  echo "verify-scripts: release handoff help is missing env-file support" >&2
+  exit 1
+}
+release_handoff_env_file="$(mktemp)"
+cat >"$release_handoff_env_file" <<'EOF'
+BUNNY_STORAGE_ZONE=env-loopwire-docs
+BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
+BUNNY_REMOTE_PREFIX=env-preview
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=packaging/release-signing-public.pem
+EOF
 release_handoff_plan="$(
   bash scripts/plan-final-release-handoff.sh \
     --repo sandwichfarm/loopwire \
@@ -231,10 +245,55 @@ release_handoff_plan="$(
     --release-private-key-file /secure/loopwire-release-private.pem \
     --secret-list-file release-secret-names.tsv
 )"
+release_handoff_env_plan="$(
+  bash scripts/plan-final-release-handoff.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --docs-deployment-run-id 123456 \
+    --env-file "$release_handoff_env_file"
+)"
+release_handoff_env_override_plan="$(
+  bash scripts/plan-final-release-handoff.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --env-file "$release_handoff_env_file" \
+    --release-private-key-file /secure/cli-loopwire-release-private.pem \
+    --docs-hostname docs.cli.example.test \
+    --docs-remote-prefix cli-preview
+)"
+rm -f "$release_handoff_env_file"
 printf '%s\n' "$release_handoff_plan" | grep -F "bash scripts/setup-github-secrets.sh" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing secret check" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--private-key /secure/env-loopwire-release-private.pem" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not use the release private key path" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_env_plan" | grep -F "gh workflow run final-release-proof.yml" |
+  grep -F -- "-f docs_hostname=docs.env.example.test" |
+  grep -F -- "-f docs_remote_prefix=env-preview" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not use docs hostname/prefix" >&2
+    exit 1
+  }
+if printf '%s\n' "$release_handoff_env_plan" | grep -F "env-access-key-that-must-not-print" >/dev/null; then
+  echo "verify-scripts: release handoff env-file plan leaked the Bunny access key" >&2
+  exit 1
+fi
+printf '%s\n' "$release_handoff_env_override_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--private-key /secure/cli-loopwire-release-private.pem" >/dev/null || {
+    echo "verify-scripts: release handoff CLI private key did not override env-file value" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_env_override_plan" | grep -F "gh workflow run final-release-proof.yml" |
+  grep -F -- "-f docs_hostname=docs.cli.example.test" |
+  grep -F -- "-f docs_remote_prefix=cli-preview" >/dev/null || {
+    echo "verify-scripts: release handoff CLI docs fields did not override env-file values" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run release.yml" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing release workflow dispatch" >&2
   exit 1
@@ -318,6 +377,10 @@ printf '%s\n' "$release_status_help" | grep -F -- "--git-head SHA" >/dev/null ||
 }
 printf '%s\n' "$release_status_help" | grep -F -- "--public-key FILE" >/dev/null || {
   echo "verify-scripts: release status help is missing public-key support" >&2
+  exit 1
+}
+printf '%s\n' "$release_status_help" | grep -F -- "--env-file FILE" >/dev/null || {
+  echo "verify-scripts: release status help is missing env-file handoff support" >&2
   exit 1
 }
 printf '%s\n' "$release_status_help" | grep -F -- "--skip-gh" >/dev/null || {

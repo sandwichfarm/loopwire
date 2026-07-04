@@ -170,16 +170,17 @@ pnpm release:handoff -- \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --git-head "$(git rev-parse HEAD)" \
-  --docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
-  --docs-remote-prefix "$BUNNY_REMOTE_PREFIX" \
-  --release-private-key-file /secure/loopwire-release-private.pem
+  --env-file /secure/loopwire-release-secrets.env
 ```
 
 The handoff prints the required secret check, strict release readiness command, Release workflow dispatch, Deploy Docs
 workflow dispatch, docs deployment proof download, VM SSH plan/runbook/evidence commands, VM evidence asset preparation
 command, final proof workflow dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch
 workflows, upload VM evidence, or mutate host audio. If the Deploy Docs run id is not known yet, the docs proof and
-final proof commands include `<docs-deployment-run-id>` and print a blocker reminder.
+final proof commands include `<docs-deployment-run-id>` and print a blocker reminder. `--env-file` accepts the same
+local file used by `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
+`LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. Bunny storage credentials
+are ignored by the handoff so access keys never appear in rendered release commands.
 
 After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
 
@@ -199,7 +200,8 @@ To audit the current final-release state from one read-only command:
 pnpm release:status -- \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
-  --git-head "$(git rev-parse refs/tags/v0.1.0^{commit})"
+  --git-head "$(git rev-parse refs/tags/v0.1.0^{commit})" \
+  --env-file /secure/loopwire-release-secrets.env
 ```
 
 The status command checks required GitHub secrets, the release signing public key, the GitHub Release object and
@@ -214,9 +216,11 @@ manifest must be non-dry-run proof for the built docs dist; pass `--docs-deploym
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
 saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Deploy Docs run audited for final proof,
 `--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH plan, or `--skip-gh` when you
-only want local evidence checks. When a Deploy Docs workflow run is verified, the local handoff plan reuses that run id
-for docs proof fetching and final proof dispatch. If the docs deployment manifest is missing, `release:status` prints
-the matching `pnpm release:fetch-docs-proof` command for the expected commit.
+only want local evidence checks. Use `--env-file` to let the embedded local handoff plan reuse the release private-key
+path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. When a
+Deploy Docs workflow run is verified, the local handoff plan reuses that run id for docs proof fetching and final proof
+dispatch. If the docs deployment manifest is missing, `release:status` prints the matching
+`pnpm release:fetch-docs-proof` command for the expected commit.
 
 Parse an existing release-readiness log without rerunning release checks:
 

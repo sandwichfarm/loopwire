@@ -6,6 +6,7 @@ tag=""
 git_head=""
 public_key="packaging/release-signing-public.pem"
 release_private_key_file="<release-private-key-file>"
+env_file=""
 docs_deployment_run_id=""
 docs_base_url=""
 docs_hostname=""
@@ -18,6 +19,10 @@ vm_ssh_plan="dist/release/vm-ssh-plan.tsv"
 vm_runbook="dist/release/vm-runbook.md"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
 secret_list_file=""
+public_key_explicit="false"
+release_private_key_file_explicit="false"
+docs_hostname_explicit="false"
+docs_remote_prefix_explicit="false"
 
 usage() {
   cat <<'USAGE'
@@ -30,6 +35,7 @@ Options:
   --git-head SHA                    Expected release commit, default current HEAD
   --public-key FILE                 Release public key, default packaging/release-signing-public.pem
   --release-private-key-file FILE   Local release private key used by VM evidence asset prep
+  --env-file FILE                   Local setup env file; reads safe handoff paths/host fields only
   --docs-deployment-run-id ID       Successful Deploy Docs workflow run id for final proof
   --docs-base-url URL               Live docs base URL override for final proof
   --docs-hostname HOST              Bunny pull-zone hostname for final proof
@@ -45,6 +51,8 @@ Options:
 
 The script prints commands only. It does not set secrets, create tags, dispatch workflows, upload assets, or mutate host
 audio. Missing docs deployment run id is rendered as a placeholder because it is only known after Deploy Docs completes.
+The env file accepts the same keys as scripts/setup-github-secrets.sh --env-file, but this handoff only consumes
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE, LOOPWIRE_RELEASE_PUBLIC_KEY_FILE, BUNNY_PULL_ZONE_HOSTNAME, and BUNNY_REMOTE_PREFIX.
 USAGE
 }
 
@@ -98,6 +106,92 @@ validate_optional_asset() {
   [ -z "$asset" ] || bash scripts/validate-release-asset-name.sh --kind "$kind" --tag "$tag" --asset "$asset" >/dev/null
 }
 
+strip_wrapping_quotes() {
+  local value="$1"
+
+  case "$value" in
+    \"*\")
+      value="${value#\"}"
+      value="${value%\"}"
+      ;;
+    \'*\')
+      value="${value#\'}"
+      value="${value%\'}"
+      ;;
+  esac
+
+  printf '%s\n' "$value"
+}
+
+assign_env_file_value() {
+  local key="$1"
+  local value="$2"
+
+  reject_unsafe_value "$value" "env-file value for ${key}"
+
+  case "$key" in
+    LOOPWIRE_RELEASE_PRIVATE_KEY_FILE)
+      [ "$release_private_key_file_explicit" = "true" ] || release_private_key_file="$value"
+      ;;
+    LOOPWIRE_RELEASE_PUBLIC_KEY_FILE)
+      [ "$public_key_explicit" = "true" ] || public_key="$value"
+      ;;
+    BUNNY_PULL_ZONE_HOSTNAME)
+      [ "$docs_hostname_explicit" = "true" ] || docs_hostname="$value"
+      ;;
+    BUNNY_REMOTE_PREFIX)
+      [ "$docs_remote_prefix_explicit" = "true" ] || docs_remote_prefix="$value"
+      ;;
+    BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY | BUNNY_STORAGE_ENDPOINT)
+      ;;
+    *)
+      fail "unsupported key in --env-file: $key"
+      ;;
+  esac
+}
+
+load_env_file() {
+  local line
+  local line_no=0
+  local key
+  local value
+
+  [ -f "$env_file" ] || fail "env file does not exist: $env_file"
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_no=$((line_no + 1))
+    line="${line%$'\r'}"
+
+    case "$line" in
+      "" | \#*)
+        continue
+        ;;
+      export\ *)
+        line="${line#export }"
+        ;;
+    esac
+
+    case "$line" in
+      *=*)
+        key="${line%%=*}"
+        value="${line#*=}"
+        ;;
+      *)
+        fail "invalid --env-file line ${line_no}: expected KEY=VALUE"
+        ;;
+    esac
+
+    case "$key" in
+      *[!A-Z0-9_]* | "")
+        fail "invalid --env-file key on line ${line_no}: $key"
+        ;;
+    esac
+
+    value="$(strip_wrapping_quotes "$value")"
+    assign_env_file_value "$key" "$value"
+  done <"$env_file"
+}
+
 shell_join() {
   local out=""
   local arg
@@ -135,10 +229,16 @@ while [ "$#" -gt 0 ]; do
       ;;
     --public-key)
       public_key="${2:?missing value for --public-key}"
+      public_key_explicit="true"
       shift 2
       ;;
     --release-private-key-file)
       release_private_key_file="${2:?missing value for --release-private-key-file}"
+      release_private_key_file_explicit="true"
+      shift 2
+      ;;
+    --env-file)
+      env_file="${2:?missing value for --env-file}"
       shift 2
       ;;
     --docs-deployment-run-id)
@@ -151,10 +251,12 @@ while [ "$#" -gt 0 ]; do
       ;;
     --docs-hostname)
       docs_hostname="${2:?missing value for --docs-hostname}"
+      docs_hostname_explicit="true"
       shift 2
       ;;
     --docs-remote-prefix)
       docs_remote_prefix="${2:?missing value for --docs-remote-prefix}"
+      docs_remote_prefix_explicit="true"
       shift 2
       ;;
     --release-evidence-asset)
@@ -201,6 +303,10 @@ done
 
 [ -n "$repo" ] || fail "missing --repo OWNER/REPO"
 [ -n "$tag" ] || fail "missing --tag vX.Y.Z"
+
+if [ -n "$env_file" ]; then
+  load_env_file
+fi
 
 if [ -z "$git_head" ]; then
   git_head="$(git rev-parse HEAD 2>/dev/null || true)"

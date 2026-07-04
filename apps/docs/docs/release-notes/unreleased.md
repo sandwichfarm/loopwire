@@ -189,6 +189,8 @@ These notes describe source-tree progress. They are not a public release announc
 - New `pnpm release:handoff` renders the no-side-effect release operator plan, including secret checks, workflow
   dispatch commands, docs deployment proof download, VM evidence collection, VM evidence asset prep, and final-proof
   dry-run commands.
+- `pnpm release:handoff` and `pnpm release:status` can now read the local release secret env file for safe handoff
+  fields, while ignoring Bunny storage credentials so access keys do not appear in rendered command plans.
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.

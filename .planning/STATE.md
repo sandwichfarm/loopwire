@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T00:43:00+02:00"
-last_activity: 2026-07-05 - Release secret env-file template now mirrors every supported setup key
+last_updated: "2026-07-05T00:51:00+02:00"
+last_activity: 2026-07-05 - Final release handoff/status can reuse the local release env file safely
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `.env.example` now mirrors every `--env-file` key accepted by
-`scripts/setup-github-secrets.sh`, and `scripts/verify-scripts.sh` locks that template contract. Phase 12 remains gated
-on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:handoff` and `pnpm release:status` can now reuse the local release env file
+for safe handoff fields while ignoring Bunny storage credentials, so VM evidence signing paths and docs host/prefix
+flow through the final proof plan without printing access keys. Phase 12 remains gated on configuring Bunny secrets,
+public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,18 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
 
 ## Verification Log
 
+- 2026-07-05 Final handoff env-file reuse: `scripts/plan-final-release-handoff.sh` now accepts `--env-file` and reads
+  safe handoff fields from the local release env file: `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
+  `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. It ignores Bunny storage
+  values, and `scripts/audit-final-release-state.sh` now passes `--env-file` through to the embedded local handoff plan.
+  `scripts/verify-scripts.sh` covers help text, env-file command rendering, no access-key leakage, and CLI precedence.
+  Release docs and unreleased notes describe the no-side-effect handoff/status behavior. Validation passed: `bash -n
+  scripts/plan-final-release-handoff.sh scripts/audit-final-release-state.sh scripts/verify-scripts.sh`,
+  `pnpm verify:scripts`, focused `pnpm release:handoff -- --env-file <tmp>` output check, `pnpm verify:docs`,
+  `git diff --check`, and `pnpm check`. Live pinned `pnpm release:status -- --docs-deployment-run-id 28721894006
+  --env-file <tmp>` still blocks on missing Bunny deployment artifact, absent GitHub Release, absent Final Release Proof
+  run, and missing published-release-bound VM evidence, while rendering the env-file private-key path and docs
+  host/prefix without printing the env-file Bunny access key.
 - 2026-07-05 Release secret env-file template: `.env.example` now includes every key accepted by
   `scripts/setup-github-secrets.sh --env-file`, including optional Bunny storage endpoint/remote prefix and the release
   public-key file path. `scripts/verify-scripts.sh` asserts the template key set before exercising env-file dry-run and

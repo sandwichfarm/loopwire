@@ -5,6 +5,7 @@ repo=""
 tag=""
 expected_git_head=""
 public_key="packaging/release-signing-public.pem"
+env_file=""
 secret_list_file=""
 docs_deployment_run_id=""
 docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-dist/docs-deployment/deployment-manifest.json}"
@@ -25,6 +26,7 @@ Usage:
 Options:
   --public-key FILE           Release public key, default packaging/release-signing-public.pem
   --git-head SHA              Expected release/source commit, default current checkout HEAD
+  --env-file FILE             Local setup env file for final handoff paths/host fields
   --secret-list-file FILE     Names-only `gh secret list` artifact for deterministic secret checks
   --docs-deployment-run-id ID Verify this Deploy Docs run instead of the latest run
   --docs-deployment-manifest FILE
@@ -440,6 +442,10 @@ while [ "$#" -gt 0 ]; do
       expected_git_head="${2:?missing value for --git-head}"
       shift 2
       ;;
+    --env-file)
+      env_file="${2:?missing value for --env-file}"
+      shift 2
+      ;;
     --secret-list-file)
       secret_list_file="${2:?missing value for --secret-list-file}"
       shift 2
@@ -488,6 +494,7 @@ validate_repo
 validate_tag
 reject_unsafe_value "$public_key" "public key"
 reject_unsafe_value "$expected_git_head" "git head"
+reject_unsafe_value "$env_file" "env file"
 reject_unsafe_value "$secret_list_file" "secret-list file"
 reject_unsafe_value "$docs_deployment_run_id" "docs deployment run id"
 reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest"
@@ -563,6 +570,9 @@ handoff_plan=(bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$
   --git-head "$expected_git_head" \
   --public-key "$public_key" \
   --vm-start-port "$vm_start_port")
+if [ -n "$env_file" ]; then
+  handoff_plan+=(--env-file "$env_file")
+fi
 if [ -n "$latest_docs_deployment_run_id" ]; then
   handoff_plan+=(--docs-deployment-run-id "$latest_docs_deployment_run_id")
 fi
