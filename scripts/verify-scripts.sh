@@ -3351,6 +3351,19 @@ BUNNY_REMOTE_PREFIX=env-private-prefix
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$tmp_secret_file
 LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=$tmp_secret_public_key
 EOF
+for required_env_example_key in \
+  BUNNY_STORAGE_ZONE \
+  BUNNY_ACCESS_KEY \
+  BUNNY_STORAGE_ENDPOINT \
+  BUNNY_PULL_ZONE_HOSTNAME \
+  BUNNY_REMOTE_PREFIX \
+  LOOPWIRE_RELEASE_PRIVATE_KEY_FILE \
+  LOOPWIRE_RELEASE_PUBLIC_KEY_FILE; do
+  grep -E "^${required_env_example_key}=" .env.example >/dev/null || {
+    echo "verify-scripts: .env.example is missing ${required_env_example_key}" >&2
+    exit 1
+  }
+done
 github_secret_env_dry_run="$(
   bash scripts/setup-github-secrets.sh \
     --repo sandwichfarm/loopwire \

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T00:42:00+02:00"
-last_activity: 2026-07-05 - Missing Bunny secret guidance now points directly to the env-file setup route
+last_updated: "2026-07-05T00:43:00+02:00"
+last_activity: 2026-07-05 - Release secret env-file template now mirrors every supported setup key
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --check` now prints the safer
-`--env-file <secret-env-file>` setup route when Bunny secrets or the pull-zone hostname are missing, keeping the
-no-value handoff visible at the exact blocker. Phase 12 remains gated on configuring Bunny secrets, public GitHub
-Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `.env.example` now mirrors every `--env-file` key accepted by
+`scripts/setup-github-secrets.sh`, and `scripts/verify-scripts.sh` locks that template contract. Phase 12 remains gated
+on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,17 @@ Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release secret env-file template: `.env.example` now includes every key accepted by
+  `scripts/setup-github-secrets.sh --env-file`, including optional Bunny storage endpoint/remote prefix and the release
+  public-key file path. `scripts/verify-scripts.sh` asserts the template key set before exercising env-file dry-run and
+  fake `gh secret set` writes. Release docs identify `.env.example` as the committed key-name template to copy to an
+  uncommitted secret path, and unreleased notes record the handoff improvement. Validation passed: `bash -n
+  scripts/setup-github-secrets.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `git diff --check`, and `pnpm check`. Live read-only `setup-github-secrets.sh --check` still blocks on missing
+  `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`, and `BUNNY_PULL_ZONE_HOSTNAME`, while reporting
+  `LOOPWIRE_RELEASE_PRIVATE_KEY` present. Pinned `pnpm release:status -- --docs-deployment-run-id 28721544732` still
+  verifies the selected Deploy Docs run and blocks on the missing Bunny deployment artifact, absent GitHub Release,
+  absent Final Release Proof run, and missing published-release-bound VM evidence.
 - 2026-07-05 Missing Bunny secret env-file next step: `scripts/setup-github-secrets.sh --check` now prints
   `--env-file <secret-env-file>` as an alternative to direct placeholder flags when Bunny storage secrets or the
   pull-zone hostname are missing. `scripts/verify-scripts.sh` asserts the env-file next step for final-scope missing

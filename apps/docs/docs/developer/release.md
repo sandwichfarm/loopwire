@@ -479,7 +479,9 @@ prints secret names that would be set without printing secret values or writing 
 uncommitted file with simple `KEY=VALUE` lines for `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`,
 `BUNNY_STORAGE_ENDPOINT`, `BUNNY_PULL_ZONE_HOSTNAME`, `BUNNY_REMOTE_PREFIX`,
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`; command-line flags override env-file
-values. Use file paths for release keys instead of storing raw private-key material in the env file. When
+values. `.env.example` is the committed key-name template; copy it to an uncommitted path such as
+`/secure/loopwire-release-secrets.env` before filling values. Use file paths for release keys instead of storing raw
+private-key material in the env file. When
 `--release-public-key-file` is supplied, the helper parses the private key, parses the public key, derives the public
 key from the private key, and fails before any secret write if the pair does not match. If the GitHub CLI cannot read
 repository secret names, `--check` and the release readiness preflight fail with the underlying `gh secret list` error
