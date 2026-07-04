@@ -112,11 +112,18 @@ assert_contains "package.json" '"verify:docs-deployment": "node scripts/verify-d
 assert_contains "package.json" '"verify:docs-live": "bash scripts/verify-docs-live.sh"'
 
 assert_contains ".github/workflows/final-release-proof.yml" "workflow_dispatch:"
+assert_contains ".github/workflows/final-release-proof.yml" "actions: read"
 assert_contains ".github/workflows/final-release-proof.yml" "Verify final release proof"
 assert_contains ".github/workflows/final-release-proof.yml" "Set up Nix"
 assert_contains ".github/workflows/final-release-proof.yml" "DeterminateSystems/determinate-nix-action@v3.21.2"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_hostname"
+assert_contains ".github/workflows/final-release-proof.yml" "docs_deployment_run_id"
+assert_contains ".github/workflows/final-release-proof.yml" "Download docs deployment manifest"
+assert_contains ".github/workflows/final-release-proof.yml" "gh run download"
+assert_contains ".github/workflows/final-release-proof.yml" "loopwire-docs-deployment"
+assert_contains ".github/workflows/final-release-proof.yml" "deployment-manifest.json"
+assert_contains ".github/workflows/final-release-proof.yml" "--docs-deployment-manifest"
 assert_contains ".github/workflows/final-release-proof.yml" "release_evidence_asset"
 assert_contains ".github/workflows/final-release-proof.yml" "vm_evidence_asset"
 assert_contains ".github/workflows/final-release-proof.yml" "gh release download"

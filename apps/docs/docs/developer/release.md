@@ -461,6 +461,20 @@ When `BUNNY_PULL_ZONE_HOSTNAME` is configured, the deploy workflow also runs
 upload. That smoke fetches the deployed homepage and `/install.sh` from the same pull-zone prefix used for upload,
 checks the installer parses as shell, and compares it with the local public installer.
 
+Final release proof must be tied to the same deployment run. Pass the deploy-docs workflow run id that uploaded
+`loopwire-docs-deployment`; the proof workflow downloads that artifact, rebuilds docs from the release commit, and
+verifies `deployment-manifest.json` against the rebuilt VitePress dist before accepting the live-docs smoke:
+
+```bash
+gh workflow run final-release-proof.yml \
+  --repo sandwichfarm/loopwire \
+  -f tag=v0.1.0 \
+  -f git_head=<release-tag-commit-sha> \
+  -f docs_hostname=<bunny-pull-zone-hostname> \
+  -f docs_remote_prefix=<optional-prefix> \
+  -f docs_deployment_run_id=<deploy-docs-run-id>
+```
+
 The GitHub secret helper can set or audit the deployment secrets:
 
 ```bash

@@ -2315,6 +2315,17 @@
   added-line length scan.
 - Full validation passed: `pnpm check`, GSD roadmap/phase queries, and codebase-memory MCP fast reindex/status.
   `index_status` reported ready with 2,617 nodes and 5,451 edges.
+- `.github/workflows/final-release-proof.yml` now requires `docs_deployment_run_id`, downloads that run's
+  `loopwire-docs-deployment` artifact with `gh run download`, discovers exactly one `deployment-manifest.json`, and
+  passes it to `scripts/verify-final-release-proof.sh --docs-deployment-manifest`.
+- `scripts/verify-final-release-proof.sh` now rebuilds the VitePress docs dist and runs
+  `scripts/verify-docs-deployment-manifest.mjs --expected-dry-run false` before accepting final release evidence, VM
+  evidence, support matrix, and docs contract proof.
+- Focused validation passed: `bash -n scripts/verify-final-release-proof.sh scripts/verify-github-workflows.sh
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh`, `pnpm verify:workflows`, offline
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`, direct
+  `scripts/verify-final-release-proof.sh --dry-run` with `--docs-deployment-manifest`, and `pnpm verify:scripts`.
 
 ## Evidence Missing
 
@@ -2324,10 +2335,10 @@
 - No release tag exists locally or remotely.
 - Required Bunny.net deployment secrets are not present: `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
-  workflow has a pull-zone smoke gate plus verified deployment manifest artifact, and release evidence can require a
-  successful `docs-live-smoke` row, but no Bunny deployment or live URL smoke was performed.
-- The final proof workflow exists, but no release evidence archive, VM evidence archive, live docs target, or public
-  release exists for it to verify yet.
+  workflow has a pull-zone smoke gate plus verified deployment manifest artifact, and final proof now requires the
+  deployment run artifact before accepting live docs, but no Bunny deployment or live URL smoke was performed.
+- The final proof workflow exists, but no release evidence archive, VM evidence archive, docs deployment run artifact,
+  live docs target, or public release exists for it to verify yet.
 - The VM evidence packager exists, but no real all-target VM evidence archive has been produced from operator-run
   guests.
 - Host-side single-target and matrix SSH collectors are available, but no live VM evidence bundle was captured from an

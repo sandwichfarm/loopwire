@@ -253,16 +253,20 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
   release_evidence_asset='loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
   vm_evidence_asset='loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
   if grep -F -- "scripts/verify-final-release-proof.sh" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "actions: read" "$final_proof_workflow" >/dev/null &&
     grep -F -- "DeterminateSystems/determinate-nix-action@v3.21.2" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/validate-release-asset-name.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/verify-release-asset-checksum.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/extract-safe-tar.sh" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "gh run download" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "loopwire-docs-deployment" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "--docs-deployment-manifest" "$final_proof_workflow" >/dev/null &&
     grep -F -- "$release_evidence_asset" "$final_proof_workflow" >/dev/null &&
     grep -F -- "$vm_evidence_asset" "$final_proof_workflow" >/dev/null &&
     grep -F -- "--vm-evidence-root" "$final_proof_workflow" >/dev/null; then
-    echo "ok: final release proof workflow verifies release and VM evidence archives"
+    echo "ok: final release proof workflow verifies release, docs deployment, and VM evidence archives"
   else
-    echo "invalid: final release proof workflow is missing release or VM evidence verification" >&2
+    echo "invalid: final release proof workflow is missing release, docs deployment, or VM evidence verification" >&2
     failed=1
   fi
   if grep -F -- "scripts/verify-nix-release-package.sh" scripts/verify-final-release-proof.sh >/dev/null &&

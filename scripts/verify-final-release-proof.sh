@@ -10,6 +10,7 @@ release_evidence_dir="${LOOPWIRE_RELEASE_EVIDENCE_DIR:-}"
 docs_base_url="${LOOPWIRE_DOCS_BASE_URL:-}"
 docs_hostname="${BUNNY_PULL_ZONE_HOSTNAME:-}"
 docs_remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
+docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-}"
 vm_evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
 support_matrix="${LOOPWIRE_SUPPORT_MATRIX:-apps/docs/docs/guide/support-matrix.md}"
 dry_run="false"
@@ -21,14 +22,16 @@ Verify the full Loopwire final release proof surface.
 
 Usage:
   verify-final-release-proof.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE --git-head SHA \
-    --release-evidence-dir DIR --docs-base-url URL [--vm-evidence-root DIR] [--support-matrix FILE] [--dry-run]
+    --release-evidence-dir DIR --docs-base-url URL --docs-deployment-manifest FILE \
+    [--vm-evidence-root DIR] [--support-matrix FILE] [--dry-run]
   verify-final-release-proof.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE --git-head SHA \
-    --release-evidence-dir DIR --docs-hostname HOST [--docs-remote-prefix PATH] [--vm-evidence-root DIR] \
-    [--support-matrix FILE] [--dry-run]
+    --release-evidence-dir DIR --docs-hostname HOST --docs-deployment-manifest FILE \
+    [--docs-remote-prefix PATH] [--vm-evidence-root DIR] [--support-matrix FILE] [--dry-run]
 
 Checks:
   - signed published release assets plus public release evidence archive,
   - deployed docs homepage and public /install.sh,
+  - Bunny deployment manifest against the release commit docs build,
   - Nix package build proof from the published release assets,
   - final release-evidence.json with published release, live docs, DSP plan, all VM targets, clean git, and no blockers,
   - matrix-wide dry-run VM launch plan paired to evidence-pull commands,
@@ -166,6 +169,10 @@ while [ "$#" -gt 0 ]; do
       docs_remote_prefix="${2:?missing value for --docs-remote-prefix}"
       shift 2
       ;;
+    --docs-deployment-manifest)
+      docs_deployment_manifest="${2:?missing value for --docs-deployment-manifest}"
+      shift 2
+      ;;
     --vm-evidence-root)
       vm_evidence_root="${2:?missing value for --vm-evidence-root}"
       shift 2
@@ -197,11 +204,13 @@ done
 [ -n "$public_key" ] || fail "missing --public-key FILE"
 [ -n "$git_head" ] || fail "missing --git-head SHA"
 [ -n "$release_evidence_dir" ] || fail "missing --release-evidence-dir DIR"
+[ -n "$docs_deployment_manifest" ] || fail "missing --docs-deployment-manifest FILE"
 validate_repo "$repo"
 validate_release_tag "$tag"
 validate_git_head "$git_head"
 reject_unsafe_value "$public_key" "public key path"
 reject_unsafe_value "$release_evidence_dir" "release evidence directory"
+reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest path"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
 reject_unsafe_value "$support_matrix" "support matrix path"
 if [ -n "$plan_output" ]; then
@@ -232,6 +241,7 @@ fi
 if [ "$dry_run" != "true" ]; then
   [ -f "$public_key" ] || fail "missing public key: $public_key"
   [ -d "$release_evidence_dir" ] || fail "missing release evidence directory: $release_evidence_dir"
+  [ -s "$docs_deployment_manifest" ] || fail "missing docs deployment manifest: $docs_deployment_manifest"
   [ -d "$vm_evidence_root" ] || fail "missing VM evidence root: $vm_evidence_root"
   [ -s "$support_matrix" ] || fail "missing support matrix: $support_matrix"
 fi
@@ -271,6 +281,13 @@ else
   [ -z "$docs_remote_prefix" ] || docs_live+=(--remote-prefix "$docs_remote_prefix")
 fi
 run_step "live docs" "${docs_live[@]}"
+
+run_step "docs build" pnpm build:docs
+run_step "docs deployment manifest" \
+  node scripts/verify-docs-deployment-manifest.mjs \
+  --manifest "$docs_deployment_manifest" \
+  --dist apps/docs/docs/.vitepress/dist \
+  --expected-dry-run false
 
 run_step "release evidence" \
   node scripts/verify-release-evidence.mjs \

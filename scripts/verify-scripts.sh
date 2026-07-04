@@ -187,6 +187,10 @@ printf '%s\n' "$verify_final_release_help" | grep -F -- "--support-matrix FILE" 
   echo "verify-scripts: final release verifier help is missing support matrix path support" >&2
   exit 1
 }
+printf '%s\n' "$verify_final_release_help" | grep -F -- "--docs-deployment-manifest FILE" >/dev/null || {
+  echo "verify-scripts: final release verifier help is missing docs deployment manifest support" >&2
+  exit 1
+}
 printf '%s\n' "$verify_final_release_help" | grep -F -- "--plan-output FILE" >/dev/null || {
   echo "verify-scripts: final release verifier help is missing dry-run plan output support" >&2
   exit 1
@@ -200,6 +204,7 @@ final_release_dry_run="$(
     --release-evidence-dir .release-evidence/v0.1.0-published \
     --docs-hostname docs.example.test \
     --docs-remote-prefix preview \
+    --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
     --vm-evidence-root .vm/evidence \
     --support-matrix apps/docs/docs/guide/support-matrix.md \
     --dry-run
@@ -213,6 +218,7 @@ bash scripts/verify-final-release-proof.sh \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-hostname docs.example.test \
   --docs-remote-prefix preview \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --vm-evidence-root .vm/evidence \
   --support-matrix apps/docs/docs/guide/support-matrix.md \
   --dry-run \
@@ -223,6 +229,10 @@ grep -F "dry-run: release evidence:" "$final_release_plan_output" >/dev/null || 
 }
 grep -F "dry-run: Nix release package:" "$final_release_plan_output" >/dev/null || {
   echo "verify-scripts: final release plan output is missing Nix release package command" >&2
+  exit 1
+}
+grep -F "dry-run: docs deployment manifest:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing docs deployment manifest command" >&2
   exit 1
 }
 grep -F "dry-run: VM evidence arch-hyprland-pipewire:" "$final_release_plan_output" >/dev/null || {
@@ -244,6 +254,14 @@ printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-nix-release-pac
 }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-docs-live.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing live docs verification" >&2
+  exit 1
+}
+printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-docs-deployment-manifest.mjs" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing docs deployment manifest verification" >&2
+  exit 1
+}
+printf '%s\n' "$final_release_dry_run" | grep -F "pnpm build:docs" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing docs build before manifest verification" >&2
   exit 1
 }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-release-evidence.mjs" >/dev/null || {
@@ -302,9 +320,21 @@ if bash scripts/verify-final-release-proof.sh \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
   --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --vm-evidence-root .vm/evidence \
   --dry-run >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted missing live docs target" >&2
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted missing docs deployment manifest" >&2
   exit 1
 fi
 if bash scripts/verify-final-release-proof.sh \
@@ -313,6 +343,7 @@ if bash scripts/verify-final-release-proof.sh \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
   --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
   --dry-run >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted a URL-like repository" >&2
@@ -324,6 +355,7 @@ if bash scripts/verify-final-release-proof.sh \
   --public-key packaging/release-signing-public.pem \
   --git-head not-a-sha \
   --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
   --dry-run >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted an invalid git head" >&2
@@ -335,6 +367,7 @@ if bash scripts/verify-final-release-proof.sh \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
   --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
   --plan-output /tmp/loopwire-final-proof-plan.txt >/dev/null 2>&1; then
   echo "verify-scripts: final release verifier accepted plan output without dry-run" >&2
@@ -3067,7 +3100,7 @@ grep -F "ok: docs deployment workflow verifies manifest before artifact upload" 
     echo "verify-scripts: release readiness did not verify docs deployment workflow wiring" >&2
     exit 1
   }
-grep -F "ok: final release proof workflow verifies release and VM evidence archives" \
+grep -F "ok: final release proof workflow verifies release, docs deployment, and VM evidence archives" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify final release proof workflow wiring" >&2
     exit 1

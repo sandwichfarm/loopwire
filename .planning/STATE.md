@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T16:07:24+02:00"
-last_activity: 2026-07-04 - Final release proof runner passes GitHub token into composed proof step
+last_updated: "2026-07-04T16:16:21+02:00"
+last_activity: 2026-07-04 - Final release proof runner binds live docs proof to deployment manifest artifact
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now passes `GH_TOKEN` to the composed final
-proof step that invokes published-release and Nix release verifiers through `scripts/verify-final-release-proof.sh`.
-Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling
-for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now requires a docs deployment run id,
+downloads that run's `loopwire-docs-deployment` artifact, and passes `deployment-manifest.json` into
+`scripts/verify-final-release-proof.sh` so final live-docs proof is tied to the Bunny deployment manifest. Phase 12
+remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for
+local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 

@@ -23,6 +23,14 @@ on:
         description: Optional Bunny remote prefix used with docs_hostname
         required: false
         type: string
+      docs_deployment_run_id:
+        description: GitHub Actions run id for the docs deployment that uploaded loopwire-docs-deployment
+        required: true
+        type: string
+      docs_deployment_artifact:
+        description: Docs deployment artifact name containing deployment-manifest.json
+        required: false
+        type: string
       release_evidence_asset:
         description: Release asset containing release evidence
         required: false
@@ -33,6 +41,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -50,6 +59,8 @@ jobs:
       LOOPWIRE_DOCS_BASE_URL_INPUT: ${{ inputs.docs_base_url }}
       LOOPWIRE_DOCS_HOSTNAME_INPUT: ${{ inputs.docs_hostname }}
       LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT: ${{ inputs.docs_remote_prefix }}
+      LOOPWIRE_DOCS_DEPLOYMENT_RUN_ID_INPUT: ${{ inputs.docs_deployment_run_id }}
+      LOOPWIRE_DOCS_DEPLOYMENT_ARTIFACT_INPUT: ${{ inputs.docs_deployment_artifact }}
       LOOPWIRE_RELEASE_EVIDENCE_ASSET_INPUT: ${{ inputs.release_evidence_asset }}
       LOOPWIRE_VM_EVIDENCE_ASSET_INPUT: ${{ inputs.vm_evidence_asset }}
     steps:
@@ -118,6 +129,31 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Download docs deployment manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          docs_run_id="$LOOPWIRE_DOCS_DEPLOYMENT_RUN_ID_INPUT"
+          artifact="${LOOPWIRE_DOCS_DEPLOYMENT_ARTIFACT_INPUT:-loopwire-docs-deployment}"
+          if [[ ! "$docs_run_id" =~ ^[0-9]+$ ]]; then
+            echo "Docs deployment run id must be numeric: ${docs_run_id}" >&2
+            exit 1
+          fi
+          mkdir -p dist/final-proof/docs-deployment
+          gh run download "$docs_run_id" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$artifact" \
+            --dir dist/final-proof/docs-deployment
+          mapfile -t manifests < <(
+            find dist/final-proof/docs-deployment -type f -name deployment-manifest.json | sort
+          )
+          if [ "${#manifests[@]}" -ne 1 ]; then
+            echo "Expected exactly one deployment-manifest.json in docs deployment artifact." >&2
+            exit 1
+          fi
+          printf 'LOOPWIRE_FINAL_DOCS_DEPLOYMENT_MANIFEST=%s\n' "${manifests[0]}" >>"$GITHUB_ENV"
 
       - name: Download signed checksum manifest
         env:
@@ -222,6 +258,7 @@ jobs:
             --public-key packaging/release-signing-public.pem
             --git-head "$LOOPWIRE_RELEASE_COMMIT"
             --release-evidence-dir "$LOOPWIRE_FINAL_RELEASE_EVIDENCE_DIR"
+            --docs-deployment-manifest "$LOOPWIRE_FINAL_DOCS_DEPLOYMENT_MANIFEST"
             --vm-evidence-root "$LOOPWIRE_FINAL_VM_EVIDENCE_ROOT"
             --support-matrix apps/docs/docs/guide/support-matrix.md
           )

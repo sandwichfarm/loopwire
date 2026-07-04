@@ -336,6 +336,9 @@ These notes describe source-tree progress. They are not a public release announc
   execute the non-skipped Nix build gate.
 - The final release proof workflow now passes the GitHub Actions token into the composed proof step, and release
   readiness fails if that token wiring disappears before the workflow downloads release assets.
+- The final release proof workflow now requires a docs deployment run id, downloads that run's
+  `loopwire-docs-deployment` artifact, rebuilds docs from the release commit, and verifies `deployment-manifest.json`
+  before accepting the live docs smoke.
 - The docs site now carries a VitePress public installer asset at `/install.sh` that is verified byte-for-byte against
   the canonical `scripts/install.sh`.
 - The release installer now rejects signed tarballs with unsafe absolute or parent-traversing archive paths before
