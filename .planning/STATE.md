@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T01:04:00+02:00"
-last_activity: 2026-07-05 - VM evidence release asset prep can reuse the local release env file
+last_updated: "2026-07-05T01:15:30+02:00"
+last_activity: 2026-07-05 - Final release handoff preserves env-file commands for secret check and VM evidence prep
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm vm:prepare-release-evidence` now accepts the package-script `--` separator and
-`--env-file`, so the signed VM evidence release asset step can reuse the same local release env file as secret setup,
-handoff, and status while ignoring Bunny storage credentials. Phase 12 remains gated on configuring Bunny secrets,
-public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:handoff` now preserves `--env-file` in the rendered secret-check and
+`pnpm vm:prepare-release-evidence` commands, so operators can keep using the shared local release env file instead of
+copying env-derived release key paths into separate flags. Phase 12 remains gated on configuring Bunny secrets, public
+GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,11 @@ public GitHub Release install, Bunny deployment proof, and operator-run VM evide
 
 ## Verification Log
 
+- 2026-07-05 Final handoff env-file command preservation: `scripts/plan-final-release-handoff.sh` now renders
+  `scripts/setup-github-secrets.sh --check --env-file ...` and `pnpm vm:prepare-release-evidence -- --env-file ...`
+  when an env file is provided, while still rendering direct `--private-key` / `--public-key` overrides only when the
+  operator supplies explicit CLI flags. `scripts/verify-scripts.sh` covers env-file preservation, no access-key leak,
+  and CLI override behavior. Release docs and unreleased notes now describe the one-file release ceremony.
 - 2026-07-05 VM evidence asset env-file support: `scripts/prepare-vm-evidence-release-asset.sh` now accepts
   `--env-file`, reads `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, supports the
   package-script `--` separator, and keeps Bunny storage credentials ignored. `scripts/verify-scripts.sh` covers help

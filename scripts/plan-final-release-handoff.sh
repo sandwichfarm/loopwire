@@ -339,6 +339,9 @@ echo "Final release handoff plan for ${repo}@${tag}"
 echo
 echo "1. Verify required GitHub secrets are ready:"
 secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
+if [ -n "$env_file" ]; then
+  secret_check+=(--env-file "$env_file")
+fi
 if [ -n "$secret_list_file" ]; then
   secret_check+=(--secret-list-file "$secret_list_file")
 fi
@@ -366,8 +369,19 @@ print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --st
 print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-release-repo "$repo" \
   --published-release-tag "$tag" --release-public-key "$public_key" --require-published-release \
   --require-github-release-source --require-all-targets --execute
-print_command pnpm vm:prepare-release-evidence -- --tag "$tag" --private-key "$release_private_key_file" \
-  --public-key "$public_key" --repo "$repo" --all
+vm_prepare=(pnpm vm:prepare-release-evidence -- --tag "$tag" --repo "$repo" --all)
+if [ -n "$env_file" ]; then
+  vm_prepare+=(--env-file "$env_file")
+  if [ "$release_private_key_file_explicit" = "true" ]; then
+    vm_prepare+=(--private-key "$release_private_key_file")
+  fi
+  if [ "$public_key_explicit" = "true" ]; then
+    vm_prepare+=(--public-key "$public_key")
+  fi
+else
+  vm_prepare+=(--private-key "$release_private_key_file" --public-key "$public_key")
+fi
+print_command "${vm_prepare[@]}"
 echo
 echo "7. Dispatch final release proof after docs and VM evidence assets exist:"
 final_proof=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \

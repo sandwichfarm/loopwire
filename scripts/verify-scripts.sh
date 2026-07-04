@@ -268,11 +268,21 @@ printf '%s\n' "$release_handoff_plan" | grep -F "bash scripts/setup-github-secre
   echo "verify-scripts: release handoff plan is missing secret check" >&2
   exit 1
 }
-printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm vm:prepare-release-evidence" |
-  grep -F -- "--private-key /secure/env-loopwire-release-private.pem" >/dev/null || {
-    echo "verify-scripts: release handoff env-file plan did not use the release private key path" >&2
+printf '%s\n' "$release_handoff_env_plan" | grep -F "bash scripts/setup-github-secrets.sh" |
+  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not preserve the secret setup env-file" >&2
     exit 1
   }
+printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not preserve the VM evidence env-file" >&2
+    exit 1
+  }
+if printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--private-key /secure/env-loopwire-release-private.pem" >/dev/null; then
+    echo "verify-scripts: release handoff env-file plan expanded the release private key path" >&2
+    exit 1
+fi
 printf '%s\n' "$release_handoff_env_plan" | grep -F "gh workflow run final-release-proof.yml" |
   grep -F -- "-f docs_hostname=docs.env.example.test" |
   grep -F -- "-f docs_remote_prefix=env-preview" >/dev/null || {

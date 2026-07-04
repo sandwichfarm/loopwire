@@ -180,7 +180,9 @@ workflows, upload VM evidence, or mutate host audio. If the Deploy Docs run id i
 final proof commands include `<docs-deployment-run-id>` and print a blocker reminder. `--env-file` accepts the same
 local file used by `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. Bunny storage credentials
-are ignored by the handoff so access keys never appear in rendered release commands.
+are ignored by the handoff so access keys never appear in rendered release commands. When `--env-file` is present, the
+rendered secret-check and VM evidence asset-prep commands keep using that env file instead of expanding env-derived
+release key paths. Explicit CLI key flags still override the env file and are rendered only when supplied directly.
 
 After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
 
@@ -217,9 +219,11 @@ downloaded the workflow artifact to a non-default path. Use `--secret-list-file 
 saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Deploy Docs run audited for final proof,
 `--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH plan, or `--skip-gh` when you
 only want local evidence checks. Use `--env-file` to let the embedded local handoff plan reuse the release private-key
-path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. When a
-Deploy Docs workflow run is verified, the local handoff plan reuses that run id for docs proof fetching and final proof
-dispatch. If the docs deployment manifest is missing, `release:status` prints the matching
+path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. The embedded
+handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
+to copy release key paths into separate command flags. When a Deploy Docs workflow run is verified, the local handoff
+plan reuses that run id for docs proof fetching and final proof dispatch. If the docs deployment manifest is missing,
+`release:status` prints the matching
 `pnpm release:fetch-docs-proof` command for the expected commit.
 
 Parse an existing release-readiness log without rerunning release checks:
