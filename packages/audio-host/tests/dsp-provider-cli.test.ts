@@ -81,6 +81,8 @@ describe("runDspProviderCli", () => {
       "2",
       "--peak",
       "0.75",
+      "--configuration-id",
+      "studio",
       "--store-dir",
       storeDir
     ], JSON.stringify(rendered));
@@ -94,10 +96,12 @@ describe("runDspProviderCli", () => {
       "2",
       "--peak",
       "0.75",
+      "--configuration-id",
+      "studio",
       "--store-dir",
       storeDir
     ], JSON.stringify(rendered));
-    const storedOutput = await readFile(join(storeDir, "outputs", "program.json"), "utf8");
+    const storedOutput = await readFile(join(storeDir, "outputs", "studio", "program.json"), "utf8");
     const clear = await runProvider([
       "clear-output",
       "--configuration-id",
@@ -117,18 +121,67 @@ describe("runDspProviderCli", () => {
       "2",
       "--peak",
       "0.75",
+      "--configuration-id",
+      "studio",
       "--store-dir",
       storeDir
     ], JSON.stringify(rendered));
 
     expect(write).toMatchObject({ exitCode: 0, stderr: "" });
-    expect(JSON.parse(write.stdout)).toEqual({ ok: true, outputId: "program" });
+    expect(JSON.parse(write.stdout)).toEqual({ ok: true, configurationId: "studio", outputId: "program" });
     expect(storedOutput).toContain('"peak":0.75');
     expect(verify).toMatchObject({ exitCode: 0, stderr: "" });
     expect(JSON.parse(verify.stdout)).toEqual({ ok: true, message: "DSP output program verified" });
     expect(clear).toMatchObject({ exitCode: 0, stderr: "" });
-    expect(JSON.parse(clear.stdout)).toEqual({ ok: true, outputId: "program", cleared: true });
+    expect(JSON.parse(clear.stdout)).toEqual({ ok: true, configurationId: "studio", outputId: "program", cleared: true });
     expect(JSON.parse(verifyAfterClear.stdout)).toEqual({
+      ok: false,
+      message: "DSP output program has not been written"
+    });
+  });
+
+  it("does not verify stale output from another configuration with the same output id", async () => {
+    const storeDir = await temporaryStore();
+    const rendered = {
+      outputId: "program",
+      peak: 0.75,
+      channels: [
+        [0.75, 0.25],
+        [0.5, -0.25]
+      ]
+    };
+    await runProvider([
+      "write-output",
+      "--output-id",
+      "program",
+      "--channels",
+      "2",
+      "--frames",
+      "2",
+      "--peak",
+      "0.75",
+      "--configuration-id",
+      "studio-a",
+      "--store-dir",
+      storeDir
+    ], JSON.stringify(rendered));
+    const verifyOtherConfiguration = await runProvider([
+      "verify-output",
+      "--output-id",
+      "program",
+      "--channels",
+      "2",
+      "--frames",
+      "2",
+      "--peak",
+      "0.75",
+      "--configuration-id",
+      "studio-b",
+      "--store-dir",
+      storeDir
+    ], JSON.stringify(rendered));
+
+    expect(JSON.parse(verifyOtherConfiguration.stdout)).toEqual({
       ok: false,
       message: "DSP output program has not been written"
     });
@@ -146,6 +199,8 @@ describe("runDspProviderCli", () => {
       "2",
       "--peak",
       "0.5",
+      "--configuration-id",
+      "studio",
       "--store-dir",
       storeDir
     ], JSON.stringify({ channels: [[0.25], [0.25]] }));

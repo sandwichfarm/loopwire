@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T17:59:25+02:00"
-last_activity: 2026-07-04 - Final DSP provider evidence rows are bound to the release configuration
+last_updated: "2026-07-04T18:05:54+02:00"
+last_activity: 2026-07-04 - DSP provider outputs are scoped by configuration id
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-release-evidence.mjs --require-dsp-provider-plan` now reads the
-manifest-bound DSP configuration and rejects provider-plan TSV rows that do not match the routed source/output ids,
-labels, channels, and frame count. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
-deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - rendered DSP outputs now carry their configuration id, and the command-backed
+`loopwire-dsp-provider` stores writes/verifies/clears under that configuration id so stale output from one
+configuration cannot verify another configuration that reuses the same output id. Phase 12 remains gated on a public
+release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,12 @@ deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 DSP provider configuration isolation: rendered DSP outputs now include `configurationId`, the
+  command-backed provider appends `--configuration-id` to write/verify commands, and `loopwire-dsp-provider` stores
+  outputs below `outputs/<configuration-id>/<output-id>.json`. Regression tests cover same-output-id isolation across
+  configurations. Validation passed: `pnpm --filter @loopwire/core test`, `pnpm --filter @loopwire/audio-host test`,
+  `pnpm --filter @loopwire/audio-host typecheck`, `pnpm verify:docs`, `pnpm verify:scripts`, `git diff --check`, and
+  `pnpm check`.
 - 2026-07-04 Phase 12 DSP provider evidence binding: final release evidence now validates `dsp-provider-plan.tsv`
   against the manifest-bound configuration instead of accepting any read/write/verify placeholder rows. The verifier
   derives expected read-source rows from routed inputs and expected write-output/verify-output rows from configured

@@ -41,6 +41,7 @@ export interface DspRenderResult {
 }
 
 export interface DspRenderedOutput {
+  readonly configurationId: string;
   readonly outputId: string;
   readonly outputLabel: string;
   readonly channels: readonly Float32Array[];
@@ -104,7 +105,7 @@ export function renderDspMixPlan(
   options: DspRenderOptions = {}
 ): DspRenderResult {
   const frameCount = options.frameCount ?? inferFrameCount(sources);
-  const outputs = plan.outputs.map((output) => renderOutput(output, sources, frameCount));
+  const outputs = plan.outputs.map((output) => renderOutput(plan.configurationId, output, sources, frameCount));
   const missingSources = uniqueSorted(outputs.flatMap((output) => output.missingSources));
 
   return { outputs, missingSources };
@@ -208,6 +209,7 @@ function createChannelPairs(sourceChannels: number, outputChannels: number): rea
 }
 
 function renderOutput(
+  configurationId: string,
   output: DspOutputPlan,
   sources: DspSourceBuffers,
   frameCount: number
@@ -231,6 +233,7 @@ function renderOutput(
   }
 
   return {
+    configurationId,
     outputId: output.outputId,
     outputLabel: output.outputLabel,
     channels,

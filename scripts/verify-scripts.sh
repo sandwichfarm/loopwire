@@ -1350,8 +1350,12 @@ if (args[0] === "read-source") {
 } else if (args[0] === "write-output" || args[0] === "verify-output") {
   const input = fs.readFileSync(0, "utf8");
   const payload = JSON.parse(input);
+  if (value("--configuration-id") !== payload.configurationId) {
+    console.error("DSP provider configuration id mismatch");
+    process.exit(2);
+  }
   if (logPath) {
-    fs.appendFileSync(logPath, `${args[0]} payload ${payload.outputId} ${payload.channels.length}\n`);
+    fs.appendFileSync(logPath, `${args[0]} payload ${payload.configurationId} ${payload.outputId} ${payload.channels.length}\n`);
   }
   if (args[0] === "verify-output" && process.env.LOOPWIRE_DSP_PROVIDER_FAIL_VERIFY === "true") {
     process.stdout.write(`${JSON.stringify({ ok: false, message: "provider verify failed" })}\n`);

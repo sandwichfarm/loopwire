@@ -168,10 +168,12 @@ configuration switch transactions.
 `@loopwire/audio-host` also exposes a command-backed DSP provider helper for host integrations. The helper calls a
 provider command with stable `read-source`, `write-output`, `verify-output`, and `clear-output` operations.
 `read-source` returns JSON channel buffers on stdout, while rendered output buffers are passed to `write-output` and
-`verify-output` as JSON stdin so provider implementations do not need unsafe shell argument payloads. Release artifacts
-ship `loopwire-dsp-provider`, a bundled file-backed provider that can seed source buffers, persist rendered outputs,
-verify stored outputs, and clear outputs. This is still not native live host DSP: live backend DSP still needs a host
-adapter that can capture source streams and inject the rendered outputs into PipeWire or JACK.
+`verify-output` as JSON stdin so provider implementations do not need unsafe shell argument payloads. Writes, verifies,
+and clears include the configuration id and are stored by configuration, which prevents one configuration's rendered
+output from verifying another configuration that reuses the same output id. Release artifacts ship
+`loopwire-dsp-provider`, a bundled file-backed provider that can seed source buffers, persist rendered outputs, verify
+stored outputs, and clear outputs. This is still not native live host DSP: live backend DSP still needs a host adapter
+that can capture source streams and inject the rendered outputs into PipeWire or JACK.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 

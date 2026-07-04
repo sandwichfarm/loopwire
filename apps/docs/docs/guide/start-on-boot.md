@@ -177,12 +177,13 @@ pnpm restore:background -- \
 ```
 
 The provider command receives `read-source` as stable arguments and returns JSON channel buffers on stdout. Loopwire
-sends rendered output buffers to `write-output` and `verify-output` as JSON stdin. The source checkout and packaged
-systemd helpers can pass the same `--backend dsp`, `--dsp-provider-command`, `--dsp-provider-timeout-ms`,
-`--dsp-provider-mode`, and `--dsp-frame-count` flags. Run `pnpm dsp:plan` first to inspect the bounded provider operations, then run
-`pnpm dsp:verify` with the provider command before enabling boot restore. Release artifacts install
-`loopwire-dsp-provider`, a bundled file-backed provider for contract smoke and local restore preflight. It stores
-seeded source buffers and rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
+sends rendered output buffers to `write-output` and `verify-output` as JSON stdin, with `--configuration-id` on output
+write, verify, and clear operations. The source checkout and packaged systemd helpers can pass the same `--backend dsp`,
+`--dsp-provider-command`, `--dsp-provider-timeout-ms`, `--dsp-provider-mode`, and `--dsp-frame-count` flags. Run
+`pnpm dsp:plan` first to inspect the bounded provider operations, then run `pnpm dsp:verify` with the provider command
+before enabling boot restore. Release artifacts install `loopwire-dsp-provider`, a bundled file-backed provider for
+contract smoke and local restore preflight. It stores seeded source buffers and configuration-scoped rendered output
+buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
 provider. `--mode live --backend dsp` now requires `--dsp-provider-mode live`, which should only be used with a real
 provider that captures from and writes to the host audio graph.

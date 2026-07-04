@@ -395,7 +395,9 @@ function renderedOutputArgs(operation: "write-output" | "verify-output", output:
     "--frames",
     String(outputFrameCount(output)),
     "--peak",
-    formatPeak(output.peak)
+    formatPeak(output.peak),
+    "--configuration-id",
+    output.configurationId
   ];
 }
 
@@ -411,6 +413,7 @@ function commandOptions(options: DspRuntimeCommandPortOptions, input?: string): 
 
 function encodeRenderedOutput(output: DspRenderedOutput): string {
   return JSON.stringify({
+    configurationId: output.configurationId,
     outputId: output.outputId,
     peak: output.peak,
     channels: output.channels.map((channel) => Array.from(channel))

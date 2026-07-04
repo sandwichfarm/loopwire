@@ -129,7 +129,9 @@ assert_contains "apps/docs/docs/guide/backends.md" "first-class configuration ru
 assert_contains "apps/docs/docs/guide/backends.md" "command-backed DSP provider helper"
 assert_contains "apps/docs/docs/guide/backends.md" '`read-source`, `write-output`, `verify-output`, and `clear-output`'
 assert_contains "apps/docs/docs/guide/backends.md" "JSON stdin"
-assert_contains "apps/docs/docs/guide/backends.md" 'ship `loopwire-dsp-provider`'
+assert_contains "apps/docs/docs/guide/backends.md" "stored by configuration"
+assert_contains "apps/docs/docs/guide/backends.md" "Release artifacts ship"
+assert_contains "apps/docs/docs/guide/backends.md" '`loopwire-dsp-provider`'
 assert_contains "apps/docs/docs/guide/backends.md" "seed-source"
 assert_contains "apps/docs/docs/guide/backends.md" "live backend DSP still needs"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:plan"
@@ -202,6 +204,7 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm dsp:plan"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pnpm dsp:verify"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Release artifacts install"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "LOOPWIRE_DSP_PROVIDER_DIR"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "configuration-scoped rendered output"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "same runtime contract"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pendingStreamRefresh.cleared"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "The check remains non-destructive"

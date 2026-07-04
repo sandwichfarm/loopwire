@@ -126,12 +126,13 @@ describe("createDspGraphRuntimeAdapter", () => {
     expect(calls.map(commandLine)).toEqual([
       "loopwire-dsp-test read-source --source-id browser --channels 2 --frames 2",
       "loopwire-dsp-test read-source --source-id mic --channels 2 --frames 2",
-      "loopwire-dsp-test write-output --output-id stream --channels 2 --frames 2 --peak 0.5",
-      "loopwire-dsp-test write-output --output-id recorder --channels 2 --frames 2 --peak 0.25"
+      "loopwire-dsp-test write-output --output-id stream --channels 2 --frames 2 --peak 0.5 --configuration-id studio",
+      "loopwire-dsp-test write-output --output-id recorder --channels 2 --frames 2 --peak 0.25 --configuration-id studio"
     ]);
     expect(calls.every((call) => call.options?.timeoutMs === 900)).toBe(true);
     expect(providerPayloads(calls, "write-output")).toEqual([
       {
+        configurationId: "studio",
         outputId: "stream",
         peak: 0.5,
         channels: [
@@ -140,6 +141,7 @@ describe("createDspGraphRuntimeAdapter", () => {
         ]
       },
       {
+        configurationId: "studio",
         outputId: "recorder",
         peak: 0.25,
         channels: [

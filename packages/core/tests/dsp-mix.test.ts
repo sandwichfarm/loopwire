@@ -96,6 +96,7 @@ describe("DSP mix planning", () => {
     });
 
     expect(rendered.missingSources).toEqual([]);
+    expect(rendered.outputs.map((output) => output.configurationId)).toEqual(["studio", "studio"]);
     expect(outputSamples(rendered, "stream")).toEqual([
       [0.5, 0.25],
       [0.125, -0.125]

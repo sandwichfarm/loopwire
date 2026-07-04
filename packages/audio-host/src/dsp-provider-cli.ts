@@ -136,20 +136,22 @@ async function readSource(parsed: ParsedArgs, io: DspProviderCliIo): Promise<num
 }
 
 async function writeOutput(parsed: ParsedArgs, io: DspProviderCliIo): Promise<number> {
+  const configurationId = requireValue(parsed.configurationId, "--configuration-id");
   const outputId = requireValue(parsed.outputId, "--output-id");
   const channels = requireValue(parsed.channels, "--channels");
   const frames = requireValue(parsed.frames, "--frames");
   const peak = requireValue(parsed.peak, "--peak");
   const payload = parsePayload(io.stdin ?? "", "write-output", outputId);
   const normalized = normalizeRenderedPayload(payload, outputId, channels, frames, peak);
-  const path = outputPath(parsed.storeDir, outputId);
+  const path = outputPath(parsed.storeDir, configurationId, outputId);
 
-  await writeJson(path, { outputId, peak, channels: normalized.channels });
-  io.stdout(`${JSON.stringify({ ok: true, outputId })}\n`);
+  await writeJson(path, { configurationId, outputId, peak, channels: normalized.channels });
+  io.stdout(`${JSON.stringify({ ok: true, configurationId, outputId })}\n`);
   return 0;
 }
 
 async function verifyOutput(parsed: ParsedArgs, io: DspProviderCliIo): Promise<number> {
+  const configurationId = requireValue(parsed.configurationId, "--configuration-id");
   const outputId = requireValue(parsed.outputId, "--output-id");
   const channels = requireValue(parsed.channels, "--channels");
   const frames = requireValue(parsed.frames, "--frames");
@@ -164,7 +166,7 @@ async function verifyOutput(parsed: ParsedArgs, io: DspProviderCliIo): Promise<n
 
   try {
     const actual = normalizeRenderedPayload(
-      JSON.parse(await readFile(outputPath(parsed.storeDir, outputId), "utf8")) as BufferPayload,
+      JSON.parse(await readFile(outputPath(parsed.storeDir, configurationId, outputId), "utf8")) as BufferPayload,
       outputId,
       channels,
       frames,
@@ -189,11 +191,11 @@ async function verifyOutput(parsed: ParsedArgs, io: DspProviderCliIo): Promise<n
 }
 
 async function clearOutput(parsed: ParsedArgs, io: DspProviderCliIo): Promise<number> {
+  const configurationId = requireValue(parsed.configurationId, "--configuration-id");
   const outputId = requireValue(parsed.outputId, "--output-id");
 
-  requireValue(parsed.configurationId, "--configuration-id");
-  await rm(outputPath(parsed.storeDir, outputId), { force: true });
-  io.stdout(`${JSON.stringify({ ok: true, outputId, cleared: true })}\n`);
+  await rm(outputPath(parsed.storeDir, configurationId, outputId), { force: true });
+  io.stdout(`${JSON.stringify({ ok: true, configurationId, outputId, cleared: true })}\n`);
   return 0;
 }
 
@@ -305,8 +307,8 @@ function sourcePath(storeDir: string, sourceId: string): string {
   return join(storeDir, "sources", `${safeId(sourceId)}.json`);
 }
 
-function outputPath(storeDir: string, outputId: string): string {
-  return join(storeDir, "outputs", `${safeId(outputId)}.json`);
+function outputPath(storeDir: string, configurationId: string, outputId: string): string {
+  return join(storeDir, "outputs", safeId(configurationId), `${safeId(outputId)}.json`);
 }
 
 function safeId(value: string): string {
@@ -376,8 +378,8 @@ function usage(): string {
 
 Usage:
   loopwire-dsp-provider read-source --source-id ID --channels N [--frames N] [--store-dir DIR]
-  loopwire-dsp-provider write-output --output-id ID --channels N --frames N --peak VALUE [--store-dir DIR]
-  loopwire-dsp-provider verify-output --output-id ID --channels N --frames N --peak VALUE [--store-dir DIR]
+  loopwire-dsp-provider write-output --output-id ID --channels N --frames N --peak VALUE --configuration-id ID [--store-dir DIR]
+  loopwire-dsp-provider verify-output --output-id ID --channels N --frames N --peak VALUE --configuration-id ID [--store-dir DIR]
   loopwire-dsp-provider clear-output --configuration-id ID --output-id ID [--store-dir DIR]
   loopwire-dsp-provider seed-source --source-id ID --channels N --frames N [--value N] [--store-dir DIR]
 

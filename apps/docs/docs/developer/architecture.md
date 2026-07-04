@@ -77,7 +77,8 @@ for dry-run planning, apply-mode render/write, verifier-driven output checks, cl
 restore-on-rollback behavior. It also exposes a first-class configuration runtime adapter wrapper for the core
 startup and switch transaction contract. The package also includes a command-backed DSP provider helper that maps
 `read-source`, `write-output`, `verify-output`, and `clear-output` operations to a provider command, with rendered
-buffers sent as JSON stdin for write and verify operations.
+buffers sent as JSON stdin for write and verify operations. Rendered output writes, verifies, and clears are scoped by
+configuration id so stale output from one configuration cannot satisfy another configuration that reuses an output id.
 It does not yet connect live host capture streams to host playback or virtual device injection.
 
 ## Backend Contract Direction
