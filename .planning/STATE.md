@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T15:58:00+02:00"
-last_activity: 2026-07-04 - final proof signed checksum binding is implemented and locally validated
+last_updated: "2026-07-04T15:34:11+02:00"
+last_activity: 2026-07-04 - Nix release package rendering is checksum-bound and locally validated
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now downloads signed `SHA256SUMS` files and
-verifies release/VM evidence archives with `scripts/verify-release-asset-checksum.sh` before extraction. Phase 12
-remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and
-operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/render-nix-release-package.sh` now renders a concrete Nix package expression from
+checksum-bound release tarballs, and `pnpm verify:packaging` proves the renderer accepts canonical artifacts and rejects
+duplicate checksum entries. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
+proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1985,6 +1985,16 @@ operator-run VM evidence.
   passed. `pnpm verify:scripts` covers missing checksum entries, duplicate entries, tampered assets, and the successful
   signed-asset smoke path. No VM launch, public release, release asset upload, Bunny deployment, or support-matrix
   promotion was performed.
+- 2026-07-04 Nix release package renderer: `scripts/render-nix-release-package.sh` now reads canonical
+  `loopwire-linux-x86_64.tar.gz` and `loopwire-linux-aarch64.tar.gz` entries from `SHA256SUMS`, verifies each asset
+  checksum, optionally verifies the signed manifest through `scripts/verify-release-asset-checksum.sh`, converts hashes
+  to Nix SRI form, and writes a concrete `loopwire-bin` Nix expression for a published release.
+- 2026-07-04 Nix release package renderer validation: `bash -n scripts/render-nix-release-package.sh
+  scripts/verify-packaging.sh scripts/verify-scripts.sh scripts/verify-requirements.sh`, `pnpm verify:packaging`,
+  `pnpm verify:requirements`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, GSD
+  roadmap/phase queries, and codebase-memory MCP fast reindex/status passed. `pnpm verify:packaging` renders a
+  temporary Nix expression from checksum-bound fake artifacts and rejects duplicate checksum entries. No real
+  `nix build`, public release, tag push, Bunny deployment, VM launch, or support-matrix promotion was performed.
 - 2026-07-04 VM evidence archive packager: `scripts/package-vm-evidence.sh` now validates a v-prefixed release tag,
   selects one or all targets from `vm/targets.tsv`, re-runs `scripts/verify-vm-evidence.sh` for every selected bundle,
   and writes a deterministic `vm-evidence/<target>` tarball for final release proof. `package.json` exposes

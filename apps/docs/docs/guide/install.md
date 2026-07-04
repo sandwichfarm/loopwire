@@ -77,5 +77,18 @@ Run the metadata smoke:
 pnpm verify:packaging
 ```
 
+After signed release artifacts exist, render the concrete Nix package expression from the published checksum manifest:
+
+```bash
+pnpm nix:render-release -- \
+  --version 0.1.0 \
+  --release-dir dist/release \
+  --public-key packaging/release-signing-public.pem \
+  --output dist/release/loopwire-bin-release.nix
+```
+
+This converts the signed tarball checksums into Nix SRI hashes, but it is still not a release claim until `nix build`
+passes on a Nix-enabled host against published artifacts.
+
 These channels are not published yet. Do not submit AUR metadata or expose a release-ready Nix package until versioned
 artifacts and real checksums exist.

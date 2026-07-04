@@ -2244,6 +2244,20 @@
   `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because
   `jack_lsp` is missing. No VM launch, public release, release asset upload, Bunny deployment, or support-matrix
   promotion was performed.
+- `scripts/render-nix-release-package.sh` now renders a concrete Nix `loopwire-bin` package expression from canonical
+  release tarball entries in `SHA256SUMS`, verifies each asset checksum, optionally verifies `SHA256SUMS.sig` through
+  `scripts/verify-release-asset-checksum.sh`, and converts the release hashes into Nix SRI form.
+- `package.json` exposes the helper as `pnpm nix:render-release`; packaging docs, install docs, README, and unreleased
+  notes describe the render ceremony while preserving the boundary that real Nix publication still needs `nix build`
+  on a Nix-enabled host against published artifacts.
+- Focused validation passed: `bash -n scripts/render-nix-release-package.sh scripts/verify-packaging.sh
+  scripts/verify-scripts.sh scripts/verify-requirements.sh`, `pnpm verify:packaging`, `pnpm verify:requirements`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, added-line length scan, and GSD roadmap/phase queries.
+- Full validation passed: `pnpm check`, `pnpm detect:audio`, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,584 nodes and 5,439 edges. `pnpm verify:packaging` renders a temporary Nix
+  expression from checksum-bound fake artifacts and rejects duplicate checksum entries. `pnpm detect:audio` reported
+  PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing. No
+  real `nix build`, public release, tag push, Bunny deployment, VM launch, or support-matrix promotion was performed.
 
 ## Evidence Missing
 
@@ -2263,8 +2277,8 @@
   actual VM run.
 - Host VM launch is not available on this machine until QEMU tooling is installed; `scripts/vm-matrix.sh doctor --all`
   reports missing `qemu-system-x86_64`, `qemu-system-aarch64`, `qemu-img`, and `cloud-localds`.
-- Nix package output is statically wired, but this host lacks `nix`; real `nix build` proof still needs a Nix-enabled
-  host or VM target after real release hashes exist.
+- Nix package output is statically wired and can now be rendered from checksum-bound release artifacts, but this host
+  lacks `nix`; real `nix build` proof still needs a Nix-enabled host or VM target after real release hashes exist.
 - A bundled JACK virtual port provider/client, live backend graph-edge gain, and live host DSP capture/injection remain
   unimplemented, but the pure core DSP gain/mute mix math, the injected audio-host DSP graph adapter, the injected JACK
   virtual-port provider hook, the command-backed DSP provider port helper, explicit background DSP provider restore,

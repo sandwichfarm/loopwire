@@ -28,6 +28,7 @@ pnpm verify:scripts
 pnpm verify:autostart
 pnpm verify:install
 pnpm verify:packaging
+pnpm nix:render-release -- --version 0.1.0 --release-dir dist/release --output dist/release/loopwire-bin-release.nix
 pnpm vm:list
 pnpm vm:plan
 ```
@@ -75,7 +76,8 @@ Installer and package metadata smoke tests are local-only for now: `verify:insta
 proves checksum rejection, while `verify:packaging` checks that AUR and flake package templates point at the same
 artifact names. The docs site carries `/install.sh` as a synced public copy of `scripts/install.sh`, but the curl
 installer is not advertised as live until signed GitHub Release assets exist. The flake package still uses fake hashes
-until published artifacts provide real release hashes.
+until published artifacts provide real release hashes; `pnpm nix:render-release` renders the concrete Nix expression
+from checksum-bound release artifacts, but `nix build` proof must still come from a Nix-enabled host.
 
 ## GSD
 

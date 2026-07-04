@@ -55,6 +55,21 @@ After a release exists, use `lib.<system>.mkLoopwireBinPackage` with the publish
 release metadata. Do not describe the flake package as release-ready until those hashes are real and `nix build` has
 been run against published artifacts.
 
+Render a reviewable Nix package expression from a signed release directory:
+
+```bash
+pnpm nix:render-release -- \
+  --version 0.1.0 \
+  --release-dir dist/release \
+  --public-key packaging/release-signing-public.pem \
+  --output dist/release/loopwire-bin-release.nix
+```
+
+The renderer reads the canonical tarball entries from `SHA256SUMS`, verifies the asset checksums, optionally verifies
+`SHA256SUMS.sig` through the project public key, converts the hashes to Nix SRI form, and fails on missing or duplicate
+manifest entries. The output is still not publication proof until a Nix-enabled host runs `nix build` against published
+artifacts.
+
 ## Smoke
 
 Run:
@@ -79,4 +94,6 @@ checks the package archive contains `usr/bin/loopwire`, `usr/bin/loopwire-dsp-pr
 `usr/bin/loopwire-jack-ports`. It skips cleanly on hosts without `makepkg`.
 
 `verify:packaging` statically checks that package metadata points at the same release artifact names as the installer
-and that the flake exposes the binary package template without replacing fake hashes with unverified values.
+and that the flake exposes the binary package template without replacing fake hashes with unverified values. It also
+renders a temporary Nix release package expression from checksum-bound fake artifacts and proves duplicate manifest
+entries are rejected.
