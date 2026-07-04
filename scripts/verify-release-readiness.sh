@@ -272,6 +272,17 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     echo "invalid: final release proof workflow is missing Nix setup or package proof" >&2
     failed=1
   fi
+  if awk '
+    $0 == "      - name: Verify final release proof" { in_step = 1; next }
+    in_step && $0 ~ /^      - name: / { in_step = 0 }
+    in_step && $0 == "          GH_TOKEN: ${{ github.token }}" { found = 1 }
+    END { exit(found ? 0 : 1) }
+  ' "$final_proof_workflow"; then
+    echo "ok: final release proof workflow passes GitHub token to proof step"
+  else
+    echo "invalid: final release proof workflow is missing GitHub token for proof step" >&2
+    failed=1
+  fi
 fi
 
 if [ "$require_public_key" = "true" ] && [ -s "$public_key" ] &&

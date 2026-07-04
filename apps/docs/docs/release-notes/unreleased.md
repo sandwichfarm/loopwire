@@ -334,6 +334,8 @@ These notes describe source-tree progress. They are not a public release announc
 - The final release proof workflow now installs Determinate Nix with a pinned
   `DeterminateSystems/determinate-nix-action@v3.21.2` step before running package proof, so the GitHub runner can
   execute the non-skipped Nix build gate.
+- The final release proof workflow now passes the GitHub Actions token into the composed proof step, and release
+  readiness fails if that token wiring disappears before the workflow downloads release assets.
 - The docs site now carries a VitePress public installer asset at `/install.sh` that is verified byte-for-byte against
   the canonical `scripts/install.sh`.
 - The release installer now rejects signed tarballs with unsafe absolute or parent-traversing archive paths before

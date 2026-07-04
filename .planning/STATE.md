@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T16:02:25+02:00"
-last_activity: 2026-07-04 - Final release proof runner installs pinned Nix before package proof
+last_updated: "2026-07-04T16:07:24+02:00"
+last_activity: 2026-07-04 - Final release proof runner passes GitHub token into composed proof step
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now installs pinned Determinate Nix before
-running `scripts/verify-final-release-proof.sh`, so the final GitHub runner can execute the published-release Nix
-package proof. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
-QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now passes `GH_TOKEN` to the composed final
+proof step that invokes published-release and Nix release verifiers through `scripts/verify-final-release-proof.sh`.
+Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling
+for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,15 @@ QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 final proof token guard: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and `search_code` confirmed the existing final proof token scopes were only
+  on archive download steps before the composed proof step was updated. `bash -n scripts/verify-release-readiness.sh
+  scripts/verify-github-workflows.sh scripts/verify-scripts.sh`, `pnpm verify:workflows`, offline
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `git diff --check`, added-line length scan, GSD
+  roadmap/phase queries, and codebase-memory MCP fast reindex/status passed. The reindex reported ready with 2,617
+  nodes and 5,451 edges.
 - 2026-07-03 Phase 1: `pnpm install` completed with lockfile and approved `esbuild` build policy.
 - 2026-07-03 Phase 1: `pnpm check` passed: typecheck, tests, docs build, core build, desktop Vite build.
 - 2026-07-03 Phase 1: `pnpm verify:scripts` passed bash syntax checks for installer, CT diagnostics, and secret helper.

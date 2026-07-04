@@ -2304,6 +2304,17 @@
   guard that final proof Nix setup. The action version was checked live with `gh release list --repo
   DeterminateSystems/determinate-nix-action --limit 5`, which reported `v3.21.2` as the latest release on
   2026-06-20.
+- `.github/workflows/final-release-proof.yml` now passes `GH_TOKEN: ${{ github.token }}` into the composed final proof
+  step, covering the nested `gh release` calls made by the published-release and Nix package verifiers.
+- `scripts/verify-github-workflows.sh`, `scripts/verify-release-readiness.sh`, and `scripts/verify-scripts.sh` now
+  guard that final proof token wiring.
+- Focused validation passed: `bash -n scripts/verify-release-readiness.sh scripts/verify-github-workflows.sh
+  scripts/verify-scripts.sh`, `pnpm verify:workflows`, offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and
+  added-line length scan.
+- Full validation passed: `pnpm check`, GSD roadmap/phase queries, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,617 nodes and 5,451 edges.
 
 ## Evidence Missing
 

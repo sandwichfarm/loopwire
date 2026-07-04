@@ -212,6 +212,8 @@ jobs:
           printf 'LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s\n' "$vm_evidence_root" >>"$GITHUB_ENV"
 
       - name: Verify final release proof
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           args=(

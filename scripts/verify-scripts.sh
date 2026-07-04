@@ -122,6 +122,13 @@ printf '%s\n' "$release_readiness_help" |
     echo "verify-scripts: release readiness help is missing final proof checksum verifier check" >&2
     exit 1
   }
+pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git \
+  --allow-candidate-notes | grep -F -- "ok: final release proof workflow passes GitHub token to proof step" \
+  >/dev/null || {
+    echo "verify-scripts: release readiness output is missing final proof GitHub token check" >&2
+    exit 1
+  }
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
