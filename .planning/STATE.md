@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T14:46:24+02:00"
-last_activity: 2026-07-04 - GitHub secret check prints no-value next steps
+last_updated: "2026-07-04T15:02:07+02:00"
+last_activity: 2026-07-04 - VM evidence archive packaging validates final-proof-safe tarballs
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/setup-github-secrets.sh --check` now prints no-value next steps when required
-release/docs secrets are missing and explains when Bunny docs upload can run but post-upload live docs smoke will be
-skipped. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host
-QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/package-vm-evidence.sh` now validates the completed
+`loopwire-vm-evidence-<tag>.tar.gz` archive with `scripts/extract-safe-tar.sh`, and script verification rejects
+symlinked evidence members before they can become final proof material. Phase 12 remains gated on a public release,
+configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 

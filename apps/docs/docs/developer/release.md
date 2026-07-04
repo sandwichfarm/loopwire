@@ -324,7 +324,8 @@ pnpm vm:package-evidence -- \
 ```
 
 The packager re-runs `scripts/verify-vm-evidence.sh --require-published-release` for each selected target before
-writing `vm-evidence/<target>` entries into the archive.
+writing `vm-evidence/<target>` entries into the archive. After writing, it validates the archive with
+`scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
 
 This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
 release evidence archive, and VM evidence archive all exist.

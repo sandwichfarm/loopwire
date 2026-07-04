@@ -2189,6 +2189,17 @@
   `index_status` reported ready with 2,547 nodes and 5,404 edges. The graph excludes `scripts/`, so the helper itself
   is covered by shell verification rather than code graph symbols. `pnpm detect:audio` reported PipeWire, PulseAudio
   compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
+- `scripts/package-vm-evidence.sh` now validates the completed `loopwire-vm-evidence-<tag>.tar.gz` archive with
+  `scripts/extract-safe-tar.sh` before reporting success, so VM evidence bundles containing unsafe paths or link members
+  fail before the tarball can be attached to a public release.
+- Focused validation passed: `bash -n scripts/package-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:workflows`, offline `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, `pnpm verify:requirements`, and `git diff --check`.
+- Full validation passed: full `pnpm check`, `pnpm detect:audio`, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,547 nodes and 5,405 edges. The graph excludes `scripts/` and `apps/docs/`, so
+  this slice is covered by shell/docs verification rather than code graph symbols. `pnpm detect:audio` reported
+  PipeWire, PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
 
 ## Evidence Missing
 

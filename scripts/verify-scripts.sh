@@ -782,6 +782,10 @@ printf '%s\n' "$collect_vm_matrix_help" | grep -F -- "--require-all-targets" >/d
   exit 1
 }
 package_vm_evidence_help="$(bash scripts/package-vm-evidence.sh --help)"
+printf '%s\n' "$package_vm_evidence_help" | grep -F -- "scripts/extract-safe-tar.sh" >/dev/null || {
+  echo "verify-scripts: VM evidence packager help is missing safe archive validation" >&2
+  exit 1
+}
 printf '%s\n' "$package_vm_evidence_help" | grep -F -- "--require-published-release" >/dev/null || {
   echo "verify-scripts: VM evidence packager help is missing published release strictness support" >&2
   exit 1
@@ -3441,6 +3445,19 @@ tar -tzf "$vm_evidence_archive" "vm-evidence/arch-hyprland-pipewire/command-resu
   echo "verify-scripts: VM evidence packager archive is missing target command ledger" >&2
   exit 1
 }
+unsafe_vm_evidence_root="$tmp_dir/unsafe-vm-evidence-root"
+mkdir -p "$unsafe_vm_evidence_root"
+cp -R "$evidence_dir" "$unsafe_vm_evidence_root/arch-hyprland-pipewire"
+ln -s /tmp "$unsafe_vm_evidence_root/arch-hyprland-pipewire/unsafe-link"
+if bash scripts/package-vm-evidence.sh \
+  --tag v0.1.0 \
+  --evidence-root "$unsafe_vm_evidence_root" \
+  --target arch-hyprland-pipewire \
+  --require-published-release \
+  --output "$tmp_dir/unsafe-loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence packager accepted an unsafe archive member" >&2
+  exit 1
+fi
 if bash scripts/package-vm-evidence.sh \
   --tag v0.1.0 \
   --evidence-root "$status_root" \

@@ -24,7 +24,8 @@ The archive layout is:
 
 When no --target is provided, every target from vm/targets.tsv is packaged. Every target bundle is verified with
 scripts/verify-vm-evidence.sh before it is copied into the archive. Use --require-published-release for final release
-archives so every VM bundle proves installed-release smoke from published artifacts.
+archives so every VM bundle proves installed-release smoke from published artifacts. The completed archive is also
+validated with scripts/extract-safe-tar.sh so final release proof will reject unsafe member paths before upload.
 
 SOURCE_DATE_EPOCH controls tar metadata timestamps and defaults to 0.
 USAGE
@@ -195,6 +196,11 @@ tar \
   -czf "$output" \
   -C "$tmp_dir" \
   vm-evidence
+
+bash scripts/extract-safe-tar.sh \
+  --archive "$output" \
+  --output-dir "$tmp_dir/archive-smoke" \
+  --label "VM evidence archive" >/dev/null
 
 for target in "${targets[@]}"; do
   tar -tzf "$output" "vm-evidence/${target}/command-results.tsv" >/dev/null || \
