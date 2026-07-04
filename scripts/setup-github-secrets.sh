@@ -9,11 +9,19 @@ pull_zone_hostname="${BUNNY_PULL_ZONE_HOSTNAME:-}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 release_private_key_file=""
 release_public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY_FILE:-}"
+env_file=""
 secret_list_file=""
 dry_run="false"
 check_mode="false"
 print_required="false"
 scope="final"
+storage_zone_explicit="false"
+access_key_explicit="false"
+storage_endpoint_explicit="false"
+pull_zone_hostname_explicit="false"
+remote_prefix_explicit="false"
+release_private_key_file_explicit="false"
+release_public_key_file_explicit="false"
 
 usage() {
   cat <<'USAGE'
@@ -25,6 +33,7 @@ Usage:
                           [--remote-prefix PATH]
                           [--release-private-key-file FILE]
                           [--release-public-key-file FILE]
+                          [--env-file FILE]
   setup-github-secrets.sh --repo owner/name --check [--scope deploy|final] [--secret-list-file FILE]
   setup-github-secrets.sh --print-required [--scope deploy|final]
   setup-github-secrets.sh --repo owner/name --dry-run [secret options]
@@ -36,6 +45,11 @@ Environment fallback:
   BUNNY_PULL_ZONE_HOSTNAME
   BUNNY_REMOTE_PREFIX
   LOOPWIRE_RELEASE_PUBLIC_KEY_FILE
+
+Env files:
+  --env-file accepts simple KEY=VALUE lines for the same environment names above.
+  It also accepts LOOPWIRE_RELEASE_PRIVATE_KEY_FILE for a local private-key path.
+  Command-line flags override env-file values.
 
 Secret-list files:
   --secret-list-file accepts saved `gh secret list` output for offline check-mode rehearsal.
@@ -161,6 +175,104 @@ normalize_pull_zone_hostname() {
   esac
 
   printf '%s\n' "$hostname"
+}
+
+env_value_for_log() {
+  key="$1"
+  printf '%s\n' "env-file value for ${key}"
+}
+
+strip_wrapping_quotes() {
+  value="$1"
+
+  case "$value" in
+    \"*\")
+      value="${value#\"}"
+      value="${value%\"}"
+      ;;
+    \'*\')
+      value="${value#\'}"
+      value="${value%\'}"
+      ;;
+  esac
+
+  printf '%s\n' "$value"
+}
+
+assign_env_file_value() {
+  key="$1"
+  value="$2"
+
+  reject_unsafe_value "$value" "$(env_value_for_log "$key")"
+
+  case "$key" in
+    BUNNY_STORAGE_ZONE)
+      [ "$storage_zone_explicit" = "true" ] || storage_zone="$value"
+      ;;
+    BUNNY_ACCESS_KEY)
+      [ "$access_key_explicit" = "true" ] || access_key="$value"
+      ;;
+    BUNNY_STORAGE_ENDPOINT)
+      [ "$storage_endpoint_explicit" = "true" ] || storage_endpoint="$value"
+      ;;
+    BUNNY_PULL_ZONE_HOSTNAME)
+      [ "$pull_zone_hostname_explicit" = "true" ] || pull_zone_hostname="$value"
+      ;;
+    BUNNY_REMOTE_PREFIX)
+      [ "$remote_prefix_explicit" = "true" ] || remote_prefix="$value"
+      ;;
+    LOOPWIRE_RELEASE_PRIVATE_KEY_FILE)
+      [ "$release_private_key_file_explicit" = "true" ] || release_private_key_file="$value"
+      ;;
+    LOOPWIRE_RELEASE_PUBLIC_KEY_FILE)
+      [ "$release_public_key_file_explicit" = "true" ] || release_public_key_file="$value"
+      ;;
+    *)
+      fail "unsupported key in --env-file: $key"
+      ;;
+  esac
+}
+
+load_env_file() {
+  local line
+  local line_no=0
+  local key
+  local value
+
+  [ -f "$env_file" ] || fail "env file does not exist: $env_file"
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_no=$((line_no + 1))
+    line="${line%$'\r'}"
+
+    case "$line" in
+      "" | \#*)
+        continue
+        ;;
+      export\ *)
+        line="${line#export }"
+        ;;
+    esac
+
+    case "$line" in
+      *=*)
+        key="${line%%=*}"
+        value="${line#*=}"
+        ;;
+      *)
+        fail "invalid --env-file line ${line_no}: expected KEY=VALUE"
+        ;;
+    esac
+
+    case "$key" in
+      *[!A-Z0-9_]* | "")
+        fail "invalid --env-file key on line ${line_no}: $key"
+        ;;
+    esac
+
+    value="$(strip_wrapping_quotes "$value")"
+    assign_env_file_value "$key" "$value"
+  done <"$env_file"
 }
 
 resolve_repo() {
@@ -410,30 +522,41 @@ while [ "$#" -gt 0 ]; do
       ;;
     --storage-zone)
       storage_zone="${2:?missing value for --storage-zone}"
+      storage_zone_explicit="true"
       shift 2
       ;;
     --access-key)
       access_key="${2:?missing value for --access-key}"
+      access_key_explicit="true"
       shift 2
       ;;
     --storage-endpoint)
       storage_endpoint="${2:?missing value for --storage-endpoint}"
+      storage_endpoint_explicit="true"
       shift 2
       ;;
     --pull-zone-hostname)
       pull_zone_hostname="${2:?missing value for --pull-zone-hostname}"
+      pull_zone_hostname_explicit="true"
       shift 2
       ;;
     --remote-prefix)
       remote_prefix="${2:?missing value for --remote-prefix}"
+      remote_prefix_explicit="true"
       shift 2
       ;;
     --release-private-key-file)
       release_private_key_file="${2:?missing value for --release-private-key-file}"
+      release_private_key_file_explicit="true"
       shift 2
       ;;
     --release-public-key-file)
       release_public_key_file="${2:?missing value for --release-public-key-file}"
+      release_public_key_file_explicit="true"
+      shift 2
+      ;;
+    --env-file)
+      env_file="${2:?missing value for --env-file}"
       shift 2
       ;;
     --secret-list-file)
@@ -483,6 +606,10 @@ fi
 if [ -n "$secret_list_file" ] && [ "$check_mode" != "true" ]; then
   echo "--secret-list-file requires --check." >&2
   exit 2
+fi
+
+if [ -n "$env_file" ]; then
+  load_env_file
 fi
 
 if [ -z "$repo" ] ||

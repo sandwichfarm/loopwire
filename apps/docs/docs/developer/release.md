@@ -465,13 +465,21 @@ bash scripts/setup-github-secrets.sh \
   --release-private-key-file /secure/loopwire-release-private.pem \
   --release-public-key-file packaging/release-signing-public.pem \
   --dry-run
+bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --env-file /secure/loopwire-release-secrets.env \
+  --dry-run
 ```
 
 `--check` reads secret names only. The default `--scope final` checks all final-proof secrets. Use
 `--check --scope deploy` to verify only the Bunny.net upload pair before the final release-signing and live-docs
 secrets are available. `--secret-list-file` accepts saved `gh secret list` output for deterministic release rehearsal;
 the artifact may contain secret names and metadata columns, but never secret values. `--dry-run` validates inputs and
-prints secret names that would be set without printing secret values or writing to GitHub. When
+prints secret names that would be set without printing secret values or writing to GitHub. `--env-file` accepts a local
+uncommitted file with simple `KEY=VALUE` lines for `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`,
+`BUNNY_STORAGE_ENDPOINT`, `BUNNY_PULL_ZONE_HOSTNAME`, `BUNNY_REMOTE_PREFIX`,
+`LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`; command-line flags override env-file
+values. Use file paths for release keys instead of storing raw private-key material in the env file. When
 `--release-public-key-file` is supplied, the helper parses the private key, parses the public key, derives the public
 key from the private key, and fails before any secret write if the pair does not match. If the GitHub CLI cannot read
 repository secret names, `--check` and the release readiness preflight fail with the underlying `gh secret list` error

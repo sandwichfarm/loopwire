@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T23:18:00+02:00"
-last_activity: 2026-07-04 - Pinned Deploy Docs release-status audits now label selected-run proof explicitly
+last_updated: "2026-07-05T00:23:00+02:00"
+last_activity: 2026-07-05 - GitHub secret helper accepts local env files for Bunny and release key inputs
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:status -- --docs-deployment-run-id <id>` now labels pinned Deploy Docs
-workflow evidence as selected-run proof instead of latest-run proof, while latest-run audits keep latest-run wording.
-Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --env-file <file>` now lets operators load local
+uncommitted Bunny.net values and release key file paths without putting secrets in shell history, while command-line
+flags still override env-file values and dry-run output hides values. Phase 12 remains gated on configuring Bunny
+secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,16 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 GitHub secret env-file ceremony: `scripts/setup-github-secrets.sh` now accepts `--env-file` with simple
+  `KEY=VALUE` lines for Bunny deploy values plus `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and
+  `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, preserving command-line flag precedence and no-value dry-run output.
+  `scripts/verify-scripts.sh` covers help text, dry-run env-file setup, unsupported key rejection, fake `gh secret set`
+  writes through stdin, and CLI access-key override behavior. Release docs and unreleased notes describe the local
+  uncommitted env-file ceremony. Validation passed: `bash -n scripts/setup-github-secrets.sh
+  scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check`.
+  Live read-only `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check` still fails closed on
+  missing `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`, and `BUNNY_PULL_ZONE_HOSTNAME`, while reporting
+  `LOOPWIRE_RELEASE_PRIVATE_KEY` present.
 - 2026-07-04 Pinned Deploy Docs selected-run proof wording: `scripts/audit-final-release-state.sh` now distinguishes
   workflow-list probes from pinned `gh run view` probes, reporting selected-run proof for
   `--docs-deployment-run-id` and latest-run proof for default audits. `scripts/verify-scripts.sh` asserts that pinned

@@ -355,6 +355,8 @@ These notes describe source-tree progress. They are not a public release announc
   rehearsals tied to the operator-selected docs deployment instead of only the latest workflow run.
 - Pinned Deploy Docs release-status audits now label the evidence as the selected run, avoiding latest-run wording when
   an operator intentionally audits a specific workflow run id.
+- `scripts/setup-github-secrets.sh` now accepts `--env-file` for local uncommitted Bunny.net values and release key
+  file paths, with command-line flags taking precedence and dry-run output still hiding secret values.
 - JACK live port delegation now preserves the process environment while applying Loopwire-specific overrides, so
   provider scripts that use `/usr/bin/env node` keep resolving Node on CI and operator hosts.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,

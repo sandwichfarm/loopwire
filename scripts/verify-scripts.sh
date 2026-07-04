@@ -1354,6 +1354,10 @@ bash scripts/setup-github-secrets.sh --help | grep -F -- "--secret-list-file FIL
   echo "verify-scripts: GitHub secret helper help is missing secret-list artifact support" >&2
   exit 1
 }
+bash scripts/setup-github-secrets.sh --help | grep -F -- "--env-file FILE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper help is missing env-file support" >&2
+  exit 1
+}
 release_readiness_help_for_secret_artifacts="$(bash scripts/verify-release-readiness.sh --help)"
 printf '%s\n' "$release_readiness_help_for_secret_artifacts" | grep -F -- "--secret-list-file FILE" >/dev/null || {
   echo "verify-scripts: release readiness help is missing secret-list artifact support" >&2
@@ -3336,6 +3340,61 @@ printf '%s\n' "$github_secret_dry_run" | grep -F "private-prefix-value" >/dev/nu
   echo "verify-scripts: GitHub secret helper dry-run leaked a secret value" >&2
   exit 1
 }
+github_secret_env_file="$tmp_dir/setup-github-secrets.env"
+cat >"$github_secret_env_file" <<EOF
+# Local release-secret inputs. Values must never be committed.
+BUNNY_STORAGE_ZONE=env-loopwire-docs
+BUNNY_ACCESS_KEY=env-access-key
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
+BUNNY_REMOTE_PREFIX=env-private-prefix
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$tmp_secret_file
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=$tmp_secret_public_key
+EOF
+github_secret_env_dry_run="$(
+  bash scripts/setup-github-secrets.sh \
+    --repo sandwichfarm/loopwire \
+    --env-file "$github_secret_env_file" \
+    --dry-run
+)"
+printf '%s\n' "$github_secret_env_dry_run" |
+  grep -F "would set GitHub secret for sandwichfarm/loopwire: BUNNY_STORAGE_ZONE" >/dev/null || {
+    echo "verify-scripts: GitHub secret helper env-file dry-run did not include storage zone" >&2
+    exit 1
+  }
+printf '%s\n' "$github_secret_env_dry_run" |
+  grep -F "would set GitHub secret for sandwichfarm/loopwire: LOOPWIRE_RELEASE_PRIVATE_KEY" >/dev/null || {
+    echo "verify-scripts: GitHub secret helper env-file dry-run did not include release private key" >&2
+    exit 1
+  }
+if printf '%s\n' "$github_secret_env_dry_run" | grep -F "env-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper env-file dry-run leaked access key" >&2
+  exit 1
+fi
+if printf '%s\n' "$github_secret_env_dry_run" | grep -F "env-private-prefix" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper env-file dry-run leaked remote prefix" >&2
+  exit 1
+fi
+github_secret_env_override_dry_run="$(
+  bash scripts/setup-github-secrets.sh \
+    --repo sandwichfarm/loopwire \
+    --env-file "$github_secret_env_file" \
+    --access-key cli-access-key \
+    --dry-run
+)"
+if printf '%s\n' "$github_secret_env_override_dry_run" | grep -F "cli-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper env-file override dry-run leaked CLI access key" >&2
+  exit 1
+fi
+github_secret_bad_env_file="$tmp_dir/setup-github-secrets-bad.env"
+printf '%s\n' "BUNNY_STORAGE_TOKEN=typo" >"$github_secret_bad_env_file"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --env-file "$github_secret_bad_env_file" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted an unsupported env-file key" >&2
+  exit 1
+fi
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --storage-zone "loopwire/docs" \
@@ -4409,6 +4468,40 @@ grep -F "https://ny.storage.bunnycdn.com" "$fake_secret_set_dir/BUNNY_STORAGE_EN
 }
 grep -F "private-prefix-value" "$fake_secret_set_dir/BUNNY_REMOTE_PREFIX" >/dev/null || {
   echo "verify-scripts: GitHub secret helper did not write the remote prefix through stdin" >&2
+  exit 1
+}
+fake_secret_env_set_dir="$tmp_dir/fake-gh-secret-env-set"
+env_secret_set_output="$(
+  LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_env_set_dir" \
+    PATH="$fake_gh_dir:$PATH" \
+    bash scripts/setup-github-secrets.sh \
+      --repo sandwichfarm/loopwire \
+      --env-file "$github_secret_env_file" \
+      --access-key cli-access-key
+)"
+printf '%s\n' "$env_secret_set_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not report successful env-file fake writes" >&2
+    exit 1
+  }
+grep -F "env-loopwire-docs" "$fake_secret_env_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not write env-file storage zone through stdin" >&2
+  exit 1
+}
+grep -F "cli-access-key" "$fake_secret_env_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not let CLI access key override env-file access key" >&2
+  exit 1
+}
+if grep -F "env-access-key" "$fake_secret_env_set_dir/BUNNY_ACCESS_KEY" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper wrote env-file access key despite CLI override" >&2
+  exit 1
+fi
+grep -F "docs.env.example.test" "$fake_secret_env_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not write env-file pull-zone hostname through stdin" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_env_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper did not write env-file release private key through stdin" >&2
   exit 1
 }
 release_readiness_secret_failure_log="$tmp_dir/release-readiness-secret-failure.log"
