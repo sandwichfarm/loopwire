@@ -202,8 +202,8 @@ These notes describe source-tree progress. They are not a public release announc
   `package.json`, or not wired into the docs deploy workflow before the manifest artifact upload.
 - Release readiness now fails if the final release proof workflow, `pnpm verify:final-release`,
   `pnpm vm:package-evidence`, or `pnpm vm:prepare-release-evidence` wiring disappears before the release handoff.
-- The v0.1.0 release notes are now publishable release notes instead of candidate notes, so release readiness no
-  longer needs the candidate-wording override when GitHub/tag checks are intentionally skipped.
+- The v0.1.0 release notes remain candidate-gated until public signed artifacts and VM evidence exist, and release
+  readiness rejects those notes unless `--allow-candidate-notes` is explicit.
 - The GitHub secret helper now rejects Bunny storage zones, endpoints, pull-zone hostnames, and remote prefixes that
   would later fail the docs deploy or live-smoke helpers.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or

@@ -159,6 +159,7 @@ printf '%s\n' "$release_readiness_help" |
   }
 pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git \
+  --allow-candidate-notes \
   | grep -F -- "ok: final release proof workflow passes GitHub token to proof step" \
   >/dev/null || {
     echo "verify-scripts: release readiness output is missing final proof GitHub token check" >&2
@@ -166,6 +167,7 @@ pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
   }
 pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git \
+  --allow-candidate-notes \
   | grep -F -- "ok: package script vm:prepare-release-evidence is wired" \
   >/dev/null || {
     echo "verify-scripts: release readiness output is missing VM signed-release helper check" >&2

@@ -175,8 +175,8 @@ check_release_notes_are_publishable() {
     return 0
   fi
 
-  candidate_pattern='release candidate|before the public GitHub Release|not proof that signed artifacts'
-  candidate_pattern="${candidate_pattern}|blocked until|No public signed|must still fail"
+  candidate_pattern='release candidate|candidate-gated|before the public GitHub Release|not proof that signed artifacts'
+  candidate_pattern="${candidate_pattern}|claims remain tied|blocked until|No public signed|must still fail"
 
   if grep -Eiq "$candidate_pattern" "$path"; then
     echo "invalid: release notes still look like a candidate: $path" >&2

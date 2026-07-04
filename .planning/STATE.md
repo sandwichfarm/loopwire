@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T20:42:32+02:00"
-last_activity: 2026-07-04 - Window chrome control now explains native-first and fallback modes
+last_updated: "2026-07-04T20:48:32+02:00"
+last_activity: 2026-07-04 - Release readiness rejects candidate-gated v0.1.0 notes by default
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Desktop window chrome selection is now a segmented native-first control with explicit
-fallback-mode copy, so users can see when Loopwire is using system decorations versus its own drag, minimize,
-maximize/restore, and close controls. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
-deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Release readiness now rejects the candidate-gated v0.1.0 release notes by default, while
+offline wiring audits can opt into `--allow-candidate-notes` explicitly. Phase 12 remains gated on a public release,
+configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
+evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
 
 ## Verification Log
 
+- 2026-07-04 Candidate-gated release-note readiness: the v0.1.0 release notes now restore the explicit
+  candidate-gated disclaimer, and `verify-release-readiness.sh` rejects that wording unless
+  `--allow-candidate-notes` is provided. `verify-scripts.sh` keeps positive offline wiring probes on the explicit
+  override and preserves the negative default check, so public release readiness cannot silently pass while the docs
+  still depend on future signed artifacts, final proof, and support-matrix evidence. Validation passed:
+  codebase-memory MCP `search_graph`/`get_code_snippet` located `check_release_notes_are_publishable`; `bash -n
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, strict `verify-release-readiness` failure without `--allow-candidate-notes`, override success
+  with `--allow-candidate-notes`, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 Native-first chrome control UX: the desktop chrome setting now uses a tested segmented control with
   native-first, fallback, and browser-preview summaries, preserving the existing Tauri decoration behavior while making
   the DE/WM window-management choice explicit at the point of use. Docs and requirements verification now assert the

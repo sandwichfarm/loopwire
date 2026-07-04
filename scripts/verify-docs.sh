@@ -521,7 +521,8 @@ assert_contains \
   "Release readiness now fails if the final release proof workflow"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'reintroduces `--release-dir`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:prepare-release-evidence` wiring disappears'
-assert_contains "apps/docs/docs/release-notes/unreleased.md" "publishable release notes instead of candidate notes"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "remain candidate-gated until public signed artifacts"
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" "These candidate-gated notes describe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_REMOTE_PREFIX"
