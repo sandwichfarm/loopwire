@@ -222,6 +222,8 @@ These notes describe source-tree progress. They are not a public release announc
   require it with `--require-published-release` for final release proof after GitHub assets exist.
 - Final release evidence verification now rejects fake `published-release-smoke` rows unless they executed
   `scripts/verify-published-release.sh` with the manifest repo, tag, and public key.
+- Final release evidence verification now rejects `published-release-smoke` rows that include `--release-dir`, so local
+  staged artifacts cannot satisfy final proof that must come from the GitHub Release surface.
 - Final release evidence verification can now require a specific signing public key with `--public-key`, and
   published-release evidence archive checks pass through the same key used to verify signed release assets.
 - Final release evidence verification can now require the resolved release tag commit with `--git-head`, and the release

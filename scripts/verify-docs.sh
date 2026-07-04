@@ -383,6 +383,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'uses `BUNNY_REMOTE_PREFIX
 assert_contains "apps/docs/docs/developer/release.md" "only to override the stored Bunny pull-zone target"
 assert_contains "apps/docs/docs/developer/release.md" "published-release-smoke"
 assert_contains "apps/docs/docs/developer/release.md" "same repo, tag, and public key"
+assert_contains "apps/docs/docs/developer/release.md" "must not include"
 assert_contains "apps/docs/docs/developer/release.md" "public key used to verify the release assets"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_PULL_ZONE_HOSTNAME"
 assert_contains "apps/docs/docs/developer/release.md" "requires both canonical Linux tarballs"
@@ -585,6 +586,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "all declared VM ma
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "verify final release evidence bundles"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "green smoke against the wrong deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'fake `published-release-smoke` rows'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'rows that include `--release-dir`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'specific signing public key with `--public-key`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'resolved release tag commit with `--git-head`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm verify:final-release`'

@@ -126,7 +126,9 @@ that executed `bash scripts/verify-published-release.sh` with the same repo, tag
 `release-evidence.json`. Pass `--public-key` for final release bundles so the manifest must match the same signing
 public key used to verify the release assets. Pass `--git-head` so the evidence manifest must match the tag commit the
 release workflow checked out. Those rows are tokenized and must invoke the expected script directly, so an echo command
-that only prints the expected verifier path and flags is rejected.
+that only prints the expected verifier path and flags is rejected. Published-release evidence rows must not include
+`--release-dir`; local staged release directories are valid for pre-publish smoke tests, but they cannot satisfy final
+published-release evidence.
 
 After the GitHub Release exists, Bunny.net docs are live, and all VM bundles have been copied back and promoted, run the
 single final proof gate:

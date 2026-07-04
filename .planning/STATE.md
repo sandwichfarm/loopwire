@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T19:16:44+02:00"
-last_activity: 2026-07-04 - Desktop live switch guard now blocks selected backends reported unavailable
+last_updated: "2026-07-04T19:22:22+02:00"
+last_activity: 2026-07-04 - Final release evidence rejects local release-dir as published-release proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Desktop live configuration switching now resolves selected-backend capability through a
-pure preflight helper and blocks persisted selected backends when current detection reports them unavailable, preventing
-stale backend choices from arming live apply or passing the switch guard after the audio system disappears. Phase 12
-remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for
-local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Final release evidence verification now rejects `published-release-smoke` command rows that
+include `--release-dir`, preventing local staged release artifacts from satisfying final proof that must come from the
+GitHub Release surface. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
+proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,14 @@ local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Final release evidence published-surface hardening: `scripts/verify-release-evidence.mjs` now rejects
+  `published-release-smoke` rows containing `--release-dir`, while `scripts/verify-scripts.sh` includes a negative
+  bundle proving a local staged release directory cannot satisfy `--require-published-release`. Docs now distinguish
+  local pre-publish smoke from final published-release evidence. Validation passed: codebase-memory MCP `index_status`
+  reported `home-sandwich-Develop-loopwire` ready with 3,138 nodes and 6,076 edges, and `search_graph`/`get_code_snippet`
+  located the final proof, release evidence, and published-release verifier contracts; `node --check
+  scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed.
 - 2026-07-04 Desktop unavailable-backend live switch guard: live-apply preflight now treats selected backend detection
   reports with `availability: "unavailable"` as hard blockers before backend-specific rules, and
   `describeConfigurationSwitchPreflight` uses the same selected-backend report. Focused tests prove an unavailable

@@ -796,6 +796,8 @@ function validatePublishedReleaseCommand(command) {
 
     requireOptionValue(tokens, flag, value, "published-release-smoke");
   }
+
+  rejectOption(tokens, "--release-dir", "published-release-smoke");
 }
 
 function validateNixReleaseCommand(command) {

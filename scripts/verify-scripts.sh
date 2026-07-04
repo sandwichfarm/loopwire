@@ -1529,6 +1529,7 @@ release_evidence_bad_docs_binding_dir="$tmp_dir/release-evidence-bad-docs-bindin
 release_evidence_missing_git_dir="$tmp_dir/release-evidence-missing-git"
 release_evidence_dirty_git_dir="$tmp_dir/release-evidence-dirty-git"
 release_evidence_bad_published_command_dir="$tmp_dir/release-evidence-bad-published-command"
+release_evidence_local_published_command_dir="$tmp_dir/release-evidence-local-published-command"
 release_evidence_bad_public_key_dir="$tmp_dir/release-evidence-bad-public-key"
 release_evidence_bad_tag_dir="$tmp_dir/release-evidence-bad-tag"
 release_evidence_bad_repo_dir="$tmp_dir/release-evidence-bad-repo"
@@ -1544,8 +1545,9 @@ node - "$release_evidence_dir" "$release_evidence_partial_dir" "$release_evidenc
   "$release_evidence_bad_vm_dir" "$release_evidence_duplicate_vm_dir" "$release_evidence_bad_vm_command_dir" \
   "$release_evidence_missing_docs_live_dir" "$release_evidence_bad_docs_command_dir" \
   "$release_evidence_bad_docs_binding_dir" "$release_evidence_missing_git_dir" "$release_evidence_dirty_git_dir" \
-  "$release_evidence_bad_published_command_dir" "$release_evidence_bad_public_key_dir" "$release_evidence_bad_tag_dir" \
-  "$release_evidence_bad_repo_dir" "$release_evidence_missing_launch_plan_dir" \
+  "$release_evidence_bad_published_command_dir" "$release_evidence_local_published_command_dir" \
+  "$release_evidence_bad_public_key_dir" "$release_evidence_bad_tag_dir" "$release_evidence_bad_repo_dir" \
+  "$release_evidence_missing_launch_plan_dir" \
   "$release_evidence_bad_launch_plan_command_dir" "$release_evidence_bad_launch_plan_log_dir" \
   "$release_evidence_missing_dsp_plan_dir" "$release_evidence_bad_dsp_plan_command_dir" \
   "$release_evidence_bad_dsp_plan_log_dir" "$release_evidence_wrong_dsp_plan_target_dir" <<'NODE'
@@ -1567,6 +1569,7 @@ const [
   missingGitDir,
   dirtyGitDir,
   badPublishedCommandDir,
+  localPublishedCommandDir,
   badPublicKeyDir,
   badTagDir,
   badRepoDir,
@@ -1870,6 +1873,15 @@ writeBundle(badPublishedCommandDir, targets);
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
+writeBundle(localPublishedCommandDir, targets);
+{
+  const manifestPath = path.join(localPublishedCommandDir, "release-evidence.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const item = manifest.commands.find((entry) => entry.name === "published-release-smoke");
+  item.command += " --release-dir dist/release";
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 writeBundle(badPublicKeyDir, targets);
 {
   const manifestPath = path.join(badPublicKeyDir, "release-evidence.json");
@@ -2107,6 +2119,12 @@ if node scripts/verify-release-evidence.mjs \
   --evidence-dir "$release_evidence_bad_published_command_dir" \
   --require-published-release >/dev/null 2>&1; then
   echo "verify-scripts: release evidence verifier accepted a fake published-release smoke command" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_local_published_command_dir" \
+  --require-published-release >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted local release-dir as published-release proof" >&2
   exit 1
 fi
 if node scripts/verify-release-evidence.mjs \
