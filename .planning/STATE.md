@@ -2342,3 +2342,12 @@ Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-
   requirements verification, scripts/workflows/runtime/Tauri verification, install and release-artifact smokes,
   packaging metadata smoke, VM target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs,
   core, audio-host, and desktop builds.
+- 2026-07-04 final proof published-source workflow guard: `scripts/verify-github-workflows.sh` now fails if the manual
+  final release proof workflow's composed `scripts/verify-final-release-proof.sh` step reintroduces `--release-dir`,
+  keeping final proof tied to downloaded GitHub Release assets, signed checksums, live docs, and operator-collected VM
+  evidence instead of local staging directories.
+- 2026-07-04 final proof published-source workflow guard validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located the workflow verifier symbol before implementation.
+  `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh`, `pnpm verify:workflows`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, and full `pnpm check` passed. No release tag, public release, Bunny deployment, secret write,
+  VM launch, host audio mutation, or support-matrix promotion was performed.

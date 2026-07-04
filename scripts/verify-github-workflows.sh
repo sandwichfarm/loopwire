@@ -57,6 +57,19 @@ assert_final_proof_step_has_github_token() {
   fi
 }
 
+assert_final_proof_step_uses_published_release_inputs() {
+  local file=".github/workflows/final-release-proof.yml"
+
+  if awk '
+    $0 == "      - name: Verify final release proof" { in_step = 1; next }
+    in_step && $0 ~ /^      - name: / { in_step = 0 }
+    in_step && /--release-dir/ { found = 1 }
+    END { exit(found ? 0 : 1) }
+  ' "$root/$file"; then
+    fail "final release proof step must not pass --release-dir: $file"
+  fi
+}
+
 if ! command -v ruby >/dev/null 2>&1; then
   fail "ruby is required to parse workflow YAML"
 fi
@@ -147,6 +160,7 @@ assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-vm-evidenc
 assert_contains ".github/workflows/final-release-proof.yml" "Release evidence archive must contain"
 assert_contains ".github/workflows/final-release-proof.yml" "scripts/verify-final-release-proof.sh"
 assert_final_proof_step_has_github_token
+assert_final_proof_step_uses_published_release_inputs
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-base-url"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-hostname"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-remote-prefix"

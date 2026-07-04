@@ -326,7 +326,9 @@ downloads both archives from the GitHub Release, verifies each archive is listed
 `scripts/verify-release-asset-checksum.sh`, validates both downloaded tarballs with `scripts/extract-safe-tar.sh`
 before extraction, verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every
 VM target bundle to include published-release smoke, verifies support-matrix promotion rules, and reruns
-`pnpm verify:docs`.
+`pnpm verify:docs`. The composed `scripts/verify-final-release-proof.sh` step must not pass `--release-dir`; by this
+stage all release proof comes from GitHub Release downloads, signed checksum verification, live docs evidence, and
+operator-collected VM evidence.
 
 After collecting and verifying every VM target bundle, create the archive for the GitHub Release:
 

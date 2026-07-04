@@ -356,6 +356,7 @@ assert_contains "apps/docs/docs/developer/release.md" "read-source, write-output
 assert_contains "apps/docs/docs/developer/release.md" "verify-output operation rows"
 assert_contains "apps/docs/docs/developer/release.md" "must invoke the expected script directly"
 assert_contains "apps/docs/docs/developer/release.md" "same deployed docs base URL or hostname"
+assert_contains "apps/docs/docs/developer/release.md" 'must not pass `--release-dir`'
 assert_contains "apps/docs/docs/developer/release.md" 'remote prefix recorded in `release-evidence.json`'
 assert_contains "apps/docs/docs/developer/release.md" "GitHub-hosted runners do not provide"
 assert_contains "apps/docs/docs/developer/release.md" "--vm-target all"
@@ -501,6 +502,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness 
 assert_contains \
   "apps/docs/docs/release-notes/unreleased.md" \
   "Release readiness now fails if the final release proof workflow"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'reintroduces `--release-dir`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:prepare-release-evidence` wiring disappears'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "publishable release notes instead of candidate notes"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-docs-deployment"

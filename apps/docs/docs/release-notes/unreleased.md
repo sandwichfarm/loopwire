@@ -388,6 +388,8 @@ These notes describe source-tree progress. They are not a public release announc
   execute the non-skipped Nix build gate.
 - The final release proof workflow now passes the GitHub Actions token into the composed proof step, and release
   readiness fails if that token wiring disappears before the workflow downloads release assets.
+- The final release proof workflow contract now fails if the composed proof step reintroduces `--release-dir`, keeping
+  final proof tied to downloaded GitHub Release assets instead of local staging directories.
 - The final release proof workflow now requires a docs deployment run id, downloads that run's
   `loopwire-docs-deployment` artifact, rebuilds docs from the release commit, and verifies `deployment-manifest.json`
   before accepting the live docs smoke.
