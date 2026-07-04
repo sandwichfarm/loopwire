@@ -2130,6 +2130,20 @@
   `pnpm verify:requirements`, and offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag
   v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git
   --allow-candidate-notes`.
+- `scripts/verify-release-readiness.sh` now also fails preflight if the final release proof verifier, VM evidence
+  packager, `pnpm verify:final-release`, `pnpm vm:package-evidence`, or
+  `.github/workflows/final-release-proof.yml` wiring disappears before the release handoff.
+- Focused validation passed: codebase-memory MCP `index_status` reported `home-sandwich-Develop-loopwire` ready,
+  `search_graph` located the final release proof and VM evidence packager surfaces, `bash -n
+  scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh` passed, and offline
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes` passed.
+- Full validation passed: `pnpm verify:docs`, `pnpm verify:workflows`, `pnpm verify:scripts`,
+  `pnpm verify:requirements`, full `pnpm check`, `pnpm detect:audio`, `git diff --check`, touched-file added-line
+  scan, `gsd-sdk query roadmap.analyze --format json`, and `gsd-sdk query init.phase-op 12 --format json`.
+  Codebase-memory MCP fast reindex wrote a persistent artifact and `index_status` reported ready with 2,534 nodes and
+  5,387 edges. `pnpm detect:audio` reported PipeWire, PulseAudio compatibility, and ALSA available; JACK remains
+  unavailable because `jack_lsp` is missing.
 
 ## Evidence Missing
 

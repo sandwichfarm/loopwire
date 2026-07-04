@@ -279,7 +279,8 @@ pnpm verify:release-readiness -- \
 The preflight does not publish. It requires a v-prefixed semver release tag without path separators, checks versioned
 release notes, rejects release-candidate/not-published wording, verifies that the public docs `/install.sh` asset
 matches the canonical installer, verifies that `pnpm verify:docs-deployment` is present and wired into the docs deploy
-workflow, validates the signing public key, requires a clean git checkout, checks that the local or remote tag resolves
+workflow, verifies that `pnpm verify:final-release`, `pnpm vm:package-evidence`, and the final release proof workflow
+are wired, validates the signing public key, requires a clean git checkout, checks that the local or remote tag resolves
 to the current checkout commit, verifies repository access, and confirms required GitHub secrets for release and
 Bunny.net docs deployment. Candidate evidence collection passes `--skip-clean-git` because it is allowed to record
 in-progress source state without claiming final release readiness.

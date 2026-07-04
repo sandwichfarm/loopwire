@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T14:19:09+02:00"
-last_activity: 2026-07-04 - release readiness checks docs deployment verifier wiring
+last_updated: "2026-07-04T14:30:09+02:00"
+last_activity: 2026-07-04 - release readiness checks final proof and VM evidence wiring
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-release-readiness.sh` now checks that the docs deployment manifest
-verifier exists, parses, is exposed as `pnpm verify:docs-deployment`, and is wired into the docs deployment workflow
-before artifact upload. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment
-proof, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-release-readiness.sh` now checks that the final release proof verifier,
+VM evidence packager, package scripts, and manual final proof workflow are present and wired before a release can be
+treated as ready. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
+host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1994,3 +1994,17 @@ proof, host QEMU/Nix tooling, and operator-run VM evidence.
   sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
   --skip-clean-git --allow-candidate-notes` passed. No GitHub release, Bunny upload, secret write, live docs smoke,
   or VM run was performed.
+- 2026-07-04 release readiness final proof guard: `scripts/verify-release-readiness.sh` now fails preflight if the
+  final release proof verifier, VM evidence packager, `pnpm verify:final-release`, `pnpm vm:package-evidence`, or
+  `.github/workflows/final-release-proof.yml` wiring disappears before the release handoff.
+- 2026-07-04 release readiness final proof guard validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and `search_graph` located the final release proof and VM evidence packager
+  surfaces. `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh scripts/verify-docs.sh` and offline
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes` passed.
+- 2026-07-04 release readiness final proof guard full validation: `pnpm verify:docs`, `pnpm verify:workflows`,
+  `pnpm verify:scripts`, `pnpm verify:requirements`, full `pnpm check`, `pnpm detect:audio`, `git diff --check`,
+  touched-file added-line scan, `gsd-sdk query roadmap.analyze --format json`, and
+  `gsd-sdk query init.phase-op 12 --format json` passed. Codebase-memory MCP fast reindex wrote a persistent artifact
+  and `index_status` reported ready with 2,534 nodes and 5,387 edges. `pnpm detect:audio` reported PipeWire,
+  PulseAudio compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.

@@ -28,6 +28,7 @@ Checks:
   - versioned release notes no longer carry release-candidate/not-published wording,
   - public docs installer stays synchronized with the canonical installer,
   - docs deployment manifest verifier is present, parseable, and wired into the deploy workflow,
+  - final release proof workflow and VM evidence packager are present, parseable, and wired,
   - release public key exists and parses,
   - git checkout is clean unless --skip-clean-git is passed,
   - local or remote tag exists and resolves to the current HEAD unless --skip-tag is passed,
@@ -159,8 +160,11 @@ check_release_notes_are_publishable "$release_notes"
 check_file "$canonical_installer" "canonical installer"
 check_file "$public_installer" "public docs installer"
 check_file "scripts/verify-docs-deployment-manifest.mjs" "docs deployment manifest verifier"
+check_file "scripts/verify-final-release-proof.sh" "final release proof verifier"
+check_file "scripts/package-vm-evidence.sh" "VM evidence packager"
 check_file "package.json" "package manifest"
 check_file ".github/workflows/deploy-docs.yml" "docs deployment workflow"
+check_file ".github/workflows/final-release-proof.yml" "final release proof workflow"
 if [ -s "$canonical_installer" ] && [ -s "$public_installer" ]; then
   if cmp -s "$canonical_installer" "$public_installer"; then
     echo "ok: public docs installer matches canonical installer"
@@ -183,16 +187,45 @@ if [ -s "scripts/verify-docs-deployment-manifest.mjs" ]; then
   fi
 fi
 
-if [ -s "package.json" ] && node -e '
+if [ -s "scripts/verify-final-release-proof.sh" ] && [ -s "scripts/package-vm-evidence.sh" ]; then
+  if bash -n scripts/verify-final-release-proof.sh scripts/package-vm-evidence.sh; then
+    echo "ok: final proof scripts parse"
+  else
+    echo "invalid: final proof scripts have shell syntax errors" >&2
+    failed=1
+  fi
+fi
+
+if [ -s "scripts/package-vm-evidence.sh" ]; then
+  if bash scripts/package-vm-evidence.sh --help | grep -F -- "--require-published-release" >/dev/null; then
+    echo "ok: VM evidence packager supports published-release strictness"
+  else
+    echo "invalid: VM evidence packager is missing published-release strictness support" >&2
+    failed=1
+  fi
+fi
+
+check_package_script() {
+  script_name="$1"
+  expected="$2"
+
+  if [ -s "package.json" ] && node -e '
 const fs = require("node:fs");
 const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-process.exit(pkg.scripts?.["verify:docs-deployment"] === "node scripts/verify-docs-deployment-manifest.mjs" ? 0 : 1);
-'; then
-  echo "ok: package script verify:docs-deployment is wired"
-else
-  echo "invalid: package script verify:docs-deployment is missing or changed" >&2
-  failed=1
-fi
+const scriptName = process.argv[1];
+const expected = process.argv[2];
+process.exit(pkg.scripts?.[scriptName] === expected ? 0 : 1);
+' "$script_name" "$expected"; then
+    echo "ok: package script ${script_name} is wired"
+  else
+    echo "invalid: package script ${script_name} is missing or changed" >&2
+    failed=1
+  fi
+}
+
+check_package_script "verify:docs-deployment" "node scripts/verify-docs-deployment-manifest.mjs"
+check_package_script "verify:final-release" "bash scripts/verify-final-release-proof.sh"
+check_package_script "vm:package-evidence" "bash scripts/package-vm-evidence.sh"
 
 if [ -s ".github/workflows/deploy-docs.yml" ]; then
   if grep -F -- "pnpm verify:docs-deployment" .github/workflows/deploy-docs.yml >/dev/null &&
@@ -200,6 +233,21 @@ if [ -s ".github/workflows/deploy-docs.yml" ]; then
     echo "ok: docs deployment workflow verifies manifest before artifact upload"
   else
     echo "invalid: docs deployment workflow does not verify the deployment manifest" >&2
+    failed=1
+  fi
+fi
+
+if [ -s ".github/workflows/final-release-proof.yml" ]; then
+  final_proof_workflow=".github/workflows/final-release-proof.yml"
+  release_evidence_asset='loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
+  vm_evidence_asset='loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
+  if grep -F -- "scripts/verify-final-release-proof.sh" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "$release_evidence_asset" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "$vm_evidence_asset" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "--vm-evidence-root" "$final_proof_workflow" >/dev/null; then
+    echo "ok: final release proof workflow verifies release and VM evidence archives"
+  else
+    echo "invalid: final release proof workflow is missing release or VM evidence verification" >&2
     failed=1
   fi
 fi

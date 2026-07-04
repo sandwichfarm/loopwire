@@ -61,6 +61,14 @@ if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deploym
   console.error("verify-scripts: root package is missing verify:docs-deployment");
   process.exit(1);
 }
+if (root.scripts["verify:final-release"] !== "bash scripts/verify-final-release-proof.sh") {
+  console.error("verify-scripts: root package is missing verify:final-release");
+  process.exit(1);
+}
+if (root.scripts["vm:package-evidence"] !== "bash scripts/package-vm-evidence.sh") {
+  console.error("verify-scripts: root package is missing vm:package-evidence");
+  process.exit(1);
+}
 if (audioHost.bin?.["loopwire-jack-ports"] !== "./dist/jack-ports-cli.js") {
   console.error("verify-scripts: audio-host package is missing loopwire-jack-ports bin");
   process.exit(1);
@@ -96,6 +104,11 @@ printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest v
   echo "verify-scripts: release readiness help is missing docs deployment verifier check" >&2
   exit 1
 }
+printf '%s\n' "$release_readiness_help" |
+  grep -F -- "final release proof workflow and VM evidence packager" >/dev/null || {
+    echo "verify-scripts: release readiness help is missing final proof wiring check" >&2
+    exit 1
+  }
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
@@ -2761,9 +2774,31 @@ grep -F "ok: package script verify:docs-deployment is wired" "$tmp_dir/release-r
   echo "verify-scripts: release readiness did not verify docs deployment package script" >&2
   exit 1
 }
+grep -F "ok: final proof scripts parse" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+  echo "verify-scripts: release readiness did not verify final proof script syntax" >&2
+  exit 1
+}
+grep -F "ok: VM evidence packager supports published-release strictness" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+    echo "verify-scripts: release readiness did not verify VM evidence packager strictness" >&2
+    exit 1
+  }
+grep -F "ok: package script verify:final-release is wired" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+  echo "verify-scripts: release readiness did not verify final release package script" >&2
+  exit 1
+}
+grep -F "ok: package script vm:package-evidence is wired" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+  echo "verify-scripts: release readiness did not verify VM evidence package script" >&2
+  exit 1
+}
 grep -F "ok: docs deployment workflow verifies manifest before artifact upload" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify docs deployment workflow wiring" >&2
+    exit 1
+  }
+grep -F "ok: final release proof workflow verifies release and VM evidence archives" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+    echo "verify-scripts: release readiness did not verify final release proof workflow wiring" >&2
     exit 1
   }
 bad_public_installer="$tmp_dir/bad-public-install.sh"
@@ -2787,10 +2822,13 @@ mkdir -p "$release_tag_repo/scripts" \
   "$release_tag_repo/apps/docs/docs/release-notes"
 cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release-readiness.sh"
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
+cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
+cp scripts/package-vm-evidence.sh "$release_tag_repo/scripts/package-vm-evidence.sh"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"
 cp scripts/install.sh "$release_tag_repo/apps/docs/docs/public/install.sh"
 cp package.json "$release_tag_repo/package.json"
 cp .github/workflows/deploy-docs.yml "$release_tag_repo/.github/workflows/deploy-docs.yml"
+cp .github/workflows/final-release-proof.yml "$release_tag_repo/.github/workflows/final-release-proof.yml"
 printf '%s\n' "# v0.1.0" "" "Release notes for tag readiness smoke." \
   >"$release_tag_repo/apps/docs/docs/release-notes/0.1.0.md"
 (

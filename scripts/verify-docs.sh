@@ -385,6 +385,8 @@ assert_contains "apps/docs/docs/developer/release.md" "requires a clean git chec
 assert_contains "apps/docs/docs/developer/release.md" "local or remote tag resolves"
 assert_contains "apps/docs/docs/developer/release.md" "to the current checkout commit"
 assert_contains "apps/docs/docs/developer/release.md" "verifies that `pnpm verify:docs-deployment` is present"
+assert_contains "apps/docs/docs/developer/release.md" 'verifies that `pnpm verify:final-release`'
+assert_contains "apps/docs/docs/developer/release.md" '`pnpm vm:package-evidence`'
 assert_contains "apps/docs/docs/developer/release.md" "--skip-clean-git"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
@@ -454,6 +456,10 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Bunny.net upload h
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire.docs-deployment.v1"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:docs-deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now fails if the docs deployment"
+assert_contains \
+  "apps/docs/docs/release-notes/unreleased.md" \
+  "Release readiness now fails if the final release proof workflow"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:package-evidence` wiring disappears'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_REMOTE_PREFIX"
