@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T18:35:41+02:00"
-last_activity: 2026-07-04 - VM evidence status now audits exact release tags
+last_updated: "2026-07-04T18:42:41+02:00"
+last_activity: 2026-07-04 - Desktop backend selection now has a dedicated chooser panel
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm vm:evidence-status` now accepts `--require-published-release --release-tag <tag>`,
-prints the tag-bound verifier command, rejects invalid/tag-only status invocations, and the generated VM runbook now
-uses tag-bound final evidence-status and promotion handoffs. Phase 12 remains gated on a public release, configured
-Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Desktop backend selection now has a dedicated chooser panel that exposes persisted
+selection, available/unavailable backends, and the live-apply disarm rule; mobile layout now puts the active workspace
+before the sidebar. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
+host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,13 @@ Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM l
 
 ## Verification Log
 
+- 2026-07-04 Desktop backend chooser UX: the desktop shell now renders a dedicated backend chooser panel with
+  selected/available/unavailable backend cards, persistence/startup-restore copy, and the live-apply disarm rule.
+  Mobile layout now orders the active workspace before the sidebar so backend/configuration controls are not buried
+  below boot cards. The public product screenshot SVG and unreleased notes were refreshed. Validation passed:
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:docs`,
+  `git diff --check`, Chromium CDP screenshots at 1440x900 and 390x844 with zero horizontal overflow, and
+  `pnpm check`.
 - 2026-07-04 Phase 12 VM evidence status tag audit: `scripts/vm-matrix.sh evidence-status` now supports
   `--release-tag` only with `--require-published-release`, validates semver tags before inspecting bundles, forwards
   the tag to `scripts/verify-vm-evidence.sh`, and generated runbooks now use tag-bound final status and promotion

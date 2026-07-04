@@ -299,6 +299,8 @@
   $: hiddenMonitorCount = activeConfiguration.monitors.length - visibleMonitors.length;
   $: backendDecision = selectBackend(backendCandidates, state.selectedBackend);
   $: selectedBackend = state.selectedBackend ?? "";
+  $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
+  $: backendSelectionSummary = describeBackendSelectionSummary();
   $: selectedBackendCapability = backendCapabilityReports.find((report) => report.kind === state.selectedBackend);
   $: routeControlSemantics = describeSelectedRouteControlSemantics(
     state.selectedBackend,
@@ -1462,6 +1464,10 @@
   }
 
   function backendNextAction(candidate: BackendCandidate): string {
+    if (candidate.kind === state.selectedBackend) {
+      return "Selected. This choice is saved and reused on startup.";
+    }
+
     if (candidate.availability === "available") {
       return "Available for selection.";
     }
@@ -1475,6 +1481,34 @@
     }
 
     return candidate.reason ?? "Open host diagnostics for details.";
+  }
+
+  function backendSelectionAction(candidate: BackendCandidate): string {
+    if (candidate.kind === state.selectedBackend) {
+      return "Selected";
+    }
+
+    if (candidate.availability !== "available") {
+      return "Unavailable";
+    }
+
+    return "Select";
+  }
+
+  function describeBackendSelectionSummary(): string {
+    if (backendDecision.mode === "none") {
+      return "Live apply is locked until a backend probe succeeds.";
+    }
+
+    if (backendDecision.mode === "prompt") {
+      return "Pick once to save the backend for this profile. Switching later stays in preview until re-armed.";
+    }
+
+    if (state.selectedBackend) {
+      return `${selectedBackendName} is saved and will be reused for startup restore.`;
+    }
+
+    return `${backendDecision.backend.displayName} is the only available backend and has been selected automatically.`;
   }
 
   function describeBackendDetection(report: AudioBackendDetectionReport): string {
@@ -1887,6 +1921,33 @@
           </label>
         </div>
       </header>
+
+      <section class="backend-choice-panel" data-mode={backendDecision.mode} aria-label="Audio backend selection">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Audio Backend</p>
+            <h3>{selectedBackendName}</h3>
+          </div>
+          <span>{backendSelectionSummary}</span>
+        </div>
+
+        <div class="backend-choice-grid">
+          {#each backendCandidates as candidate}
+            <button
+              type="button"
+              class:selected={candidate.kind === state.selectedBackend}
+              class:available={candidate.availability === "available"}
+              disabled={candidate.availability !== "available"}
+              aria-pressed={candidate.kind === state.selectedBackend}
+              on:click={() => chooseBackend(candidate.kind)}
+            >
+              <strong>{candidate.displayName}</strong>
+              <small>{backendNextAction(candidate)}</small>
+              <span>{backendSelectionAction(candidate)}</span>
+            </button>
+          {/each}
+        </div>
+      </section>
 
       <div class="status-stack">
         <div class="status-strip" data-mode={backendDecision.mode}>
@@ -2693,6 +2754,93 @@
     gap: 10px;
   }
 
+  .backend-choice-panel {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    color: #d8d0bf;
+    background: #171817;
+    border: 1px solid rgba(244, 239, 226, 0.13);
+    border-left: 4px solid #46d6c8;
+    border-radius: 8px;
+  }
+
+  .backend-choice-panel[data-mode="prompt"] {
+    border-left-color: #c9f05a;
+  }
+
+  .backend-choice-panel[data-mode="none"] {
+    border-left-color: #eb532f;
+  }
+
+  .backend-choice-panel .section-heading > span {
+    max-width: 52ch;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  .backend-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .backend-choice-grid button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 10px;
+    align-items: start;
+    min-height: 104px;
+    padding: 12px;
+    color: #d8d0bf;
+    text-align: left;
+    background: #20201d;
+    border: 1px solid rgba(244, 239, 226, 0.13);
+    border-radius: 8px;
+  }
+
+  .backend-choice-grid button.available {
+    border-color: rgba(70, 214, 200, 0.34);
+  }
+
+  .backend-choice-grid button.selected {
+    color: #101113;
+    background: #c9f05a;
+    border-color: #c9f05a;
+  }
+
+  .backend-choice-grid strong,
+  .backend-choice-grid small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .backend-choice-grid strong {
+    color: inherit;
+    font-size: 0.95rem;
+  }
+
+  .backend-choice-grid small {
+    grid-column: 1 / -1;
+    line-height: 1.35;
+  }
+
+  .backend-choice-grid span {
+    padding: 4px 8px;
+    color: #101113;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    background: #f7b74a;
+    border-radius: 999px;
+  }
+
+  .backend-choice-grid button.selected span {
+    color: #f4efe2;
+    background: #101113;
+  }
+
   .status-strip {
     display: flex;
     align-items: center;
@@ -3398,6 +3546,10 @@
       grid-template-columns: 1fr;
     }
 
+    .main-panel {
+      order: -1;
+    }
+
     .routing-board {
       min-height: auto;
     }
@@ -3427,6 +3579,16 @@
     .topbar {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    .backend-choice-panel .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .backend-choice-panel .section-heading > span {
+      max-width: none;
+      text-align: left;
     }
 
     .cables {
