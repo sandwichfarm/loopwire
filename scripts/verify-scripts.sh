@@ -116,6 +116,10 @@ bash scripts/verify-vm-evidence.sh --help | grep -F -- "--release-tag vX.Y.Z" >/
   echo "verify-scripts: VM evidence verifier help is missing release tag support" >&2
   exit 1
 }
+bash scripts/vm-matrix.sh evidence-status --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
+  echo "verify-scripts: VM matrix helper help is missing release tag support" >&2
+  exit 1
+}
 node scripts/verify-support-matrix.mjs --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
   echo "verify-scripts: support matrix verifier help is missing release tag support" >&2
   exit 1
@@ -2291,6 +2295,21 @@ printf '%s\n' "$pnpm_vm_empty_status_output" | grep -F "status=missing" >/dev/nu
   echo "verify-scripts: pnpm vm:evidence-status did not forward arguments" >&2
   exit 1
 }
+if bash scripts/vm-matrix.sh evidence-status \
+  --target arch-hyprland-pipewire \
+  --evidence-root "$vm_empty_status_root" \
+  --release-tag v0.1.0 >/dev/null 2>&1; then
+  echo "verify-scripts: vm evidence-status accepted --release-tag without published-release strictness" >&2
+  exit 1
+fi
+if bash scripts/vm-matrix.sh evidence-status \
+  --target arch-hyprland-pipewire \
+  --evidence-root "$vm_empty_status_root" \
+  --require-published-release \
+  --release-tag v0.1.0/preview >/dev/null 2>&1; then
+  echo "verify-scripts: vm evidence-status accepted an invalid release tag" >&2
+  exit 1
+fi
 if bash scripts/vm-matrix.sh evidence-status --target not-a-target --evidence-root "$vm_empty_status_root" \
   >/dev/null 2>&1; then
   echo "verify-scripts: vm evidence-status accepted an unknown target" >&2
@@ -2511,6 +2530,18 @@ printf '%s\n' "$vm_runbook_output" \
     echo "verify-scripts: vm runbook is missing strict published-release VM evidence flags" >&2
     exit 1
   }
+printf '%s\n' "$vm_runbook_output" \
+  | grep -F -- "pnpm vm:evidence-status -- --target arch-hyprland-pipewire" \
+  | grep -F -- "--require-published-release --release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: vm runbook is missing tag-bound evidence status command" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_runbook_output" \
+  | grep -F -- "pnpm vm:promote-evidence -- --target arch-hyprland-pipewire" \
+  | grep -F -- "--require-published-release --release-tag v0.1.0 --dry-run" >/dev/null || {
+    echo "verify-scripts: vm runbook is missing tag-bound promotion dry-run command" >&2
+    exit 1
+  }
 printf '%s\n' "$pnpm_vm_runbook_output" | grep -F "### ubuntu-gnome-pipewire-aarch64" >/dev/null || {
   echo "verify-scripts: pnpm vm:render-runbook did not include the AArch64 target" >&2
   exit 1
@@ -2518,6 +2549,12 @@ printf '%s\n' "$pnpm_vm_runbook_output" | grep -F "### ubuntu-gnome-pipewire-aar
 printf '%s\n' "$pnpm_vm_runbook_output" \
   | grep -F -- "--require-published-release --require-all-targets --execute" >/dev/null || {
     echo "verify-scripts: all-target VM runbook is missing strict all-target collection command" >&2
+    exit 1
+  }
+printf '%s\n' "$pnpm_vm_runbook_output" \
+  | grep -F -- "pnpm vm:evidence-status -- --all" \
+  | grep -F -- "--require-published-release --release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: all-target VM runbook is missing tag-bound evidence status command" >&2
     exit 1
   }
 printf '%s\n' "$pnpm_vm_runbook_output" | grep -F -- "--ssh-port 2640" >/dev/null || {
@@ -4172,12 +4209,22 @@ vm_strict_status_output="$(
   bash scripts/vm-matrix.sh evidence-status \
     --target arch-hyprland-pipewire \
     --evidence-root "$status_root" \
-    --require-published-release
+    --require-published-release \
+    --release-tag v0.1.0
 )"
 printf '%s\n' "$vm_strict_status_output" | grep -F "require-published-release=true" >/dev/null || {
   echo "verify-scripts: vm evidence-status strict mode banner missing" >&2
   exit 1
 }
+printf '%s\n' "$vm_strict_status_output" | grep -F "release-tag=v0.1.0" >/dev/null || {
+  echo "verify-scripts: vm evidence-status strict release tag banner missing" >&2
+  exit 1
+}
+printf '%s\n' "$vm_strict_status_output" \
+  | grep -F -- "--require-published-release --release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: vm evidence-status verify command is missing release tag strictness" >&2
+    exit 1
+  }
 printf '%s\n' "$vm_strict_status_output" \
   | grep -F "summary=checked:1 verified:1 missing:0 invalid:0" >/dev/null || {
     echo "verify-scripts: vm evidence-status strict summary is wrong" >&2

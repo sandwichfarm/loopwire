@@ -14,7 +14,8 @@ Usage:
   vm-matrix.sh host-plan [--target TARGET]
   vm-matrix.sh host-setup [--family pacman|apt|dnf|zypper|nix] [--target TARGET|--all]
   vm-matrix.sh doctor [--target TARGET|--all]
-  vm-matrix.sh evidence-status [--target TARGET|--all] [--evidence-root DIR] [--require-published-release]
+  vm-matrix.sh evidence-status [--target TARGET|--all] [--evidence-root DIR]
+                               [--require-published-release] [--release-tag vX.Y.Z]
   vm-matrix.sh plan [--target TARGET]
   vm-matrix.sh render-ssh-plan [--target TARGET|--all] [--host HOST] [--user USER]
                                [--identity FILE] [--start-port PORT]
@@ -569,6 +570,9 @@ verify_evidence_bundle() {
   if [ "$require_published_release" = "true" ]; then
     verify_args+=(--require-published-release)
   fi
+  if [ -n "$release_tag" ]; then
+    verify_args+=(--release-tag "$release_tag")
+  fi
 
   "${verify_args[@]}"
 }
@@ -590,6 +594,7 @@ evidence_status() {
   echo "VM evidence status"
   echo "evidence-root=$evidence_root"
   echo "require-published-release=$require_published_release"
+  [ -z "$release_tag" ] || echo "release-tag=$release_tag"
 
   while IFS=$'\t' read -r id _distro _family _desktop _session _audio _arch _tier _notes; do
     checked=$((checked + 1))
@@ -597,6 +602,9 @@ evidence_status() {
     verify_command="bash scripts/verify-vm-evidence.sh --target $id --evidence-dir $dir"
     if [ "$require_published_release" = "true" ]; then
       verify_command="$verify_command --require-published-release"
+    fi
+    if [ -n "$release_tag" ]; then
+      verify_command="$verify_command --release-tag $release_tag"
     fi
 
     echo "target=$id"
@@ -680,6 +688,13 @@ validate_image_format() {
       fail "image format must be qcow2 or raw"
       ;;
   esac
+}
+
+validate_release_tag() {
+  local value="$1"
+  local pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
+
+  [[ "$value" =~ $pattern ]] || fail "release tag must be v-prefixed semver without path separators: $value"
 }
 
 print_host_plan() {
@@ -1041,10 +1056,31 @@ emit_runbook() {
         --execute
     )"
     evidence_status_command="$(
-      shell_join pnpm vm:evidence-status -- --target "$target_filter" --evidence-root "$evidence_root"
+      shell_join \
+        pnpm \
+        vm:evidence-status \
+        -- \
+        --target \
+        "$target_filter" \
+        --evidence-root \
+        "$evidence_root" \
+        --require-published-release \
+        --release-tag \
+        v0.1.0
     )"
     matrix_promote_command="$(
-      shell_join pnpm vm:promote-evidence -- --target "$target_filter" --evidence-root "$evidence_root" --dry-run
+      shell_join \
+        pnpm \
+        vm:promote-evidence \
+        -- \
+        --target \
+        "$target_filter" \
+        --evidence-root \
+        "$evidence_root" \
+        --require-published-release \
+        --release-tag \
+        v0.1.0 \
+        --dry-run
     )"
   else
     host_setup_command="$(shell_join bash scripts/vm-matrix.sh host-setup --all)"
@@ -1082,9 +1118,30 @@ emit_runbook() {
         --require-all-targets \
         --execute
     )"
-    evidence_status_command="$(shell_join pnpm vm:evidence-status -- --all --evidence-root "$evidence_root")"
+    evidence_status_command="$(
+      shell_join \
+        pnpm \
+        vm:evidence-status \
+        -- \
+        --all \
+        --evidence-root \
+        "$evidence_root" \
+        --require-published-release \
+        --release-tag \
+        v0.1.0
+    )"
     matrix_promote_command="$(
-      shell_join pnpm vm:promote-evidence -- --all --evidence-root "$evidence_root" --dry-run
+      shell_join \
+        pnpm \
+        vm:promote-evidence \
+        -- \
+        --all \
+        --evidence-root \
+        "$evidence_root" \
+        --require-published-release \
+        --release-tag \
+        v0.1.0 \
+        --dry-run
     )"
   fi
 
@@ -1447,6 +1504,7 @@ all_targets="false"
 host_family=""
 evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
 require_published_release="false"
+release_tag=""
 ssh_plan_host="127.0.0.1"
 ssh_plan_user="loopwire"
 ssh_plan_identity=""
@@ -1510,6 +1568,10 @@ while [ "$#" -gt 0 ]; do
       require_published_release="true"
       shift
       ;;
+    --release-tag)
+      release_tag="${2:?missing value for --release-tag}"
+      shift 2
+      ;;
     --host)
       ssh_plan_host="${2:?missing value for --host}"
       shift 2
@@ -1543,6 +1605,13 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+if [ -n "$release_tag" ] && [ "$require_published_release" != "true" ]; then
+  fail "--release-tag requires --require-published-release"
+fi
+if [ -n "$release_tag" ]; then
+  validate_release_tag "$release_tag"
+fi
 
 case "$command" in
   list)

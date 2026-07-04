@@ -166,8 +166,9 @@ images, or start VMs.
 `pnpm vm:evidence-status` is the read-only evidence inventory. It checks `.vm/evidence/<target>` for every target by
 default, reports `status=missing`, `status=invalid`, or `status=verified`, and prints the verifier command plus the SSH
 collector handoff for missing targets. Use `--target <target>` to inspect one row, `--evidence-root DIR` for copied
-bundles, and `--require-published-release` for final public release proof. Missing evidence is reported without failing
-the command; invalid evidence exits nonzero because the bundle exists but does not satisfy the verifier.
+bundles, and `--require-published-release --release-tag <tag>` for final public release proof. Missing evidence is
+reported without failing the command; invalid evidence exits nonzero because the bundle exists but does not satisfy the
+verifier.
 
 `pnpm vm:host-setup` is the focused local setup surface. It prints `package-family=*`, a single `install-command=*`,
 the required VM host tools, and the `verify-command=*` to run after package setup. Use `pnpm vm:host-setup -- --all`

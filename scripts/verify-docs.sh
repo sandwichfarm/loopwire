@@ -241,6 +241,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" 'only changes rows from 
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:host-plan"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:host-setup"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:evidence-status"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" '--require-published-release --release-tag <tag>'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:launch"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:render-launch-plan"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:render-runbook"

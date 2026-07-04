@@ -303,6 +303,8 @@ These notes describe source-tree progress. They are not a public release announc
   reporting missing targets and failing invalid bundles.
 - New `pnpm vm:evidence-status` command reports missing, invalid, and verified evidence bundles across the VM matrix,
   with optional `--require-published-release` strictness for final public release proof.
+- `pnpm vm:evidence-status` can now take `--release-tag` with published-release strictness, so operators can inventory
+  VM proof for the exact release before promoting support-matrix rows.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,
   desktop/session, or architecture do not match the selected target row.
 - Host-side SSH VM evidence collection can run the guest collector, copy target evidence back, and verify the bundle
