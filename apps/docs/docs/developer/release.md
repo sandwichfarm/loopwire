@@ -115,7 +115,9 @@ With `--require-vm-launch-plan`, the verifier also requires a successful `vm-lau
 `scripts/vm-matrix.sh launch` command with the matching `scripts/collect-vm-evidence-ssh.sh --execute` command.
 With `--require-dsp-provider-plan`, the verifier also requires a successful `dsp-provider-plan` command row that invokes
 `bash scripts/collect-dsp-provider-plan.sh` in read-only mode and validates `dsp-provider-plan.tsv` contains
-read-source, write-output, and verify-output rows for the manifest-bound frame count.
+read-source, write-output, and verify-output rows for the manifest-bound frame count and configuration. The row
+targets, labels, and channel counts must match the configured routed sources and outputs, so unrelated placeholder DSP
+rows cannot satisfy final release proof.
 When `--require-live-docs` is present, the verifier requires a successful `docs-live-smoke` command row that executed
 `bash scripts/verify-docs-live.sh` against the public installer and the same deployed docs base URL or hostname plus
 remote prefix recorded in `release-evidence.json`.

@@ -1462,6 +1462,7 @@ release_evidence_bad_launch_plan_log_dir="$tmp_dir/release-evidence-bad-launch-p
 release_evidence_missing_dsp_plan_dir="$tmp_dir/release-evidence-missing-dsp-plan"
 release_evidence_bad_dsp_plan_command_dir="$tmp_dir/release-evidence-bad-dsp-plan-command"
 release_evidence_bad_dsp_plan_log_dir="$tmp_dir/release-evidence-bad-dsp-plan-log"
+release_evidence_wrong_dsp_plan_target_dir="$tmp_dir/release-evidence-wrong-dsp-plan-target"
 node - "$release_evidence_dir" "$release_evidence_partial_dir" "$release_evidence_blocked_dir" \
   "$release_evidence_empty_log_dir" "$release_evidence_parent_log_dir" "$release_evidence_symlink_log_dir" \
   "$release_evidence_bad_vm_dir" "$release_evidence_duplicate_vm_dir" "$release_evidence_bad_vm_command_dir" \
@@ -1471,7 +1472,7 @@ node - "$release_evidence_dir" "$release_evidence_partial_dir" "$release_evidenc
   "$release_evidence_bad_repo_dir" "$release_evidence_missing_launch_plan_dir" \
   "$release_evidence_bad_launch_plan_command_dir" "$release_evidence_bad_launch_plan_log_dir" \
   "$release_evidence_missing_dsp_plan_dir" "$release_evidence_bad_dsp_plan_command_dir" \
-  "$release_evidence_bad_dsp_plan_log_dir" <<'NODE'
+  "$release_evidence_bad_dsp_plan_log_dir" "$release_evidence_wrong_dsp_plan_target_dir" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const [
@@ -1498,7 +1499,8 @@ const [
   badLaunchPlanLogDir,
   missingDspPlanDir,
   badDspPlanCommandDir,
-  badDspPlanLogDir
+  badDspPlanLogDir,
+  wrongDspPlanTargetDir
 ] = process.argv.slice(2);
 const targets = fs.readFileSync("vm/targets.tsv", "utf8")
   .split(/\r?\n/)
@@ -1879,6 +1881,17 @@ writeBundle(badDspPlanLogDir, targets);
     "write-output\tmix\tMain Mix\t2\t16"
   ].join("\n") + "\n");
 }
+
+writeBundle(wrongDspPlanTargetDir, targets);
+{
+  fs.writeFileSync(path.join(wrongDspPlanTargetDir, "dsp-provider-plan.tsv"), [
+    "operation\ttarget\tlabel\tchannels\tframes",
+    "read-source\tmic\tStudio Mic\t2\t16",
+    "read-source\tbrowser\tBrowser Audio\t2\t16",
+    "write-output\tpreview\tMain Mix\t2\t16",
+    "verify-output\tpreview\tMain Mix\t2\t16"
+  ].join("\n") + "\n");
+}
 NODE
 node scripts/verify-release-evidence.mjs \
   --evidence-dir "$release_evidence_dir" \
@@ -2061,6 +2074,12 @@ if node scripts/verify-release-evidence.mjs \
   --evidence-dir "$release_evidence_bad_dsp_plan_log_dir" \
   --require-dsp-provider-plan >/dev/null 2>&1; then
   echo "verify-scripts: release evidence verifier accepted incomplete DSP provider rows" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_wrong_dsp_plan_target_dir" \
+  --require-dsp-provider-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted DSP provider rows for the wrong target" >&2
   exit 1
 fi
 

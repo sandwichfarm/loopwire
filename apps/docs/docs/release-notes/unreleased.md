@@ -220,6 +220,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Release evidence collection now records a read-only `dsp-provider-plan` row in the full profile, and final release
   proof requires `--require-dsp-provider-plan` so the command-backed DSP provider contract cannot disappear from the
   public evidence bundle.
+- Final release evidence now binds `dsp-provider-plan.tsv` rows to the configured routed sources and outputs, rejecting
+  placeholder DSP provider rows that do not match the manifest-bound configuration.
 - Release tarballs, the curl installer, AUR metadata, and Nix metadata now expose `loopwire-dsp-provider` beside the
   main `loopwire` launcher.
 - Release evidence collection and verification can now require live docs smoke with `--require-live-docs`, binding final

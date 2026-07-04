@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T17:50:46+02:00"
-last_activity: 2026-07-04 - VM evidence screenshots must include usable PNG dimensions
+last_updated: "2026-07-04T17:59:25+02:00"
+last_activity: 2026-07-04 - Final DSP provider evidence rows are bound to the release configuration
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-vm-evidence.sh` now parses `screenshot.png` PNG IHDR dimensions and
-rejects tiny placeholder screenshots below 320x200, so VM support promotion needs a usable desktop visual capture.
-Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix
-tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/verify-release-evidence.mjs --require-dsp-provider-plan` now reads the
+manifest-bound DSP configuration and rejects provider-plan TSV rows that do not match the routed source/output ids,
+labels, channels, and frame count. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny
+deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,12 @@ tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 DSP provider evidence binding: final release evidence now validates `dsp-provider-plan.tsv`
+  against the manifest-bound configuration instead of accepting any read/write/verify placeholder rows. The verifier
+  derives expected read-source rows from routed inputs and expected write-output/verify-output rows from configured
+  outputs, checks labels/channels/frame count, and rejects duplicate or unexpected rows. Validation passed:
+  `node --check scripts/verify-release-evidence.mjs`, `bash -n scripts/verify-scripts.sh`, and
+  `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check`.
 - 2026-07-04 Phase 12 VM screenshot evidence hardening: `scripts/verify-vm-evidence.sh` now parses PNG IHDR width and
   height and rejects screenshots below 320x200, preventing 1x1 or header-only placeholders from satisfying VM support
   evidence. `scripts/verify-scripts.sh` now builds a dimensioned synthetic PNG for positive fixture coverage and

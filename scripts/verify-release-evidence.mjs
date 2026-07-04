@@ -17,6 +17,7 @@ const requireVmLaunchPlan = args.includes("--require-vm-launch-plan");
 const requireDspProviderPlan = args.includes("--require-dsp-provider-plan");
 const requireNoReleaseBlockers = args.includes("--require-no-release-blockers");
 const requireCleanGit = args.includes("--require-clean-git");
+const projectRoot = process.cwd();
 
 if (args.includes("-h") || args.includes("--help")) {
   usage();
@@ -405,7 +406,7 @@ function validateRequiredDspProviderPlan() {
   validatePositiveIntegerCell(binding.frameCount, "DSP provider frame count");
   requireOptionValue(tokens, "--configuration", binding.configuration, "dsp-provider-plan");
   requireOptionValue(tokens, "--frame-count", binding.frameCount, "dsp-provider-plan");
-  validateDspProviderPlanLog(command.log, binding.frameCount);
+  validateDspProviderPlanLog(command.log, binding);
 }
 
 function validateDspConfigurationPath(value) {
@@ -422,8 +423,9 @@ function validateDspConfigurationPath(value) {
   }
 }
 
-function validateDspProviderPlanLog(log, frameCount) {
+function validateDspProviderPlanLog(log, binding) {
   const logPath = resolveEvidenceFile(log, "dsp-provider-plan log");
+  const expectedRows = expectedDspProviderRows(binding);
   const lines = readFileSync(logPath, "utf8")
     .trim()
     .split(/\r?\n/)
@@ -435,6 +437,7 @@ function validateDspProviderPlanLog(log, frameCount) {
   }
 
   const operations = new Set();
+  const seenRows = new Set();
   for (const line of lines) {
     const cells = line.split("\t");
     if (cells.length !== 5) {
@@ -442,6 +445,7 @@ function validateDspProviderPlanLog(log, frameCount) {
     }
 
     const [operation, target, label, channels, frames] = cells;
+    const rowKey = `${operation}\t${target}`;
     if (!["read-source", "write-output", "verify-output"].includes(operation)) {
       fail(`dsp-provider-plan row has unsupported operation: ${operation}`);
     }
@@ -450,16 +454,120 @@ function validateDspProviderPlanLog(log, frameCount) {
     }
 
     validatePositiveIntegerCell(channels, `dsp-provider-plan channels for ${target}`);
-    if (frames !== frameCount) {
-      fail(`dsp-provider-plan frames mismatch for ${target}: expected ${frameCount}, got ${frames}`);
+    if (frames !== binding.frameCount) {
+      fail(`dsp-provider-plan frames mismatch for ${target}: expected ${binding.frameCount}, got ${frames}`);
     }
+
+    const expected = expectedRows.get(rowKey);
+    if (!expected) {
+      fail(`dsp-provider-plan row is not expected for configuration ${binding.configuration}: ${operation} ${target}`);
+    }
+    if (label !== expected.label) {
+      fail(`dsp-provider-plan label mismatch for ${operation} ${target}: expected ${expected.label}, got ${label}`);
+    }
+    if (channels !== expected.channels) {
+      fail(`dsp-provider-plan channels mismatch for ${operation} ${target}: expected ${expected.channels}, got ${channels}`);
+    }
+    if (seenRows.has(rowKey)) {
+      fail(`dsp-provider-plan row is duplicated: ${operation} ${target}`);
+    }
+
+    seenRows.add(rowKey);
     operations.add(operation);
+  }
+
+  for (const [rowKey] of expectedRows) {
+    if (!seenRows.has(rowKey)) {
+      fail(`dsp-provider-plan log is missing expected row: ${rowKey.replace("\t", " ")}`);
+    }
   }
 
   for (const operation of ["read-source", "write-output", "verify-output"]) {
     if (!operations.has(operation)) {
       fail(`dsp-provider-plan log is missing operation: ${operation}`);
     }
+  }
+}
+
+function expectedDspProviderRows(binding) {
+  const configuration = readDspProviderConfiguration(binding.configuration);
+  const inputs = new Map(configuration.inputs.map((input) => [input.id, input]));
+  const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+  const sourceRows = new Map();
+  const expectedRows = new Map();
+
+  for (const route of configuration.routes) {
+    const input = inputs.get(route.from);
+    const output = outputs.get(route.to);
+    if (!input || !output) {
+      fail(`DSP provider configuration has an invalid route: ${route.id ?? `${route.from}->${route.to}`}`);
+    }
+
+    const channels = String(Math.min(input.channels, output.channels));
+    const existing = sourceRows.get(input.id);
+    sourceRows.set(input.id, {
+      label: input.label,
+      channels: String(Math.max(Number(existing?.channels ?? 0), Number(channels)))
+    });
+  }
+
+  for (const [sourceId, row] of [...sourceRows.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+    expectedRows.set(`read-source\t${sourceId}`, row);
+  }
+
+  for (const output of configuration.outputs) {
+    const row = { label: output.label, channels: String(output.channels) };
+    expectedRows.set(`write-output\t${output.id}`, row);
+    expectedRows.set(`verify-output\t${output.id}`, row);
+  }
+
+  return expectedRows;
+}
+
+function readDspProviderConfiguration(configurationPath) {
+  const value = readJson(join(projectRoot, configurationPath));
+  const configuration = value?.kind === "loopwire.configuration" && value?.version === 1
+    ? value.configuration
+    : value;
+
+  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration)) {
+    fail("DSP provider configuration must be an object or configuration export");
+  }
+
+  validateDspEndpointArray(configuration.inputs, "inputs");
+  validateDspEndpointArray(configuration.outputs, "outputs");
+  if (!Array.isArray(configuration.routes)) {
+    fail("DSP provider configuration routes must be an array");
+  }
+
+  for (const route of configuration.routes) {
+    if (!route || typeof route !== "object" || Array.isArray(route)) {
+      fail("DSP provider configuration routes must contain objects");
+    }
+    if (typeof route.from !== "string" || typeof route.to !== "string") {
+      fail("DSP provider configuration routes must include from and to ids");
+    }
+  }
+
+  return configuration;
+}
+
+function validateDspEndpointArray(endpoints, label) {
+  if (!Array.isArray(endpoints)) {
+    fail(`DSP provider configuration ${label} must be an array`);
+  }
+
+  for (const endpoint of endpoints) {
+    if (!endpoint || typeof endpoint !== "object" || Array.isArray(endpoint)) {
+      fail(`DSP provider configuration ${label} must contain endpoint objects`);
+    }
+    if (typeof endpoint.id !== "string" || endpoint.id.length === 0) {
+      fail(`DSP provider configuration ${label} endpoints must include ids`);
+    }
+    if (typeof endpoint.label !== "string" || endpoint.label.length === 0) {
+      fail(`DSP provider configuration ${label} endpoints must include labels`);
+    }
+    validatePositiveIntegerCell(String(endpoint.channels), `DSP provider configuration ${label} channels for ${endpoint.id}`);
   }
 }
 
