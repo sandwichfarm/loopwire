@@ -364,6 +364,9 @@ assert_contains "apps/docs/docs/developer/release.md" "--pull-zone-hostname docs
 assert_contains "apps/docs/docs/developer/release.md" "scripts/verify-docs-live.sh"
 assert_contains "apps/docs/docs/developer/release.md" '--remote-prefix "$BUNNY_REMOTE_PREFIX"'
 assert_contains "apps/docs/docs/developer/release.md" "same pull-zone prefix used for upload"
+assert_contains "apps/docs/docs/developer/release.md" 'uses the required `BUNNY_PULL_ZONE_HOSTNAME` repository secret'
+assert_contains "apps/docs/docs/developer/release.md" 'uses `BUNNY_REMOTE_PREFIX` when that optional secret exists'
+assert_contains "apps/docs/docs/developer/release.md" "only to override the stored Bunny pull-zone target"
 assert_contains "apps/docs/docs/developer/release.md" "published-release-smoke"
 assert_contains "apps/docs/docs/developer/release.md" "same repo, tag, and public key"
 assert_contains "apps/docs/docs/developer/release.md" "public key used to verify the release assets"

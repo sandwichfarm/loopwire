@@ -16,11 +16,11 @@ on:
         required: false
         type: string
       docs_hostname:
-        description: Bunny pull-zone hostname when docs_base_url is not used
+        description: Bunny pull-zone hostname override; defaults to BUNNY_PULL_ZONE_HOSTNAME
         required: false
         type: string
       docs_remote_prefix:
-        description: Optional Bunny remote prefix used with docs_hostname
+        description: Optional Bunny remote prefix override; defaults to BUNNY_REMOTE_PREFIX
         required: false
         type: string
       docs_deployment_run_id:
@@ -58,7 +58,9 @@ jobs:
       LOOPWIRE_RELEASE_COMMIT_INPUT: ${{ inputs.git_head }}
       LOOPWIRE_DOCS_BASE_URL_INPUT: ${{ inputs.docs_base_url }}
       LOOPWIRE_DOCS_HOSTNAME_INPUT: ${{ inputs.docs_hostname }}
+      LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}
       LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT: ${{ inputs.docs_remote_prefix }}
+      LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET: ${{ secrets.BUNNY_REMOTE_PREFIX }}
       LOOPWIRE_DOCS_DEPLOYMENT_RUN_ID_INPUT: ${{ inputs.docs_deployment_run_id }}
       LOOPWIRE_DOCS_DEPLOYMENT_ARTIFACT_INPUT: ${{ inputs.docs_deployment_artifact }}
       LOOPWIRE_RELEASE_EVIDENCE_ASSET_INPUT: ${{ inputs.release_evidence_asset }}
@@ -107,14 +109,26 @@ jobs:
       - name: Validate live docs target
         run: |
           set -euo pipefail
-          if [ -n "$LOOPWIRE_DOCS_BASE_URL_INPUT" ] && [ -n "$LOOPWIRE_DOCS_HOSTNAME_INPUT" ]; then
+          docs_hostname="$LOOPWIRE_DOCS_HOSTNAME_INPUT"
+          docs_remote_prefix="$LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT"
+          if [ -n "$LOOPWIRE_DOCS_BASE_URL_INPUT" ] && [ -n "$docs_hostname" ]; then
             echo "Use either docs_base_url or docs_hostname, not both." >&2
             exit 1
           fi
-          if [ -z "$LOOPWIRE_DOCS_BASE_URL_INPUT" ] && [ -z "$LOOPWIRE_DOCS_HOSTNAME_INPUT" ]; then
-            echo "Final release proof requires docs_base_url or docs_hostname." >&2
+          if [ -z "$LOOPWIRE_DOCS_BASE_URL_INPUT" ]; then
+            if [ -z "$docs_hostname" ]; then
+              docs_hostname="$LOOPWIRE_DOCS_HOSTNAME_SECRET"
+            fi
+            if [ -z "$docs_remote_prefix" ]; then
+              docs_remote_prefix="$LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET"
+            fi
+          fi
+          if [ -z "$LOOPWIRE_DOCS_BASE_URL_INPUT" ] && [ -z "$docs_hostname" ]; then
+            echo "Final release proof requires docs_base_url, docs_hostname, or BUNNY_PULL_ZONE_HOSTNAME." >&2
             exit 1
           fi
+          printf 'LOOPWIRE_FINAL_DOCS_HOSTNAME=%s\n' "$docs_hostname" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_FINAL_DOCS_REMOTE_PREFIX=%s\n' "$docs_remote_prefix" >>"$GITHUB_ENV"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6.0.9
@@ -265,9 +279,9 @@ jobs:
           if [ -n "$LOOPWIRE_DOCS_BASE_URL_INPUT" ]; then
             args+=(--docs-base-url "$LOOPWIRE_DOCS_BASE_URL_INPUT")
           else
-            args+=(--docs-hostname "$LOOPWIRE_DOCS_HOSTNAME_INPUT")
-            if [ -n "$LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT" ]; then
-              args+=(--docs-remote-prefix "$LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT")
+            args+=(--docs-hostname "$LOOPWIRE_FINAL_DOCS_HOSTNAME")
+            if [ -n "$LOOPWIRE_FINAL_DOCS_REMOTE_PREFIX" ]; then
+              args+=(--docs-remote-prefix "$LOOPWIRE_FINAL_DOCS_REMOTE_PREFIX")
             fi
           fi
           bash scripts/verify-final-release-proof.sh "${args[@]}"

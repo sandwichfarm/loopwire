@@ -504,10 +504,12 @@ gh workflow run final-release-proof.yml \
   --repo sandwichfarm/loopwire \
   -f tag=v0.1.0 \
   -f git_head=<release-tag-commit-sha> \
-  -f docs_hostname=<bunny-pull-zone-hostname> \
-  -f docs_remote_prefix=<optional-prefix> \
   -f docs_deployment_run_id=<deploy-docs-run-id>
 ```
+
+If `docs_base_url` is omitted, the workflow uses the required `BUNNY_PULL_ZONE_HOSTNAME` repository secret. If
+`docs_remote_prefix` is omitted, it uses `BUNNY_REMOTE_PREFIX` when that optional secret exists. Pass `docs_hostname`
+or `docs_remote_prefix` only to override the stored Bunny pull-zone target for a specific proof run.
 
 The GitHub secret helper can set or audit the deployment secrets:
 

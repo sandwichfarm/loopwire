@@ -2450,6 +2450,22 @@
   target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
   builds. No secret write, Bunny deployment, tag push, public release, VM launch, host audio mutation, or support-matrix
   promotion was performed.
+- The manual final-release proof workflow now defaults its live-docs hostname and remote prefix from
+  `BUNNY_PULL_ZONE_HOSTNAME` and `BUNNY_REMOTE_PREFIX` when `docs_base_url` and explicit override inputs are omitted.
+  This binds the previously required secret setup to the actual final-proof dispatch path instead of requiring the
+  operator to retype the pull-zone hostname for every run.
+- Focused validation passed: codebase-memory MCP `index_status` reported the graph ready and graph search found the
+  final release proof, workflow verifier, release readiness, and docs hostname surfaces before implementation.
+  Ruby parsed `.github/workflows/final-release-proof.yml`, `bash -n scripts/verify-github-workflows.sh
+  scripts/verify-release-readiness.sh scripts/verify-docs.sh scripts/verify-scripts.sh`, `pnpm verify:workflows`,
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, and `git diff --check` passed.
+- Full validation passed: `pnpm check` passed after the workflow fallback change, including requirements verification,
+  scripts/workflows/runtime/Tauri verification, install and release-artifact smokes, packaging metadata smoke, VM
+  target/cloud-init validation, docs contract checks, typechecks, unit tests, and docs, core, audio-host, and desktop
+  builds. No secret write, Bunny deployment, tag push, public release, VM launch, host audio mutation, or support-matrix
+  promotion was performed.
 
 ## Evidence Missing
 

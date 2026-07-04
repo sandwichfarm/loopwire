@@ -119,6 +119,11 @@ assert_contains ".github/workflows/final-release-proof.yml" "DeterminateSystems/
 assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_hostname"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_deployment_run_id"
+assert_contains ".github/workflows/final-release-proof.yml" 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}'
+assert_contains ".github/workflows/final-release-proof.yml" 'LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET: ${{ secrets.BUNNY_REMOTE_PREFIX }}'
+assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_DOCS_HOSTNAME"
+assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_DOCS_REMOTE_PREFIX"
+assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url, docs_hostname, or BUNNY_PULL_ZONE_HOSTNAME"
 assert_contains ".github/workflows/final-release-proof.yml" "Download docs deployment manifest"
 assert_contains ".github/workflows/final-release-proof.yml" "gh run download"
 assert_contains ".github/workflows/final-release-proof.yml" "loopwire-docs-deployment"

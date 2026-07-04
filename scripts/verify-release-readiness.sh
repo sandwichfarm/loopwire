@@ -301,6 +301,9 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     grep -F -- "scripts/extract-safe-tar.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "gh run download" "$final_proof_workflow" >/dev/null &&
     grep -F -- "loopwire-docs-deployment" "$final_proof_workflow" >/dev/null &&
+    grep -F -- 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}' "$final_proof_workflow" \
+      >/dev/null &&
+    grep -F -- "LOOPWIRE_FINAL_DOCS_HOSTNAME" "$final_proof_workflow" >/dev/null &&
     grep -F -- "--docs-deployment-manifest" "$final_proof_workflow" >/dev/null &&
     grep -F -- "$release_evidence_asset" "$final_proof_workflow" >/dev/null &&
     grep -F -- "$vm_evidence_asset" "$final_proof_workflow" >/dev/null &&

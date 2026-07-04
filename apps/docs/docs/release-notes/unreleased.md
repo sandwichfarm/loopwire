@@ -241,6 +241,9 @@ These notes describe source-tree progress. They are not a public release announc
 - The final release proof workflow now validates downloaded release and VM evidence tarballs with
   `scripts/extract-safe-tar.sh` before extraction, rejecting unsafe member paths or link entries before project-specific
   evidence verification runs.
+- The final release proof workflow now defaults its live-docs hostname and remote prefix from
+  `BUNNY_PULL_ZONE_HOSTNAME` and `BUNNY_REMOTE_PREFIX`, so the required secret setup feeds the final proof run without
+  retyping the pull-zone hostname on every manual dispatch.
 - The final release proof workflow now validates custom release and VM evidence asset names before download, rejecting
   path traversal, URL-like names, glob patterns, wrong evidence-kind prefixes, and tag mismatches.
 - Final release proof dry-runs can now write the exact command plan to a `--plan-output` file for release handoff
