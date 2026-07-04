@@ -213,6 +213,8 @@ when omitted, so a successful docs or proof run for an older commit cannot satis
 manifest must be non-dry-run proof for the built docs dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
 saved names-only secret audit, or `--skip-gh` when you only want local evidence checks.
+If the docs deployment manifest is missing, `release:status` prints the matching `pnpm release:fetch-docs-proof`
+command for the expected commit.
 
 Parse an existing release-readiness log without rerunning release checks:
 

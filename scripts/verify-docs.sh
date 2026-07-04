@@ -568,6 +568,7 @@ assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file releas
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
+assert_contains "apps/docs/docs/developer/release.md" 'If the docs deployment manifest is missing'
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"
 assert_contains "apps/docs/docs/developer/release.md" "docs deployment manifest"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifest"

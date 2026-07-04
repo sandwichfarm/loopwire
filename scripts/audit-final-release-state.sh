@@ -102,6 +102,51 @@ check_public_key() {
   echo "ok: release signing public key parses: $public_key"
 }
 
+docs_deployment_run_id_hint() {
+  local output
+
+  if [ "$skip_gh" = "true" ]; then
+    echo "<docs-deployment-run-id>"
+    return
+  fi
+
+  output="$(gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 --json databaseId 2>/dev/null || true)"
+  if [ -z "$output" ]; then
+    echo "<docs-deployment-run-id>"
+    return
+  fi
+
+  node - "$output" <<'NODE' 2>/dev/null || printf '%s\n' "<docs-deployment-run-id>"
+const raw = process.argv[2];
+const runs = JSON.parse(raw);
+const run = Array.isArray(runs) ? runs[0] : null;
+if (run && Number.isInteger(run.databaseId)) {
+  console.log(String(run.databaseId));
+} else {
+  console.log("<docs-deployment-run-id>");
+}
+NODE
+}
+
+check_docs_deployment_manifest() {
+  local run_id
+
+  if [ ! -s "$docs_deployment_manifest" ]; then
+    run_id="$(docs_deployment_run_id_hint)"
+    echo "missing: docs deployment manifest: $docs_deployment_manifest" >&2
+    echo "next: fetch and verify Deploy Docs proof artifacts:" >&2
+    echo "  pnpm release:fetch-docs-proof -- --repo $repo --run-id $run_id --git-head $expected_git_head" >&2
+    echo "note: the Deploy Docs run must include the loopwire-docs-deployment artifact; configure Bunny secrets if it is absent." >&2
+    return 1
+  fi
+
+  node scripts/verify-docs-deployment-manifest.mjs \
+    --manifest "$docs_deployment_manifest" \
+    --dist "$docs_dist" \
+    --git-head "$expected_git_head" \
+    --expected-dry-run false
+}
+
 run_release_probe() {
   local label="$1"
   local expected_tag="$2"
@@ -410,11 +455,7 @@ run_workflow_probe \
 
 run_gate \
   "docs deployment manifest" \
-  node scripts/verify-docs-deployment-manifest.mjs \
-    --manifest "$docs_deployment_manifest" \
-    --dist "$docs_dist" \
-    --git-head "$expected_git_head" \
-    --expected-dry-run false || failed=1
+  check_docs_deployment_manifest || failed=1
 
 run_workflow_probe \
   "latest Final Release Proof workflow run" \

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T22:18:46+02:00"
-last_activity: 2026-07-04 - Final release handoff can fetch docs deployment proof artifacts
+last_updated: "2026-07-04T22:33:57+02:00"
+last_activity: 2026-07-04 - Final release status prints docs proof recovery command
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:fetch-docs-proof` can download and verify Deploy Docs proof artifacts before
-`pnpm release:status` consumes them. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
-Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:status` now prints the exact `pnpm release:fetch-docs-proof` command when
+docs deployment manifest proof is absent. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
+install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,17 @@ Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Docs deployment manifest recovery hint: `scripts/audit-final-release-state.sh` now uses a dedicated docs
+  deployment manifest gate that reports missing `dist/docs-deployment/deployment-manifest.json`, looks up the latest
+  Deploy Docs run id when live GitHub checks are enabled, and prints the matching
+  `pnpm release:fetch-docs-proof -- --repo ... --run-id ... --git-head ...` recovery command. Validation passed:
+  codebase-memory MCP `index_status` reported `home-sandwich-Develop-loopwire` ready with 3,274 nodes and 6,371 edges;
+  `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and `pnpm check` passed. Live
+  `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  01f5d875f108d8e3252c6aa5d68a68418965472e` now prints
+  `pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id 28718540648 --git-head
+  01f5d875f108d8e3252c6aa5d68a68418965472e` before continuing to block on the missing deployment-manifest artifact.
 - 2026-07-04 Docs deployment proof fetch helper: added `scripts/fetch-docs-deployment-proof.sh` and
   `pnpm release:fetch-docs-proof` to download `loopwire-docs` plus `loopwire-docs-deployment` artifacts for a Deploy
   Docs run, verify the non-dry-run deployment manifest against the downloaded docs dist and expected commit, and write

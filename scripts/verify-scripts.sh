@@ -3687,6 +3687,29 @@ grep -F "invalid: release signing public key: $release_status_bad_public_key" \
     echo "verify-scripts: release status did not block an invalid release signing public key" >&2
     exit 1
   }
+release_status_missing_docs_manifest_log="$tmp_dir/release-status-missing-docs-manifest.log"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --public-key "$release_status_public_key" \
+  --secret-list-file "$secret_list_all_final" \
+  --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
+  --docs-dist "$release_status_docs_dist" \
+  --skip-gh >"$release_status_missing_docs_manifest_log" 2>&1; then
+  echo "verify-scripts: release status accepted a missing docs deployment manifest" >&2
+  exit 1
+fi
+grep -F "missing: docs deployment manifest: $tmp_dir/missing-docs-deployment-manifest.json" \
+  "$release_status_missing_docs_manifest_log" >/dev/null || {
+    echo "verify-scripts: release status did not report the missing docs deployment manifest" >&2
+    exit 1
+  }
+grep -F "pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id <docs-deployment-run-id> --git-head 0123456789abcdef0123456789abcdef01234567" \
+  "$release_status_missing_docs_manifest_log" >/dev/null || {
+    echo "verify-scripts: release status did not print the docs proof fetch command" >&2
+    exit 1
+  }
 release_status_log="$tmp_dir/release-status-blocked.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
