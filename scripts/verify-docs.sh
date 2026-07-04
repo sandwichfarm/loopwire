@@ -461,6 +461,10 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-all-targ
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret helper now rejects Bunny storage zones"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the release private key against the release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret set` stdin contract'
+assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
+assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
+assert_contains "apps/docs/docs/developer/release.md" "workflow_dispatch"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'manual `Final Release Proof` workflow'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"

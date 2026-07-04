@@ -2095,6 +2095,11 @@
 - Final validation passed: `pnpm verify:scripts`, `pnpm verify:docs`, full `pnpm check`, `pnpm detect:audio`,
   `git diff --check`, added-line length scan, `gsd-sdk query roadmap.analyze --format json`,
   `gsd-sdk query init.phase-op 12 --format json`, and codebase-memory MCP `index_status`.
+- `.github/workflows/final-release-proof.yml` now exposes the final proof as a manual GitHub workflow. It validates the
+  requested tag commit, downloads release and VM evidence archives from the GitHub Release, verifies the live docs
+  target by URL or Bunny hostname/prefix, and runs `scripts/verify-final-release-proof.sh`.
+- Workflow validation passed: `pnpm verify:workflows`, `pnpm verify:docs`, Ruby YAML parsing for
+  `.github/workflows/final-release-proof.yml`, `git diff --check`, and an added-line length scan.
 
 ## Evidence Missing
 
@@ -2106,6 +2111,8 @@
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
   workflow has a pull-zone smoke gate, and release evidence can require a successful `docs-live-smoke` row, but no Bunny
   deployment or live URL smoke was performed.
+- The final proof workflow exists, but no release evidence archive, VM evidence archive, live docs target, or public
+  release exists for it to verify yet.
 - Host-side single-target and matrix SSH collectors are available, but no live VM evidence bundle was captured from an
   actual VM run.
 - Host VM launch is not available on this machine until QEMU tooling is installed; `scripts/vm-matrix.sh doctor --all`

@@ -213,6 +213,8 @@ These notes describe source-tree progress. They are not a public release announc
   and uploads a matching workflow artifact after the publish smoke passes.
 - The release workflow now re-signs `SHA256SUMS` after evidence collection so
   `loopwire-release-evidence-<tag>.tar.gz` is covered by the same signed checksum manifest as the installable tarballs.
+- A manual `Final Release Proof` workflow now downloads release and VM evidence archives from the GitHub Release,
+  checks the tag commit, verifies live docs, and runs the same final proof script used locally.
 - Published release verification can now require that public evidence archive with `--require-release-evidence`, extract
   it, and reject archives with missing published-release smoke or blocker findings.
 - Published release evidence archive verification now binds the manifest to the expected `release.tag` and repo. It

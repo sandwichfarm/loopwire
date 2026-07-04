@@ -1,0 +1,186 @@
+name: Final Release Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed release tag to verify
+        required: true
+        type: string
+      git_head:
+        description: Expected 40-character commit SHA for the release tag
+        required: true
+        type: string
+      docs_base_url:
+        description: Live docs base URL, for example https://docs.example.test/loopwire
+        required: false
+        type: string
+      docs_hostname:
+        description: Bunny pull-zone hostname when docs_base_url is not used
+        required: false
+        type: string
+      docs_remote_prefix:
+        description: Optional Bunny remote prefix used with docs_hostname
+        required: false
+        type: string
+      release_evidence_asset:
+        description: Release asset containing release evidence
+        required: false
+        type: string
+      vm_evidence_asset:
+        description: Release asset containing all target VM evidence
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: final-release-proof-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  verify-final-release-proof:
+    name: Verify final release proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LOOPWIRE_RELEASE_TAG_INPUT: ${{ inputs.tag }}
+      LOOPWIRE_RELEASE_COMMIT_INPUT: ${{ inputs.git_head }}
+      LOOPWIRE_DOCS_BASE_URL_INPUT: ${{ inputs.docs_base_url }}
+      LOOPWIRE_DOCS_HOSTNAME_INPUT: ${{ inputs.docs_hostname }}
+      LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT: ${{ inputs.docs_remote_prefix }}
+      LOOPWIRE_RELEASE_EVIDENCE_ASSET_INPUT: ${{ inputs.release_evidence_asset }}
+      LOOPWIRE_VM_EVIDENCE_ASSET_INPUT: ${{ inputs.vm_evidence_asset }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        run: |
+          set -euo pipefail
+          release_tag="$LOOPWIRE_RELEASE_TAG_INPUT"
+          release_commit="$LOOPWIRE_RELEASE_COMMIT_INPUT"
+          tag_pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
+          if [[ ! "$release_tag" =~ $tag_pattern ]]; then
+            echo "Release tag must be v-prefixed semver without path separators: ${release_tag}" >&2
+            exit 1
+          fi
+          if [[ ! "$release_commit" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "Release commit must be a 40-character SHA: ${release_commit}" >&2
+            exit 1
+          fi
+          if ! git check-ref-format --allow-onelevel "$release_tag"; then
+            echo "Release tag is not a valid git tag name: ${release_tag}" >&2
+            exit 1
+          fi
+          git fetch --force --tags
+          tag_ref="refs/tags/${release_tag}"
+          if ! tag_commit="$(git rev-parse -q --verify "${tag_ref}^{commit}")"; then
+            echo "Release tag does not exist in this checkout: ${release_tag}" >&2
+            exit 1
+          fi
+          if [ "$tag_commit" != "$release_commit" ]; then
+            echo "Release tag ${release_tag} points at ${tag_commit}, not ${release_commit}" >&2
+            exit 1
+          fi
+          git checkout --detach "$release_commit"
+          printf 'LOOPWIRE_RELEASE_TAG=%s\n' "$release_tag" >>"$GITHUB_ENV"
+          printf 'LOOPWIRE_RELEASE_COMMIT=%s\n' "$release_commit" >>"$GITHUB_ENV"
+
+      - name: Validate live docs target
+        run: |
+          set -euo pipefail
+          if [ -n "$LOOPWIRE_DOCS_BASE_URL_INPUT" ] && [ -n "$LOOPWIRE_DOCS_HOSTNAME_INPUT" ]; then
+            echo "Use either docs_base_url or docs_hostname, not both." >&2
+            exit 1
+          fi
+          if [ -z "$LOOPWIRE_DOCS_BASE_URL_INPUT" ] && [ -z "$LOOPWIRE_DOCS_HOSTNAME_INPUT" ]; then
+            echo "Final release proof requires docs_base_url or docs_hostname." >&2
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download release evidence archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="${LOOPWIRE_RELEASE_EVIDENCE_ASSET_INPUT:-}"
+          if [ -z "$archive" ]; then
+            archive="loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"
+          fi
+          mkdir -p dist/final-proof/downloads dist/final-proof/release-evidence
+          gh release download "$LOOPWIRE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir dist/final-proof/downloads \
+            --pattern "$archive" \
+            --clobber
+          tar -C dist/final-proof/release-evidence -xzf "dist/final-proof/downloads/${archive}"
+          release_evidence_dir="dist/final-proof/release-evidence/${LOOPWIRE_RELEASE_TAG}"
+          if [ ! -f "${release_evidence_dir}/release-evidence.json" ]; then
+            echo "Release evidence archive must contain ${LOOPWIRE_RELEASE_TAG}/release-evidence.json" >&2
+            exit 1
+          fi
+          printf 'LOOPWIRE_FINAL_RELEASE_EVIDENCE_DIR=%s\n' "$release_evidence_dir" >>"$GITHUB_ENV"
+
+      - name: Download VM evidence archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive="${LOOPWIRE_VM_EVIDENCE_ASSET_INPUT:-}"
+          if [ -z "$archive" ]; then
+            archive="loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"
+          fi
+          mkdir -p dist/final-proof/downloads dist/final-proof/vm-evidence
+          gh release download "$LOOPWIRE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir dist/final-proof/downloads \
+            --pattern "$archive" \
+            --clobber
+          tar -C dist/final-proof/vm-evidence -xzf "dist/final-proof/downloads/${archive}"
+          vm_evidence_root="dist/final-proof/vm-evidence"
+          if [ -d "${vm_evidence_root}/.vm/evidence" ]; then
+            vm_evidence_root="${vm_evidence_root}/.vm/evidence"
+          elif [ -d "${vm_evidence_root}/vm-evidence" ]; then
+            vm_evidence_root="${vm_evidence_root}/vm-evidence"
+          fi
+          printf 'LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s\n' "$vm_evidence_root" >>"$GITHUB_ENV"
+
+      - name: Verify final release proof
+        run: |
+          set -euo pipefail
+          args=(
+            --repo "$GITHUB_REPOSITORY"
+            --tag "$LOOPWIRE_RELEASE_TAG"
+            --public-key packaging/release-signing-public.pem
+            --git-head "$LOOPWIRE_RELEASE_COMMIT"
+            --release-evidence-dir "$LOOPWIRE_FINAL_RELEASE_EVIDENCE_DIR"
+            --vm-evidence-root "$LOOPWIRE_FINAL_VM_EVIDENCE_ROOT"
+            --support-matrix apps/docs/docs/guide/support-matrix.md
+          )
+          if [ -n "$LOOPWIRE_DOCS_BASE_URL_INPUT" ]; then
+            args+=(--docs-base-url "$LOOPWIRE_DOCS_BASE_URL_INPUT")
+          else
+            args+=(--docs-hostname "$LOOPWIRE_DOCS_HOSTNAME_INPUT")
+            if [ -n "$LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT" ]; then
+              args+=(--docs-remote-prefix "$LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT")
+            fi
+          fi
+          bash scripts/verify-final-release-proof.sh "${args[@]}"

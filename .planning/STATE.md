@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:36:39+02:00"
-last_activity: 2026-07-04 - release private key GitHub secret configured
+last_updated: "2026-07-04T13:47:08+02:00"
+last_activity: 2026-07-04 - final release proof workflow added
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `packaging/release-signing-public.pem` contains the project release public key, the
-matching private key remains outside the repository at
-`/home/sandwich/.config/loopwire/release/loopwire-release-private.pem` with `0600` permissions, and the live
-`sandwichfarm/loopwire` repository now has the matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret. Phase 12 remains gated
-on a public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `.github/workflows/final-release-proof.yml` now exposes a manual CI proof gate that
+downloads release and VM evidence archives from the GitHub Release, verifies the live docs target, and runs
+`scripts/verify-final-release-proof.sh` against the exact release tag commit. Phase 12 remains gated on a public
+release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -1942,3 +1941,13 @@ on a public release, configured Bunny secrets, host QEMU/Nix tooling, and operat
   `gsd-sdk query init.phase-op 12 --format json`, and codebase-memory MCP `index_status` passed. No Bunny secret was
   available or written, no public release was created, no tag was pushed, no VM was launched, and no support matrix row
   was promoted.
+- 2026-07-04 final proof workflow handoff: `.github/workflows/final-release-proof.yml` now provides a manual
+  `workflow_dispatch` gate for the completed release ceremony. It validates the tag and expected commit, downloads
+  `loopwire-release-evidence-<tag>.tar.gz` and `loopwire-vm-evidence-<tag>.tar.gz` from the GitHub Release, supports
+  live docs proof by base URL or Bunny hostname/prefix, and runs `scripts/verify-final-release-proof.sh` with the
+  extracted evidence roots.
+- 2026-07-04 final proof workflow validation: codebase-memory MCP `search_graph` and `search_code` located the
+  existing final-proof, docs-live, and workflow contract surfaces before implementation. `pnpm verify:workflows`,
+  `pnpm verify:docs`, Ruby workflow YAML parsing for `.github/workflows/final-release-proof.yml`, `git diff --check`,
+  and an added-line length scan passed. No release asset, VM evidence archive, Bunny deployment, live URL smoke,
+  tag push, or public release was created.

@@ -294,6 +294,23 @@ matrix workflow files. It checks the release workflow still checks out the resol
 keeps tag verification enabled in the release-readiness step, requires versioned notes, signing secrets, generated and
 published install smokes, and confirms VM/support-matrix changes trigger VM matrix validation.
 
+## Final Release Proof Workflow
+
+After the GitHub Release exists, docs are deployed, and every VM target has operator-run evidence with installed-release
+smoke, run the manual `Final Release Proof` workflow. It requires the release tag, expected tag commit, and either a
+live docs base URL or Bunny pull-zone hostname. By default it downloads these release assets:
+
+- `loopwire-release-evidence-<tag>.tar.gz`, produced by the release workflow.
+- `loopwire-vm-evidence-<tag>.tar.gz`, produced by the operator after collecting all VM target bundles.
+
+The VM evidence archive must contain either target directories at its root, `.vm/evidence/<target>` directories, or a
+`vm-evidence/<target>` root. The workflow checks out the exact tag commit, downloads both archives from the GitHub
+Release, verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every VM target
+bundle to include published-release smoke, verifies support-matrix promotion rules, and reruns `pnpm verify:docs`.
+
+This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
+release evidence archive, and VM evidence archive all exist.
+
 ## Signing Key Setup
 
 Release signing uses OpenSSL to sign `SHA256SUMS`, not each artifact independently. Generate the key outside the repo,

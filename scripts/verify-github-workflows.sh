@@ -52,6 +52,7 @@ workflows=(
   ".github/workflows/ci.yml"
   ".github/workflows/continuous-tests.yml"
   ".github/workflows/deploy-docs.yml"
+  ".github/workflows/final-release-proof.yml"
   ".github/workflows/release.yml"
   ".github/workflows/vm-matrix.yml"
 )
@@ -88,6 +89,25 @@ assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/verify-docs-li
 assert_contains ".github/workflows/deploy-docs.yml" '--remote-prefix "$BUNNY_REMOTE_PREFIX"'
 assert_contains ".github/workflows/deploy-docs.yml" 'docs_url="${docs_url}/${prefix}"'
 assert_contains "package.json" '"verify:docs-live": "bash scripts/verify-docs-live.sh"'
+
+assert_contains ".github/workflows/final-release-proof.yml" "workflow_dispatch:"
+assert_contains ".github/workflows/final-release-proof.yml" "Verify final release proof"
+assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url"
+assert_contains ".github/workflows/final-release-proof.yml" "docs_hostname"
+assert_contains ".github/workflows/final-release-proof.yml" "release_evidence_asset"
+assert_contains ".github/workflows/final-release-proof.yml" "vm_evidence_asset"
+assert_contains ".github/workflows/final-release-proof.yml" "gh release download"
+assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
+assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
+assert_contains ".github/workflows/final-release-proof.yml" "Release evidence archive must contain"
+assert_contains ".github/workflows/final-release-proof.yml" "scripts/verify-final-release-proof.sh"
+assert_contains ".github/workflows/final-release-proof.yml" "--docs-base-url"
+assert_contains ".github/workflows/final-release-proof.yml" "--docs-hostname"
+assert_contains ".github/workflows/final-release-proof.yml" "--docs-remote-prefix"
+assert_contains ".github/workflows/final-release-proof.yml" "--vm-evidence-root"
+assert_contains ".github/workflows/final-release-proof.yml" "packaging/release-signing-public.pem"
+assert_contains ".github/workflows/final-release-proof.yml" "Release tag"
+assert_contains ".github/workflows/final-release-proof.yml" "40-character SHA"
 
 assert_contains ".github/workflows/release.yml" "tags:"
 assert_contains ".github/workflows/release.yml" "v*"
