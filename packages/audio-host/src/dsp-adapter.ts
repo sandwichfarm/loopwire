@@ -488,7 +488,7 @@ function decodeVerificationPayload(stdout: string, outputId: string): DspOutputV
   const text = stdout.trim();
 
   if (!text) {
-    return true;
+    throw new Error(`DSP provider verify-output returned empty stdout for ${outputId}`);
   }
 
   const payload = parseProviderJson(text, "verify-output", outputId);

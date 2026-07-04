@@ -104,6 +104,8 @@ These notes describe source-tree progress. They are not a public release announc
 - `@loopwire/audio-host` now also exposes a command-backed DSP provider helper with stable `read-source`,
   `write-output`, `verify-output`, and `clear-output` operations. Source buffers are read as JSON stdout, and rendered
   output buffers are sent as JSON stdin for provider write and verify commands.
+- Command-backed DSP verification now fails closed when `verify-output` exits successfully but emits no JSON result, so
+  live provider integrations must explicitly prove rendered output comparison instead of relying on exit code alone.
 - Command-backed DSP provider writes, verifies, and clears are now scoped by configuration id, preventing stale rendered
   output from one configuration from satisfying another configuration that reuses the same output id.
 - Background restore now supports explicit `--backend dsp` with `--dsp-provider-command`, and release artifacts now

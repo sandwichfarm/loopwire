@@ -184,6 +184,33 @@ describe("createDspGraphRuntimeAdapter", () => {
     expect(providerPayloads(calls, "verify-output").map((payload) => payload.outputId)).toEqual(["stream", "recorder"]);
   });
 
+  it("fails closed when command-backed DSP verification returns empty stdout", async () => {
+    const { runner } = createDspProviderRunner((call) => {
+      if (call.args[0] === "read-source") {
+        const sourceId = argumentValue(call.args, "--source-id");
+
+        return {
+          stdout: JSON.stringify({
+            channels: sourceForRequest({
+              sourceId,
+              channels: Number(argumentValue(call.args, "--channels")),
+              frameCount: Number(argumentValue(call.args, "--frames"))
+            }).map((channel) => Array.from(channel))
+          })
+        };
+      }
+
+      return { stdout: "" };
+    });
+    const ports = createDspRuntimeCommandPorts(runner, { command: "loopwire-dsp-test" });
+    const adapter = createDspGraphRuntimeAdapter(ports, { mode: "apply", frameCount: 2 });
+
+    await expect(adapter.verify(configuration)).resolves.toEqual({
+      ok: false,
+      message: "DSP provider verify-output returned empty stdout for stream"
+    });
+  });
+
   it("omits provider frame arguments when DSP source requests do not specify a frame count", async () => {
     const { runner, calls } = createDspProviderRunner(() => ({
       stdout: JSON.stringify({ channels: [[1, 0.5], [0.25, -0.25]] })

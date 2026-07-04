@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T18:42:41+02:00"
-last_activity: 2026-07-04 - Desktop backend selection now has a dedicated chooser panel
+last_updated: "2026-07-04T18:48:44+02:00"
+last_activity: 2026-07-04 - Command-backed DSP verification now rejects empty provider output
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - Desktop backend selection now has a dedicated chooser panel that exposes persisted
-selection, available/unavailable backends, and the live-apply disarm rule; mobile layout now puts the active workspace
-before the sidebar. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
-host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Command-backed DSP verification now rejects exit-0 `verify-output` providers that emit no
+JSON result, so live DSP integrations must explicitly prove rendered output comparison. Phase 12 remains gated on a
+public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,12 @@ host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Command-backed DSP verification hardening: `createDspRuntimeCommandPorts` now treats empty
+  `verify-output` stdout as a failed provider verification instead of accepting exit code 0 as proof. Regression
+  coverage proves a silent provider fails closed before Loopwire reports verified graph-edge output. Docs now state
+  that DSP provider verification must return explicit JSON. Validation passed: red/green focused
+  `pnpm --filter @loopwire/audio-host test -- --runInBand dsp-adapter.test.ts`, `pnpm --filter @loopwire/audio-host
+  typecheck`, `pnpm verify:docs`, `git diff --check`, and `pnpm check`.
 - 2026-07-04 Desktop backend chooser UX: the desktop shell now renders a dedicated backend chooser panel with
   selected/available/unavailable backend cards, persistence/startup-restore copy, and the live-apply disarm rule.
   Mobile layout now orders the active workspace before the sidebar so backend/configuration controls are not buried
