@@ -239,6 +239,14 @@ grep -F "dry-run: VM evidence arch-hyprland-pipewire:" "$final_release_plan_outp
   echo "verify-scripts: final release plan output is missing VM evidence command" >&2
   exit 1
 }
+grep -F "dry-run: package VM evidence archive:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing VM evidence archive packaging" >&2
+  exit 1
+}
+grep -F "dry-run: upload VM evidence archive:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing VM evidence archive upload" >&2
+  exit 1
+}
 grep -F "Final release proof dry-run complete." "$final_release_plan_output" >/dev/null || {
   echo "verify-scripts: final release plan output did not complete" >&2
   exit 1
@@ -282,6 +290,14 @@ printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-support-matrix.
 }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-vm-evidence.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing VM evidence verification" >&2
+  exit 1
+}
+printf '%s\n' "$final_release_dry_run" | grep -F "scripts/package-vm-evidence.sh" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing VM evidence archive packaging" >&2
+  exit 1
+}
+printf '%s\n' "$final_release_dry_run" | grep -F "gh release upload" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing VM evidence archive upload" >&2
   exit 1
 }
 printf '%s\n' "$final_release_dry_run" | grep -F -- "--require-live-docs" >/dev/null || {

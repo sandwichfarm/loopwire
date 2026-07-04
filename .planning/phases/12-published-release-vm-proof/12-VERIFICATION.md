@@ -2326,6 +2326,15 @@
   `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
   packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`, direct
   `scripts/verify-final-release-proof.sh --dry-run` with `--docs-deployment-manifest`, and `pnpm verify:scripts`.
+- `scripts/verify-final-release-proof.sh --dry-run` now emits the VM evidence archive packaging command and matching
+  `gh release upload` command before per-target VM evidence verification, making the required
+  `loopwire-vm-evidence-<tag>.tar.gz` release attachment explicit in durable handoff plans.
+- `scripts/verify-scripts.sh` now guards those dry-run handoff lines in both stdout and `--plan-output` mode.
+- Focused validation passed: `bash -n scripts/verify-final-release-proof.sh scripts/verify-scripts.sh`,
+  `git diff --check`, `pnpm verify:scripts`, `pnpm verify:docs`, direct
+  `scripts/verify-final-release-proof.sh --dry-run` grep for the new VM archive package/upload handoff lines, and
+  `pnpm check`. No public release, VM launch, Bunny deployment, secret write, tag push, host audio mutation, or
+  support-matrix promotion was performed.
 
 ## Evidence Missing
 

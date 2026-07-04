@@ -234,6 +234,8 @@ These notes describe source-tree progress. They are not a public release announc
   path traversal, URL-like names, glob patterns, wrong evidence-kind prefixes, and tag mismatches.
 - Final release proof dry-runs can now write the exact command plan to a `--plan-output` file for release handoff
   review without touching GitHub, Bunny.net, release assets, docs URLs, or VM evidence.
+- Final release proof dry-runs now include the VM evidence archive packaging command and matching `gh release upload`
+  handoff, making the required `loopwire-vm-evidence-<tag>.tar.gz` attachment explicit before the manual proof workflow.
 - New `pnpm vm:package-evidence` command packages verified VM bundles into
   `loopwire-vm-evidence-<tag>.tar.gz` with the `vm-evidence/<target>` layout expected by final release proof.
 - VM evidence packaging now validates the completed tarball with `scripts/extract-safe-tar.sh`, so unsafe archive
