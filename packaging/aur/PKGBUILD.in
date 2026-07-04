@@ -20,6 +20,7 @@ sha256sums_aarch64=("@SHA256_AARCH64@")
 package() {
   install -Dm755 loopwire "${pkgdir}/usr/bin/loopwire"
   install -Dm755 loopwire-dsp-provider "${pkgdir}/usr/bin/loopwire-dsp-provider"
+  install -Dm755 loopwire-jack-ports "${pkgdir}/usr/bin/loopwire-jack-ports"
   install -dm755 "${pkgdir}/usr/lib/loopwire"
   cp -R libexec/loopwire/. "${pkgdir}/usr/lib/loopwire/"
   find "${pkgdir}/usr/lib/loopwire" -type d -exec chmod 0755 {} +

@@ -109,6 +109,11 @@ ports are missing. JSON and TSV output include matched and missing ports for eac
 CI-style checks without a live JACK server, pass
 `--ports-file captured-jack-lsp.txt` to verify against a saved newline-delimited port list.
 
+Release artifacts also install `loopwire-jack-ports`, the bundled JACK virtual-port provider wrapper used by
+background restore preflight. It writes a `loopwire.jack-ports.provision-plan` manifest and returns nonzero unless
+`LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at an operator-supplied live JACK client provider. Keep
+that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
+
 The ALSA path is read-only diagnostics. It lists playback hardware with `aplay -l` and capture hardware with
 `arecord -l` so users can see whether the kernel/session can see devices before choosing a graph-capable backend.
 Loopwire does not create ALSA virtual devices, move streams, or apply routes through ALSA.

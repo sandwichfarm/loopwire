@@ -47,8 +47,16 @@ node --check scripts/verify-support-matrix.mjs
 node -e '
 const root = require("./package.json");
 const audioHost = require("./packages/audio-host/package.json");
+if (!root.scripts["jack:provider"]) {
+  console.error("verify-scripts: root package is missing jack:provider");
+  process.exit(1);
+}
 if (!root.scripts["dsp:provider"]) {
   console.error("verify-scripts: root package is missing dsp:provider");
+  process.exit(1);
+}
+if (audioHost.bin?.["loopwire-jack-ports"] !== "./dist/jack-ports-cli.js") {
+  console.error("verify-scripts: audio-host package is missing loopwire-jack-ports bin");
   process.exit(1);
 }
 if (audioHost.bin?.["loopwire-dsp-provider"] !== "./dist/dsp-provider-cli.js") {

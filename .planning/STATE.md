@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:02:09+02:00"
-last_activity: 2026-07-04 - bundled file-backed DSP provider packaging
+last_updated: "2026-07-04T13:16:57+02:00"
+last_activity: 2026-07-04 - fail-closed JACK provider wrapper packaging
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `loopwire-dsp-provider` is now a bundled file-backed DSP provider for source checkout,
-release tarball, curl installer, AUR, and Nix package paths. It can seed/read source buffers, persist rendered outputs,
-verify stored outputs, and clear outputs for provider-backed DSP restore preflight without mutating host audio.
-Phase 12 remains gated on real signing key material, a public release, configured GitHub/Bunny secrets, host QEMU/Nix
-tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `loopwire-jack-ports` is now a bundled fail-closed JACK virtual-port provider wrapper for
+source checkout, release tarball, curl installer, AUR, and Nix package paths. It records the exact JACK provision plan,
+delegates to an operator-supplied live JACK client provider when configured, and exits nonzero without a delegate so
+background restore cannot claim uncreated ports. Phase 12 remains gated on real signing key material, a public release,
+configured GitHub/Bunny secrets, host QEMU/Nix tooling, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -47,9 +47,9 @@ tooling, and operator-run VM evidence.
   audio-host DSP adapter now has a command-backed provider port helper, background restore can drive an explicit DSP
   provider command, `pnpm dsp:plan`/`pnpm dsp:verify` can preflight that provider command, and desktop route-control UX
   is driven by detected backend mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local
-  restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook, but live host
-  DSP capture/injection, a bundled JACK virtual port provider/client, and native host graph-edge gain implementation
-  remain planned.
+  restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook and bundled
+  `loopwire-jack-ports` wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client
+  creation, and native host graph-edge gain implementation remain planned.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before artifacts exist.
 - A real project release public key has not been generated or committed yet. `pnpm release:prepare-key` now provides
@@ -58,8 +58,8 @@ tooling, and operator-run VM evidence.
   `packaging/release-signing-public.pem` exists and a tagged release workflow has passed.
 
 - Nix package metadata is smoke-tested structurally, but Nix build proof still needs a Nix-enabled host or VM target.
-- JACK virtual ports, live backend DSP capture/injection, native graph-edge gain, and published release proof remain
-  the major product gaps for a fully functional Loopback-class app.
+- Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, and published release proof
+  remain the major product gaps for a fully functional Loopback-class app.
 - Packaged background restore is now release-shaped through `loopwire --background`, but public release proof still
   requires signed published artifacts.
 - Public release proof is gated on an explicit versioned release decision, real signing key material, tag push, and VM
@@ -218,6 +218,16 @@ tooling, and operator-run VM evidence.
 - 2026-07-03 physical monitor binding: `pnpm --filter @loopwire/core test`, core typecheck,
   `pnpm --filter @loopwire/audio-host test`, audio-host typecheck, desktop typecheck, and line checks passed. No live
   host mutation was performed.
+
+- 2026-07-04 Phase 12 JACK provider wrapper: `pnpm --filter @loopwire/audio-host test -- jack-ports-cli.test.ts`
+  passed with 107 audio-host tests, `pnpm --filter @loopwire/audio-host typecheck` passed, and a strict built CLI smoke
+  proved `pnpm jack:provider -- --help`, fail-closed manifest recording without a delegate, and delegated provider
+  argument forwarding.
+
+- 2026-07-04 Phase 12 release/package validation: `pnpm verify:release`, `pnpm verify:install`,
+  `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:autostart`, `pnpm verify:aur`,
+  `pnpm check`, `pnpm detect:audio`, shell syntax checks, touched-file line-length check, and `git diff --check`
+  passed after adding the packaged `loopwire-jack-ports` wrapper.
 - 2026-07-03 physical monitor binding full check: `pnpm check`, `pnpm detect:audio`, Rust `cargo check`, workflow
   YAML parse, GSD queries, line checks, `git diff --check`, and Playwright desktop/mobile smoke passed. No live host
   audio mutation was performed.

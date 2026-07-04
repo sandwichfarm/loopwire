@@ -67,7 +67,9 @@ User-scoped startup can be managed from the desktop sidebar. **Open on boot** ma
 **Restore on boot** manages a user systemd unit for packaged background restore. The CLI fallback is
 `scripts/manage-autostart.sh`; source-checkout systemd restore is rendered and tested through `pnpm restore:background`.
 Release tarballs and package templates install a `loopwire --background` entrypoint for packaged background restore.
-They also install `loopwire-dsp-provider` for provider-backed DSP restore preflight.
+They also install `loopwire-dsp-provider` for provider-backed DSP restore preflight and `loopwire-jack-ports` for
+JACK virtual-port restore preflight. The JACK wrapper records the exact provision plan and fails closed unless
+`LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at a live JACK client provider.
 
 Installer and package metadata smoke tests are local-only for now: `verify:install` builds a fake release artifact and
 proves checksum rejection, while `verify:packaging` checks that AUR and flake package templates point at the same

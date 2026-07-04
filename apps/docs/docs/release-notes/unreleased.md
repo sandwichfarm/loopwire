@@ -81,8 +81,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Native JACK runtime failures, `pnpm jack:verify`, and support bundles now use the same readiness matcher, including
   matched and missing ports for each requirement.
 - Native JACK apply can now call an injected JACK virtual port provider for missing Loopwire-owned ports and re-probe
-  `jack_lsp` before connecting, while the shipped desktop path still reports virtual device creation as planned until a
-  real JACK client provider is bundled.
+  `jack_lsp` before connecting. Release artifacts now include `loopwire-jack-ports`, a provider wrapper that records
+  the provision plan and fails closed unless delegated to a live JACK client provider.
 - Background restore now accepts `--jack-provider-command`, which wraps that command as the injected JACK virtual port
   provider and passes stable `ensure --configuration-id ... --requirement ... --port ...` arguments.
 - The autostart helper now renders background systemd units with `--state-file`, `--mode`, retry options, and
@@ -304,8 +304,8 @@ These notes describe source-tree progress. They are not a public release announc
 
 - No public signed release artifact exists yet.
 - `packaging/release-signing-public.pem` still needs the real project release public key.
-- JACK virtual port creation and true per-edge gain remain planned. App-only JACK routes and monitors still require a
-  separate JACK client to create the expected Loopwire-owned ports before live apply.
+- Native JACK client creation and true per-edge gain remain planned. App-only JACK routes and monitors still require a
+  separate JACK client or `loopwire-jack-ports` delegate to create the expected Loopwire-owned ports before live apply.
 - Live host apply needs Tauri desktop runtime; browser preview fails closed without host mutation.
 - Packaged background restore uses the bundled JavaScript restore engine and currently requires `node` on `PATH`.
 - VM host planning and cloud-init rendering do not launch guests, download distro images, or promote support-matrix rows

@@ -155,6 +155,9 @@ pnpm restore:background -- \
 
 The provider command receives stable `ensure --configuration-id ... --requirement ... --port ...` arguments from the
 runtime. Loopwire re-runs `jack_lsp` after the provider exits and still fails closed if the expected ports are missing.
+Release artifacts install `loopwire-jack-ports`, a bundled provider wrapper that records those arguments in a
+`loopwire.jack-ports.provision-plan` manifest and returns nonzero unless `LOOPWIRE_JACK_PORTS_DELEGATE` or
+`--delegate-command` points at a live JACK client provider.
 
 For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
 configuration transaction, per-edge gain/mute math, and verification sequence:
@@ -231,7 +234,8 @@ WantedBy=default.target
 For JACK boot restore, the helper appends the same `--jack-provider-command` and `--jack-provider-timeout-ms` flags to
 the generated `ExecStart` line. For DSP provider restore, the helper appends `--backend dsp` plus the DSP provider
 flags. Packaged services pass those flags after `loopwire --background`; source-checkout services pass them after
-`pnpm restore:background --`, so both boot paths keep the same runtime contract.
+`pnpm restore:background --`, so both boot paths keep the same runtime contract. The packaged JACK wrapper is a
+preflight/delegation surface, not a native JACK client creator.
 
 The helper supports both the packaged launcher path through `--binary "$HOME/.local/bin/loopwire"` and the source
 checkout path through `--source-dir "$PWD"`.

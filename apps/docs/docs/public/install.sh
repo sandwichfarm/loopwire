@@ -211,6 +211,7 @@ curl -fsSL "${base_url}/${asset}" -o "$tmp_dir/${asset}"
 
 binary_path="$(find "$tmp_dir" -type f -name loopwire -perm -111 | head -n 1)"
 provider_path="$(find "$tmp_dir" -type f -name loopwire-dsp-provider -perm -111 | head -n 1)"
+jack_provider_path="$(find "$tmp_dir" -type f -name loopwire-jack-ports -perm -111 | head -n 1)"
 
 if [ -z "$binary_path" ]; then
   echo "Release artifact did not contain an executable named loopwire." >&2
@@ -221,6 +222,9 @@ mkdir -p "$prefix"
 install -m 0755 "$binary_path" "$prefix/loopwire"
 if [ -n "$provider_path" ]; then
   install -m 0755 "$provider_path" "$prefix/loopwire-dsp-provider"
+fi
+if [ -n "$jack_provider_path" ]; then
+  install -m 0755 "$jack_provider_path" "$prefix/loopwire-jack-ports"
 fi
 
 libexec_source="$tmp_dir/libexec/loopwire"
@@ -239,4 +243,7 @@ fi
 echo "Loopwire installed to ${prefix}/loopwire"
 if [ -n "$provider_path" ]; then
   echo "Loopwire DSP provider installed to ${prefix}/loopwire-dsp-provider"
+fi
+if [ -n "$jack_provider_path" ]; then
+  echo "Loopwire JACK ports provider installed to ${prefix}/loopwire-jack-ports"
 fi

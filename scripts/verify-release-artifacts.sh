@@ -37,6 +37,8 @@ prefix="$tmp_dir/prefix"
 private_key="$tmp_dir/release-private.pem"
 public_key="$tmp_dir/release-public.pem"
 provider_store="$tmp_dir/provider-store"
+jack_manifest="$tmp_dir/jack-ports-provision.json"
+installed_jack_manifest="$tmp_dir/installed-jack-ports-provision.json"
 
 pnpm --filter @loopwire/core build >/dev/null
 pnpm --filter @loopwire/audio-host build >/dev/null
@@ -107,6 +109,10 @@ if [ ! -x "$check_dir/loopwire-dsp-provider" ]; then
   echo "Packaged Loopwire artifact is missing loopwire-dsp-provider." >&2
   exit 1
 fi
+if [ ! -x "$check_dir/loopwire-jack-ports" ]; then
+  echo "Packaged Loopwire artifact is missing loopwire-jack-ports." >&2
+  exit 1
+fi
 if [ ! -x "$check_dir/libexec/loopwire/loopwire-gui" ]; then
   echo "Packaged Loopwire artifact is missing libexec/loopwire/loopwire-gui." >&2
   exit 1
@@ -121,6 +127,23 @@ fi
 }
 "$check_dir/loopwire-dsp-provider" --help | grep -F -- "seed-source" >/dev/null || {
   echo "Packaged Loopwire DSP provider help did not run." >&2
+  exit 1
+}
+"$check_dir/loopwire-jack-ports" --help | grep -F -- "LOOPWIRE_JACK_PORTS_DELEGATE" >/dev/null || {
+  echo "Packaged Loopwire JACK ports provider help did not run." >&2
+  exit 1
+}
+if "$check_dir/loopwire-jack-ports" \
+  ensure \
+  --configuration-id smoke \
+  --requirement route-source:loopwire-owned:mic:loopwire_smoke_input_mic:1 \
+  --port loopwire_smoke_input_mic:capture_1 \
+  --manifest-file "$jack_manifest" >/dev/null 2>&1; then
+  echo "Packaged Loopwire JACK ports provider did not fail closed without a delegate." >&2
+  exit 1
+fi
+grep -F '"configurationId": "smoke"' "$jack_manifest" >/dev/null || {
+  echo "Packaged Loopwire JACK ports provider did not record a provision manifest." >&2
   exit 1
 }
 "$check_dir/loopwire-dsp-provider" \
@@ -149,6 +172,10 @@ if [ ! -x "$prefix/loopwire-dsp-provider" ]; then
   echo "Installer did not install loopwire-dsp-provider." >&2
   exit 1
 fi
+if [ ! -x "$prefix/loopwire-jack-ports" ]; then
+  echo "Installer did not install loopwire-jack-ports." >&2
+  exit 1
+fi
 if [ ! -x "$(dirname "$prefix")/lib/loopwire/loopwire-gui" ]; then
   echo "Installer did not install libexec GUI support files." >&2
   exit 1
@@ -159,6 +186,23 @@ fi
 }
 "$prefix/loopwire-dsp-provider" --help | grep -F -- "seed-source" >/dev/null || {
   echo "Installed Loopwire DSP provider help did not run." >&2
+  exit 1
+}
+"$prefix/loopwire-jack-ports" --help | grep -F -- "LOOPWIRE_JACK_PORTS_DELEGATE" >/dev/null || {
+  echo "Installed Loopwire JACK ports provider help did not run." >&2
+  exit 1
+}
+if "$prefix/loopwire-jack-ports" \
+  ensure \
+  --configuration-id installed-smoke \
+  --requirement route-source:loopwire-owned:mic:loopwire_installed_input_mic:1 \
+  --port loopwire_installed_input_mic:capture_1 \
+  --manifest-file "$installed_jack_manifest" >/dev/null 2>&1; then
+  echo "Installed Loopwire JACK ports provider did not fail closed without a delegate." >&2
+  exit 1
+fi
+grep -F '"configurationId": "installed-smoke"' "$installed_jack_manifest" >/dev/null || {
+  echo "Installed Loopwire JACK ports provider did not record a provision manifest." >&2
   exit 1
 }
 "$prefix/loopwire-dsp-provider" \

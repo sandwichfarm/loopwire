@@ -258,6 +258,23 @@
   Node in the runtime package environment for `loopwire --background`.
 - `pnpm verify:release` passed after proving `loopwire --background --help` works from the extracted release tarball and
   from the installed prefix.
+- `loopwire-jack-ports` is now bundled as a JACK virtual-port provider wrapper for source checkout, release tarball,
+  curl installer, AUR, and Nix package paths. It writes a `loopwire.jack-ports.provision-plan` manifest and fails
+  closed unless `LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at a live JACK client provider.
+- `pnpm --filter @loopwire/audio-host test -- jack-ports-cli.test.ts` passed with 107 audio-host tests, including
+  fail-closed manifest recording, pnpm `--` separator handling, delegate argument forwarding, wrapper-only
+  `--delegate-command` stripping, and malformed requirement rejection.
+- A strict built CLI smoke passed for `pnpm jack:provider -- --help`, fail-closed manifest recording without a delegate,
+  and delegated live-provider argument forwarding.
+- `pnpm verify:release` passed after proving the extracted and installed release artifact contains
+  `loopwire-jack-ports`, its help runs, and it records a provision manifest while failing closed without a delegate.
+- `pnpm verify:install` passed after proving the curl-style installer installs `loopwire-jack-ports`.
+- `pnpm verify:aur` passed after the AUR smoke selected the main package archive and verified `usr/bin/loopwire`,
+  `usr/bin/loopwire-dsp-provider`, `usr/bin/loopwire-jack-ports`, `usr/lib/loopwire/loopwire-gui`, and the bundled
+  background restore runner.
+- `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:autostart`, `pnpm check`,
+  `pnpm detect:audio`, shell syntax checks, touched-file line-length check, and `git diff --check` passed after the
+  JACK provider wrapper packaging/docs update.
 - `pnpm verify:aur` passed on this Arch host and confirmed the generated package archive contains `usr/bin/loopwire`,
   `usr/lib/loopwire/loopwire-gui`, and `usr/lib/loopwire/scripts/restore-background.mjs`.
 - `pnpm verify:install`, `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`,

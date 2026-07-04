@@ -42,8 +42,13 @@ cat >"$payload_dir/bin/loopwire-dsp-provider" <<'EOF'
 printf '%s\n' "loopwire dsp provider installer smoke"
 EOF
 chmod 0755 "$payload_dir/bin/loopwire-dsp-provider"
+cat >"$payload_dir/bin/loopwire-jack-ports" <<'EOF'
+#!/usr/bin/env sh
+printf '%s\n' "loopwire jack ports installer smoke"
+EOF
+chmod 0755 "$payload_dir/bin/loopwire-jack-ports"
 
-tar -C "$payload_dir/bin" -czf "$release_dir/$asset" loopwire loopwire-dsp-provider
+tar -C "$payload_dir/bin" -czf "$release_dir/$asset" loopwire loopwire-dsp-provider loopwire-jack-ports
 (
   cd "$release_dir"
   sha256sum "$asset" >SHA256SUMS
@@ -75,6 +80,16 @@ fi
 
 if [ "$("$prefix/loopwire-dsp-provider")" != "loopwire dsp provider installer smoke" ]; then
   echo "Installed Loopwire DSP provider did not run as expected." >&2
+  exit 1
+fi
+
+if [ ! -x "$prefix/loopwire-jack-ports" ]; then
+  echo "Installed Loopwire JACK ports provider is missing or not executable." >&2
+  exit 1
+fi
+
+if [ "$("$prefix/loopwire-jack-ports")" != "loopwire jack ports installer smoke" ]; then
+  echo "Installed Loopwire JACK ports provider did not run as expected." >&2
   exit 1
 fi
 

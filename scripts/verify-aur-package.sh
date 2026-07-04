@@ -48,27 +48,37 @@ bash scripts/render-aur-pkgbuild.sh \
   makepkg --force --nodeps --noconfirm --cleanbuild --clean >/dev/null
 )
 
-package_file="$(find "$work_dir" -maxdepth 1 -type f -name 'loopwire-bin-*.pkg.tar.*' | head -n 1)"
+package_file="$(
+  find "$work_dir" \
+    -maxdepth 1 \
+    -type f \
+    -name 'loopwire-bin-*.pkg.tar.*' \
+    ! -name 'loopwire-bin-debug-*' \
+    | head -n 1
+)"
 if [ -z "$package_file" ]; then
   echo "makepkg did not produce a loopwire-bin package archive." >&2
   exit 1
 fi
 
-if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/bin/loopwire$'; then
-  echo "AUR package archive does not contain usr/bin/loopwire." >&2
+package_members="$work_dir/package-members.txt"
+tar -tf "$package_file" >"$package_members"
+
+require_package_member() {
+  member="$1"
+
+  if grep -Fxq "$member" "$package_members"; then
+    return 0
+  fi
+
+  echo "AUR package archive does not contain $member." >&2
   exit 1
-fi
-if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/bin/loopwire-dsp-provider$'; then
-  echo "AUR package archive does not contain usr/bin/loopwire-dsp-provider." >&2
-  exit 1
-fi
-if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/lib/loopwire/loopwire-gui$'; then
-  echo "AUR package archive does not contain usr/lib/loopwire/loopwire-gui." >&2
-  exit 1
-fi
-if ! tar -tf "$package_file" | grep -Eq '(^|/)usr/lib/loopwire/scripts/restore-background.mjs$'; then
-  echo "AUR package archive does not contain bundled background restore runner." >&2
-  exit 1
-fi
+}
+
+require_package_member "usr/bin/loopwire"
+require_package_member "usr/bin/loopwire-dsp-provider"
+require_package_member "usr/bin/loopwire-jack-ports"
+require_package_member "usr/lib/loopwire/loopwire-gui"
+require_package_member "usr/lib/loopwire/scripts/restore-background.mjs"
 
 echo "AUR local package smoke passed."

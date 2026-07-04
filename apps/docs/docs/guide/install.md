@@ -53,8 +53,10 @@ pnpm restore:background -- --state-file "${XDG_CONFIG_HOME:-$HOME/.config}/loopw
 ```
 
 The desktop mode writes `~/.config/autostart/loopwire.desktop`. Release tarballs install a `loopwire --background`
-entrypoint for packaged user systemd restore and `loopwire-dsp-provider` for bundled file-backed DSP preflight.
-Source checkouts can also render a user systemd unit with
+entrypoint for packaged user systemd restore, `loopwire-dsp-provider` for bundled file-backed DSP preflight, and
+`loopwire-jack-ports` for JACK virtual-port restore preflight. The JACK wrapper records the requested ports and exits
+nonzero unless `LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at a live JACK client provider. Source
+checkouts can also render a user systemd unit with
 `--source-dir "$PWD"` that runs `pnpm restore:background` against the Tauri-written state file. For live PulseAudio
 source restores, add `--retry-pending-ms` and `--retry-interval-ms` to refresh late-starting app streams. For JACK
 restore, add `--jack-provider-command` so the generated service can create deterministic Loopwire-owned ports before

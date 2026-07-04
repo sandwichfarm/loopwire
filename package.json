@@ -16,6 +16,7 @@
     "check:verify": "pnpm verify:requirements && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri",
     "collect:evidence": "node scripts/collect-release-evidence.mjs",
     "collect:support": "node scripts/collect-support-bundle.mjs",
+    "jack:provider": "pnpm --filter @loopwire/audio-host build && node packages/audio-host/dist/jack-ports-cli.js",
     "jack:ports": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs",
     "jack:verify": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs --verify",
     "dsp:provider": "pnpm --filter @loopwire/audio-host build && node packages/audio-host/dist/dsp-provider-cli.js",
