@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T16:27:38+02:00"
-last_activity: 2026-07-04 - Final release dry-run emits VM evidence archive package and upload handoff
+last_updated: "2026-07-04T16:35:07+02:00"
+last_activity: 2026-07-04 - Curl installer reports the Node runtime dependency for packaged background restore
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `scripts/verify-final-release-proof.sh --dry-run` now emits the
-`scripts/package-vm-evidence.sh --all --require-published-release` command and matching `gh release upload` handoff for
-`loopwire-vm-evidence-<tag>.tar.gz`, so the final proof plan names the release attachment step before the manual
-workflow can pass. Phase 12 remains gated on a public release, configured Bunny secrets, live Bunny deployment proof,
-host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - `scripts/install.sh` now reports whether `node` is available after a raw tarball install,
+so users see the packaged `loopwire --background`, `loopwire-dsp-provider`, and `loopwire-jack-ports` runtime
+dependency before enabling Restore on boot. Phase 12 remains gated on a public release, configured Bunny secrets, live
+Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,14 @@ host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 installer dependency reporting: the curl installer now reports whether `node` is available after
+  install and warns raw tarball users that packaged background restore/provider commands require Node.js before Restore
+  on boot. `apps/docs/docs/public/install.sh` was synced byte-for-byte from `scripts/install.sh`, and install plus
+  start-on-boot docs now explain that AUR/Nix paths declare or wrap the dependency. Validation passed: `bash -n
+  scripts/install.sh apps/docs/docs/public/install.sh scripts/verify-install.sh scripts/verify-docs.sh`,
+  `pnpm verify:install`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, and `git diff --check`. No public release, VM launch, Bunny
+  deployment, secret write, tag push, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-04 Phase 12 VM evidence handoff: final proof dry-runs now print the VM evidence archive packaging command and
   matching `gh release upload` command before per-target VM verification, making the required
   `loopwire-vm-evidence-<tag>.tar.gz` release attachment explicit. Validation passed: `bash -n

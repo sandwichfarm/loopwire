@@ -183,6 +183,8 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "Packaged Background Res
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Open on boot"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Restore on boot"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "loopwire --background"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "The curl installer reports that dependency"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" 'install the distro `nodejs` package'
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "default.target.wants/loopwire.service"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--source-dir"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pending until those apps launch"
@@ -204,6 +206,9 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "pendingStreamRefresh.cl
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "status check remains non-destructive"
 assert_contains "apps/docs/docs/guide/install.md" 'packages.<system>.loopwire-bin'
 assert_contains "apps/docs/docs/guide/install.md" "loopwire-dsp-provider"
+assert_contains "apps/docs/docs/guide/install.md" 'The curl installer reports whether `node` is available'
+assert_contains "apps/docs/docs/guide/install.md" "AUR and Nix package"
+assert_contains "apps/docs/docs/guide/install.md" "paths declare or wrap that dependency"
 assert_contains "apps/docs/docs/guide/install.md" "fake"
 assert_contains "apps/docs/docs/guide/install.md" "VitePress public asset"
 assert_contains "apps/docs/docs/guide/install.md" "/install.sh"

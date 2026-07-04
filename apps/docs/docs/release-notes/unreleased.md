@@ -39,6 +39,8 @@ These notes describe source-tree progress. They are not a public release announc
   recreating the virtual sinks.
 - Release tarballs now package a `loopwire --background` launcher with bundled restore assets under
   `libexec/loopwire/`, and package templates install those support files.
+- The curl installer now reports whether `node` is available after install, warning raw tarball users before they enable
+  Restore on boot or bundled provider commands without the Node.js runtime.
 - Loopwire-owned monitor sinks and `module-loopback` links from output monitor sources to those monitor sinks.
 - Optional monitor host sink names for routing monitor loopbacks directly to physical PulseAudio-compatible sinks.
 - Desktop monitor cards can list detected PipeWire input ports or PulseAudio-compatible playback sinks for physical

@@ -29,6 +29,7 @@ payload_dir="$tmp_dir/payload"
 prefix="$tmp_dir/prefix"
 private_key="$tmp_dir/release-private.pem"
 public_key="$tmp_dir/release-public.pem"
+install_log="$tmp_dir/install.log"
 
 mkdir -p "$release_dir" "$payload_dir/bin"
 
@@ -61,7 +62,14 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "$private_key"
 openssl pkey -in "$private_key" -pubout -out "$public_key" >/dev/null
 bash scripts/sign-release-artifacts.sh --release-dir "$release_dir" --private-key "$private_key" >/dev/null
 
-bash scripts/install.sh --base-url "file://$release_dir" --prefix "$prefix" --public-key "$public_key"
+bash scripts/install.sh --base-url "file://$release_dir" --prefix "$prefix" --public-key "$public_key" \
+  >"$install_log" 2>&1
+cat "$install_log"
+grep -E "Background restore dependency: node found|WARNING: Background restore requires node on PATH" \
+  "$install_log" >/dev/null || {
+    echo "Installer did not report the background restore Node dependency." >&2
+    exit 1
+  }
 
 if [ ! -x "$prefix/loopwire" ]; then
   echo "Installed Loopwire binary is missing or not executable." >&2

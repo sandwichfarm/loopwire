@@ -62,6 +62,11 @@ source restores, add `--retry-pending-ms` and `--retry-interval-ms` to refresh l
 restore, add `--jack-provider-command` so the generated service can create deterministic Loopwire-owned ports before
 connecting them.
 
+The curl installer reports whether `node` is available after installation. The GUI launcher can start without Node.js,
+but packaged `loopwire --background`, `loopwire-dsp-provider`, and `loopwire-jack-ports` require `node` on `PATH`.
+Install the distro `nodejs` package before enabling Restore on boot from a raw tarball install. AUR and Nix package
+paths declare or wrap that dependency for you.
+
 ## Package Channels
 
 Package metadata templates now exist under `packaging/`:

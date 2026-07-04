@@ -2335,6 +2335,15 @@
   `scripts/verify-final-release-proof.sh --dry-run` grep for the new VM archive package/upload handoff lines, and
   `pnpm check`. No public release, VM launch, Bunny deployment, secret write, tag push, host audio mutation, or
   support-matrix promotion was performed.
+- `scripts/install.sh` now reports whether `node` is available after a raw tarball install and warns when packaged
+  background restore/provider commands would be unavailable because Node.js is missing.
+- `apps/docs/docs/public/install.sh` was synced from the canonical installer, and install/start-on-boot docs explain
+  that AUR/Nix package paths declare or wrap the Node.js dependency while raw tarball users must install `nodejs`
+  before enabling Restore on boot.
+- Focused validation passed: `bash -n scripts/install.sh apps/docs/docs/public/install.sh scripts/verify-install.sh
+  scripts/verify-docs.sh`, `pnpm verify:install`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`, and
+  `git diff --check`. No public release, VM launch, Bunny deployment, secret write, tag push, host audio mutation, or
+  support-matrix promotion was performed.
 
 ## Evidence Missing
 

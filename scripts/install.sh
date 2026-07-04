@@ -31,6 +31,8 @@ The installer expects release assets named:
   loopwire-linux-aarch64.tar.gz
 
 It also expects SHA256SUMS and SHA256SUMS.sig in the release assets.
+The GUI launcher can start without Node.js, but loopwire --background,
+loopwire-dsp-provider, and loopwire-jack-ports require node on PATH.
 USAGE
 }
 
@@ -81,6 +83,16 @@ require_cmd() {
     echo "Required command not found: $1" >&2
     exit 1
   fi
+}
+
+report_background_dependency() {
+  if command -v node >/dev/null 2>&1; then
+    echo "Background restore dependency: node found at $(command -v node)"
+    return
+  fi
+
+  echo "WARNING: Background restore requires node on PATH." >&2
+  echo "Install nodejs before enabling Restore on boot or using bundled provider commands." >&2
 }
 
 validate_archive_members() {
@@ -247,3 +259,4 @@ fi
 if [ -n "$jack_provider_path" ]; then
   echo "Loopwire JACK ports provider installed to ${prefix}/loopwire-jack-ports"
 fi
+report_background_dependency

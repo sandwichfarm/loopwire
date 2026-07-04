@@ -90,7 +90,9 @@ RestartSec=2
 ```
 
 Packaged background restore requires `node` on `PATH` because the release artifact bundles the same JavaScript
-core/audio-host restore engine used by source checkouts.
+core/audio-host restore engine used by source checkouts. The curl installer reports that dependency after installing
+the tarball. If it warns that Node.js is missing, install the distro `nodejs` package before enabling Restore on boot.
+AUR and Nix package paths declare or wrap Node.js for the packaged launchers.
 
 The desktop shell resolves the packaged launcher from the installed GUI path before writing this service. It refuses to
 install a background unit if it can only find the GUI binary, because `--background` belongs to the `loopwire` launcher.
