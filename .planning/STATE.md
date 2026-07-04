@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:22:14+02:00"
-last_activity: 2026-07-04 - Final release blockers are audited by a read-only status command
+last_updated: "2026-07-04T21:33:39+02:00"
+last_activity: 2026-07-04 - Final release status now rejects empty or failed workflow-run evidence
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,9 +28,9 @@ Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
 Last activity: 2026-07-04 - `pnpm release:status` now audits the remaining final proof surfaces from one read-only
-command and exits nonzero while secrets, release assets, docs workflow evidence, VM evidence, support-matrix proof, or
-handoff planning are missing. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny
-deployment proof, and operator-run VM evidence.
+command and exits nonzero while secrets, release assets, completed successful workflow-run evidence, VM evidence,
+support-matrix proof, or handoff planning are missing. Phase 12 remains gated on configuring Bunny secrets, public
+GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Final release workflow-run status hardening: `scripts/audit-final-release-state.sh` now parses `gh run
+  list` JSON for Deploy Docs and Final Release Proof status gates, rejects empty workflow lists, rejects still-running
+  or failed latest runs, and prints the accepted run id/SHA/URL only after the latest run is completed successfully.
+  Validation passed: codebase-memory MCP `index_status` reported `home-sandwich-Develop-loopwire` ready with 3,247
+  nodes and 6,304 edges; `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `git diff --check`, and live
+  `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0` blocker readback passed. The live status command
+  now accepts the successful Deploy Docs run `28717136272` for commit `3012c17757b3dd411f77cb5e4b5b9e6c840847a6` and
+  blocks the absent Final Release Proof run list.
 - 2026-07-04 Final release status auditor: `scripts/audit-final-release-state.sh` and `pnpm release:status` now run a
   read-only audit across required GitHub secrets, the GitHub Release object, recent Deploy Docs and Final Release Proof
   workflow runs, published-release-bound VM evidence, support-matrix claims, and the local final release handoff plan.

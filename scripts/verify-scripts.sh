@@ -3331,7 +3331,76 @@ case "$1 ${2:-}" in
     exit 0
     ;;
   "release view")
+    if [ "${LOOPWIRE_FAKE_GH_RELEASE_MODE:-missing}" = "ok" ]; then
+      cat <<'JSON'
+{
+  "tagName": "v0.1.0",
+  "url": "https://github.example/releases/v0.1.0",
+  "targetCommitish": "main",
+  "isDraft": false,
+  "isPrerelease": false
+}
+JSON
+      exit 0
+    fi
     exit 1
+    ;;
+  "run list")
+    case "${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}" in
+      empty)
+        printf '%s\n' '[]'
+        ;;
+      success)
+        cat <<'JSON'
+[
+  {
+    "databaseId": 123456,
+    "status": "completed",
+    "conclusion": "success",
+    "headBranch": "master",
+    "headSha": "0123456789abcdef0123456789abcdef01234567",
+    "createdAt": "2026-07-04T00:00:00Z",
+    "url": "https://github.example/actions/runs/123456"
+  }
+]
+JSON
+        ;;
+      failed)
+        cat <<'JSON'
+[
+  {
+    "databaseId": 123456,
+    "status": "completed",
+    "conclusion": "failure",
+    "headBranch": "master",
+    "headSha": "0123456789abcdef0123456789abcdef01234567",
+    "createdAt": "2026-07-04T00:00:00Z",
+    "url": "https://github.example/actions/runs/123456"
+  }
+]
+JSON
+        ;;
+      running)
+        cat <<'JSON'
+[
+  {
+    "databaseId": 123456,
+    "status": "in_progress",
+    "conclusion": null,
+    "headBranch": "master",
+    "headSha": "0123456789abcdef0123456789abcdef01234567",
+    "createdAt": "2026-07-04T00:00:00Z",
+    "url": "https://github.example/actions/runs/123456"
+  }
+]
+JSON
+        ;;
+      *)
+        echo "unexpected LOOPWIRE_FAKE_GH_RUN_MODE: ${LOOPWIRE_FAKE_GH_RUN_MODE}" >&2
+        exit 64
+        ;;
+    esac
+    exit 0
     ;;
 esac
 
@@ -3377,6 +3446,38 @@ grep -F "local final release handoff plan" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status did not include the handoff planner" >&2
   exit 1
 }
+release_status_empty_workflow_log="$tmp_dir/release-status-empty-workflow.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=empty \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_empty_workflow_log" 2>&1; then
+  echo "verify-scripts: release status accepted an empty workflow run list" >&2
+  exit 1
+fi
+grep -F "latest Deploy Docs workflow run did not return any workflow runs" \
+  "$release_status_empty_workflow_log" >/dev/null || {
+    echo "verify-scripts: release status did not block an empty workflow run list" >&2
+    exit 1
+  }
+release_status_failed_workflow_log="$tmp_dir/release-status-failed-workflow.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=failed \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_failed_workflow_log" 2>&1; then
+  echo "verify-scripts: release status accepted a failed workflow run" >&2
+  exit 1
+fi
+grep -F "latest Deploy Docs workflow run latest completed run did not succeed: failure" \
+  "$release_status_failed_workflow_log" >/dev/null || {
+    echo "verify-scripts: release status did not block a failed workflow run" >&2
+    exit 1
+  }
 secret_artifact_missing_bunny_log="$tmp_dir/setup-github-secrets-artifact-missing-bunny.log"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \

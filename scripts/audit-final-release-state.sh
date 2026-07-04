@@ -90,6 +90,80 @@ run_gh_probe() {
   run_gate "$label" "$@"
 }
 
+run_workflow_probe() {
+  local label="$1"
+  shift
+  local output
+  local validation
+
+  if [ "$skip_gh" = "true" ]; then
+    echo "==> $label"
+    echo "skipped: live GitHub lookup disabled"
+    echo
+    return 0
+  fi
+
+  echo "==> $label"
+  if ! output="$("$@" 2>&1)"; then
+    echo "blocked: $label" >&2
+    [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+    echo >&2
+    return 1
+  fi
+
+  if ! validation="$(node - "$label" "$output" <<'NODE' 2>&1
+const [label, raw] = process.argv.slice(2);
+let runs;
+
+try {
+  runs = JSON.parse(raw);
+} catch (error) {
+  console.error(`${label} did not return JSON: ${error.message}`);
+  process.exit(1);
+}
+
+if (!Array.isArray(runs)) {
+  console.error(`${label} did not return a workflow run array.`);
+  process.exit(1);
+}
+
+if (runs.length === 0) {
+  console.error(`${label} did not return any workflow runs.`);
+  process.exit(1);
+}
+
+const run = runs[0] ?? {};
+if (run.status !== "completed") {
+  console.error(`${label} latest run is not completed: ${run.status ?? "unknown"}.`);
+  process.exit(1);
+}
+
+if (run.conclusion !== "success") {
+  console.error(`${label} latest completed run did not succeed: ${run.conclusion ?? "unknown"}.`);
+  process.exit(1);
+}
+
+const fields = [
+  run.databaseId ? `databaseId=${run.databaseId}` : null,
+  run.headSha ? `headSha=${run.headSha}` : null,
+  run.url ? `url=${run.url}` : null
+].filter(Boolean);
+console.log(`latest run verified: ${fields.join(" ")}`);
+NODE
+  )"; then
+    echo "blocked: $label" >&2
+    [ -z "$validation" ] || printf '%s\n' "$validation" | indent >&2
+    [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+    echo >&2
+    return 1
+  fi
+
+  echo "ok: $label"
+  [ -z "$validation" ] || printf '%s\n' "$validation" | indent
+  [ -z "$output" ] || printf '%s\n' "$output" | indent
+  echo
+}
+
 run_vm_evidence_gate() {
   local label="$1"
   shift
@@ -184,12 +258,12 @@ run_gh_probe \
   "GitHub Release object" \
   gh release view "$tag" --repo "$repo" --json tagName,url,targetCommitish,isDraft,isPrerelease || failed=1
 
-run_gh_probe \
+run_workflow_probe \
   "latest Deploy Docs workflow run" \
   gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
 
-run_gh_probe \
+run_workflow_probe \
   "latest Final Release Proof workflow run" \
   gh run list --repo "$repo" --workflow final-release-proof.yml --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1

@@ -189,10 +189,11 @@ pnpm release:status -- \
   --tag v0.1.0
 ```
 
-The status command checks required GitHub secrets, the GitHub Release object, recent Deploy Docs and Final Release
-Proof workflow runs, published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It exits
-nonzero until every final proof surface is present. Use `--secret-list-file release-secret-names.tsv` to replay a
-saved names-only secret audit, or `--skip-gh` when you only want local evidence checks.
+The status command checks required GitHub secrets, the GitHub Release object, completed successful Deploy Docs and Final
+Release Proof workflow runs, published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It
+exits nonzero until every final proof surface is present. Empty, failed, cancelled, or still-running workflow lists are
+release blockers, even when the GitHub API call itself succeeds. Use `--secret-list-file release-secret-names.tsv` to
+replay a saved names-only secret audit, or `--skip-gh` when you only want local evidence checks.
 
 Parse an existing release-readiness log without rerunning release checks:
 
