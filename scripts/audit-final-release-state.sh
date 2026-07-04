@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo=""
 tag=""
+expected_git_head=""
 public_key="packaging/release-signing-public.pem"
 secret_list_file=""
 vm_evidence_root=".vm/evidence"
@@ -18,6 +19,7 @@ Usage:
 
 Options:
   --public-key FILE           Release public key, default packaging/release-signing-public.pem
+  --git-head SHA              Expected release/source commit, default current checkout HEAD
   --secret-list-file FILE     Names-only `gh secret list` artifact for deterministic secret checks
   --vm-evidence-root DIR      VM evidence root, default .vm/evidence
   --support-matrix FILE       Support matrix path, default apps/docs/docs/guide/support-matrix.md
@@ -40,6 +42,11 @@ validate_repo() {
 validate_tag() {
   local pattern='^v[0-9]+[.][0-9]+[.][0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'
   [[ "$tag" =~ $pattern ]] || fail "release tag must be v-prefixed semver without path separators: $tag"
+}
+
+validate_git_head() {
+  local pattern='^[0-9a-fA-F]{40}$'
+  [[ "$expected_git_head" =~ $pattern ]] || fail "git head must be a 40-character SHA: $expected_git_head"
 }
 
 reject_unsafe_value() {
@@ -92,7 +99,8 @@ run_gh_probe() {
 
 run_workflow_probe() {
   local label="$1"
-  shift
+  local expected_head="$2"
+  shift 2
   local output
   local validation
 
@@ -111,8 +119,8 @@ run_workflow_probe() {
     return 1
   fi
 
-  if ! validation="$(node - "$label" "$output" <<'NODE' 2>&1
-const [label, raw] = process.argv.slice(2);
+  if ! validation="$(node - "$label" "$expected_head" "$output" <<'NODE' 2>&1
+const [label, expectedHead, raw] = process.argv.slice(2);
 let runs;
 
 try {
@@ -140,6 +148,13 @@ if (run.status !== "completed") {
 
 if (run.conclusion !== "success") {
   console.error(`${label} latest completed run did not succeed: ${run.conclusion ?? "unknown"}.`);
+  process.exit(1);
+}
+
+if (run.headSha !== expectedHead) {
+  console.error(
+    `${label} latest run is for ${run.headSha ?? "unknown"}, not expected commit ${expectedHead}.`
+  );
   process.exit(1);
 }
 
@@ -206,6 +221,10 @@ while [ "$#" -gt 0 ]; do
       public_key="${2:?missing value for --public-key}"
       shift 2
       ;;
+    --git-head)
+      expected_git_head="${2:?missing value for --git-head}"
+      shift 2
+      ;;
     --secret-list-file)
       secret_list_file="${2:?missing value for --secret-list-file}"
       shift 2
@@ -237,15 +256,22 @@ done
 validate_repo
 validate_tag
 reject_unsafe_value "$public_key" "public key"
+reject_unsafe_value "$expected_git_head" "git head"
 reject_unsafe_value "$secret_list_file" "secret-list file"
 reject_unsafe_value "$vm_evidence_root" "VM evidence root"
 reject_unsafe_value "$support_matrix" "support matrix"
 
 failed=0
 head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+if [ -z "$expected_git_head" ]; then
+  expected_git_head="$head_sha"
+fi
+[ -n "$expected_git_head" ] || fail "missing --git-head SHA outside a git checkout"
+validate_git_head
 
 echo "Final release status for ${repo}@${tag}"
 [ -z "$head_sha" ] || echo "Current checkout: ${head_sha}"
+echo "Expected release commit: ${expected_git_head}"
 echo
 
 secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
@@ -260,11 +286,13 @@ run_gh_probe \
 
 run_workflow_probe \
   "latest Deploy Docs workflow run" \
+  "$expected_git_head" \
   gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
 
 run_workflow_probe \
   "latest Final Release Proof workflow run" \
+  "$expected_git_head" \
   gh run list --repo "$repo" --workflow final-release-proof.yml --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
 
@@ -281,7 +309,7 @@ run_gate \
 run_gate \
   "local final release handoff plan" \
   bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
-    --git-head "${head_sha:-0000000000000000000000000000000000000000}" \
+    --git-head "$expected_git_head" \
     --public-key "$public_key" || failed=1
 
 if [ "$failed" -ne 0 ]; then

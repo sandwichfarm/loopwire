@@ -268,6 +268,10 @@ printf '%s\n' "$release_status_help" | grep -F -- "--secret-list-file FILE" >/de
   echo "verify-scripts: release status help is missing secret-list artifact support" >&2
   exit 1
 }
+printf '%s\n' "$release_status_help" | grep -F -- "--git-head SHA" >/dev/null || {
+  echo "verify-scripts: release status help is missing expected git head support" >&2
+  exit 1
+}
 printf '%s\n' "$release_status_help" | grep -F -- "--skip-gh" >/dev/null || {
   echo "verify-scripts: release status help is missing offline support" >&2
   exit 1
@@ -277,6 +281,14 @@ if bash scripts/audit-final-release-state.sh \
   --tag v0.1.0 \
   --skip-gh >/dev/null 2>&1; then
   echo "verify-scripts: release status accepted a URL-like repository" >&2
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head not-a-sha \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted an invalid git head" >&2
   exit 1
 fi
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
@@ -3476,6 +3488,40 @@ fi
 grep -F "latest Deploy Docs workflow run latest completed run did not succeed: failure" \
   "$release_status_failed_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block a failed workflow run" >&2
+    exit 1
+  }
+release_status_stale_workflow_log="$tmp_dir/release-status-stale-workflow.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head ffffffffffffffffffffffffffffffffffffffff \
+    --secret-list-file "$secret_list_all_final" >"$release_status_stale_workflow_log" 2>&1; then
+  echo "verify-scripts: release status accepted a workflow run from the wrong commit" >&2
+  exit 1
+fi
+grep -F "latest Deploy Docs workflow run latest run is for 0123456789abcdef0123456789abcdef01234567" \
+  "$release_status_stale_workflow_log" >/dev/null || {
+    echo "verify-scripts: release status did not block stale workflow SHA evidence" >&2
+    exit 1
+  }
+release_status_matching_workflow_log="$tmp_dir/release-status-matching-workflow.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_matching_workflow_log" 2>&1; then
+  echo "verify-scripts: release status unexpectedly passed without VM evidence" >&2
+  exit 1
+fi
+grep -F "latest run verified: databaseId=123456 headSha=0123456789abcdef0123456789abcdef01234567" \
+  "$release_status_matching_workflow_log" >/dev/null || {
+    echo "verify-scripts: release status did not accept matching workflow SHA evidence" >&2
     exit 1
   }
 secret_artifact_missing_bunny_log="$tmp_dir/setup-github-secrets-artifact-missing-bunny.log"
