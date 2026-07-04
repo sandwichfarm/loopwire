@@ -297,7 +297,7 @@ print_command "${local_final[@]}"
 
 if [ -z "$docs_deployment_run_id" ]; then
   echo
-  echo "blocker: replace <docs-deployment-run-id> with the successful Deploy Docs workflow run id before step 6."
+  echo "blocker: replace <docs-deployment-run-id> with the successful Deploy Docs workflow run id before steps 5 and 7."
 fi
 if [ "$release_private_key_file" = "<release-private-key-file>" ]; then
   echo "blocker: pass --release-private-key-file before preparing signed VM evidence release assets."
