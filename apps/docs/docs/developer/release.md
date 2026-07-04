@@ -163,6 +163,24 @@ The manual final release proof workflow defaults to `loopwire-release-evidence-<
 must match the selected release tag and evidence kind, and must not contain traversal, URL syntax, or glob
 metacharacters.
 
+To render the complete no-side-effect operator handoff before dispatching workflows:
+
+```bash
+pnpm release:handoff -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head "$(git rev-parse HEAD)" \
+  --docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
+  --docs-remote-prefix "$BUNNY_REMOTE_PREFIX" \
+  --release-private-key-file /secure/loopwire-release-private.pem
+```
+
+The handoff prints the required secret check, strict release readiness command, Release workflow dispatch, Deploy Docs
+workflow dispatch, VM SSH plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow
+dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch workflows, upload VM evidence,
+or mutate host audio. If the Deploy Docs run id is not known yet, the final proof command includes
+`<docs-deployment-run-id>` and prints a blocker reminder.
+
 Parse an existing release-readiness log without rerunning release checks:
 
 ```bash

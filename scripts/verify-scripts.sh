@@ -15,6 +15,7 @@ bash -n \
   scripts/render-nix-release-package.sh \
   scripts/verify-nix-release-package.sh \
   scripts/setup-github-secrets.sh \
+  scripts/plan-final-release-handoff.sh \
   scripts/ct-host-check.sh \
   scripts/vm-matrix.sh \
   scripts/verify-github-workflows.sh \
@@ -65,6 +66,10 @@ if (!root.scripts["dsp:provider"]) {
 }
 if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deployment-manifest.mjs") {
   console.error("verify-scripts: root package is missing verify:docs-deployment");
+  process.exit(1);
+}
+if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff.sh") {
+  console.error("verify-scripts: root package is missing release:handoff");
   process.exit(1);
 }
 if (root.scripts["verify:final-release"] !== "bash scripts/verify-final-release-proof.sh") {
@@ -175,6 +180,76 @@ pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
   }
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
+release_handoff_help="$(bash scripts/plan-final-release-handoff.sh --help)"
+printf '%s\n' "$release_handoff_help" | grep -F -- "--docs-deployment-run-id ID" >/dev/null || {
+  echo "verify-scripts: release handoff help is missing docs deployment run id support" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_help" | grep -F -- "--release-private-key-file FILE" >/dev/null || {
+  echo "verify-scripts: release handoff help is missing VM evidence private key support" >&2
+  exit 1
+}
+release_handoff_plan="$(
+  bash scripts/plan-final-release-handoff.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --docs-deployment-run-id 123456 \
+    --docs-hostname docs.example.test \
+    --docs-remote-prefix preview \
+    --release-private-key-file /secure/loopwire-release-private.pem \
+    --secret-list-file release-secret-names.tsv
+)"
+printf '%s\n' "$release_handoff_plan" | grep -F "bash scripts/setup-github-secrets.sh" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing secret check" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run release.yml" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing release workflow dispatch" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run deploy-docs.yml" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing docs workflow dispatch" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:collect-matrix" | grep -F -- "--require-github-release-source" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing GitHub-source VM evidence collection" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidence" | grep -F -- "--private-key" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing signed VM evidence preparation" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run final-release-proof.yml" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing final proof workflow dispatch" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | grep -F -- "--plan-output" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing local final-proof dry-run" >&2
+  exit 1
+}
+if bash scripts/plan-final-release-handoff.sh \
+  --repo https://github.com/sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 >/dev/null 2>&1; then
+  echo "verify-scripts: release handoff accepted a URL-like repository" >&2
+  exit 1
+fi
+if bash scripts/plan-final-release-handoff.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head not-a-sha >/dev/null 2>&1; then
+  echo "verify-scripts: release handoff accepted an invalid git head" >&2
+  exit 1
+fi
+if bash scripts/plan-final-release-handoff.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --vm-evidence-asset ../loopwire-vm-evidence-v0.1.0.tar.gz >/dev/null 2>&1; then
+  echo "verify-scripts: release handoff accepted an unsafe VM evidence asset name" >&2
+  exit 1
+fi
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
   echo "verify-scripts: release evidence verifier help is missing all-target support" >&2
   exit 1

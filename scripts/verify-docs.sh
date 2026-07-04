@@ -544,6 +544,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints no-value next steps"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-docs smoke"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'names-only `--secret-list-file` artifact'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:handoff`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "smaller required-secret"
 assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
@@ -560,6 +561,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:packa
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:prepare-release-evidence` command'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
+assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
+assert_contains "apps/docs/docs/developer/release.md" "<docs-deployment-run-id>"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"

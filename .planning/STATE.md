@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T21:08:34+02:00"
-last_activity: 2026-07-04 - Release secret checks can replay names-only artifacts
+last_updated: "2026-07-04T21:15:32+02:00"
+last_activity: 2026-07-04 - Final release handoff commands are rendered by a no-side-effect planner
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - GitHub secret checks and release readiness now accept names-only `--secret-list-file`
-artifacts, so the final-proof secret gate can be rehearsed deterministically without a live `gh secret list` call or
-secret values. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment
-proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:handoff` now renders the no-side-effect operator command plan for secret
+checks, release readiness, Release workflow dispatch, Deploy Docs dispatch, VM evidence collection, VM evidence asset
+preparation, final proof dispatch, and local final-proof dry-run. Phase 12 remains gated on configuring Bunny secrets,
+public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Final release handoff planner: `scripts/plan-final-release-handoff.sh` and `pnpm release:handoff` now
+  render the exact no-side-effect operator command sequence for the remaining public release ceremony, including
+  secrets/readiness checks, release/docs workflow dispatch, VM SSH plan and runbook generation, strict GitHub-source VM
+  evidence collection, signed VM evidence asset preparation, manual final proof workflow dispatch, and local final
+  proof dry-run with `--plan-output`. The planner validates repo, tag, git head, docs run id, VM port, and evidence
+  asset names before printing commands and leaves placeholders/blocker notes for values only known after docs deploy.
+  Validation passed: codebase-memory MCP `search_graph` located final-proof workflow and release handoff surfaces;
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, direct
+  handoff-plan rendering for `sandwichfarm/loopwire@v0.1.0`, `pnpm verify:scripts`, and `pnpm verify:docs` passed.
 - 2026-07-04 Names-only secret-list artifact rehearsal: `scripts/setup-github-secrets.sh --check` and
   `scripts/verify-release-readiness.sh` now accept `--secret-list-file` inputs containing saved `gh secret list`
   names and metadata, never values. This lets release review replay the exact current blocker shape where

@@ -186,6 +186,8 @@ These notes describe source-tree progress. They are not a public release announc
   final-proof scope.
 - GitHub secret checks and release readiness now accept a names-only `--secret-list-file` artifact, so final-proof
   secret blockers can be replayed deterministically without a live `gh secret list` call or any secret values.
+- New `pnpm release:handoff` renders the no-side-effect release operator plan, including secret checks, workflow
+  dispatch commands, VM evidence collection, VM evidence asset prep, and final-proof dry-run commands.
 - Release readiness now rejects local or remote release tags that do not point at the current checkout commit, preventing
   stale tag preflights from looking publishable.
 - Release readiness now requires a clean git checkout by default, while candidate evidence collection opts out with
