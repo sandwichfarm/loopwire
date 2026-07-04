@@ -3501,6 +3501,50 @@ JSON
     esac
     exit 0
     ;;
+  api\ *)
+    api_path="$2"
+    shift 2
+    jq_expr=""
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --jq)
+          jq_expr="${2:?missing fake jq expression}"
+          shift 2
+          ;;
+        *)
+          echo "unexpected fake gh api arg: $1" >&2
+          exit 64
+          ;;
+      esac
+    done
+    [ "$api_path" = "repos/sandwichfarm/loopwire/actions/runs/123456/artifacts" ] || {
+      echo "unexpected fake gh api path: $api_path" >&2
+      exit 64
+    }
+    [ "$jq_expr" = ".artifacts[].name" ] || {
+      echo "unexpected fake gh api jq expression: $jq_expr" >&2
+      exit 64
+    }
+    case "${LOOPWIRE_FAKE_GH_ARTIFACT_MODE:-ok}" in
+      ok)
+        printf '%s\n' "loopwire-docs" "loopwire-docs-deployment"
+        ;;
+      missing-deployment)
+        printf '%s\n' "loopwire-docs"
+        ;;
+      empty)
+        ;;
+      fail)
+        echo "artifact api denied" >&2
+        exit 42
+        ;;
+      *)
+        echo "unexpected LOOPWIRE_FAKE_GH_ARTIFACT_MODE: ${LOOPWIRE_FAKE_GH_ARTIFACT_MODE}" >&2
+        exit 64
+        ;;
+    esac
+    exit 0
+    ;;
   "run download")
     run_id="${3:?missing fake run id}"
     shift 3
@@ -3617,6 +3661,38 @@ if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
   echo "verify-scripts: docs deployment proof helper accepted an invalid run id" >&2
   exit 1
 fi
+fetch_docs_missing_dist="$tmp_dir/fetched-docs-dist-missing-artifact"
+fetch_docs_missing_manifest="$tmp_dir/fetched-docs-deployment-missing-artifact/deployment-manifest.json"
+if LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_missing_dist" LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/fetch-docs-deployment-proof.sh \
+    --repo sandwichfarm/loopwire \
+    --run-id 123456 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --docs-dist "$fetch_docs_missing_dist" \
+    --manifest "$fetch_docs_missing_manifest" \
+    --manifest-artifact missing-docs-deployment >"$tmp_dir/fetch-docs-proof-missing-artifact.log" 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted a missing deployment artifact" >&2
+  exit 1
+fi
+grep -F "missing: docs deployment manifest artifact: missing-docs-deployment" \
+  "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
+    echo "verify-scripts: docs deployment proof helper did not report the missing deployment artifact" >&2
+    exit 1
+  }
+grep -F "found artifact(s):" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper did not print artifact inventory" >&2
+  exit 1
+}
+grep -F "loopwire-docs" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
+  echo "verify-scripts: docs deployment proof helper did not print the available docs artifact" >&2
+  exit 1
+}
+grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire" \
+  "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
+    echo "verify-scripts: docs deployment proof helper did not print the Bunny secret recovery command" >&2
+    exit 1
+  }
 secret_list_release_key_only="$tmp_dir/secret-list-release-key-only.tsv"
 secret_list_all_final="$tmp_dir/secret-list-all-final.tsv"
 printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secret_list_release_key_only"

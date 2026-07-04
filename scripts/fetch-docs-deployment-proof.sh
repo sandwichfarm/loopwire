@@ -72,6 +72,26 @@ indent() {
   sed 's/^/    /'
 }
 
+list_run_artifacts() {
+  gh api "repos/${repo}/actions/runs/${run_id}/artifacts" --jq '.artifacts[].name' 2>/dev/null || true
+}
+
+report_missing_deployment_artifact() {
+  local artifacts
+
+  artifacts="$(list_run_artifacts)"
+  echo "missing: docs deployment manifest artifact: $manifest_artifact" >&2
+  if [ -n "$artifacts" ]; then
+    echo "found artifact(s):" >&2
+    printf '%s\n' "$artifacts" | indent >&2
+  else
+    echo "found artifact(s): none or unavailable from GitHub API" >&2
+  fi
+  echo "likely cause: Deploy Docs did not run the Bunny.net deployment step, so it did not upload deployment proof." >&2
+  echo "next: configure required Bunny.net GitHub secrets, rerun Deploy Docs, then rerun this helper:" >&2
+  echo "  bash scripts/setup-github-secrets.sh --repo $repo --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>" >&2
+}
+
 download_artifact() {
   local label="$1"
   local artifact="$2"
@@ -85,6 +105,9 @@ download_artifact() {
 
   echo "failed to download ${label} artifact '${artifact}' from run ${run_id}" >&2
   [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+  if [ "$label" = "docs deployment manifest" ]; then
+    report_missing_deployment_artifact
+  fi
   return 1
 }
 

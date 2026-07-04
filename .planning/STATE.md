@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T22:33:57+02:00"
-last_activity: 2026-07-04 - Final release status prints docs proof recovery command
+last_updated: "2026-07-04T22:41:10+02:00"
+last_activity: 2026-07-04 - Docs proof fetch reports missing deployment artifact inventory
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm release:status` now prints the exact `pnpm release:fetch-docs-proof` command when
-docs deployment manifest proof is absent. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
-install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-04 - `pnpm release:fetch-docs-proof` now reports available Deploy Docs artifacts when the
+deployment-manifest artifact is absent, then prints the Bunny.net secret setup recovery command. Phase 12 remains gated
+on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,16 @@ install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Docs deployment artifact inventory: `scripts/fetch-docs-deployment-proof.sh` now lists the Deploy Docs
+  artifacts visible through `gh api` when `loopwire-docs-deployment` is missing, identifies the likely Bunny.net deploy
+  skip cause, and prints the no-secret `scripts/setup-github-secrets.sh` recovery command. `scripts/verify-scripts.sh`
+  covers the regression with a fake GitHub run that only exposes `loopwire-docs`. Validation passed: codebase-memory
+  MCP reported `home-sandwich-Develop-loopwire` ready with 3,278 nodes and 6,380 edges; `bash -n
+  scripts/fetch-docs-deployment-proof.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `git diff --check`, and `pnpm check` passed. Live temp-path `pnpm release:fetch-docs-proof -- --repo
+  sandwichfarm/loopwire --run-id 28718869414 --git-head 6f618d4a1800963c0bbe6ff37c7e66fd054021ce` still exits
+  nonzero as expected, but now reports `found artifact(s): loopwire-docs` and the missing `loopwire-docs-deployment`
+  blocker.
 - 2026-07-04 Docs deployment manifest recovery hint: `scripts/audit-final-release-state.sh` now uses a dedicated docs
   deployment manifest gate that reports missing `dist/docs-deployment/deployment-manifest.json`, looks up the latest
   Deploy Docs run id when live GitHub checks are enabled, and prints the matching
