@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T18:05:54+02:00"
-last_activity: 2026-07-04 - DSP provider outputs are scoped by configuration id
+last_updated: "2026-07-04T18:15:24+02:00"
+last_activity: 2026-07-04 - GitHub secret checks distinguish deploy and final-proof scopes
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - rendered DSP outputs now carry their configuration id, and the command-backed
-`loopwire-dsp-provider` stores writes/verifies/clears under that configuration id so stale output from one
-configuration cannot verify another configuration that reuses the same output id. Phase 12 remains gated on a public
-release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
+Last activity: 2026-07-04 - `scripts/setup-github-secrets.sh --check` now supports `--scope deploy` for Bunny.net
+upload readiness separately from the default strict final-proof scope. A live read-only deploy-scope check against
+`sandwichfarm/loopwire` still fails closed because `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY` are not configured, but
+the printed next step no longer requires the final-proof pull-zone hostname in deploy scope. Phase 12 remains gated on
+a public release, configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and
 operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -84,6 +85,15 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-04 Phase 12 GitHub secret scope checks: `scripts/setup-github-secrets.sh --check` now accepts
+  `--scope deploy` to check only the Bunny.net upload secret pair, while the default `--scope final` remains strict for
+  `BUNNY_PULL_ZONE_HOSTNAME` and `LOOPWIRE_RELEASE_PRIVATE_KEY`. Deploy-scope missing-secret guidance prints only the
+  storage zone/access-key setup command. Validation passed: `bash -n scripts/setup-github-secrets.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `bash scripts/setup-github-secrets.sh --print-required --scope
+  deploy`, `bash scripts/setup-github-secrets.sh --print-required`, `pnpm verify:scripts`, `pnpm verify:docs`, and
+  `pnpm check`.
+  Live read-only check: `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy`
+  still fails closed on missing `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`.
 - 2026-07-04 Phase 12 DSP provider configuration isolation: rendered DSP outputs now include `configurationId`, the
   command-backed provider appends `--configuration-id` to write/verify commands, and `loopwire-dsp-provider` stores
   outputs below `outputs/<configuration-id>/<output-id>.json`. Regression tests cover same-output-id isolation across

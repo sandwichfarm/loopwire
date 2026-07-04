@@ -388,6 +388,7 @@ Audit or preview the GitHub secret ceremony before setting anything:
 ```bash
 bash scripts/setup-github-secrets.sh --print-required
 bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check
+bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --storage-zone loopwire-docs \
@@ -398,11 +399,13 @@ bash scripts/setup-github-secrets.sh \
   --dry-run
 ```
 
-`--check` reads secret names only. `--dry-run` validates inputs and prints secret names that would be set without
-printing secret values or writing to GitHub. When `--release-public-key-file` is supplied, the helper parses the private
-key, parses the public key, derives the public key from the private key, and fails before any secret write if the pair
-does not match. If the GitHub CLI cannot read repository secret names, `--check` and the release readiness preflight
-fail with the underlying `gh secret list` error instead of reporting those secrets as missing.
+`--check` reads secret names only. The default `--scope final` checks all final-proof secrets. Use
+`--check --scope deploy` to verify only the Bunny.net upload pair before the final release-signing and live-docs
+secrets are available. `--dry-run` validates inputs and prints secret names that would be set without printing secret
+values or writing to GitHub. When `--release-public-key-file` is supplied, the helper parses the private key, parses
+the public key, derives the public key from the private key, and fails before any secret write if the pair does not
+match. If the GitHub CLI cannot read repository secret names, `--check` and the release readiness preflight fail with
+the underlying `gh secret list` error instead of reporting those secrets as missing.
 When required secrets are missing, `--check` prints next-step commands with placeholders rather than values. If
 only Bunny.net storage or live-docs secrets are missing, it prints only the Bunny setup command; if only
 `LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. `BUNNY_PULL_ZONE_HOSTNAME` is

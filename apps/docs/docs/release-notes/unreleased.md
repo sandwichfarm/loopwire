@@ -164,6 +164,8 @@ These notes describe source-tree progress. They are not a public release announc
   printing the GitHub secret setup command.
 - GitHub secret checks now fail with the underlying `gh secret list` error when repository secret names cannot be read,
   instead of misreporting API or auth failures as missing release/deploy secrets.
+- GitHub secret checks now support `--scope deploy` for Bunny.net upload readiness separately from the default strict
+  final-proof scope.
 - Release readiness now rejects local or remote release tags that do not point at the current checkout commit, preventing
   stale tag preflights from looking publishable.
 - Release readiness now requires a clean git checkout by default, while candidate evidence collection opts out with

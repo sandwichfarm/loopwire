@@ -12,6 +12,7 @@ release_public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY_FILE:-}"
 dry_run="false"
 check_mode="false"
 print_required="false"
+scope="final"
 
 usage() {
   cat <<'USAGE'
@@ -23,8 +24,8 @@ Usage:
                           [--remote-prefix PATH]
                           [--release-private-key-file FILE]
                           [--release-public-key-file FILE]
-  setup-github-secrets.sh --repo owner/name --check
-  setup-github-secrets.sh --print-required
+  setup-github-secrets.sh --repo owner/name --check [--scope deploy|final]
+  setup-github-secrets.sh --print-required [--scope deploy|final]
   setup-github-secrets.sh --repo owner/name --dry-run [secret options]
 
 Environment fallback:
@@ -35,7 +36,11 @@ Environment fallback:
   BUNNY_REMOTE_PREFIX
   LOOPWIRE_RELEASE_PUBLIC_KEY_FILE
 
-Required release/final-proof secrets:
+Required deploy secrets:
+  BUNNY_STORAGE_ZONE
+  BUNNY_ACCESS_KEY
+
+Required final-proof secrets:
   BUNNY_STORAGE_ZONE
   BUNNY_ACCESS_KEY
   BUNNY_PULL_ZONE_HOSTNAME
@@ -50,8 +55,22 @@ USAGE
 }
 
 print_required() {
+  if [ "$scope" = "deploy" ]; then
+    cat <<'SECRETS'
+Required deploy GitHub secrets:
+  BUNNY_STORAGE_ZONE
+  BUNNY_ACCESS_KEY
+
+Optional GitHub secrets:
+  BUNNY_STORAGE_ENDPOINT
+  BUNNY_REMOTE_PREFIX
+  BUNNY_PULL_ZONE_HOSTNAME
+SECRETS
+    return
+  fi
+
   cat <<'SECRETS'
-Required release/final-proof GitHub secrets:
+Required final-proof GitHub secrets:
   BUNNY_STORAGE_ZONE
   BUNNY_ACCESS_KEY
   BUNNY_PULL_ZONE_HOSTNAME
@@ -155,6 +174,11 @@ check_secret_presence() {
   local missing_bunny="false"
   local missing_docs_live="false"
   local missing_release_key="false"
+  local required_secrets="BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY"
+
+  if [ "$scope" = "final" ]; then
+    required_secrets="${required_secrets} BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY"
+  fi
 
   if ! secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
     echo "unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
@@ -164,7 +188,7 @@ check_secret_presence() {
   secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
   missing=0
 
-  for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY; do
+  for secret in $required_secrets; do
     if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
       echo "ok: GitHub secret present: $secret"
       if [ "$secret" = "BUNNY_PULL_ZONE_HOSTNAME" ]; then
@@ -187,6 +211,15 @@ check_secret_presence() {
     fi
   done
 
+  if [ "$scope" = "deploy" ]; then
+    if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_PULL_ZONE_HOSTNAME; then
+      echo "ok: optional GitHub secret present: BUNNY_PULL_ZONE_HOSTNAME"
+      docs_live_smoke_ready="true"
+    else
+      echo "optional: GitHub secret not set: BUNNY_PULL_ZONE_HOSTNAME"
+    fi
+  fi
+
   if printf '%s\n' "$secret_names" | grep -Fxq BUNNY_STORAGE_ENDPOINT; then
     echo "ok: optional GitHub secret present: BUNNY_STORAGE_ENDPOINT"
   else
@@ -201,11 +234,19 @@ check_secret_presence() {
 
   if [ "$missing" -ne 0 ]; then
     if [ "$missing_bunny" = "true" ]; then
-      cat >&2 <<EOF
+      if [ "$scope" = "deploy" ]; then
+        cat >&2 <<EOF
+next: set Bunny.net deployment secrets without printing values:
+  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+    --storage-zone <zone> --access-key <key>
+EOF
+      else
+        cat >&2 <<EOF
 next: set Bunny.net deployment secrets without printing values:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
 EOF
+      fi
     fi
     if [ "$missing_bunny" != "true" ] && [ "$missing_docs_live" = "true" ]; then
       cat >&2 <<EOF
@@ -222,6 +263,12 @@ next: set release signing secret from a local private key:
 EOF
     fi
     exit 1
+  fi
+
+  if [ "$scope" = "deploy" ]; then
+    echo "ok: Bunny.net docs deployment secrets are present"
+  else
+    echo "ok: final release proof secrets are present"
   fi
 
   if [ "$docs_live_smoke_ready" = "true" ]; then
@@ -274,6 +321,17 @@ validate_requested_secret_set() {
   if [ -n "$remote_prefix" ]; then
     remote_prefix="$(normalize_prefix "$remote_prefix")"
   fi
+}
+
+validate_scope() {
+  case "$scope" in
+    deploy | final)
+      ;;
+    *)
+      echo "--scope must be deploy or final." >&2
+      exit 2
+      ;;
+  esac
 }
 
 validate_release_private_key() {
@@ -346,6 +404,10 @@ while [ "$#" -gt 0 ]; do
       check_mode="true"
       shift
       ;;
+    --scope)
+      scope="${2:?missing value for --scope}"
+      shift 2
+      ;;
     --print-required)
       print_required="true"
       shift
@@ -361,6 +423,8 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+validate_scope
 
 if [ "$print_required" = "true" ]; then
   print_required

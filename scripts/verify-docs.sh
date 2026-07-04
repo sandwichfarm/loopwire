@@ -408,6 +408,8 @@ assert_contains "apps/docs/docs/developer/release.md" '`gh release upload --clob
 assert_contains "apps/docs/docs/developer/release.md" "--skip-clean-git"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
+assert_contains "apps/docs/docs/developer/release.md" "--check --scope deploy"
+assert_contains "apps/docs/docs/developer/release.md" 'default `--scope final`'
 assert_contains "apps/docs/docs/developer/release.md" 'underlying `gh secret list` error'
 assert_contains "apps/docs/docs/developer/release.md" "prints next-step commands with placeholders"
 assert_contains "apps/docs/docs/developer/release.md" "only Bunny.net storage or live-docs secrets are missing"

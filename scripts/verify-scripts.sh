@@ -1075,7 +1075,7 @@ node scripts/verify-docs-deployment-manifest.mjs --help | grep -F -- "--expected
 }
 bash scripts/prepare-release-signing-key.sh --help >/dev/null
 setup_secrets_required="$(bash scripts/setup-github-secrets.sh --print-required)"
-printf '%s\n' "$setup_secrets_required" | grep -F "Required release/final-proof GitHub secrets:" >/dev/null || {
+printf '%s\n' "$setup_secrets_required" | grep -F "Required final-proof GitHub secrets:" >/dev/null || {
   echo "verify-scripts: GitHub secret helper required output is missing final-proof heading" >&2
   exit 1
 }
@@ -1087,6 +1087,19 @@ printf '%s\n' "$setup_secrets_required" | grep -F "BUNNY_REMOTE_PREFIX" >/dev/nu
   echo "verify-scripts: GitHub secret helper required output is missing remote prefix" >&2
   exit 1
 }
+setup_secrets_deploy_required="$(bash scripts/setup-github-secrets.sh --print-required --scope deploy)"
+printf '%s\n' "$setup_secrets_deploy_required" | grep -F "Required deploy GitHub secrets:" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper deploy-scope output is missing deploy heading" >&2
+  exit 1
+}
+if printf '%s\n' "$setup_secrets_deploy_required" | grep -F "LOOPWIRE_RELEASE_PRIVATE_KEY" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper deploy-scope output included release key" >&2
+  exit 1
+fi
+if bash scripts/setup-github-secrets.sh --print-required --scope invalid >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted an invalid scope" >&2
+  exit 1
+fi
 bash scripts/setup-github-secrets.sh --help | grep -F -- "--release-public-key-file FILE" >/dev/null || {
   echo "verify-scripts: GitHub secret helper help is missing release public key validation option" >&2
   exit 1
@@ -3062,6 +3075,7 @@ printf '%s\n' "$secret_check_ok" | grep -F "ok: docs deploy workflow can run pos
   exit 1
 }
 secret_missing_required_log="$tmp_dir/setup-github-secrets-missing-required.log"
+secret_deploy_missing_required_log="$tmp_dir/setup-github-secrets-deploy-missing-required.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
   PATH="$fake_gh_dir:$PATH" \
   bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check >"$secret_missing_required_log" 2>&1; then
@@ -3078,6 +3092,21 @@ grep -F "next: set Bunny.net deployment secrets without printing values" "$secre
 }
 if grep -F "next: set release signing secret from a local private key" "$secret_missing_required_log" >/dev/null; then
   echo "verify-scripts: GitHub secret check printed release key next step when only Bunny secrets were missing" >&2
+  exit 1
+fi
+if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy \
+    >"$secret_deploy_missing_required_log" 2>&1; then
+  echo "verify-scripts: GitHub deploy-scope secret check accepted missing Bunny secrets" >&2
+  exit 1
+fi
+grep -F -- "--storage-zone <zone> --access-key <key>" "$secret_deploy_missing_required_log" >/dev/null || {
+  echo "verify-scripts: GitHub deploy-scope check did not print deploy-only Bunny setup" >&2
+  exit 1
+}
+if grep -F -- "--pull-zone-hostname <host>" "$secret_deploy_missing_required_log" >/dev/null; then
+  echo "verify-scripts: GitHub deploy-scope check required pull-zone hostname in Bunny setup" >&2
   exit 1
 fi
 secret_missing_live_docs_log="$tmp_dir/setup-github-secrets-missing-live-docs.log"
@@ -3101,6 +3130,23 @@ if grep -F "next: set Bunny.net deployment secrets without printing values" \
   echo "verify-scripts: GitHub secret check printed storage setup when only pull-zone hostname was missing" >&2
   exit 1
 fi
+secret_deploy_scope_log="$tmp_dir/setup-github-secrets-deploy-scope.log"
+LOOPWIRE_FAKE_GH_SECRET_MODE=missing-live-docs \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy \
+    >"$secret_deploy_scope_log" 2>&1
+grep -F "ok: Bunny.net docs deployment secrets are present" "$secret_deploy_scope_log" >/dev/null || {
+  echo "verify-scripts: GitHub deploy-scope check did not accept configured storage secrets" >&2
+  exit 1
+}
+grep -F "optional: GitHub secret not set: BUNNY_PULL_ZONE_HOSTNAME" "$secret_deploy_scope_log" >/dev/null || {
+  echo "verify-scripts: GitHub deploy-scope check did not report pull-zone hostname as optional" >&2
+  exit 1
+}
+if grep -F "LOOPWIRE_RELEASE_PRIVATE_KEY" "$secret_deploy_scope_log" >/dev/null; then
+  echo "verify-scripts: GitHub deploy-scope check mentioned release signing secret" >&2
+  exit 1
+fi
 secret_missing_release_log="$tmp_dir/setup-github-secrets-missing-release.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-release-key \
   PATH="$fake_gh_dir:$PATH" \
@@ -3121,6 +3167,9 @@ if grep -F "next: set Bunny.net deployment secrets without printing values" \
   echo "verify-scripts: GitHub secret check printed Bunny next step when only release key was missing" >&2
   exit 1
 fi
+LOOPWIRE_FAKE_GH_SECRET_MODE=missing-release-key \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy >/dev/null
 secret_check_failure_log="$tmp_dir/setup-github-secrets-check-failure.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
   PATH="$fake_gh_dir:$PATH" \
