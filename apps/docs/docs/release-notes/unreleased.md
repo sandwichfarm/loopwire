@@ -304,7 +304,8 @@ These notes describe source-tree progress. They are not a public release announc
 ## Known Limitations
 
 - No public signed release artifact exists yet.
-- `packaging/release-signing-public.pem` still needs the real project release public key.
+- `packaging/release-signing-public.pem` now contains the project release public key, but the private key still needs
+  to be stored as `LOOPWIRE_RELEASE_PRIVATE_KEY` before publishing.
 - Native JACK client creation and true per-edge gain remain planned. App-only JACK routes and monitors still require a
   separate JACK client or `loopwire-jack-ports` delegate to create the expected Loopwire-owned ports before live apply.
 - Live host apply needs Tauri desktop runtime; browser preview fails closed without host mutation.

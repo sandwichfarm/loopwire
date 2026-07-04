@@ -26,7 +26,8 @@
 ## Remaining Risks
 
 - Public release artifacts do not exist yet.
-- A real release public key has not been generated and committed.
+- A real release public key is now committed, but the matching private key still needs to be stored as the release
+  GitHub secret before public publishing.
 - AArch64 artifacts need a dedicated runner or QEMU lane before public multi-arch support claims.
 - Nix metadata exists, but Nix build proof still needs a Nix-enabled host or VM target.
 - VM target execution is intentionally manual/operator-owned; the repo validates target metadata, not full VM boots.

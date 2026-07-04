@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T13:25:11+02:00"
-last_activity: 2026-07-04 - explicit live DSP provider trust boundary
+last_updated: "2026-07-04T13:29:28+02:00"
+last_activity: 2026-07-04 - release public key committed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,12 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - DSP background restore now distinguishes bundled file-backed preflight providers from real
-live capture/playback providers. `--backend dsp --mode live` requires `--dsp-provider-mode live`, and the systemd
-helper renders the same trust-boundary flag, so the packaged file-backed provider cannot be mistaken for live host
-audio mutation. Phase 12 remains gated on real signing key material, a public release, configured GitHub/Bunny secrets,
-host QEMU/Nix tooling, and operator-run VM evidence.
+Last activity: 2026-07-04 - `packaging/release-signing-public.pem` now contains the project release public key. The
+matching private key was generated outside the repository at
+`/home/sandwich/.config/loopwire/release/loopwire-release-private.pem` with `0600` permissions, and the GitHub secret
+helper dry-run validated the key pair without writing secrets. Phase 12 remains gated on setting
+`LOOPWIRE_RELEASE_PRIVATE_KEY`, a public release, configured Bunny secrets, host QEMU/Nix tooling, and operator-run VM
+evidence.
 
 ## Blockers / Concerns
 
@@ -53,10 +54,10 @@ host QEMU/Nix tooling, and operator-run VM evidence.
   to declare a live provider explicitly with `--dsp-provider-mode live`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before artifacts exist.
-- A real project release public key has not been generated or committed yet. `pnpm release:prepare-key` now provides
-  the guarded ceremony, and `scripts/setup-github-secrets.sh --release-public-key-file ...` can validate the private
-  key before setting `LOOPWIRE_RELEASE_PRIVATE_KEY`, but do not claim public signed installer readiness until
-  `packaging/release-signing-public.pem` exists and a tagged release workflow has passed.
+- A real project release public key now exists at `packaging/release-signing-public.pem`, and the private key was
+  generated outside the repository at `/home/sandwich/.config/loopwire/release/loopwire-release-private.pem` with
+  `0600` permissions. Do not claim public signed installer readiness until `LOOPWIRE_RELEASE_PRIVATE_KEY` is set from
+  that private key and a tagged release workflow has passed.
 
 - Nix package metadata is smoke-tested structurally, but Nix build proof still needs a Nix-enabled host or VM target.
 - Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, and published release proof
@@ -235,6 +236,15 @@ host QEMU/Nix tooling, and operator-run VM evidence.
   `pnpm verify:autostart`, a direct restore CLI smoke for the `--dsp-provider-mode live` requirement,
   `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, GSD roadmap/phase queries,
   touched-file line-length check, and `git diff --check` passed.
+
+- 2026-07-04 Phase 12 release public key: `pnpm release:prepare-key -- --private-key-out
+  /home/sandwich/.config/loopwire/release/loopwire-release-private.pem --public-key-out
+  packaging/release-signing-public.pem` generated a 3072-bit RSA key pair, kept the private key outside the repository
+  with `0600` permissions, and wrote the public key for commit. `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes` passed and reported `ok: release public key`. Without
+  `--allow-candidate-notes`, readiness still failed on candidate release-note wording, not missing public key. The
+  GitHub secret helper dry-run validated the private/public key pair and printed only secret names that would be set.
 - 2026-07-03 physical monitor binding full check: `pnpm check`, `pnpm detect:audio`, Rust `cargo check`, workflow
   YAML parse, GSD queries, line checks, `git diff --check`, and Playwright desktop/mobile smoke passed. No live host
   audio mutation was performed.

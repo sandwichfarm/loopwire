@@ -462,6 +462,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the release private key against the release public key"
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
+assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop JACK live-apply preflight"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "shared audio-host helper"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm jack:ports`'

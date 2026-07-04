@@ -285,6 +285,22 @@
   `pnpm verify:autostart`, and a direct restore CLI smoke passed for the new live-DSP trust-boundary gate.
 - `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm check`, `pnpm detect:audio`, GSD roadmap/phase queries,
   touched-file line-length check, and `git diff --check` passed after the DSP provider mode update.
+- `pnpm release:prepare-key -- --private-key-out
+  /home/sandwich/.config/loopwire/release/loopwire-release-private.pem --public-key-out
+  packaging/release-signing-public.pem` generated a 3072-bit RSA release key pair, verified a temporary
+  `SHA256SUMS` signature, wrote the public key under `packaging/`, and kept the private key outside the repository with
+  `0600` permissions.
+- `openssl pkey -pubin -in packaging/release-signing-public.pem -noout` passed.
+- `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes` passed and
+  reported `ok: release public key`.
+- The same release-readiness command without `--allow-candidate-notes` still failed closed on candidate release-note
+  wording and no longer reported a missing release public key.
+- `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --storage-zone loopwire-docs --access-key
+  dummy-access-key --release-private-key-file
+  /home/sandwich/.config/loopwire/release/loopwire-release-private.pem --release-public-key-file
+  packaging/release-signing-public.pem --dry-run` passed, validating the private/public key pair and printing only the
+  GitHub secret names that would be set.
 - `pnpm verify:aur` passed on this Arch host and confirmed the generated package archive contains `usr/bin/loopwire`,
   `usr/lib/loopwire/loopwire-gui`, and `usr/lib/loopwire/scripts/restore-background.mjs`.
 - `pnpm verify:install`, `pnpm verify:packaging`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm check`,
@@ -2067,14 +2083,15 @@
   checks.
 - `pnpm detect:audio` still reports native PipeWire as link-only with `supportsPerEdgeGain: false`, PulseAudio
   compatibility as stream-level, ALSA as diagnostics-only, and JACK unavailable because `jack_lsp` is missing.
-- No public release, tag push, release key generation, GitHub secret write, Bunny deployment, live URL smoke, VM launch,
+- No public release, tag push, GitHub secret write, Bunny deployment, live URL smoke, VM launch,
   `.vm/run` write, image download, support matrix promotion, live host DSP capture/injection, live JACK provider, or
   real host audio mutation was performed.
 
 ## Evidence Missing
 
 - No public GitHub Release was created.
-- No real release signing public key exists at `packaging/release-signing-public.pem`.
+- A real release signing public key exists at `packaging/release-signing-public.pem`, but the private key has not been
+  stored as the `LOOPWIRE_RELEASE_PRIVATE_KEY` GitHub secret.
 - No release tag exists locally or remotely.
 - Required GitHub secrets are not present for release and Bunny.net deployment.
 - The docs site can now build a synced `/install.sh`, the deploy helper fails closed on incomplete dist artifacts, the
