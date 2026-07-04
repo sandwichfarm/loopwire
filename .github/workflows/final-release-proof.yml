@@ -131,7 +131,10 @@ jobs:
             --dir dist/final-proof/downloads \
             --pattern "$archive" \
             --clobber
-          tar -C dist/final-proof/release-evidence -xzf "dist/final-proof/downloads/${archive}"
+          bash scripts/extract-safe-tar.sh \
+            --archive "dist/final-proof/downloads/${archive}" \
+            --output-dir dist/final-proof/release-evidence \
+            --label "release evidence archive"
           release_evidence_dir="dist/final-proof/release-evidence/${LOOPWIRE_RELEASE_TAG}"
           if [ ! -f "${release_evidence_dir}/release-evidence.json" ]; then
             echo "Release evidence archive must contain ${LOOPWIRE_RELEASE_TAG}/release-evidence.json" >&2
@@ -154,7 +157,10 @@ jobs:
             --dir dist/final-proof/downloads \
             --pattern "$archive" \
             --clobber
-          tar -C dist/final-proof/vm-evidence -xzf "dist/final-proof/downloads/${archive}"
+          bash scripts/extract-safe-tar.sh \
+            --archive "dist/final-proof/downloads/${archive}" \
+            --output-dir dist/final-proof/vm-evidence \
+            --label "VM evidence archive"
           vm_evidence_root="dist/final-proof/vm-evidence"
           if [ -d "${vm_evidence_root}/.vm/evidence" ]; then
             vm_evidence_root="${vm_evidence_root}/.vm/evidence"

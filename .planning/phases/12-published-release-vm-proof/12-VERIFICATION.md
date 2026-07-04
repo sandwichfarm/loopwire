@@ -2176,6 +2176,19 @@
   `gsd-sdk query init.phase-op 12 --format json`. Codebase-memory MCP fast reindex wrote a persistent artifact and
   `index_status` reported ready with 2,536 nodes and 5,390 edges. `pnpm detect:audio` reported PipeWire, PulseAudio
   compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
+- `scripts/extract-safe-tar.sh` now validates downloaded final-proof tarballs before extraction, rejecting empty
+  archives, absolute paths, parent traversal, duplicate separators, dot path components, and symlink/hardlink members.
+  `.github/workflows/final-release-proof.yml` uses it for both release evidence and VM evidence archives before running
+  the project-specific final proof verifier.
+- Focused validation passed: `bash -n scripts/extract-safe-tar.sh scripts/verify-scripts.sh
+  scripts/verify-github-workflows.sh scripts/verify-release-readiness.sh`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, offline `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire
+  --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git
+  --allow-candidate-notes`, and `git diff --check`.
+- Full validation passed: full `pnpm check`, `pnpm detect:audio`, and codebase-memory MCP fast reindex/status.
+  `index_status` reported ready with 2,547 nodes and 5,404 edges. The graph excludes `scripts/`, so the helper itself
+  is covered by shell verification rather than code graph symbols. `pnpm detect:audio` reported PipeWire, PulseAudio
+  compatibility, and ALSA available; JACK remains unavailable because `jack_lsp` is missing.
 
 ## Evidence Missing
 

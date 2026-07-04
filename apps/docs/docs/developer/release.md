@@ -308,8 +308,9 @@ live docs base URL or Bunny pull-zone hostname. By default it downloads these re
 
 The VM evidence archive must contain either target directories at its root, `.vm/evidence/<target>` directories, or a
 `vm-evidence/<target>` root. The workflow checks out the exact tag commit, downloads both archives from the GitHub
-Release, verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every VM target
-bundle to include published-release smoke, verifies support-matrix promotion rules, and reruns `pnpm verify:docs`.
+Release, validates both downloaded tarballs with `scripts/extract-safe-tar.sh` before extraction, verifies live docs and
+`/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every VM target bundle to include
+published-release smoke, verifies support-matrix promotion rules, and reruns `pnpm verify:docs`.
 
 After collecting and verifying every VM target bundle, create the archive for the GitHub Release:
 

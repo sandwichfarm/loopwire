@@ -225,6 +225,9 @@ These notes describe source-tree progress. They are not a public release announc
   `loopwire-release-evidence-<tag>.tar.gz` is covered by the same signed checksum manifest as the installable tarballs.
 - A manual `Final Release Proof` workflow now downloads release and VM evidence archives from the GitHub Release,
   checks the tag commit, verifies live docs, and runs the same final proof script used locally.
+- The final release proof workflow now validates downloaded release and VM evidence tarballs with
+  `scripts/extract-safe-tar.sh` before extraction, rejecting unsafe member paths or link entries before project-specific
+  evidence verification runs.
 - Final release proof dry-runs can now write the exact command plan to a `--plan-output` file for release handoff
   review without touching GitHub, Bunny.net, release assets, docs URLs, or VM evidence.
 - New `pnpm vm:package-evidence` command packages verified VM bundles into

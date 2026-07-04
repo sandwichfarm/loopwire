@@ -25,6 +25,7 @@ bash -n \
   scripts/verify-release-readiness.sh \
   scripts/verify-published-release.sh \
   scripts/verify-final-release-proof.sh \
+  scripts/extract-safe-tar.sh \
   scripts/collect-dsp-provider-plan.sh \
   scripts/package-vm-evidence.sh \
   scripts/verify-vm-evidence.sh \
@@ -105,7 +106,7 @@ printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest v
   exit 1
 }
 printf '%s\n' "$release_readiness_help" |
-  grep -F -- "final release proof workflow and VM evidence packager" >/dev/null || {
+  grep -F -- "final release proof workflow, safe archive extractor, and VM evidence packager" >/dev/null || {
     echo "verify-scripts: release readiness help is missing final proof wiring check" >&2
     exit 1
   }
@@ -856,6 +857,46 @@ pnpm --filter @loopwire/audio-host build >/dev/null
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
+
+safe_tar_src="$tmp_dir/safe-tar-src"
+safe_tar_extract="$tmp_dir/safe-tar-extract"
+unsafe_tar_src="$tmp_dir/unsafe-tar-src"
+safe_archive="$tmp_dir/safe.tar.gz"
+unsafe_archive="$tmp_dir/unsafe.tar.gz"
+link_archive="$tmp_dir/link.tar.gz"
+mkdir -p "$safe_tar_src/v0.1.0" "$unsafe_tar_src"
+printf '%s\n' "{}" >"$safe_tar_src/v0.1.0/release-evidence.json"
+tar -C "$safe_tar_src" -czf "$safe_archive" v0.1.0
+bash scripts/extract-safe-tar.sh \
+  --archive "$safe_archive" \
+  --output-dir "$safe_tar_extract" \
+  --label "safe test archive"
+[ -f "$safe_tar_extract/v0.1.0/release-evidence.json" ] || {
+  echo "verify-scripts: safe tar extractor did not extract the expected file" >&2
+  exit 1
+}
+printf '%s\n' "unsafe" >"$unsafe_tar_src/payload"
+tar -C "$unsafe_tar_src" \
+  --transform='s#payload#../payload#' \
+  -czf "$unsafe_archive" \
+  payload 2>/dev/null
+if bash scripts/extract-safe-tar.sh \
+  --archive "$unsafe_archive" \
+  --output-dir "$tmp_dir/unsafe-tar-extract" \
+  --label "unsafe test archive" >/dev/null 2>&1; then
+  echo "verify-scripts: safe tar extractor accepted a parent-traversal member" >&2
+  exit 1
+fi
+ln -s /tmp "$unsafe_tar_src/link"
+tar -C "$unsafe_tar_src" -czf "$link_archive" link 2>/dev/null
+if bash scripts/extract-safe-tar.sh \
+  --archive "$link_archive" \
+  --output-dir "$tmp_dir/link-tar-extract" \
+  --label "link test archive" >/dev/null 2>&1; then
+  echo "verify-scripts: safe tar extractor accepted a link member" >&2
+  exit 1
+fi
+
 jack_configuration="$tmp_dir/jack-configuration.json"
 cat >"$jack_configuration" <<'EOF'
 {
@@ -2891,6 +2932,7 @@ mkdir -p "$release_tag_repo/scripts" \
 cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release-readiness.sh"
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
+cp scripts/extract-safe-tar.sh "$release_tag_repo/scripts/extract-safe-tar.sh"
 cp scripts/package-vm-evidence.sh "$release_tag_repo/scripts/package-vm-evidence.sh"
 cp scripts/install.sh "$release_tag_repo/scripts/install.sh"
 cp scripts/install.sh "$release_tag_repo/apps/docs/docs/public/install.sh"
