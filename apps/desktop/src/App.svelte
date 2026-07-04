@@ -301,7 +301,7 @@
   $: selectedBackend = state.selectedBackend ?? "";
   $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
   $: backendSelectionSummary = describeBackendSelectionSummary();
-  $: selectedBackendCapability = backendCapabilityReports.find((report) => report.kind === state.selectedBackend);
+  $: selectedBackendCapability = backendCapabilityFor(state.selectedBackend);
   $: routeControlSemantics = describeSelectedRouteControlSemantics(
     state.selectedBackend,
     backendDecision.mode,
@@ -634,7 +634,12 @@
       };
     }
 
-    const preflight = describeLiveApplyPreflight(targetConfiguration, sourceState.selectedBackend, displayBackendName);
+    const preflight = describeLiveApplyPreflight(
+      targetConfiguration,
+      sourceState.selectedBackend,
+      displayBackendName,
+      backendCapabilityFor(sourceState.selectedBackend)
+    );
 
     if (hostApplyMode === "live" && !preflight.ok) {
       if (isCurrentConfigurationSwitch(switchToken)) {
@@ -1637,6 +1642,10 @@
 
   function displayBackendName(kind: AudioBackendKind): string {
     return backendCandidates.find((candidate) => candidate.kind === kind)?.displayName ?? kind;
+  }
+
+  function backendCapabilityFor(kind: AudioBackendKind | undefined): RouteControlBackendCapability | undefined {
+    return backendCapabilityReports.find((report) => report.kind === kind);
   }
 
   function routeGainControlLabel(routeId: string): string {

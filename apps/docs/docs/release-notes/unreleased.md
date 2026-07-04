@@ -65,9 +65,9 @@ These notes describe source-tree progress. They are not a public release announc
 - Configuration switching and startup restore now show a runtime activity ledger with unload, apply, verify, and
   rollback entries from the actual runtime plan.
 - Backend route-control semantics report whether controls are graph-edge, stream-level, link-only, or unavailable.
-- Desktop route-control status, route gain locking, and live-apply preflight now consume detected backend mixing
-  semantics instead of hardcoded backend names, so graph-edge-capable reports can unlock per-route gain when a live DSP
-  backend exists.
+- Desktop route-control status, route gain locking, live-apply preflight, and the configuration-switch guard now
+  consume detected backend mixing semantics instead of hardcoded backend names, so graph-edge-capable reports can
+  unlock per-route gain when a live DSP backend exists without a UI/runtime mismatch.
 - Desktop status shows degraded route-control behavior for selected backends, and now names native PipeWire/JACK route
   mute as implemented link disconnect behavior while keeping route gain marked as planned.
 - Desktop live-apply preflight now lists every blocker when a configuration has multiple issues, instead of showing

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-04T19:04:35+02:00"
-last_activity: 2026-07-04 - DSP provider preflight can require live graph capability
+last_updated: "2026-07-04T19:08:44+02:00"
+last_activity: 2026-07-04 - Desktop live switch guard now uses detected backend capabilities
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-04 - `pnpm dsp:verify -- --require-live-capability` now probes the provider `capabilities`
-command and fails unless it declares `supportsLiveGraph:true`, giving users and release evidence a direct preflight
-before wiring a provider into live boot restore. Phase 12 remains gated on a public release, configured Bunny secrets,
-live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM evidence.
+Last activity: 2026-07-04 - Desktop live configuration switching now uses the same detected backend capability report
+as the visible preflight strip, preventing graph-edge-capable backend reports from being shown as ready in the UI while
+the actual switch guard still applies fallback link-only assumptions. Phase 12 remains gated on a public release,
+configured Bunny secrets, live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and operator-run VM
+evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,11 @@ live Bunny deployment proof, host QEMU/Nix tooling for local VM launch, and oper
 
 ## Verification Log
 
+- 2026-07-04 Desktop live switch capability guard: `chooseConfiguration` now passes the selected backend's detected
+  capability report into `describeLiveApplyPreflight`, matching the visible preflight strip, route gain lock, and
+  switch guard decisions. Docs now call out that the UI and runtime guard share the same capability source. Validation
+  passed: `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop test`, `pnpm --filter
+  @loopwire/desktop build`, `pnpm verify:docs`, `git diff --check`, and `pnpm check`.
 - 2026-07-04 DSP live capability preflight: `scripts/describe-dsp-provider.mjs` now accepts
   `--require-live-capability`, calls only the provider `capabilities` operation, includes `providerCapability` in JSON
   output, and exits nonzero unless `supportsLiveGraph:true` is declared. Docs now show the preflight before live DSP
