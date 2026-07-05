@@ -199,6 +199,10 @@ function defaultStateFile() {
   return join(configHome, "loopwire", "state.json");
 }
 
+function restoreStateRecoveryGuidance() {
+  return "Open Loopwire once, choose a configuration, and enable Restore on boot again.";
+}
+
 async function readPersistedStateFile(stateFile) {
   try {
     return await readFile(stateFile, "utf8");
@@ -206,7 +210,7 @@ async function readPersistedStateFile(stateFile) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Could not read persisted Loopwire state at ${stateFile}: ${detail}. ` +
-        "Open Loopwire once, choose a configuration, and enable Restore on boot again."
+        restoreStateRecoveryGuidance()
     );
   }
 }
@@ -222,7 +226,10 @@ async function main() {
   const restored = restoreState(rawState);
 
   if (!restored.ok) {
-    throw new Error(`Could not restore persisted Loopwire state: ${restored.reason}`);
+    throw new Error(
+      `Could not restore persisted Loopwire state at ${args.stateFile}: ${restored.reason}. ` +
+        restoreStateRecoveryGuidance()
+    );
   }
 
   const runner = audioHost.createNodeCommandRunner();

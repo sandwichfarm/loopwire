@@ -117,9 +117,9 @@ The Tauri desktop shell writes the same serialized state to:
 ${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json
 ```
 
-If that file is missing or unreadable, open Loopwire once, choose the configuration you want restored at login, and
-enable **Restore on boot** again. The background runner will not invent a startup configuration from an empty state
-file.
+If that file is missing, unreadable, corrupt, or incompatible, open Loopwire once, choose the configuration you want
+restored at login, and enable **Restore on boot** again. The background runner will not invent a startup configuration
+from an empty or incompatible state file.
 
 Preview the background restore transaction:
 

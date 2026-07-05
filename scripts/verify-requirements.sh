@@ -72,6 +72,7 @@ assert_contains "apps/desktop/src-tauri/src/main.rs" "write_state"
 assert_contains "scripts/restore-background.mjs" "choose and persist one before enabling background restore"
 assert_contains "scripts/restore-background.mjs" "Open Loopwire, use Settings > Audio backend to save a verified backend"
 assert_contains "scripts/restore-background.mjs" "Open Loopwire once, choose a configuration, and enable Restore on boot again."
+assert_contains "scripts/restore-background.mjs" "Could not restore persisted Loopwire state at"
 
 for requirement in LINUX-01 LINUX-02 LINUX-03 LINUX-04; do
   assert_requirement_checked "$requirement"

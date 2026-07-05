@@ -1546,6 +1546,24 @@ pnpm --filter @loopwire/audio-host build >/dev/null
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+invalid_restore_state_file="$tmp_dir/corrupt-loopwire-state.json"
+invalid_restore_state_log="$tmp_dir/restore-invalid-state.log"
+printf '{not-json\n' >"$invalid_restore_state_file"
+if node scripts/restore-background.mjs --state-file "$invalid_restore_state_file" >"$invalid_restore_state_log" 2>&1; then
+  echo "verify-scripts: restore background accepted corrupt persisted state" >&2
+  exit 1
+fi
+grep -F "Could not restore persisted Loopwire state at $invalid_restore_state_file" \
+  "$invalid_restore_state_log" >/dev/null || {
+    echo "verify-scripts: restore background invalid-state error did not name the state file" >&2
+    exit 1
+  }
+grep -F "Open Loopwire once, choose a configuration, and enable Restore on boot again." \
+  "$invalid_restore_state_log" >/dev/null || {
+    echo "verify-scripts: restore background invalid-state error is not actionable" >&2
+    exit 1
+  }
+
 nix_evidence_dir="$tmp_dir/nix-release-evidence"
 mkdir -p "$nix_evidence_dir"
 printf '%s\n' "Nix release package build passed for Loopwire 0.1.0." >"$nix_evidence_dir/nix-release-package.log"
