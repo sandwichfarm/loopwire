@@ -437,6 +437,7 @@ assert_contains "apps/docs/docs/developer/release.md" "same repo, tag, and publi
 assert_contains "apps/docs/docs/developer/release.md" "must not include"
 assert_contains "apps/docs/docs/developer/release.md" "public key used to verify the release assets"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_PULL_ZONE_HOSTNAME"
+assert_contains "apps/docs/docs/developer/release.md" "agent-ready release automation preflight for the exact commit"
 assert_contains "apps/docs/docs/developer/release.md" "requires both canonical Linux tarballs"
 assert_contains "apps/docs/docs/developer/release.md" "missing-architecture rejection case"
 assert_contains "apps/docs/docs/developer/release.md" "tampered-asset rejection"

@@ -2669,6 +2669,16 @@
   --require-hosted-checks --skip-local-gates` passed, verifying CI run `28749558979` and Deploy Docs run
   `28749558985` for commit `b4f979de5987dffe5ae11f6a0aa22c250005d8f2`. No secret write, release tag, public
   release, Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was performed.
+- The generated final release handoff now starts with an exact-commit `pnpm release:agent-ready --
+  --require-hosted-checks` command before secret checks, tagging, workflow dispatch, VM evidence, or final proof. This
+  keeps the operator ceremony tied to repo-side gates and commit-scoped hosted CI/Docs before operator-only actions.
+- Focused validation passed for the exact-commit agent-ready handoff update: codebase-memory MCP `index_status`
+  reported `home-sandwich-Develop-loopwire` ready, and graph search located final proof, release handoff, agent-ready,
+  and VM evidence status surfaces before implementation. `bash -n scripts/plan-final-release-handoff.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, rendered
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output, and
+  `git diff --check` passed. Full validation passed: `pnpm check`. No secret write, release tag, public release,
+  Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

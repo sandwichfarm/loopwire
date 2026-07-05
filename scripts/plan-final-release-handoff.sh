@@ -363,7 +363,11 @@ echo
 echo "Create the no-value secret env template when needed:"
 print_command bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env
 echo
-echo "1. Verify required GitHub secrets are ready:"
+echo "1. Verify agent-ready release automation for this exact commit:"
+print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
+  --git-head "$git_head" --public-key "$public_key" --require-hosted-checks
+echo
+echo "2. Verify required GitHub secrets are ready:"
 secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
 if [ -n "$env_file" ]; then
   secret_check+=(--env-file "$env_file")
@@ -373,31 +377,31 @@ if [ -n "$secret_list_file" ]; then
 fi
 print_command "${secret_check[@]}"
 echo
-echo "2. Run strict release readiness before tagging or dispatch:"
+echo "3. Run strict release readiness before tagging or dispatch:"
 readiness=(pnpm verify:release-readiness -- --repo "$repo" --tag "$tag" --public-key "$public_key")
 if [ -n "$secret_list_file" ]; then
   readiness+=(--secret-list-file "$secret_list_file")
 fi
 print_command "${readiness[@]}"
 echo
-echo "3. Create or push the reviewed release tag after readiness passes:"
+echo "4. Create or push the reviewed release tag after readiness passes:"
 print_command git tag -a "$tag" "$git_head" -m "Loopwire ${tag}"
 print_command git push origin "refs/tags/${tag}"
 echo
-echo "4. Dispatch the GitHub Release workflow after the tag exists:"
+echo "5. Dispatch the GitHub Release workflow after the tag exists:"
 print_command gh workflow run release.yml --repo "$repo" --ref "$tag" -f "tag=${tag}"
 echo
-echo "5. Dispatch docs deployment for the same release ref:"
+echo "6. Dispatch docs deployment for the same release ref:"
 print_command gh workflow run deploy-docs.yml --repo "$repo" --ref "$tag"
 echo
-echo "6. Download and verify docs deployment proof artifacts:"
+echo "7. Download and verify docs deployment proof artifacts:"
 fetch_docs_proof=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head")
 if [ -n "$env_file" ]; then
   fetch_docs_proof+=(--env-file "$env_file")
 fi
 print_command "${fetch_docs_proof[@]}"
 echo
-echo "7. Render the operator VM evidence handoff:"
+echo "8. Render the operator VM evidence handoff:"
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
 print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --start-port "$vm_start_port" --output "$vm_runbook"
 print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-release-repo "$repo" \
@@ -417,7 +421,7 @@ else
 fi
 print_command "${vm_prepare[@]}"
 echo
-echo "8. Dispatch final release proof after docs and VM evidence assets exist:"
+echo "9. Dispatch final release proof after docs and VM evidence assets exist:"
 final_proof=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
   -f "tag=${tag}" \
   -f "git_head=${git_head}" \
@@ -432,7 +436,7 @@ else
 fi
 print_command "${final_proof[@]}"
 echo
-echo "9. Local dry-run of the final proof command plan:"
+echo "10. Local dry-run of the final proof command plan:"
 local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
   --git-head "$git_head" \
   --release-evidence-dir ".release-evidence/${tag}-published" \
@@ -451,7 +455,7 @@ print_command "${local_final[@]}"
 
 if [ -z "$docs_deployment_run_id" ]; then
   docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-  docs_run_reminder+="Deploy Docs workflow run id before steps 6 and 8."
+  docs_run_reminder+="Deploy Docs workflow run id before steps 7 and 9."
   echo
   echo "$docs_run_reminder"
 fi

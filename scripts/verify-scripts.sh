@@ -452,8 +452,18 @@ release_handoff_placeholder_plan="$(
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567
 )"
+printf '%s\n' "$release_handoff_placeholder_plan" |
+  grep -F "1. Verify agent-ready release automation for this exact commit:" >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing agent-ready preflight step" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" |
+  grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --require-hosted-checks" >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing commit-scoped hosted agent-ready command" >&2
+    exit 1
+  }
 release_handoff_docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 6 and 8."
+release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 7 and 9."
 printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "$release_handoff_docs_run_reminder" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2

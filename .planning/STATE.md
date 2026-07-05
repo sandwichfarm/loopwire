@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T21:42:48+02:00"
-last_activity: 2026-07-05 - Backend chooser now names stale saved backends before replacement
+last_updated: "2026-07-05T21:59:09+02:00"
+last_activity: 2026-07-05 - Final release handoff now starts with exact-commit agent-ready preflight
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - when multiple backends are available but the saved backend has disappeared, the desktop
-backend chooser now names that stale backend and asks the user to replace it with one of the detected choices before
-Loopwire saves live apply or startup restore again. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - the final release handoff now prints an exact-commit `pnpm release:agent-ready --
+--require-hosted-checks` preflight before secret checks, tagging, workflow dispatch, VM evidence, or final proof
+steps. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success,
+and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Exact-commit agent-ready release handoff: the generated final release handoff now starts with
+  `pnpm release:agent-ready -- --require-hosted-checks` for the selected `--git-head`, so operators verify
+  repo-side gates and commit-scoped hosted CI/Docs before secret checks, tagging, workflow dispatch, VM evidence, or
+  final proof. Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`; `pnpm verify:scripts`; `pnpm verify:docs`; rendered
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output; and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-05 Stale saved backend replacement prompt: the desktop backend choice callout now names a previously saved
   backend when it is no longer detected and multiple other backends are available, making the replacement action
   explicit before live apply or startup restore are saved again. Focused validation passed:
