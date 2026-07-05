@@ -420,6 +420,11 @@ printf '%s\n' "$agent_release_ready_plan" |
     echo "verify-scripts: agent-ready release smoke is missing strict final-proof reminder" >&2
     exit 1
   }
+if printf '%s\n' "$agent_release_ready_plan" |
+  grep -F "allowed: release notes still carry candidate wording" >/dev/null; then
+  echo "verify-scripts: agent-ready release still allows candidate release notes" >&2
+  exit 1
+fi
 if bash scripts/verify-agent-release-ready.sh \
   --repo https://github.com/sandwichfarm/loopwire \
   --tag v0.1.0 \
@@ -5632,13 +5637,14 @@ bash scripts/prepare-release-signing-key.sh \
 }
 openssl pkey -in "$private_key_file" -noout >/dev/null
 openssl pkey -pubin -in "$public_key_file" -noout >/dev/null
-if bash scripts/verify-release-readiness.sh -- \
+if ! bash scripts/verify-release-readiness.sh -- \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --public-key "$public_key_file" \
   --skip-gh \
-  --skip-tag >/dev/null 2>&1; then
-  echo "verify-scripts: release readiness accepted candidate release notes by default" >&2
+  --skip-tag \
+  --skip-clean-git >/dev/null 2>&1; then
+  echo "verify-scripts: release readiness rejected publishable v0.1.0 release notes" >&2
   exit 1
 fi
 if bash scripts/verify-release-readiness.sh -- \
@@ -5707,8 +5713,12 @@ bash scripts/verify-release-readiness.sh -- \
   --public-key "$public_key_file" \
   --skip-gh \
   --skip-tag \
-  --skip-clean-git \
-  --allow-candidate-notes >"$tmp_dir/release-readiness-offline.log"
+  --skip-clean-git >"$tmp_dir/release-readiness-offline.log"
+if grep -F "allowed: release notes still carry candidate wording" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null; then
+  echo "verify-scripts: release readiness offline proof still allowed candidate notes" >&2
+  exit 1
+fi
 grep -F "ok: public docs installer matches canonical installer" "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify public installer sync" >&2
     exit 1

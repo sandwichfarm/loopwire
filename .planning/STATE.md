@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T13:02:20+02:00"
-last_activity: 2026-07-05 - Agent-ready release gate verifies repo-side handoff readiness
+last_updated: "2026-07-05T13:15:34+02:00"
+last_activity: 2026-07-05 - Agent-ready release gate now rejects candidate release-note copy
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:agent-ready` now verifies repo-side release readiness, final handoff
-rendering, workflow contracts, docs contracts, VM matrix/cloud-init metadata, packaging metadata, and local release
-artifact smoke before operator-only ceremony work begins. Phase 12 remains gated on public GitHub Release install,
-Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:agent-ready` now verifies repo-side release readiness without
+`--allow-candidate-notes`, so the v0.1.0 handoff requires publication-ready release-note copy before operator-only
+ceremony work begins. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof
+workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -71,8 +71,8 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
 - Support matrix rows must remain `Manual VM` until `scripts/collect-vm-evidence-ssh.sh --execute` or equivalent
   operator-run guest evidence produces a passing `.vm/evidence/<target>` bundle.
 - The `fedora-kde-jack` target is metadata and plan coverage only until an operator-run guest evidence bundle passes.
-- The `v0.1.0` release-note page is a candidate document only. Do not remove its candidate disclaimer until the public
-  GitHub Release and signed artifacts exist.
+- The `v0.1.0` release-note page is now publication-ready copy. Do not reintroduce release-candidate/not-published
+  wording into versioned notes; keep unpublished-artifact caveats in status, support-matrix, or unreleased docs instead.
 
 ## Accumulated Context
 
@@ -84,6 +84,18 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
 
 ## Verification Log
 
+- 2026-07-05 Publishable release-note readiness: `scripts/verify-agent-release-ready.sh` no longer passes
+  `--allow-candidate-notes`, and `apps/docs/docs/release-notes/0.1.0.md` plus the VitePress sidebar now use
+  publication-ready `v0.1.0` wording instead of candidate labels. `scripts/verify-docs.sh` and
+  `scripts/verify-scripts.sh` now assert that `release:agent-ready` reports `ok: release notes are publishable` and
+  does not emit the candidate-note override. Focused validation passed: `bash -n
+  scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-release-readiness.sh`; `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git`; and
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)
+  --skip-local-gates`. Full validation passed: `pnpm verify:docs`, `pnpm verify:scripts`, default
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)`,
+  `git diff --check`, added-line length scan, and `pnpm check`.
 - 2026-07-05 Agent-ready release gate: `scripts/verify-agent-release-ready.sh` and package script
   `pnpm release:agent-ready` now provide a read-only repo-side handoff readiness gate. The gate runs offline release
   readiness, asserts the final release handoff renders the `Operator-deferred after agent delivery` section and safe

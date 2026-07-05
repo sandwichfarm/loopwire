@@ -42,7 +42,7 @@ export default defineConfig({
       {
         text: "Release Notes",
         items: [
-          { text: "v0.1.0 Candidate", link: "/release-notes/0.1.0" },
+          { text: "v0.1.0", link: "/release-notes/0.1.0" },
           { text: "Unreleased", link: "/release-notes/unreleased" }
         ]
       }

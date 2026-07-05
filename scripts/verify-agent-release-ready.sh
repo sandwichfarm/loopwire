@@ -141,7 +141,7 @@ echo
 run_gate \
   "offline release readiness" \
   bash scripts/verify-release-readiness.sh --repo "$repo" --tag "$tag" \
-    --public-key "$public_key" --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes
+    --public-key "$public_key" --skip-gh --skip-tag --skip-clean-git
 
 echo "==> final release handoff rendering"
 handoff="$(

@@ -481,7 +481,9 @@ assert_contains "apps/docs/docs/developer/architecture.md" "typed execution cont
 assert_contains "apps/docs/docs/developer/architecture.md" "does not yet connect live host capture streams"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "# v0.1.0"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "ALSA playback/capture visibility"
-assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Artifact, package-channel, and VM compatibility claims"
+assert_contains \
+  "apps/docs/docs/release-notes/0.1.0.md" \
+  "Artifact, package-channel, and compatibility claims are accepted"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Native PipeWire virtual output sink creation"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Native PipeWire virtual monitor sink creation"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Unreleased"
@@ -551,8 +553,11 @@ assert_contains \
   "Release readiness now fails if the final release proof workflow"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'reintroduces `--release-dir`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:prepare-release-evidence` wiring disappears'
-assert_contains "apps/docs/docs/release-notes/unreleased.md" "remain candidate-gated until public signed artifacts"
-assert_contains "apps/docs/docs/release-notes/0.1.0.md" "These candidate-gated notes describe"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "agent-ready release checks no longer use"
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'These notes describe the `v0.1.0` release contents'
+assert_contains \
+  "apps/docs/docs/release-notes/0.1.0.md" \
+  "only after the tagged release workflow publishes signed checksums"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_REMOTE_PREFIX"
@@ -789,6 +794,6 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `scree
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Nix flake"
-assert_contains "apps/docs/docs/release-notes/0.1.0.md" "fake hashes"
+assert_contains "apps/docs/docs/release-notes/0.1.0.md" "real hashes plus Nix build proof"
 
 echo "Docs contract verification passed."

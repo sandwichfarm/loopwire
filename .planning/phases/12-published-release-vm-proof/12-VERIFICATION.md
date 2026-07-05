@@ -2469,6 +2469,17 @@
 
 ## Evidence Missing
 
+- `scripts/verify-agent-release-ready.sh` now runs offline release readiness without `--allow-candidate-notes`, and
+  `apps/docs/docs/release-notes/0.1.0.md` now uses publication-ready copy instead of candidate wording.
+- Focused validation passed for the publishable release-note readiness update: `bash -n
+  scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-release-readiness.sh`; `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --public-key packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git`; and
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)
+  --skip-local-gates`. Full validation passed: `pnpm verify:docs`, `pnpm verify:scripts`, default
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)`,
+  `git diff --check`, added-line length scan, and `pnpm check`.
+
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is
   now stored as the `LOOPWIRE_RELEASE_PRIVATE_KEY` GitHub secret for `sandwichfarm/loopwire`.
