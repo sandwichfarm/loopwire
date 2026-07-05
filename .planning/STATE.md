@@ -3,9 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T20:31:36+02:00"
-last_activity: 2026-07-05 - PulseAudio compatibility now ignores muted saved fan-out routes behind an active stream
-  route while still rejecting active fan-out
+last_updated: "2026-07-05T20:45:45+02:00"
+last_activity: 2026-07-05 - Hidden monitor recovery now has a scoped Show all path when multiple monitors are hidden
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - PulseAudio compatibility now ignores muted saved fan-out routes when an active route for
-the same source exists, so inactive routing ideas do not block the active stream route. Active PulseAudio fan-out still
-fails closed. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow
-success, and operator-run VM evidence.
+Last activity: 2026-07-05 - hidden monitor recovery now has a scoped `Show all` path when multiple monitors are hidden
+in the active configuration, preserving monitor bindings while reducing recovery clicks. Phase 12 remains gated on
+public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +83,13 @@ success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Hidden monitor bulk recovery: the desktop monitor tray now offers `Show all` when multiple monitors are
+  hidden in the active configuration, backed by a tested `restoreHiddenMonitors` helper that preserves visibility
+  scoping for other configurations and clears legacy hidden ids through the existing core primitive. Focused validation
+  passed: `pnpm --filter @loopwire/desktop test -- monitor-visibility`, `pnpm --filter @loopwire/desktop typecheck`,
+  `pnpm verify:docs`, `pnpm --filter @loopwire/desktop build`, and `git diff --check`. Full validation passed:
+  `pnpm check`. Browser click/screenshot smoke was skipped because Playwright is not a workspace dependency; a local
+  Vite preview was started and stopped while checking available browser tooling.
 - 2026-07-05 PulseAudio muted fan-out preservation: desktop live-apply preflight and the PulseAudio compatibility
   adapter now select effective stream routes per source, using active routes when present and otherwise retaining the
   existing muted-route behavior. This lets users keep a muted saved fan-out route without blocking or double-moving the

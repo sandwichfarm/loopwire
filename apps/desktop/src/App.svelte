@@ -4,7 +4,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { describeBackendChoiceCallout } from "./backend-choice";
   import { describeChromeModeSummary, resolveChromeMode, type ChromeMode } from "./chrome-mode-summary";
-  import { groupMonitorsByVisibility } from "./monitor-visibility";
+  import { groupMonitorsByVisibility, restoreHiddenMonitors } from "./monitor-visibility";
   import { describeStartupRestoreSummary } from "./startup-restore-summary";
   import {
     describeConfigurationSwitchPreflight,
@@ -806,6 +806,13 @@
     saveConfigurationEdit(
       setMonitorHidden(state, activeConfiguration.id, monitorId, hidden),
       hidden ? "Monitor hidden for this configuration." : "Monitor restored for this configuration."
+    );
+  }
+
+  function restoreHiddenMonitorsForActiveConfiguration(): void {
+    saveConfigurationEdit(
+      restoreHiddenMonitors(state, activeConfiguration),
+      "All hidden monitors restored for this configuration."
     );
   }
 
@@ -2546,6 +2553,16 @@
               <small>Hidden monitors stay saved in this configuration and can be restored without re-adding them.</small>
             </div>
             <div class="hidden-monitor-actions">
+              {#if hiddenMonitors.length > 1}
+                <button
+                  type="button"
+                  class="restore-all-monitor-button"
+                  on:click={restoreHiddenMonitorsForActiveConfiguration}
+                >
+                  <span>All monitors</span>
+                  <small>Show all</small>
+                </button>
+              {/if}
               {#each hiddenMonitors as monitor}
                 <button type="button" on:click={() => toggleMonitor(monitor.id)}>
                   <span>{monitor.label}</span>

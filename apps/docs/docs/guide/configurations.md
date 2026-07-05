@@ -119,8 +119,9 @@ true graph-edge gain remains a backend capability gap until a live DSP backend r
 Monitors can be hidden without deleting them. Monitor visibility is scoped to the active configuration, so hiding
 `Headphones` in one workspace does not hide a `Headphones` monitor in another workspace. A monitor can also carry an
 optional host sink name so supported backend adapters can route monitor audio to a physical output.
-Hidden monitors are removed from the main monitor grid and listed in a recovery tray with a `Show` action, so hiding a
-monitor reduces visual noise without forcing the user to recreate its host sink binding later.
+Hidden monitors are removed from the main monitor grid and listed in a recovery tray with `Show` actions plus a
+`Show all` action when more than one monitor is hidden, so hiding monitors reduces visual noise without forcing the
+user to recreate host sink bindings later.
 
 In the current desktop UI, native PipeWire/JACK target ports also appear in the output picker as host-backed outputs.
 Use the monitor's `Host sink` selector to choose a detected PipeWire input port, JACK input port, PulseAudio-compatible

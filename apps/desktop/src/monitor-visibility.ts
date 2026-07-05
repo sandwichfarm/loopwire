@@ -1,4 +1,9 @@
-import { isMonitorHidden, type LoopwireConfiguration, type LoopwireState } from "@loopwire/core";
+import {
+  isMonitorHidden,
+  setMonitorHidden,
+  type LoopwireConfiguration,
+  type LoopwireState
+} from "@loopwire/core";
 
 export interface MonitorVisibilityGroups {
   readonly visible: LoopwireConfiguration["monitors"];
@@ -21,4 +26,14 @@ export function groupMonitorsByVisibility(
   }
 
   return { visible, hidden };
+}
+
+export function restoreHiddenMonitors(
+  state: LoopwireState,
+  configuration: LoopwireConfiguration
+): LoopwireState {
+  return configuration.monitors.reduce(
+    (nextState, monitor) => setMonitorHidden(nextState, configuration.id, monitor.id, false),
+    state
+  );
 }

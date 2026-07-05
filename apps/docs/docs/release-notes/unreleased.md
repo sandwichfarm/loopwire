@@ -168,6 +168,7 @@ These notes describe source-tree progress. They are not a public release announc
   monitors in other workspaces.
 - Hidden monitor cards now move into a compact recovery tray with `Show` actions instead of staying dimmed in the main
   monitor grid.
+- The hidden monitor recovery tray now adds `Show all` when multiple monitors are hidden in the active configuration.
 - Desktop custom chrome now persists as a preference and requests an undecorated Tauri window before showing
   Loopwire-owned drag, minimize, maximize/restore, and close controls; the chrome setting is now a native-first
   segmented control with explicit fallback-mode copy.

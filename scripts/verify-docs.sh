@@ -154,7 +154,8 @@ assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:plan"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:verify"
 assert_contains "apps/docs/docs/guide/backends.md" "explicit execute mode"
 assert_contains "apps/docs/docs/guide/configurations.md" "detected PipeWire output ports"
-assert_contains "apps/docs/docs/guide/configurations.md" 'recovery tray with a `Show` action'
+assert_contains "apps/docs/docs/guide/configurations.md" 'recovery tray with `Show` actions plus a'
+assert_contains "apps/docs/docs/guide/configurations.md" '`Show all` action when more than one monitor is hidden'
 assert_contains "apps/docs/docs/guide/configurations.md" "Native PipeWire can create Loopwire-owned virtual output and monitor sinks"
 assert_contains "apps/docs/docs/guide/configurations.md" "native PipeWire and the"
 assert_contains "apps/docs/docs/guide/configurations.md" "native PipeWire/JACK target ports also appear in the output picker"
