@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T13:15:34+02:00"
-last_activity: 2026-07-05 - Agent-ready release gate now rejects candidate release-note copy
+last_updated: "2026-07-05T13:33:11+02:00"
+last_activity: 2026-07-05 - Release evidence collection now rejects candidate release-note copy
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:agent-ready` now verifies repo-side release readiness without
-`--allow-candidate-notes`, so the v0.1.0 handoff requires publication-ready release-note copy before operator-only
-ceremony work begins. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof
-workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - release evidence collection now records `release-readiness-offline` without
+`--allow-candidate-notes`, so both agent-ready handoff and evidence bundles require publication-ready versioned
+release-note copy. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow
+success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release evidence publishable-note readiness: `scripts/collect-release-evidence.mjs` now records
+  `release-readiness-offline.log` instead of `release-readiness-candidate.log`, keeps the GitHub/tag/public-key and
+  clean-checkout checks skipped for attachable rehearsal evidence, and no longer passes `--allow-candidate-notes`.
+  Release docs and unreleased notes now describe this as offline release readiness rather than candidate readiness, and
+  `scripts/verify-docs.sh` plus `scripts/verify-scripts.sh` assert that evidence plans reject candidate-only versioned
+  notes. Focused validation passed: `node scripts/collect-release-evidence.mjs --list-commands --profile full
+  --release-tag v0.1.0 --repo sandwichfarm/loopwire --public-key packaging/release-signing-public.pem`; `node --check
+  scripts/collect-release-evidence.mjs`; and `bash -n scripts/verify-docs.sh scripts/verify-scripts.sh`.
 - 2026-07-05 Publishable release-note readiness: `scripts/verify-agent-release-ready.sh` no longer passes
   `--allow-candidate-notes`, and `apps/docs/docs/release-notes/0.1.0.md` plus the VitePress sidebar now use
   publication-ready `v0.1.0` wording instead of candidate labels. `scripts/verify-docs.sh` and

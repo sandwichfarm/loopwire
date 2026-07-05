@@ -2469,6 +2469,12 @@
 
 ## Evidence Missing
 
+- `scripts/collect-release-evidence.mjs` now records `release-readiness-offline.log` without
+  `--allow-candidate-notes`, so release evidence bundles also reject candidate-only versioned release notes.
+- Focused validation passed for the release evidence publishable-note readiness update: `node
+  scripts/collect-release-evidence.mjs --list-commands --profile full --release-tag v0.1.0 --repo
+  sandwichfarm/loopwire --public-key packaging/release-signing-public.pem`; `node --check
+  scripts/collect-release-evidence.mjs`; and `bash -n scripts/verify-docs.sh scripts/verify-scripts.sh`.
 - `scripts/verify-agent-release-ready.sh` now runs offline release readiness without `--allow-candidate-notes`, and
   `apps/docs/docs/release-notes/0.1.0.md` now uses publication-ready copy instead of candidate wording.
 - Focused validation passed for the publishable release-note readiness update: `bash -n

@@ -395,7 +395,10 @@ assert_contains "apps/docs/docs/developer/release.md" "read-only DSP provider pl
 assert_contains "apps/docs/docs/developer/release.md" "VM bundle verification as optional evidence"
 assert_contains "apps/docs/docs/developer/release.md" 'expands `--vm-target all` from `vm/targets.tsv`'
 assert_contains "apps/docs/docs/developer/release.md" "requires non-empty command logs"
-assert_contains "apps/docs/docs/developer/release.md" 'release.findings` plus `release.blockers'
+assert_contains "apps/docs/docs/developer/release.md" 'release.findings` plus'
+assert_contains "apps/docs/docs/developer/release.md" '`release.blockers` from the readiness log'
+assert_contains "apps/docs/docs/developer/release.md" "offline release readiness"
+assert_contains "apps/docs/docs/developer/release.md" "rejecting candidate-only versioned release notes"
 assert_contains "apps/docs/docs/developer/release.md" "--summarize-release-readiness-log"
 assert_contains "apps/docs/docs/developer/release.md" "--release-dir dist/release"
 assert_contains "apps/docs/docs/developer/release.md" "apps/docs/docs/public/install.sh"
@@ -558,6 +561,9 @@ assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'These notes describe th
 assert_contains \
   "apps/docs/docs/release-notes/0.1.0.md" \
   "only after the tagged release workflow publishes signed checksums"
+assert_contains \
+  "apps/docs/docs/release-notes/unreleased.md" \
+  'Release evidence collection no longer uses `--allow-candidate-notes`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "BUNNY_REMOTE_PREFIX"

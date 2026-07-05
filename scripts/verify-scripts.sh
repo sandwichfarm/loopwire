@@ -1173,10 +1173,11 @@ printf '%s\n' "$collect_evidence_full_plan" | grep -F '"name": "published-releas
 printf '%s\n' "$collect_evidence_full_plan" | node -e '
 const fs = require("node:fs");
 const plan = JSON.parse(fs.readFileSync(0, "utf8"));
-const readiness = plan.find((entry) => entry.name === "release-readiness-candidate");
+const readiness = plan.find((entry) => entry.name === "release-readiness-offline");
 if (!readiness || !readiness.command.includes("--skip-clean-git")) process.exit(1);
+if (readiness.command.includes("--allow-candidate-notes")) process.exit(1);
 ' || {
-  echo "verify-scripts: full release evidence plan should keep candidate readiness dirty-git tolerant" >&2
+  echo "verify-scripts: full release evidence plan should keep offline readiness strict but dirty-git tolerant" >&2
   exit 1
 }
 printf '%s\n' "$collect_evidence_full_plan" | node -e '

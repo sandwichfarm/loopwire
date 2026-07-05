@@ -20,7 +20,7 @@ the VitePress navigation.
 
 ## Evidence Bundle
 
-For release candidates and VM runs, collect an attachable evidence bundle:
+For release rehearsals and VM runs, collect an attachable evidence bundle:
 
 ```bash
 pnpm collect:evidence -- --output-dir .release-evidence/v0.1.0 --profile full --release-tag v0.1.0
@@ -28,11 +28,12 @@ pnpm collect:evidence -- --output-dir .release-evidence/v0.1.0 --profile full --
 
 The collector writes command logs plus `release-evidence.json`, including git state, tool versions, command exit codes,
 backend detection, Rust compile status, workflow parsing, release-readiness preflight state, and GSD milestone state.
-The full profile records read-only DSP provider plan evidence as required evidence, and records the strict publish
-preflight, published-release installer smoke, and VM bundle verification as optional evidence. The manifest exposes
-parsed `release.findings` plus `release.blockers` from the readiness log. This lets a candidate bundle show current
-blockers without failing evidence collection. Use `--profile quick` inside VM runs when a full workspace check has
-already been captured separately.
+The full profile records read-only DSP provider plan evidence as required evidence, records offline release readiness
+with GitHub/tag/clean-checkout checks skipped, and records the strict publish preflight, published-release installer
+smoke, and VM bundle verification as optional evidence. The manifest exposes parsed `release.findings` plus
+`release.blockers` from the readiness log. This lets a rehearsal bundle show current external blockers without failing
+evidence collection, while still rejecting candidate-only versioned release notes. Use `--profile quick` inside VM runs
+when a full workspace check has already been captured separately.
 
 Custom `--output-dir` values are local evidence directories only. They may be absolute temp directories or relative
 project paths, but the collector rejects root/home placeholders, parent/current-directory traversal, URL syntax, glob

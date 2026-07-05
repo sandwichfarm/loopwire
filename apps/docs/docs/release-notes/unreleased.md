@@ -184,8 +184,8 @@ These notes describe source-tree progress. They are not a public release announc
   tags before final release evidence can pass.
 - Release readiness, published-release verification, and release evidence tools now reject repository values that are
   URLs or extra path segments instead of plain `OWNER/REPO`.
-- Release evidence bundles now record the candidate readiness check and the strict publish preflight log separately, so
-  current release blockers can be attached without failing candidate evidence collection.
+- Release evidence bundles now record the offline release-readiness check and the strict publish preflight log
+  separately, so current external blockers can be attached without failing rehearsal evidence collection.
 - Release evidence manifests now expose parsed `release.findings` and `release.blockers` from the readiness log, plus a
   log-summary mode for checking preflight blockers without rerunning release checks.
 - Release signing key preparation helper that refuses repo-local private keys and verifies the generated key pair before
@@ -244,8 +244,8 @@ These notes describe source-tree progress. They are not a public release announc
   and support-matrix proof are present.
 - Release readiness now rejects local or remote release tags that do not point at the current checkout commit, preventing
   stale tag preflights from looking publishable.
-- Release readiness now requires a clean git checkout by default, while candidate evidence collection opts out with
-  `--skip-clean-git` so work-in-progress evidence can still record its source state.
+- Release readiness now requires a clean git checkout by default, while release evidence collection opts out with
+  `--skip-clean-git` for its offline readiness command so work-in-progress evidence can still record its source state.
 - Docs deployment now uses a reusable Bunny.net upload helper with dry-run verification, checksum headers, and optional
   regional storage endpoint support through `BUNNY_STORAGE_ENDPOINT`.
 - The docs deployment workflow and GitHub secret helper now pass optional `BUNNY_REMOTE_PREFIX` through to Bunny.net
@@ -262,6 +262,8 @@ These notes describe source-tree progress. They are not a public release announc
   `pnpm vm:package-evidence`, or `pnpm vm:prepare-release-evidence` wiring disappears before the release handoff.
 - The v0.1.0 release notes are now publication-ready copy, and agent-ready release checks no longer use
   `--allow-candidate-notes`, so candidate wording cannot slip back into the tag handoff.
+- Release evidence collection no longer uses `--allow-candidate-notes` for its offline readiness command, so evidence
+  bundles also fail if versioned notes regress to candidate-only wording.
 - The GitHub secret helper now rejects Bunny storage zones, endpoints, pull-zone hostnames, and remote prefixes that
   would later fail the docs deploy or live-smoke helpers.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or

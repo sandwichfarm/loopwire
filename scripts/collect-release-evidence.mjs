@@ -419,8 +419,8 @@ function dspProviderPlanCommand(selectedProfile) {
 }
 
 function evidenceCommands(selectedProfile) {
-  const releaseCandidateReadiness = {
-    name: "release-readiness-candidate",
+  const offlineReleaseReadiness = {
+    name: "release-readiness-offline",
     command: shellCommand([
       "bash",
       "scripts/verify-release-readiness.sh",
@@ -433,10 +433,9 @@ function evidenceCommands(selectedProfile) {
       "--skip-gh",
       "--skip-tag",
       "--skip-public-key",
-      "--skip-clean-git",
-      "--allow-candidate-notes"
+      "--skip-clean-git"
     ]),
-    log: "release-readiness-candidate.log"
+    log: "release-readiness-offline.log"
   };
   const publishedReleaseSmoke = {
     name: "published-release-smoke",
@@ -477,7 +476,7 @@ function evidenceCommands(selectedProfile) {
   const docsLiveSmoke = docsLiveBaseUrl || docsLiveHostname || requireLiveDocs ? docsLiveCommand() : null;
 
   const common = [
-    releaseCandidateReadiness,
+    offlineReleaseReadiness,
     {
       name: "vm-launch-plan",
       command: shellCommand([
