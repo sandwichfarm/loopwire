@@ -163,6 +163,10 @@ so the operator can attach `loopwire-vm-evidence-<tag>.tar.gz` before running th
 When `--release-dir` is used for local signed-release rehearsal, the final-proof wrapper rejects traversal,
 root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and file paths before using that directory as the
 release surface.
+Other local final-proof inputs are checked before dry-run rendering or execution as well: `--public-key`,
+`--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`, and `--support-matrix` reject traversal,
+root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and existing paths with the wrong file or
+directory type before the wrapper reads proof artifacts or emits the command plan.
 
 The manual final release proof workflow defaults to `loopwire-release-evidence-<tag>.tar.gz` and
 `loopwire-vm-evidence-<tag>.tar.gz`. If custom asset inputs are supplied, they are validated with

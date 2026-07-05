@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T11:02:23+02:00"
-last_activity: 2026-07-05 - Support matrix proof paths fail closed
+last_updated: "2026-07-05T11:20:42+02:00"
+last_activity: 2026-07-05 - Final release proof paths fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Support-matrix verification now rejects unsafe custom matrix and evidence-root paths
-before reading promotion claims or scanning copied-back VM evidence. Phase 12 remains gated on configuring Bunny
-secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - Final release proof now rejects unsafe custom public-key, release-evidence,
+docs-deployment-manifest, VM evidence-root, and support-matrix paths before dry-run rendering or proof execution.
+Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,17 @@ secrets, public GitHub Release install, Bunny deployment proof, and operator-run
 
 ## Verification Log
 
+- 2026-07-05 Final release proof local proof-path hardening: `scripts/verify-final-release-proof.sh` now validates
+  `--public-key`, `--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`, and `--support-matrix`
+  before dry-run plan rendering or proof execution. Absolute and relative local proof artifacts remain valid, but
+  root/home-expanded paths, parent/current traversal, URL syntax, glob metacharacters, symlinks, and existing paths with
+  the wrong file/directory type fail closed before release proof claims are read. `scripts/verify-scripts.sh` now
+  rejects symlinked public keys, file-valued release evidence directories, directory-valued docs manifests, symlinked
+  VM evidence roots, and directory-valued support matrices. Release docs, unreleased notes, and
+  `scripts/verify-docs.sh` document and assert the final-proof path boundary. Focused validation passed: `bash -n
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; normal final-proof dry-run;
+  symlink public-key and file release-evidence negative probes with expected errors; `bash scripts/verify-docs.sh`;
+  `pnpm verify:scripts`; and `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Support matrix proof path hardening: `scripts/verify-support-matrix.mjs` now validates custom
   `--matrix` and `--evidence-root` paths before reading support claims or scanning copied-back VM evidence. Matrix
   paths must exist as regular files; evidence roots may be absent but must be directories when present. Root/home

@@ -219,6 +219,9 @@ These notes describe source-tree progress. They are not a public release announc
   reading local release artifacts or rendering the signed VM evidence handoff.
 - Final release proof dry-runs now reject unsafe local `--release-dir` values before rendering a signed-release proof
   plan, including traversal, root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and file paths.
+- Final release proof now validates local public-key, release-evidence, docs deployment manifest, VM evidence root, and
+  support-matrix paths before dry-run rendering or execution, rejecting traversal, URL-like values, glob syntax,
+  symlinks, and wrong artifact types before reading proof claims.
 - `pnpm release:status` now preserves `--env-file` in its generated `pnpm release:fetch-docs-proof` recovery command
   when the docs deployment manifest is missing.
 - `pnpm release:status` now rejects unsafe local env-file, secret-list, docs, VM evidence, and support-matrix paths

@@ -885,6 +885,85 @@ if bash scripts/verify-final-release-proof.sh \
   exit 1
 fi
 rm -rf "$final_release_symlink_root"
+final_release_local_path_root="$(mktemp -d)"
+final_release_public_key_symlink="$final_release_local_path_root/public-key-symlink.pem"
+final_release_release_evidence_file="$final_release_local_path_root/release-evidence-file"
+final_release_docs_manifest_dir="$final_release_local_path_root/docs-manifest-dir"
+final_release_vm_root_symlink="$final_release_local_path_root/vm-root-symlink"
+final_release_support_matrix_dir="$final_release_local_path_root/support-matrix-dir"
+ln -s "$PWD/packaging/release-signing-public.pem" "$final_release_public_key_symlink"
+printf '%s\n' "not a release evidence directory" >"$final_release_release_evidence_file"
+mkdir -p "$final_release_docs_manifest_dir"
+ln -s "$final_release_local_path_root" "$final_release_vm_root_symlink"
+mkdir -p "$final_release_support_matrix_dir"
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key "$final_release_public_key_symlink" \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a symlink public key" >&2
+  rm -rf "$final_release_local_path_root"
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir "$final_release_release_evidence_file" \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a file release evidence directory" >&2
+  rm -rf "$final_release_local_path_root"
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest "$final_release_docs_manifest_dir" \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a directory docs deployment manifest" >&2
+  rm -rf "$final_release_local_path_root"
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --vm-evidence-root "$final_release_vm_root_symlink" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a symlink VM evidence root" >&2
+  rm -rf "$final_release_local_path_root"
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --support-matrix "$final_release_support_matrix_dir" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a directory support matrix" >&2
+  rm -rf "$final_release_local_path_root"
+  exit 1
+fi
+rm -rf "$final_release_local_path_root"
 bash scripts/validate-release-asset-name.sh \
   --kind release-evidence \
   --tag v0.1.0 \

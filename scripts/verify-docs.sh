@@ -582,6 +582,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence asset preparation now rejects unsafe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "redirect checksum regeneration"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof dry-runs now reject unsafe"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof now validates local public-key"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact types before reading proof claims"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "root/home-expanded paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:status` now rejects unsafe local env-file'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong existing"
@@ -615,6 +617,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe env-file, p
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "signed VM evidence handoff"
 assert_contains "apps/docs/docs/developer/release.md" 'When `--release-dir` is used for local signed-release rehearsal'
 assert_contains "apps/docs/docs/developer/release.md" "release surface"
+assert_contains "apps/docs/docs/developer/release.md" "Other local final-proof inputs are checked"
+assert_contains "apps/docs/docs/developer/release.md" '`--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"

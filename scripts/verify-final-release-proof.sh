@@ -140,6 +140,47 @@ validate_local_release_dir_path() {
   fi
 }
 
+validate_local_artifact_path() {
+  local value="$1"
+  local label="$2"
+  local expected_type="$3"
+  local require_existing="$4"
+  local normalized
+
+  reject_unsafe_value "$value" "$label"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink"
+  if [ "$expected_type" = "file" ]; then
+    if [ "$require_existing" = "true" ]; then
+      [ -f "$value" ] || fail "$label must be a file"
+    elif [ -e "$value" ] && [ ! -f "$value" ]; then
+      fail "$label must be a file when it exists"
+    fi
+  elif [ "$expected_type" = "directory" ]; then
+    if [ "$require_existing" = "true" ]; then
+      [ -d "$value" ] || fail "$label must be a directory"
+    elif [ -e "$value" ] && [ ! -d "$value" ]; then
+      fail "$label must be a directory when it exists"
+    fi
+  else
+    fail "unknown expected type for $label: $expected_type"
+  fi
+}
+
 validate_docs_remote_prefix() {
   local value="$1"
 
@@ -274,11 +315,19 @@ validate_repo "$repo"
 validate_release_tag "$tag"
 validate_git_head "$git_head"
 validate_local_release_dir_path "$release_dir"
-reject_unsafe_value "$public_key" "public key path"
-reject_unsafe_value "$release_evidence_dir" "release evidence directory"
-reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest path"
-reject_unsafe_value "$vm_evidence_root" "VM evidence root"
-reject_unsafe_value "$support_matrix" "support matrix path"
+if [ "$dry_run" = "true" ]; then
+  validate_local_artifact_path "$public_key" "public key path" "file" "false"
+  validate_local_artifact_path "$release_evidence_dir" "release evidence directory" "directory" "false"
+  validate_local_artifact_path "$docs_deployment_manifest" "docs deployment manifest path" "file" "false"
+  validate_local_artifact_path "$vm_evidence_root" "VM evidence root" "directory" "false"
+  validate_local_artifact_path "$support_matrix" "support matrix path" "file" "false"
+else
+  validate_local_artifact_path "$public_key" "public key path" "file" "true"
+  validate_local_artifact_path "$release_evidence_dir" "release evidence directory" "directory" "true"
+  validate_local_artifact_path "$docs_deployment_manifest" "docs deployment manifest path" "file" "true"
+  validate_local_artifact_path "$vm_evidence_root" "VM evidence root" "directory" "true"
+  validate_local_artifact_path "$support_matrix" "support matrix path" "file" "true"
+fi
 if [ -n "$plan_output" ]; then
   [ "$dry_run" = "true" ] || fail "--plan-output requires --dry-run"
   validate_plan_output_path "$plan_output"
@@ -305,11 +354,9 @@ else
 fi
 
 if [ "$dry_run" != "true" ]; then
-  [ -f "$public_key" ] || fail "missing public key: $public_key"
-  [ -d "$release_evidence_dir" ] || fail "missing release evidence directory: $release_evidence_dir"
-  [ -s "$docs_deployment_manifest" ] || fail "missing docs deployment manifest: $docs_deployment_manifest"
-  [ -d "$vm_evidence_root" ] || fail "missing VM evidence root: $vm_evidence_root"
-  [ -s "$support_matrix" ] || fail "missing support matrix: $support_matrix"
+  [ -s "$public_key" ] || fail "public key must not be empty: $public_key"
+  [ -s "$docs_deployment_manifest" ] || fail "docs deployment manifest must not be empty: $docs_deployment_manifest"
+  [ -s "$support_matrix" ] || fail "support matrix must not be empty: $support_matrix"
 fi
 
 published_release=(
