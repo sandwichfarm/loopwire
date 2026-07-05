@@ -494,6 +494,9 @@ These notes describe source-tree progress. They are not a public release announc
   dry-run contract proves `install.sh` would be uploaded.
 - Release readiness now validates custom public-key and saved secret-list artifacts before reads, rejecting symlinks,
   traversal, URL-like values, glob metacharacters, root/home placeholders, and existing non-file paths.
+- Release evidence collection now validates `--output-dir` and summarized readiness-log paths before reading or writing
+  artifacts, rejecting symlinks, traversal, URL-like values, glob metacharacters, root/home placeholders, and wrong
+  existing file/directory types.
 
 ## Known Limitations
 

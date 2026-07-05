@@ -34,6 +34,10 @@ parsed `release.findings` plus `release.blockers` from the readiness log. This l
 blockers without failing evidence collection. Use `--profile quick` inside VM runs when a full workspace check has
 already been captured separately.
 
+Custom `--output-dir` values are local evidence directories only. They may be absolute temp directories or relative
+project paths, but the collector rejects root/home placeholders, parent/current-directory traversal, URL syntax, glob
+metacharacters, symlinks, and existing non-directory paths before writing command logs or `release-evidence.json`.
+
 For final release evidence after the GitHub Release, docs deployment, and VM bundles exist, make published-release
 installer smoke, live docs smoke, and all VM evidence mandatory:
 
@@ -252,6 +256,9 @@ Parse an existing release-readiness log without rerunning release checks:
 ```bash
 pnpm collect:evidence -- --summarize-release-readiness-log release-readiness-publish-preflight.log
 ```
+
+The summarized readiness log path is also a local file artifact: directories, symlinks, traversal, URL-like values, glob
+metacharacters, and root/home placeholders are rejected before the log is read.
 
 For user-facing bug reports and compatibility triage, collect the smaller redacted support bundle instead:
 

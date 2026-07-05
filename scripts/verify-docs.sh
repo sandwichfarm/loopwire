@@ -743,6 +743,11 @@ assert_contains "apps/docs/docs/developer/release.md" 'Custom `--public-key` and
 assert_contains "apps/docs/docs/developer/release.md" "before parsing a key or replaying saved secret names"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now validates custom public-key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "existing non-file paths"
+assert_contains "apps/docs/docs/developer/release.md" 'Custom `--output-dir` values are local evidence directories only'
+assert_contains "apps/docs/docs/developer/release.md" 'before writing command logs or `release-evidence.json`'
+assert_contains "apps/docs/docs/developer/release.md" "The summarized readiness log path is also a local file artifact"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'Release evidence collection now validates `--output-dir`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong existing file/directory types"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "opensuse-kde-pipewire"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu target"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `screenshot.png` placeholders'

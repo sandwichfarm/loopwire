@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -38,6 +38,7 @@ if (wantsHelp) {
 }
 
 if (summarizeReleaseReadinessLog) {
+  validateLocalPath(summarizeReleaseReadinessLog, "release-readiness log", "file", true);
   const output = readFileSync(summarizeReleaseReadinessLog, "utf8");
   const findings = summarizeCommandFindings("release-readiness-publish-preflight", output);
   console.log(JSON.stringify({ findings, blockers: findings.filter((finding) => finding.severity === "blocker") }, null, 2));
@@ -81,6 +82,7 @@ if (!outputDir) {
   process.exit(2);
 }
 
+validateLocalPath(outputDir, "output directory", "dir", false);
 mkdirSync(outputDir, { recursive: true });
 
 const metadata = {
@@ -266,6 +268,44 @@ function validateRelativePath(value, label) {
 
   if (value.startsWith("/") || value.split(/[\\/]+/).includes("..")) {
     fail(`${label} must be a relative path without parent traversal`);
+  }
+}
+
+function validateLocalPath(value, label, expectedType, requireExisting) {
+  validateSingleLine(value, label);
+
+  const normalized = value.replace(/^[.][\\/]/, "");
+  if (
+    normalized.length === 0 ||
+    normalized === "/" ||
+    normalized === "~" ||
+    normalized.startsWith("~/") ||
+    normalized.includes("://") ||
+    /[*?[\]]/.test(normalized)
+  ) {
+    fail(`${label} must not be root, home-expanded, URL-like, or contain glob metacharacters`);
+  }
+
+  if (normalized.split(/[\\/]+/).some((part) => part === "." || part === "..")) {
+    fail(`${label} must not contain . or .. path segments`);
+  }
+
+  if (existsSync(value)) {
+    const stat = lstatSync(value);
+    if (stat.isSymbolicLink()) {
+      fail(`${label} must not be a symlink`);
+    }
+    if (expectedType === "file" && !stat.isFile()) {
+      fail(`${label} must be a file when it exists`);
+    }
+    if (expectedType === "dir" && !stat.isDirectory()) {
+      fail(`${label} must be a directory when it exists`);
+    }
+    return;
+  }
+
+  if (requireExisting) {
+    fail(`${label} must be a ${expectedType}`);
   }
 }
 

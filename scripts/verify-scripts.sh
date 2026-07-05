@@ -1298,6 +1298,34 @@ if node scripts/collect-release-evidence.mjs \
   echo "verify-scripts: release evidence accepted a shared VM evidence dir for multiple targets" >&2
   exit 1
 fi
+release_evidence_path_tmp="$(mktemp -d)"
+bad_release_evidence_output_file="$release_evidence_path_tmp/release-evidence-output-file"
+printf 'not a directory\n' >"$bad_release_evidence_output_file"
+if node scripts/collect-release-evidence.mjs \
+  --output-dir "$bad_release_evidence_output_file" \
+  --profile quick >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence accepted a file-valued output dir" >&2
+  rm -rf "$release_evidence_path_tmp"
+  exit 1
+fi
+bad_release_evidence_output_link="$release_evidence_path_tmp/release-evidence-output-link"
+ln -s "$release_evidence_path_tmp" "$bad_release_evidence_output_link"
+if node scripts/collect-release-evidence.mjs \
+  --output-dir "$bad_release_evidence_output_link" \
+  --profile quick >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence accepted a symlinked output dir" >&2
+  rm -rf "$release_evidence_path_tmp"
+  exit 1
+fi
+bad_release_readiness_log_dir="$release_evidence_path_tmp/release-readiness-log-dir"
+mkdir -p "$bad_release_readiness_log_dir"
+if node scripts/collect-release-evidence.mjs \
+  --summarize-release-readiness-log "$bad_release_readiness_log_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence accepted a directory readiness log" >&2
+  rm -rf "$release_evidence_path_tmp"
+  exit 1
+fi
+rm -rf "$release_evidence_path_tmp"
 node scripts/restore-background.mjs --help | grep -F -- "--retry-pending-ms" >/dev/null || {
   echo "verify-scripts: restore background help is missing pending retry options" >&2
   exit 1

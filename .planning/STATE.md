@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T10:34:07+02:00"
-last_activity: 2026-07-05 - Release readiness local artifacts fail closed
+last_updated: "2026-07-05T10:48:16+02:00"
+last_activity: 2026-07-05 - Release evidence collection paths fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Release readiness now rejects unsafe custom public-key and saved secret-list file paths
-before parsing signing material or replaying saved GitHub secret names. Phase 12 remains gated on configuring Bunny
-secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - Release evidence collection now rejects unsafe output directories and readiness-log paths
+before writing command logs or reading summarized release preflight artifacts. Phase 12 remains gated on configuring
+Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,18 @@ secrets, public GitHub Release install, Bunny deployment proof, and operator-run
 
 ## Verification Log
 
+- 2026-07-05 Release evidence collector path hardening: `scripts/collect-release-evidence.mjs` now validates
+  `--output-dir` before creating directories or writing command logs, and validates
+  `--summarize-release-readiness-log` before reading a saved release preflight log. Absolute temp directories and
+  relative project evidence directories remain valid, but root/home placeholders, parent/current traversal, URL syntax,
+  glob metacharacters, symlinks, and existing paths with the wrong file/directory type fail closed.
+  `scripts/verify-scripts.sh` now rejects file-valued output directories, symlinked output directories, and
+  directory-valued readiness-log paths. Release docs, unreleased notes, and `scripts/verify-docs.sh` document and
+  assert the release-evidence path boundary. Focused validation passed: `node --check
+  scripts/collect-release-evidence.mjs`; `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`; normal
+  `--list-commands` smoke; file output-dir, symlink output-dir, and directory readiness-log negative probes with
+  expected errors; `git diff --check`; `pnpm verify:scripts`; and `bash scripts/verify-docs.sh`. Full local validation
+  passed: `pnpm check`.
 - 2026-07-05 Release readiness local artifact path hardening: `scripts/verify-release-readiness.sh` now validates
   optional `--public-key` and `--secret-list-file` paths before parsing signing material or replaying saved GitHub
   secret names. Absolute and relative local files remain valid, missing public keys still report through the existing
