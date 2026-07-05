@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T14:34:49+02:00"
-last_activity: 2026-07-05 - Live DSP providers must declare complete operation support
+last_updated: "2026-07-05T14:54:49+02:00"
+last_activity: 2026-07-05 - Final DSP release evidence requires clear-output proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Live DSP restore now requires provider `capabilities.operations` to include
-`read-source`, `write-output`, `verify-output`, and `clear-output`, not only `supportsLiveGraph:true`. The same
-operation-set requirement is enforced in `pnpm dsp:verify -- --require-live-capability`, so operators can catch an
-incomplete provider before installing boot restore. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - Final release DSP provider evidence now requires `clear-output` rows for configured
+outputs, matching the live DSP restore contract that requires provider `capabilities.operations` to include
+`read-source`, `write-output`, `verify-output`, and `clear-output`. Phase 12 remains gated on public GitHub Release
+install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,13 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Final DSP evidence clear-output proof: `scripts/describe-dsp-provider.mjs` now emits `clear-output`
+  plan rows for configured outputs, and `scripts/verify-release-evidence.mjs` now requires and binds those rows when
+  `--require-dsp-provider-plan` is used. This keeps final public release evidence aligned with the live DSP
+  rollback/unload operation contract. Focused validation passed: `node --check scripts/describe-dsp-provider.mjs
+  scripts/verify-release-evidence.mjs`; `bash -n scripts/collect-dsp-provider-plan.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`; direct `pnpm dsp:plan -- --configuration scripts/fixtures/dsp-provider-configuration.json
+  --frame-count 16 --format tsv`, which emitted `clear-output`; `pnpm verify:scripts`; and `pnpm verify:docs`.
 - 2026-07-05 Live DSP provider operation contract: `scripts/restore-background.mjs` now rejects live DSP providers
   whose `capabilities` payload omits any operation Loopwire needs for apply, verify, and rollback:
   `read-source`, `write-output`, `verify-output`, and `clear-output`. `scripts/describe-dsp-provider.mjs` now uses the

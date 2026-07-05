@@ -67,9 +67,10 @@ Every evidence bundle also records `vm-launch-plan.tsv` from
 declared VM target, deterministic SSH port, dry-run launch command, and paired evidence-pull command.
 The DSP provider plan command runs `scripts/collect-dsp-provider-plan.sh` against
 `scripts/fixtures/dsp-provider-configuration.json` without `--execute`, records the expected read-source, write-output,
-and verify-output operation rows, and binds the configuration path plus frame count in `release-evidence.json`. It proves
-the release still exposes the provider contract without mutating host audio. Release tarballs must also expose
-`loopwire-dsp-provider` beside `loopwire`; the provider is file-backed smoke infrastructure, not live backend capture.
+verify-output, and clear-output operation rows, and binds the configuration path plus frame count in
+`release-evidence.json`. It proves the release still exposes the provider contract without mutating host audio. Release
+tarballs must also expose `loopwire-dsp-provider` beside `loopwire`; the provider is file-backed smoke infrastructure,
+not live backend capture.
 
 The tag release workflow collects the published-release portion automatically after `gh release create` or upload
 finishes. It runs `pnpm collect:evidence` with `--require-published-release --require-dsp-provider-plan`, verifies the
@@ -120,9 +121,9 @@ With `--require-vm-launch-plan`, the verifier also requires a successful `vm-lau
 `scripts/vm-matrix.sh launch` command with the matching `scripts/collect-vm-evidence-ssh.sh --execute` command.
 With `--require-dsp-provider-plan`, the verifier also requires a successful `dsp-provider-plan` command row that invokes
 `bash scripts/collect-dsp-provider-plan.sh` in read-only mode and validates `dsp-provider-plan.tsv` contains
-read-source, write-output, and verify-output rows for the manifest-bound frame count and configuration. The row
-targets, labels, and channel counts must match the configured routed sources and outputs, so unrelated placeholder DSP
-rows cannot satisfy final release proof.
+read-source, write-output, verify-output, and clear-output rows for the manifest-bound frame count and configuration.
+The row targets, labels, and channel counts must match the configured routed sources and outputs, so unrelated
+placeholder DSP rows cannot satisfy final release proof.
 When `--require-live-docs` is present, the verifier requires a successful `docs-live-smoke` command row that executed
 `bash scripts/verify-docs-live.sh` against the public installer and the same deployed docs base URL or hostname plus
 remote prefix recorded in `release-evidence.json`.

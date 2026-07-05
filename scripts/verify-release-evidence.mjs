@@ -446,7 +446,7 @@ function validateDspProviderPlanLog(log, binding) {
 
     const [operation, target, label, channels, frames] = cells;
     const rowKey = `${operation}\t${target}`;
-    if (!["read-source", "write-output", "verify-output"].includes(operation)) {
+    if (!["read-source", "write-output", "verify-output", "clear-output"].includes(operation)) {
       fail(`dsp-provider-plan row has unsupported operation: ${operation}`);
     }
     if (!target || !label) {
@@ -482,7 +482,7 @@ function validateDspProviderPlanLog(log, binding) {
     }
   }
 
-  for (const operation of ["read-source", "write-output", "verify-output"]) {
+  for (const operation of ["read-source", "write-output", "verify-output", "clear-output"]) {
     if (!operations.has(operation)) {
       fail(`dsp-provider-plan log is missing operation: ${operation}`);
     }
@@ -519,6 +519,7 @@ function expectedDspProviderRows(binding) {
     const row = { label: output.label, channels: String(output.channels) };
     expectedRows.set(`write-output\t${output.id}`, row);
     expectedRows.set(`verify-output\t${output.id}`, row);
+    expectedRows.set(`clear-output\t${output.id}`, row);
   }
 
   return expectedRows;

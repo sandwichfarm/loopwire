@@ -384,7 +384,8 @@ assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-dsp-provi
 assert_contains "apps/docs/docs/developer/release.md" 'scripts/fixtures/dsp-provider-configuration.json'
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-dsp-provider"
 assert_contains "apps/docs/docs/developer/release.md" "read-source, write-output"
-assert_contains "apps/docs/docs/developer/release.md" "verify-output operation rows"
+assert_contains "apps/docs/docs/developer/release.md" "verify-output, and clear-output operation rows"
+assert_contains "apps/docs/docs/developer/release.md" "verify-output, and clear-output rows"
 assert_contains "apps/docs/docs/developer/release.md" "must invoke the expected script directly"
 assert_contains "apps/docs/docs/developer/release.md" "same deployed docs base URL or hostname"
 assert_contains "apps/docs/docs/developer/release.md" 'must not pass `--release-dir`'
@@ -753,6 +754,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-e
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "covered by the same signed checksum manifest"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-release-evidence"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-dsp-provider-plan"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release DSP provider evidence now also requires"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-clean-git"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'expected `release.tag` and repo'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "archive-name and manifest tag drift"

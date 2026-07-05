@@ -2511,6 +2511,13 @@
   operation set before operators install boot restore. Focused validation passed: `node --check
   scripts/restore-background.mjs scripts/describe-dsp-provider.mjs`; `pnpm verify:autostart`; audio-host DSP tests;
   `bash scripts/verify-docs.sh`; and `bash scripts/verify-scripts.sh`.
+- Final release DSP provider evidence now covers the full command-backed provider operation contract:
+  `scripts/describe-dsp-provider.mjs` emits `clear-output` rows for configured outputs, and
+  `scripts/verify-release-evidence.mjs` requires those rows under `--require-dsp-provider-plan`. Focused validation
+  passed: `node --check scripts/describe-dsp-provider.mjs scripts/verify-release-evidence.mjs`;
+  `bash -n scripts/collect-dsp-provider-plan.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  direct `pnpm dsp:plan -- --configuration scripts/fixtures/dsp-provider-configuration.json --frame-count 16
+  --format tsv`, which emitted `clear-output`; `pnpm verify:scripts`; and `pnpm verify:docs`.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

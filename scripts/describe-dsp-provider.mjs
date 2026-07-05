@@ -205,6 +205,13 @@ function describeOperations(core, plan, frameCount) {
       label: output.outputLabel,
       channels: output.channels,
       frames: frameCount
+    },
+    {
+      operation: "clear-output",
+      target: output.outputId,
+      label: output.outputLabel,
+      channels: output.channels,
+      frames: frameCount
     }
   ]);
 

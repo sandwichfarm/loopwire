@@ -2656,7 +2656,8 @@ function dspProviderPlanLog() {
     "read-source\tmic\tStudio Mic\t2\t16",
     "read-source\tbrowser\tBrowser Audio\t2\t16",
     "write-output\tmix\tMain Mix\t2\t16",
-    "verify-output\tmix\tMain Mix\t2\t16"
+    "verify-output\tmix\tMain Mix\t2\t16",
+    "clear-output\tmix\tMain Mix\t2\t16"
   ].join("\n") + "\n";
 }
 
@@ -2930,7 +2931,9 @@ writeBundle(badDspPlanLogDir, targets);
   fs.writeFileSync(path.join(badDspPlanLogDir, "dsp-provider-plan.tsv"), [
     "operation\ttarget\tlabel\tchannels\tframes",
     "read-source\tmic\tStudio Mic\t2\t16",
-    "write-output\tmix\tMain Mix\t2\t16"
+    "read-source\tbrowser\tBrowser Audio\t2\t16",
+    "write-output\tmix\tMain Mix\t2\t16",
+    "verify-output\tmix\tMain Mix\t2\t16"
   ].join("\n") + "\n");
 }
 
@@ -2941,7 +2944,8 @@ writeBundle(wrongDspPlanTargetDir, targets);
     "read-source\tmic\tStudio Mic\t2\t16",
     "read-source\tbrowser\tBrowser Audio\t2\t16",
     "write-output\tpreview\tMain Mix\t2\t16",
-    "verify-output\tpreview\tMain Mix\t2\t16"
+    "verify-output\tpreview\tMain Mix\t2\t16",
+    "clear-output\tpreview\tMain Mix\t2\t16"
   ].join("\n") + "\n");
 }
 NODE
