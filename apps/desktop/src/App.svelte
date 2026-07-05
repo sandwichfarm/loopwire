@@ -322,7 +322,11 @@
   $: resolvedChromeMode = resolveChromeMode(chromeMode, desktopRuntimeAvailable);
   $: chromeModeSummary = describeChromeModeSummary({ mode: chromeMode, desktopRuntimeAvailable });
   $: backendSelectionSummary = describeBackendSelectionSummary();
-  $: backendChoiceCallout = describeBackendChoiceCallout(backendDecision, selectedBackendName);
+  $: backendChoiceCallout = describeBackendChoiceCallout(
+    backendDecision,
+    selectedBackendName,
+    selectedBackendAvailableForRestore
+  );
   $: selectedBackendCapability = backendCapabilityFor(state.selectedBackend);
   $: routeControlSemantics = describeSelectedRouteControlSemantics(
     state.selectedBackend,

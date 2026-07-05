@@ -50,6 +50,26 @@ describe("describeBackendChoiceCallout", () => {
     });
   });
 
+  it("names a stale saved backend when the user must choose another available backend", () => {
+    expect(
+      describeBackendChoiceCallout(
+        {
+          mode: "prompt",
+          candidates: [pipewire, jack],
+          reason: "Multiple supported audio backends are available. The user must choose one."
+        },
+        "PulseAudio",
+        false
+      )
+    ).toEqual({
+      tone: "prompt",
+      title: "PulseAudio is not detected",
+      message:
+        "PipeWire, JACK are available. Pick a new backend before Loopwire saves live apply and startup restore again.",
+      action: "Select an available backend below to replace the stale saved choice."
+    });
+  });
+
   it("describes saved and auto-selected backends separately", () => {
     expect(
       describeBackendChoiceCallout(

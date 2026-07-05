@@ -11,10 +11,20 @@ export interface BackendChoiceCallout {
 
 export function describeBackendChoiceCallout(
   decision: BackendDecision,
-  selectedBackendName: string
+  selectedBackendName: string,
+  selectedBackendAvailable = selectedBackendName !== "None selected"
 ): BackendChoiceCallout {
   if (decision.mode === "prompt") {
     const names = decision.candidates.map((candidate) => candidate.displayName).join(", ");
+    if (selectedBackendName !== "None selected" && !selectedBackendAvailable) {
+      return {
+        tone: "prompt",
+        title: `${selectedBackendName} is not detected`,
+        message: `${names} are available. Pick a new backend before Loopwire saves live apply and startup restore again.`,
+        action: "Select an available backend below to replace the stale saved choice."
+      };
+    }
+
     return {
       tone: "prompt",
       title: "Choose an audio backend",

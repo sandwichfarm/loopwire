@@ -65,6 +65,8 @@ These notes describe source-tree progress. They are not a public release announc
   an already persisted choice.
 - The desktop backend chooser now renders a first-run callout that names multiple detected backend candidates, keeps
   live apply in preview, and asks the user to save the backend for startup restore.
+- The backend chooser now names the stale saved backend when that backend disappears and multiple other backends are
+  available, so users know they are replacing a previous startup-restore choice.
 - Desktop backend selection now has a dedicated chooser panel that shows selected, available, and unavailable backends,
   explains that the choice is persisted for startup restore, and keeps the active workspace ahead of the sidebar on
   mobile.
