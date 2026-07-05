@@ -29,6 +29,8 @@ The script packages verified VM evidence with scripts/package-vm-evidence.sh, wr
 regenerates SHA256SUMS for every release attachment, signs SHA256SUMS, verifies the VM evidence archive with
 scripts/verify-release-asset-checksum.sh, and prints the exact gh release upload --clobber command for publishing the
 archive plus refreshed manifest files.
+Custom --release-dir values may be absolute or relative, but they must not contain parent traversal, URL syntax, glob
+metacharacters, symlinks, or file paths.
 
 --env-file accepts the same local release secret file used by scripts/setup-github-secrets.sh, but this helper only
 consumes LOOPWIRE_RELEASE_PRIVATE_KEY_FILE and LOOPWIRE_RELEASE_PUBLIC_KEY_FILE. Bunny storage credentials are ignored.
@@ -76,6 +78,32 @@ reject_unsafe_value() {
       fail "$label must be a single safe value"
       ;;
   esac
+}
+
+validate_release_dir_path() {
+  local value="$1"
+  local normalized
+
+  reject_unsafe_value "$value" "release directory"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "release directory must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "release directory must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "release directory must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "release directory must not be a symlink"
+  if [ -e "$value" ] && [ ! -d "$value" ]; then
+    fail "release directory must be a directory when it exists"
+  fi
 }
 
 refresh_manifest() {
@@ -245,7 +273,7 @@ done
 [ -n "$private_key_file" ] || fail "missing --private-key FILE"
 validate_repo "$repo"
 validate_tag "$tag"
-reject_unsafe_value "$release_dir" "release directory"
+validate_release_dir_path "$release_dir"
 reject_unsafe_value "$private_key_file" "private key path"
 reject_unsafe_value "$public_key_file" "public key path"
 reject_unsafe_value "$evidence_root" "evidence root"

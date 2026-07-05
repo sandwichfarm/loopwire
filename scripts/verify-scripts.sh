@@ -1380,6 +1380,10 @@ printf '%s\n' "$prepare_vm_release_help" | grep -F -- "gh release upload --clobb
   echo "verify-scripts: VM evidence release helper help is missing upload handoff behavior" >&2
   exit 1
 }
+printf '%s\n' "$prepare_vm_release_help" | grep -F -- "Custom --release-dir values" >/dev/null || {
+  echo "verify-scripts: VM evidence release helper help is missing release-dir safety contract" >&2
+  exit 1
+}
 prepare_vm_release_dry_run="$(
   bash scripts/prepare-vm-evidence-release-asset.sh \
     --repo sandwichfarm/loopwire \
@@ -1403,6 +1407,44 @@ printf '%s\n' "$prepare_vm_release_dry_run" | grep -F -- "dry-run: upload VM evi
   echo "verify-scripts: VM evidence release helper dry-run is missing upload step" >&2
   exit 1
 }
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir ../release \
+  --private-key '${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}' \
+  --evidence-root .vm/evidence \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted parent traversal in release-dir" >&2
+  exit 1
+fi
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir '~/release' \
+  --private-key '${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}' \
+  --evidence-root .vm/evidence \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted home expansion in release-dir" >&2
+  exit 1
+fi
+prepare_vm_release_symlink_root="$(mktemp -d)"
+prepare_vm_release_symlink="$prepare_vm_release_symlink_root/prepare-vm-release-dir-symlink"
+ln -s "$prepare_vm_release_symlink_root" "$prepare_vm_release_symlink"
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir "$prepare_vm_release_symlink" \
+  --private-key '${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}' \
+  --evidence-root .vm/evidence \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted a symlink release-dir" >&2
+  rm -rf "$prepare_vm_release_symlink_root"
+  exit 1
+fi
+rm -rf "$prepare_vm_release_symlink_root"
 prepare_vm_release_env_file="$(mktemp)"
 cat >"$prepare_vm_release_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs

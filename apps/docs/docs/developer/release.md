@@ -186,6 +186,9 @@ expanding env-derived release key paths. Explicit CLI key flags still override t
 supplied directly. Custom `--vm-ssh-plan` and `--vm-runbook` outputs must stay repo-relative and cannot contain `.`,
 `..`, absolute paths, home-directory expansion, or URL syntax, because the rendered handoff is meant to write reviewable
 release artifacts inside the checkout.
+The VM evidence asset-prep helper also validates custom `--release-dir` values before dry-run or execution: absolute
+and relative directories are allowed, but parent traversal, URL syntax, glob metacharacters, symlinks, and file paths are
+rejected before the helper can regenerate `SHA256SUMS` or `SHA256SUMS.sig`.
 
 After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
 

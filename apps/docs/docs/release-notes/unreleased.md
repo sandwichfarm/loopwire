@@ -213,6 +213,8 @@ These notes describe source-tree progress. They are not a public release announc
   and deployment manifest locations.
 - `pnpm release:handoff` now rejects absolute or parent-traversal VM handoff output paths before rendering VM SSH plan
   and runbook commands.
+- VM evidence asset preparation now rejects unsafe custom `--release-dir` values before dry-run or execution, including
+  parent traversal, URL syntax, glob metacharacters, symlinks, and file paths that could redirect checksum regeneration.
 - `pnpm release:status` now preserves `--env-file` in its generated `pnpm release:fetch-docs-proof` recovery command
   when the docs deployment manifest is missing.
 - `pnpm release:status --env-file` now keeps the default release public-key path implicit in its embedded VM evidence

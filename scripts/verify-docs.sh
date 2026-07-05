@@ -577,6 +577,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects absolute'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:status`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence asset preparation now rejects unsafe"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "redirect checksum regeneration"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "parseable release signing public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "non-dry-run docs deployment manifest proof"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "smaller required-secret"
@@ -600,6 +602,8 @@ assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" 'Custom `--vm-ssh-plan` and `--vm-runbook` outputs'
+assert_contains "apps/docs/docs/developer/release.md" 'validates custom `--release-dir` values'
+assert_contains "apps/docs/docs/developer/release.md" 'regenerate `SHA256SUMS` or `SHA256SUMS.sig`'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
