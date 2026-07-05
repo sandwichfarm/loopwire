@@ -184,6 +184,25 @@ describe("describeLiveApplyPreflight", () => {
     ]);
   });
 
+  it("allows muted native routes to retain non-unity gain values", () => {
+    const mutedConfiguration: LoopwireConfiguration = {
+      ...baseConfiguration,
+      inputs: baseConfiguration.inputs.map((input) => ({ ...input, deviceName: input.deviceName ?? "call_audio" })),
+      routes: baseConfiguration.routes.map((route) =>
+        route.id === "call-stream" ? { ...route, gain: 0.6, muted: true } : route
+      )
+    };
+
+    expect(describeLiveApplyPreflight(mutedConfiguration, "pipewire")).toMatchObject({
+      ok: true,
+      badge: "Ready",
+      blockers: []
+    });
+    expect(describeLiveApplyPreflight(mutedConfiguration, "jack").blockers[0]).not.toContain("100% route gain");
+    expect(getNativeGainBlockerRoutes(mutedConfiguration, "pipewire").map((route) => route.id)).toEqual([]);
+    expect(getNativeGainBlockerRoutes(mutedConfiguration, "jack").map((route) => route.id)).toEqual([]);
+  });
+
   it("does not block route gain when detected backend semantics support graph-edge gain", () => {
     const result = describeLiveApplyPreflight(
       baseConfiguration,

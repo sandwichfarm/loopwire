@@ -419,6 +419,38 @@ describe("createJackGraphRuntimeAdapter", () => {
     expect(calls).toEqual([]);
   });
 
+  it("allows non-unity gain on muted JACK routes", async () => {
+    const mutedConfiguration: HostRuntimeConfiguration = {
+      ...jackConfiguration,
+      routes: [{ id: "mic-program", from: "mic", to: "program", gain: 0.5, muted: true }]
+    };
+    const { runner, calls } = createRecordingRunner({
+      jack_lsp: { stdout: jackPorts() },
+      "jack_lsp -c": {
+        stdout: jackConnections([
+          ["studio_mic:capture_1", "loopwire_program:playback_1"],
+          ["studio_mic:capture_2", "loopwire_program:playback_2"]
+        ])
+      },
+      "jack_disconnect studio_mic:capture_1 loopwire_program:playback_1": { stdout: "" },
+      "jack_disconnect studio_mic:capture_2 loopwire_program:playback_2": { stdout: "" }
+    });
+    const adapter = createJackGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(mutedConfiguration);
+
+    expect(result).toEqual({
+      ok: true,
+      message: "Disconnected 2 muted JACK port pair(s); Connected 0 JACK port pair(s); 0 already connected"
+    });
+    expect(calls).toEqual([
+      "jack_lsp",
+      "jack_lsp -c",
+      "jack_disconnect studio_mic:capture_1 loopwire_program:playback_1",
+      "jack_disconnect studio_mic:capture_2 loopwire_program:playback_2"
+    ]);
+  });
+
   it("reports missing Loopwire-owned JACK route input ports without connecting", async () => {
     const { runner, calls } = createRecordingRunner({});
     const adapter = createJackGraphRuntimeAdapter(runner, { mode: "apply" });

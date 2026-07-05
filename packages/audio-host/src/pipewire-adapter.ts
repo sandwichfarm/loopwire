@@ -333,7 +333,7 @@ async function preparePipeWireRoutePlans(
 
 function validatePipeWireConfiguration(configuration: HostRuntimeConfiguration): HostRuntimeOperationResult {
   for (const route of configuration.routes ?? []) {
-    if (route.gain !== undefined && route.gain !== 1) {
+    if (!route.muted && route.gain !== undefined && route.gain !== 1) {
       return {
         ok: false,
         message: `Route ${route.id} has gain ${route.gain}; native PipeWire links only support unity gain for now`

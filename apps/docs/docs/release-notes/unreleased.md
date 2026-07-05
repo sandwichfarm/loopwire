@@ -95,6 +95,8 @@ These notes describe source-tree progress. They are not a public release announc
   that restores affected routes to 100% without touching host audio.
 - Native-backend non-100% gain blockers now explain both repair paths: reset affected route gains to 100%, or switch
   to a graph-edge/DSP-capable backend when one is available.
+- Native PipeWire/JACK live apply now allows muted routes to retain saved non-100% gain values, because those native
+  adapters disconnect muted links/connections instead of applying route gain.
 - Native PipeWire/JACK route gain sliders now lock when those link-only backends are selected, while route mute and
   `Reset gains` remain available.
 - Native-backend live-apply preflight now names missing PipeWire source bindings so the next repair is explicit.

@@ -110,7 +110,7 @@ export function getNativeGainBlockerRoutes(
     return [];
   }
 
-  return configuration.routes.filter((route) => route.gain !== 1);
+  return configuration.routes.filter((route) => route.gain !== 1 && !route.muted);
 }
 
 function liveApplyBlockers(

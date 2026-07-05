@@ -54,9 +54,10 @@ code can:
 - collect a redacted support bundle with backend detection, host diagnostics, autostart status, and a command ledger.
 
 PipeWire live apply can create Loopwire-owned virtual output and monitor sinks, link existing source ports into them,
-disconnect muted links, and target existing host-backed outputs or physical monitor sinks. JACK live apply is limited
-to existing-port `jack_connect`/`jack_disconnect` routes and existing physical monitor sinks. PulseAudio compatibility
-live apply covers Loopwire-owned null sinks, monitor loopbacks, and matched stream controls.
+disconnect muted links, preserve muted route gain values, and target existing host-backed outputs or physical monitor
+sinks. JACK live apply is limited to existing-port `jack_connect`/`jack_disconnect` routes, muted route disconnects
+that can preserve muted gain values, and existing physical monitor sinks. PulseAudio compatibility live apply covers
+Loopwire-owned null sinks, monitor loopbacks, and matched stream controls.
 Command-backed DSP providers can be inspected with `pnpm dsp:plan` and explicitly exercised with `pnpm dsp:verify`
 before they are wired into background restore. Release artifacts install `loopwire-dsp-provider`, a bundled file-backed
 provider for local preflight and restore-contract smoke. It persists seeded source buffers and rendered outputs, but it

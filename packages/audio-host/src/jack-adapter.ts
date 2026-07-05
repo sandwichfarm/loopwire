@@ -510,7 +510,7 @@ function validateJackConfiguration(configuration: HostRuntimeConfiguration): Hos
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
 
   for (const route of configuration.routes ?? []) {
-    if (route.gain !== undefined && route.gain !== 1) {
+    if (!route.muted && route.gain !== undefined && route.gain !== 1) {
       return {
         ok: false,
         message: `Route ${route.id} has gain ${route.gain}; native JACK connections only support unity gain for now`

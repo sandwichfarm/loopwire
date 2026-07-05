@@ -610,6 +610,40 @@ describe("createPipeWireGraphRuntimeAdapter", () => {
     expect(calls).toEqual([]);
   });
 
+  it("allows non-unity gain on muted PipeWire routes", async () => {
+    const mutedConfiguration: HostRuntimeConfiguration = {
+      ...pipeWireConfiguration,
+      routes: [{ id: "mic-program", from: "mic", to: "program", gain: 0.5, muted: true }]
+    };
+    const { runner, calls } = createRecordingRunner({
+      "pw-link -o": { stdout: sourcePorts() },
+      "pw-link -i": { stdout: targetPorts() },
+      "pw-link -l": {
+        stdout: pipeWireLinks([
+          ["alsa_input.studio:capture_FL", "loopwire_program:playback_FL"],
+          ["alsa_input.studio:capture_FR", "loopwire_program:playback_FR"]
+        ])
+      },
+      "pw-link -d alsa_input.studio:capture_FL loopwire_program:playback_FL": { stdout: "" },
+      "pw-link -d alsa_input.studio:capture_FR loopwire_program:playback_FR": { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(mutedConfiguration);
+
+    expect(result).toEqual({
+      ok: true,
+      message: "Unlinked 2 muted PipeWire link pair(s); Linked 0 PipeWire port pair(s); 0 already linked"
+    });
+    expect(calls).toEqual([
+      "pw-link -o",
+      "pw-link -i",
+      "pw-link -l",
+      "pw-link -d alsa_input.studio:capture_FL loopwire_program:playback_FL",
+      "pw-link -d alsa_input.studio:capture_FR loopwire_program:playback_FR"
+    ]);
+  });
+
 });
 
 function sourcePorts(): string {

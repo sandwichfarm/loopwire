@@ -67,14 +67,15 @@ This command does not create virtual devices or change host routes.
 - unlink only the configured PipeWire port pairs,
 - destroy the selected configuration's Loopwire-owned virtual output and monitor sinks during unload or rollback,
 - roll back links created before a later link fails,
-- reject unsupported non-unity route gain before attempting host commands,
+- reject unsupported non-unity route gain on unmuted routes before attempting host commands,
 - run in dry-run mode by default.
 
 This native PipeWire path does not yet apply route gain controls. Route mute is enforced by disconnecting the
 configured existing link. Monitor routing can use a Loopwire-owned virtual monitor sink or an existing target sink
 `deviceName`. Its route-control semantics are reported as link-only with mute support. When non-100% route gain blocks
 native live apply, the desktop preflight names the affected routes and offers the safe repair path: reset those route
-gains to 100%, or switch to a graph-edge/DSP-capable backend once one is available.
+gains to 100%, or switch to a graph-edge/DSP-capable backend once one is available. Muted routes may keep their saved
+non-100% gain value because native apply disconnects those links instead of applying gain.
 
 `@loopwire/audio-host` includes a native JACK adapter that uses `jack_lsp`, `jack_connect`, and `jack_disconnect`. It
 can:
@@ -90,7 +91,7 @@ can:
 - verify muted route connections are disconnected,
 - disconnect only the configured JACK port pairs,
 - roll back connections created before a later connection fails,
-- reject unsupported non-unity route gain before attempting host commands,
+- reject unsupported non-unity route gain on unmuted routes before attempting host commands,
 - fail closed before `jack_connect` when required host or Loopwire-owned JACK ports are missing,
 - run in dry-run mode by default.
 
@@ -105,8 +106,9 @@ and verifies the deterministic Loopwire-owned client names and suggested channel
 runtime failures, and the command-backed provider arguments stay aligned on the expected repair target. The desktop live-apply preflight is
 stricter: it requires JACK endpoints to be explicitly bound to existing ports before arming, so users see the repair
 action before a host apply attempt. Non-100% route gain blockers use the same repair wording as PipeWire: reset the
-affected route gains to 100%, or switch to a graph-edge/DSP-capable backend once one is available. Its route-control
-semantics are reported as link-only with mute support.
+affected unmuted route gains to 100%, or switch to a graph-edge/DSP-capable backend once one is available. Muted
+routes may keep their saved non-100% gain value because native apply disconnects those connections instead of applying
+gain. Its route-control semantics are reported as link-only with mute support.
 
 For automation or pro-audio session templates, run:
 

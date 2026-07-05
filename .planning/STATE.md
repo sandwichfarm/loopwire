@@ -3,8 +3,9 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T20:00:42+02:00"
-last_activity: 2026-07-05 - Agent-ready hosted-check help now matches commit-scoped behavior
+last_updated: "2026-07-05T20:18:05+02:00"
+last_activity: 2026-07-05 - Muted native routes can retain saved non-unity gain while PipeWire/JACK apply disconnects
+  links instead of applying gain
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `release:agent-ready --help` now describes hosted checks as commit-scoped, matching the
-enforced `--require-hosted-checks` behavior and its fake-GitHub contract coverage. Phase 12 remains gated on public
-GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - muted native PipeWire/JACK routes may retain saved non-100% gain values while live apply
+disconnects those links/connections instead of applying gain. Phase 12 remains gated on public GitHub Release install,
+Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,12 @@ GitHub Release install, Bunny deployment proof, final proof workflow success, an
 
 ## Verification Log
 
+- 2026-07-05 Muted native-route gain preservation: desktop live-apply preflight and native PipeWire/JACK runtime
+  validation now ignore non-unity gain on muted routes while keeping endpoint/port requirements strict, because native
+  apply disconnects muted links/connections instead of applying route gain. Focused validation passed:
+  `pnpm --filter @loopwire/desktop test -- live-apply-preflight`, `pnpm --filter @loopwire/audio-host test --
+  pipewire-adapter jack-adapter`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, and
+  `git diff --check`. Full validation passed: `pnpm check`.
 - 2026-07-05 Docs hero screenshot refresh: `product-screenshot.svg` now depicts the current desktop Settings panel
   with audio backend, host apply, window chrome, and restore-on-boot cards, and the VitePress hero stacking now keeps
   that media visible above the fold instead of burying it behind the page background. Focused validation passed:
