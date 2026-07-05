@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T11:34:57+02:00"
-last_activity: 2026-07-05 - Docs deployment proof fetch paths fail closed
+last_updated: "2026-07-05T11:48:20+02:00"
+last_activity: 2026-07-05 - GitHub secret helper prints env-file template
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Docs deployment proof fetching now rejects unsafe custom docs-dist, manifest, and
-env-file paths before rewriting local proof outputs or rendering Bunny secret recovery commands. Phase 12 remains gated
-on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --print-env-template` now prints the same no-value
+release-secret env-file template as `.env.example`, keeping the Bunny/docs/release key ceremony available from the
+helper itself. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment
+proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,14 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
 
 ## Verification Log
 
+- 2026-07-05 GitHub secret env template print mode: `scripts/setup-github-secrets.sh --print-env-template` now emits
+  the no-value release-secret env-file template accepted by `--env-file`, matching `.env.example` byte-for-byte. This
+  keeps the Bunny storage, live-docs hostname, and release signing key-file handoff available from the helper without
+  printing or requiring secret values. `scripts/verify-scripts.sh` compares the helper output against `.env.example`;
+  release docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the operator command. Focused
+  validation passed: `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  direct `--print-env-template` byte-for-byte comparison against `.env.example`; `bash scripts/verify-docs.sh`;
+  `pnpm verify:scripts`; and `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Docs deployment proof fetch path hardening: `scripts/fetch-docs-deployment-proof.sh` now validates
   `--docs-dist`, `--manifest`, and optional `--env-file` before creating, removing, rewriting, or rendering docs
   deployment proof paths. Docs dist and manifest outputs stay repo-relative, while env-file handoff paths may be

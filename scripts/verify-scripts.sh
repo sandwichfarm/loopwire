@@ -5105,6 +5105,12 @@ if bash scripts/setup-github-secrets.sh \
   echo "verify-scripts: GitHub secret helper accepted a directory secret-list artifact" >&2
   exit 1
 fi
+github_secret_env_template="$tmp_dir/setup-github-secrets-env-template"
+bash scripts/setup-github-secrets.sh --print-env-template >"$github_secret_env_template"
+cmp -s .env.example "$github_secret_env_template" || {
+  echo "verify-scripts: GitHub secret helper env template drifted from .env.example" >&2
+  exit 1
+}
 secret_check_ok="$(
   PATH="$fake_gh_dir:$PATH" \
     bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check

@@ -14,6 +14,7 @@ secret_list_file=""
 dry_run="false"
 check_mode="false"
 print_required="false"
+print_env_template="false"
 scope="final"
 storage_zone_explicit="false"
 access_key_explicit="false"
@@ -36,6 +37,7 @@ Usage:
                           [--env-file FILE]
   setup-github-secrets.sh --repo owner/name --check [--scope deploy|final] [--secret-list-file FILE]
   setup-github-secrets.sh --print-required [--scope deploy|final]
+  setup-github-secrets.sh --print-env-template
   setup-github-secrets.sh --repo owner/name --dry-run [secret options]
 
 Environment fallback:
@@ -50,6 +52,7 @@ Env files:
   --env-file accepts simple KEY=VALUE lines for the same environment names above.
   It also accepts LOOPWIRE_RELEASE_PRIVATE_KEY_FILE for a local private-key path.
   Command-line flags override env-file values.
+  --print-env-template prints the committed no-value template accepted by --env-file.
 
 Secret-list files:
   --secret-list-file accepts saved `gh secret list` output for offline check-mode rehearsal.
@@ -99,6 +102,20 @@ Optional GitHub secrets:
   BUNNY_STORAGE_ENDPOINT
   BUNNY_REMOTE_PREFIX
 SECRETS
+}
+
+print_env_template() {
+  cat <<'ENV_TEMPLATE'
+# Local release-secret input template for scripts/setup-github-secrets.sh --env-file.
+# Copy to an uncommitted path such as /secure/loopwire-release-secrets.env.
+BUNNY_STORAGE_ZONE=
+BUNNY_ACCESS_KEY=
+BUNNY_STORAGE_ENDPOINT=
+BUNNY_PULL_ZONE_HOSTNAME=
+BUNNY_REMOTE_PREFIX=
+LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=
+LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=packaging/release-signing-public.pem
+ENV_TEMPLATE
 }
 
 require_gh() {
@@ -607,6 +624,10 @@ while [ "$#" -gt 0 ]; do
       print_required="true"
       shift
       ;;
+    --print-env-template)
+      print_env_template="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -623,6 +644,11 @@ validate_scope
 
 if [ "$print_required" = "true" ]; then
   print_required
+  exit 0
+fi
+
+if [ "$print_env_template" = "true" ]; then
+  print_env_template
   exit 0
 fi
 
