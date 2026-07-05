@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T16:49:54+02:00"
-last_activity: 2026-07-05 - Release status reuses verified Deploy Docs run ids
+last_updated: "2026-07-05T17:04:41+02:00"
+last_activity: 2026-07-05 - Release status verifies release tag refs
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:status` now reuses the already verified Deploy Docs workflow run id when
-printing missing-manifest docs proof recovery commands, so the docs proof fetch path and final proof handoff are bound
-to the same successful run instead of a second unverified lookup. Phase 12 remains gated on public GitHub Release
-install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:status` now resolves the live GitHub `refs/tags/<tag>` object, follows
+annotated tags to their target commit, and blocks final release status when that commit does not match `--git-head`.
+Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ install, Bunny deployment proof, final proof workflow success, and operator-run 
 
 ## Verification Log
 
+- 2026-07-05 Release status tag-ref proof: `scripts/audit-final-release-state.sh` now verifies the live GitHub release
+  tag ref after the release object probe and before downloadable evidence archive checks. Lightweight tags must point
+  at `--git-head`; annotated tags are dereferenced and their target commit must point at `--git-head`. The fake GitHub
+  fixture in `scripts/verify-scripts.sh` now covers mismatched tag refs and annotated-tag success. Focused validation
+  passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm verify:scripts`; `pnpm verify:docs`; and `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --git-head $(git rev-parse HEAD) --skip-gh` with expected operator-gated blockers. Full validation passed:
+  `pnpm check`.
 - 2026-07-05 Release status Deploy Docs run-id reuse: `scripts/audit-final-release-state.sh` now returns the already
   verified `latest_docs_deployment_run_id` from `docs_deployment_run_id_hint` before it falls back to another live
   `gh run list` lookup. The fake GitHub fixture in `scripts/verify-scripts.sh` now traces Deploy Docs run-list calls

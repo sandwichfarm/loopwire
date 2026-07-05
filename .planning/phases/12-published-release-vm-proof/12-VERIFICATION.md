@@ -5,6 +5,13 @@
 
 ## Evidence Passed
 
+- `scripts/audit-final-release-state.sh` now resolves the live GitHub release tag ref, dereferences annotated tags,
+  and rejects final release status when the tag target commit does not match `--git-head`.
+- `pnpm verify:scripts` passed with fake GitHub coverage for mismatched release tag refs and annotated tag refs that
+  target the expected commit.
+- `pnpm verify:docs`, `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse
+  HEAD) --skip-gh`, and `pnpm check` passed after the release tag-ref proof update. `release:status` still blocks on
+  the expected operator-deferred Bunny secrets, docs deployment manifest, and published VM evidence.
 - `scripts/audit-final-release-state.sh` now reuses the already verified Deploy Docs workflow run id for missing
   docs-manifest recovery commands, avoiding a second unverified `gh run list` lookup before rendering
   `pnpm release:fetch-docs-proof`.

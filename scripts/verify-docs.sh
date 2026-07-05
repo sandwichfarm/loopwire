@@ -679,9 +679,11 @@ assert_contains "apps/docs/docs/developer/release.md" "wrong file or directory t
 assert_contains "apps/docs/docs/developer/release.md" "uses that same root"
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"
 assert_contains "apps/docs/docs/developer/release.md" "docs deployment manifest"
+assert_contains "apps/docs/docs/developer/release.md" "release tag ref"
+assert_contains "apps/docs/docs/developer/release.md" 'refs that do not resolve to `--git-head`'
 assert_contains "apps/docs/docs/developer/release.md" "signed downloadable release evidence archive"
 assert_contains "apps/docs/docs/developer/release.md" 'release-evidence.json` does not match'
-assert_contains "apps/docs/docs/developer/release.md" "selected tag/repo/commit"
+assert_contains "apps/docs/docs/developer/release.md" "tag/repo/commit"
 assert_contains "apps/docs/docs/developer/release.md" "same verified run id"
 assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, Deploy Docs, and Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "successful CI, docs, or proof run for an older commit"
@@ -695,6 +697,7 @@ assert_contains "apps/docs/docs/developer/release.md" "fails before any secret w
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "release private-key, and release"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "cannot leave partial docs proof behind"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "second unverified run lookup"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "including annotated tags"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "before reading those artifacts"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"

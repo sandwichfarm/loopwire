@@ -4605,9 +4605,75 @@ NODE
         *)
           echo "unexpected fake gh api arg: $1" >&2
           exit 64
-          ;;
+        ;;
       esac
     done
+    if [[ "$api_path" =~ ^repos/sandwichfarm/loopwire/git/ref/tags/v0[.]1[.]0$ ]]; then
+      case "${LOOPWIRE_FAKE_GH_TAG_MODE:-matching}" in
+        matching)
+          cat <<'JSON'
+{
+  "ref": "refs/tags/v0.1.0",
+  "object": {
+    "type": "commit",
+    "sha": "0123456789abcdef0123456789abcdef01234567"
+  }
+}
+JSON
+          ;;
+        annotated)
+          cat <<'JSON'
+{
+  "ref": "refs/tags/v0.1.0",
+  "object": {
+    "type": "tag",
+    "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
+JSON
+          ;;
+        wrong-commit)
+          cat <<'JSON'
+{
+  "ref": "refs/tags/v0.1.0",
+  "object": {
+    "type": "commit",
+    "sha": "ffffffffffffffffffffffffffffffffffffffff"
+  }
+}
+JSON
+          ;;
+        missing)
+          echo "tag ref not found" >&2
+          exit 1
+          ;;
+        *)
+          echo "unexpected LOOPWIRE_FAKE_GH_TAG_MODE: ${LOOPWIRE_FAKE_GH_TAG_MODE}" >&2
+          exit 64
+          ;;
+      esac
+      exit 0
+    fi
+    if [[ "$api_path" =~ ^repos/sandwichfarm/loopwire/git/tags/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$ ]]; then
+      case "${LOOPWIRE_FAKE_GH_TAG_MODE:-matching}" in
+        annotated)
+          cat <<'JSON'
+{
+  "tag": "v0.1.0",
+  "object": {
+    "type": "commit",
+    "sha": "0123456789abcdef0123456789abcdef01234567"
+  }
+}
+JSON
+          ;;
+        *)
+          echo "unexpected annotated tag dereference mode: ${LOOPWIRE_FAKE_GH_TAG_MODE}" >&2
+          exit 64
+          ;;
+      esac
+      exit 0
+    fi
     [[ "$api_path" =~ ^repos/sandwichfarm/loopwire/actions/runs/[0-9]+/artifacts$ ]] || {
       echo "unexpected fake gh api path: $api_path" >&2
       exit 64
@@ -5255,6 +5321,50 @@ grep -F "GitHub Release object is missing required asset(s): loopwire-vm-evidenc
     echo "verify-scripts: release status did not block missing release assets" >&2
     exit 1
   }
+release_status_wrong_tag_ref_log="$tmp_dir/release-status-wrong-tag-ref.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_TAG_MODE=wrong-commit \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_wrong_tag_ref_log" 2>&1; then
+  echo "verify-scripts: release status accepted a GitHub Release whose tag ref points at the wrong commit" >&2
+  exit 1
+fi
+grep -F "blocked: release tag ref" "$release_status_wrong_tag_ref_log" >/dev/null || {
+  echo "verify-scripts: release status did not block a mismatched release tag ref" >&2
+  exit 1
+}
+grep -F "release tag ref resolves to ffffffffffffffffffffffffffffffffffffffff" \
+  "$release_status_wrong_tag_ref_log" >/dev/null || {
+    echo "verify-scripts: release status did not report the mismatched release tag commit" >&2
+    exit 1
+  }
+release_status_annotated_tag_ref_log="$tmp_dir/release-status-annotated-tag-ref.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_TAG_MODE=annotated \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_annotated_tag_ref_log" 2>&1; then
+  echo "verify-scripts: release status accepted missing evidence archives after annotated tag ref smoke" >&2
+  exit 1
+fi
+grep -F "ok: release tag ref" "$release_status_annotated_tag_ref_log" >/dev/null || {
+  echo "verify-scripts: release status did not accept an annotated release tag targeting the expected commit" >&2
+  exit 1
+}
+grep -F "release tag ref verified: v0.1.0 -> 0123456789abcdef0123456789abcdef01234567" \
+  "$release_status_annotated_tag_ref_log" >/dev/null || {
+    echo "verify-scripts: release status did not report the annotated tag target commit" >&2
+    exit 1
+  }
 release_status_missing_release_archive_asset_log="$tmp_dir/release-status-missing-release-archive-asset.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \
@@ -5278,6 +5388,10 @@ grep -F "fake release download dir is not configured" \
     echo "verify-scripts: release status did not preserve release archive download failure details" >&2
     exit 1
   }
+grep -F "ok: release tag ref" "$release_status_missing_release_archive_asset_log" >/dev/null || {
+  echo "verify-scripts: release status did not verify the release tag ref before release archive download" >&2
+  exit 1
+}
 release_status_release_only_dir="$tmp_dir/release-status-release-only-dir"
 release_status_release_archive_root="$tmp_dir/release-status-release-archive-root"
 mkdir -p "$release_status_release_only_dir" "$release_status_release_archive_root"

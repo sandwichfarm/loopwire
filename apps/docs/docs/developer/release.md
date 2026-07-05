@@ -261,13 +261,14 @@ pnpm release:status -- \
 ```
 
 The status command checks required GitHub secrets, the release signing public key, the GitHub Release object and
-required release assets, the signed downloadable release evidence archive, the signed downloadable VM evidence archive
-manifest, completed successful CI, Deploy Docs, and Final Release Proof workflow runs, the docs deployment manifest,
-published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It exits nonzero until every
-final proof surface is present. Draft releases, prereleases, mismatched release tags, releases missing canonical
-tarballs, signed checksums, release evidence, or VM evidence archives, release evidence archives whose
-`release-evidence.json` does not match the selected tag/repo/commit, and VM evidence archives whose signed manifest
-does not match the selected tag and `vm/targets.tsv` target set are blockers. Empty, failed, cancelled, or still-running
+required release assets, the release tag ref, the signed downloadable release evidence archive, the signed downloadable
+VM evidence archive manifest, completed successful CI, Deploy Docs, and Final Release Proof workflow runs, the docs
+deployment manifest, published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It exits
+nonzero until every final proof surface is present. Draft releases, prereleases, mismatched release tags, release tag
+refs that do not resolve to `--git-head`, releases missing canonical tarballs, signed checksums, release evidence, or
+VM evidence archives, release evidence archives whose `release-evidence.json` does not match the selected
+tag/repo/commit, and VM evidence archives whose signed manifest does not match the selected tag and `vm/targets.tsv`
+target set are blockers. Empty, failed, cancelled, or still-running
 workflow lists are release blockers, even when the GitHub API call itself succeeds. The workflow run
 `headSha` and docs deployment manifest source commit must match `--git-head`, which defaults to the current checkout
 when omitted, so a successful CI, docs, or proof run for an older commit cannot satisfy final status. The docs deployment
