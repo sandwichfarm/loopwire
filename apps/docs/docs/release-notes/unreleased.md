@@ -210,6 +210,8 @@ These notes describe source-tree progress. They are not a public release announc
 - New `pnpm release:agent-ready` verifies repo-side release readiness and handoff rendering without secrets or GitHub
   mutations, then reminds operators that strict final proof still requires published release assets, Bunny deployment
   proof, final-proof workflow success, and VM evidence from operator-controlled hosts.
+- `pnpm release:agent-ready -- --require-hosted-checks` now verifies the latest hosted CI and Deploy Docs workflow runs
+  succeeded for the exact release commit before the operator-deferred ceremony continues.
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.

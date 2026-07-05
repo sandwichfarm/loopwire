@@ -6,6 +6,7 @@ tag=""
 git_head=""
 public_key="packaging/release-signing-public.pem"
 skip_local_gates="false"
+require_hosted_checks="false"
 
 usage() {
   cat <<'USAGE'
@@ -18,11 +19,13 @@ Options:
   --git-head SHA         Expected release/source commit, default current checkout HEAD
   --public-key FILE      Release public key, default packaging/release-signing-public.pem
   --skip-local-gates     Only verify offline release readiness and handoff rendering
+  --require-hosted-checks
+                         Require latest CI and Deploy Docs workflow runs to be successful for --git-head
 
 This command is read-only. It does not set secrets, create tags, dispatch workflows, upload assets, launch VMs, or
 mutate host audio. Passing means the repository-side automation is ready for the operator-deferred release ceremony;
 strict final proof still requires published artifacts, Bunny deployment proof, final proof workflow success, and VM
-evidence captured from operator-controlled hosts.
+evidence captured from operator-controlled hosts. Hosted checks are optional because they require GitHub API access.
 USAGE
 }
 
@@ -88,6 +91,81 @@ assert_handoff_contains() {
     fail "release handoff is missing expected content: $needle"
 }
 
+run_hosted_workflow_probe() {
+  local label="$1"
+  local workflow="$2"
+  local output
+  local validation
+
+  echo "==> $label"
+  if ! output="$(
+    gh run list --repo "$repo" --workflow "$workflow" --limit 1 \
+      --json databaseId,status,conclusion,headSha,url 2>&1
+  )"; then
+    echo "blocked: $label" >&2
+    [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+    echo >&2
+    return 1
+  fi
+
+  if ! validation="$(node - "$label" "$git_head" "$output" <<'NODE' 2>&1
+const [label, expectedHead, raw] = process.argv.slice(2);
+let runs;
+
+try {
+  runs = JSON.parse(raw);
+} catch (error) {
+  console.error(`${label} did not return JSON: ${error.message}`);
+  process.exit(1);
+}
+
+if (!Array.isArray(runs)) {
+  console.error(`${label} did not return a workflow run array.`);
+  process.exit(1);
+}
+
+if (runs.length === 0) {
+  console.error(`${label} did not return any workflow runs.`);
+  process.exit(1);
+}
+
+const run = runs[0] ?? {};
+if (run.status !== "completed") {
+  console.error(`${label} latest run is not completed: ${run.status ?? "unknown"}.`);
+  process.exit(1);
+}
+
+if (run.conclusion !== "success") {
+  console.error(`${label} latest completed run did not succeed: ${run.conclusion ?? "unknown"}.`);
+  process.exit(1);
+}
+
+if (run.headSha !== expectedHead) {
+  console.error(`${label} latest run is for ${run.headSha ?? "unknown"}, not ${expectedHead}.`);
+  process.exit(1);
+}
+
+const fields = [
+  run.databaseId ? `databaseId=${run.databaseId}` : null,
+  run.headSha ? `headSha=${run.headSha}` : null,
+  run.url ? `url=${run.url}` : null
+].filter(Boolean);
+console.log(`latest run verified: ${fields.join(" ")}`);
+NODE
+  )"; then
+    echo "blocked: $label" >&2
+    [ -z "$validation" ] || printf '%s\n' "$validation" | indent >&2
+    [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
+    echo >&2
+    return 1
+  fi
+
+  echo "ok: $label"
+  [ -z "$validation" ] || printf '%s\n' "$validation" | indent
+  [ -z "$output" ] || printf '%s\n' "$output" | indent
+  echo
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --)
@@ -111,6 +189,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --skip-local-gates)
       skip_local_gates="true"
+      shift
+      ;;
+    --require-hosted-checks)
+      require_hosted_checks="true"
       shift
       ;;
     -h | --help)
@@ -155,6 +237,14 @@ assert_handoff_contains "$handoff" "operator-deferred: pass --release-private-ke
 echo "ok: final release handoff rendering"
 printf '%s\n' "$handoff" | indent
 echo
+
+if [ "$require_hosted_checks" = "true" ]; then
+  run_hosted_workflow_probe "latest hosted CI workflow run" ci.yml
+  run_hosted_workflow_probe "latest hosted Deploy Docs workflow run" deploy-docs.yml
+else
+  echo "skipped: hosted workflow checks (--require-hosted-checks not set)"
+  echo
+fi
 
 if [ "$skip_local_gates" != "true" ]; then
   run_gate "workflow contracts" bash scripts/verify-github-workflows.sh

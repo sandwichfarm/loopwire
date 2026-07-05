@@ -2497,6 +2497,14 @@
   `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
   reports_packaged_background_launcher_preflight_success -- --nocapture`; `cargo fmt --manifest-path
   apps/desktop/src-tauri/Cargo.toml --check`; and `pnpm check`.
+- `scripts/verify-agent-release-ready.sh` now accepts `--require-hosted-checks`, which verifies the latest hosted
+  `ci.yml` and `deploy-docs.yml` runs are completed, successful, and tied to the exact `--git-head` before continuing
+  the operator-deferred release ceremony. The default remains offline/local, and `scripts/verify-scripts.sh` covers the
+  hosted path with a fake `gh` fixture. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh`; `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  $(git rev-parse HEAD) --require-hosted-checks --skip-local-gates`, which verified CI run `28740130399` and Deploy
+  Docs run `28740130393` for commit `ea7792c56eb9bc5c5f7dcf67478b266dca86d851`; `bash scripts/verify-scripts.sh`;
+  `pnpm verify:docs`; `git diff --check`; added-line length scan; and `pnpm check`.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

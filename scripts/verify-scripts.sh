@@ -242,6 +242,10 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--skip-local-gates" >/de
   echo "verify-scripts: agent-ready release help is missing skip-local-gates support" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--require-hosted-checks" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing hosted-check support" >&2
+  exit 1
+}
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "operator-deferred release ceremony" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing operator-deferred wording" >&2
   exit 1
@@ -428,10 +432,80 @@ printf '%s\n' "$agent_release_ready_plan" |
     exit 1
   }
 printf '%s\n' "$agent_release_ready_plan" |
+  grep -F "skipped: hosted workflow checks (--require-hosted-checks not set)" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not report skipped hosted checks" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_plan" |
   grep -F "Re-run strict final proof from published GitHub Release and Bunny.net surfaces." >/dev/null || {
     echo "verify-scripts: agent-ready release smoke is missing strict final-proof reminder" >&2
     exit 1
   }
+agent_ready_fake_bin="$(mktemp -d)"
+cat >"$agent_ready_fake_bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+workflow=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --workflow)
+      workflow="${2:?missing --workflow value}"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+case "$workflow" in
+  ci.yml)
+    printf '%s%s\n' \
+      '[{"databaseId":111,"status":"completed","conclusion":"success",' \
+      '"headSha":"0123456789abcdef0123456789abcdef01234567","url":"https://example.test/ci"}]'
+    ;;
+  deploy-docs.yml)
+    printf '%s%s\n' \
+      '[{"databaseId":222,"status":"completed","conclusion":"success",' \
+      '"headSha":"0123456789abcdef0123456789abcdef01234567","url":"https://example.test/docs"}]'
+    ;;
+  *)
+    echo "unexpected workflow: $workflow" >&2
+    exit 1
+    ;;
+esac
+EOF
+chmod +x "$agent_ready_fake_bin/gh"
+agent_release_ready_hosted_plan="$(
+  PATH="$agent_ready_fake_bin:$PATH" bash scripts/verify-agent-release-ready.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --require-hosted-checks \
+    --skip-local-gates
+)"
+printf '%s\n' "$agent_release_ready_hosted_plan" |
+  grep -F "ok: latest hosted CI workflow run" >/dev/null || {
+    echo "verify-scripts: agent-ready release did not verify hosted CI" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_hosted_plan" |
+  grep -F "ok: latest hosted Deploy Docs workflow run" >/dev/null || {
+    echo "verify-scripts: agent-ready release did not verify hosted docs" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_hosted_plan" |
+  grep -F "databaseId=111 headSha=0123456789abcdef0123456789abcdef01234567" >/dev/null || {
+    echo "verify-scripts: agent-ready release hosted CI proof is missing run evidence" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_hosted_plan" |
+  grep -F "databaseId=222 headSha=0123456789abcdef0123456789abcdef01234567" >/dev/null || {
+    echo "verify-scripts: agent-ready release hosted docs proof is missing run evidence" >&2
+    exit 1
+  }
+rm -rf "$agent_ready_fake_bin"
 if printf '%s\n' "$agent_release_ready_plan" |
   grep -F "allowed: release notes still carry candidate wording" >/dev/null; then
   echo "verify-scripts: agent-ready release still allows candidate release notes" >&2

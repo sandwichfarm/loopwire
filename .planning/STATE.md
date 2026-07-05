@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T14:02:03+02:00"
-last_activity: 2026-07-05 - Hosted CI background-launcher preflight test made deterministic
+last_updated: "2026-07-05T14:18:37+02:00"
+last_activity: 2026-07-05 - Agent-ready release can require hosted CI and Deploy Docs proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - hosted CI exposed an environment-sensitive packaged background-launcher preflight success
-test that executed a generated shell script from the temp directory. The test now links the packaged launcher candidate
-to the system `true` binary so it still proves the success preflight path without depending on temp-script execution.
-Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:agent-ready -- --require-hosted-checks` now ties the
+operator-deferred release handoff to successful hosted CI and Deploy Docs workflow runs for the exact release commit.
+The new gate verified current live runs `28740130399` (CI) and `28740130393` (Deploy Docs) for commit
+`ea7792c56eb9bc5c5f7dcf67478b266dca86d851`. Phase 12 remains gated on public GitHub Release install,
+Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +85,16 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Hosted release-agent readiness gate: `scripts/verify-agent-release-ready.sh` now accepts
+  `--require-hosted-checks` to verify the latest hosted `ci.yml` and `deploy-docs.yml` runs are completed, successful,
+  and for the exact `--git-head` before continuing the operator-deferred release ceremony. The default remains local
+  and offline-capable, and `scripts/verify-scripts.sh` covers the hosted path with a fake `gh` fixture so CI does not
+  need live GitHub credentials for the script contract. The release guide and unreleased notes document when to use the
+  hosted gate. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh`;
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)
+  --require-hosted-checks --skip-local-gates`, which verified CI run `28740130399` and Deploy Docs run `28740130393`
+  for commit `ea7792c56eb9bc5c5f7dcf67478b266dca86d851`; `bash scripts/verify-scripts.sh`; `pnpm verify:docs`;
+  `git diff --check`; added-line length scan; and `pnpm check`.
 - 2026-07-05 Hosted CI background-launcher preflight stabilization: GitHub Actions CI run `28739869664` failed in
   `reports_packaged_background_launcher_preflight_success` with `assertion failed: status.available` while local
   validation had passed. The Rust test now links the packaged launcher candidate to `/bin/true` or `/usr/bin/true`
