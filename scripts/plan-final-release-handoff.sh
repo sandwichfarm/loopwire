@@ -349,6 +349,7 @@ reject_unsafe_value "$support_matrix" "support matrix"
 reject_unsafe_value "$secret_list_file" "secret-list file"
 
 docs_run_id="${docs_deployment_run_id:-<docs-deployment-run-id>}"
+secret_env_file="${env_file:-/secure/loopwire-release-secrets.env}"
 release_evidence_asset="${release_evidence_asset:-loopwire-release-evidence-${tag}.tar.gz}"
 vm_evidence_asset="${vm_evidence_asset:-loopwire-vm-evidence-${tag}.tar.gz}"
 
@@ -367,8 +368,12 @@ echo "1. Verify agent-ready release automation for this exact commit:"
 print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
   --git-head "$git_head" --public-key "$public_key" --require-hosted-checks
 echo
-echo "2. Verify required GitHub secrets are ready:"
+echo "2. Set required GitHub release secrets from the filled local env file:"
+print_command bash scripts/setup-github-secrets.sh --repo "$repo" --scope final --env-file "$secret_env_file"
+echo
+echo "3. Verify required GitHub secrets are ready:"
 secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
+secret_check+=(--scope final)
 if [ -n "$env_file" ]; then
   secret_check+=(--env-file "$env_file")
 fi
@@ -377,31 +382,31 @@ if [ -n "$secret_list_file" ]; then
 fi
 print_command "${secret_check[@]}"
 echo
-echo "3. Run strict release readiness before tagging or dispatch:"
+echo "4. Run strict release readiness before tagging or dispatch:"
 readiness=(pnpm verify:release-readiness -- --repo "$repo" --tag "$tag" --public-key "$public_key")
 if [ -n "$secret_list_file" ]; then
   readiness+=(--secret-list-file "$secret_list_file")
 fi
 print_command "${readiness[@]}"
 echo
-echo "4. Create or push the reviewed release tag after readiness passes:"
+echo "5. Create or push the reviewed release tag after readiness passes:"
 print_command git tag -a "$tag" "$git_head" -m "Loopwire ${tag}"
 print_command git push origin "refs/tags/${tag}"
 echo
-echo "5. Dispatch the GitHub Release workflow after the tag exists:"
+echo "6. Dispatch the GitHub Release workflow after the tag exists:"
 print_command gh workflow run release.yml --repo "$repo" --ref "$tag" -f "tag=${tag}"
 echo
-echo "6. Dispatch docs deployment for the same release ref:"
+echo "7. Dispatch docs deployment for the same release ref:"
 print_command gh workflow run deploy-docs.yml --repo "$repo" --ref "$tag"
 echo
-echo "7. Download and verify docs deployment proof artifacts:"
+echo "8. Download and verify docs deployment proof artifacts:"
 fetch_docs_proof=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head")
 if [ -n "$env_file" ]; then
   fetch_docs_proof+=(--env-file "$env_file")
 fi
 print_command "${fetch_docs_proof[@]}"
 echo
-echo "8. Render the operator VM evidence handoff:"
+echo "9. Render the operator VM evidence handoff:"
 print_command pnpm vm:host-setup -- --all
 print_command pnpm vm:doctor -- --all
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
@@ -423,7 +428,7 @@ else
 fi
 print_command "${vm_prepare[@]}"
 echo
-echo "9. Dispatch final release proof after docs and VM evidence assets exist:"
+echo "10. Dispatch final release proof after docs and VM evidence assets exist:"
 final_proof=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
   -f "tag=${tag}" \
   -f "git_head=${git_head}" \
@@ -439,7 +444,7 @@ fi
 print_command "${final_proof[@]}"
 echo "  expected GitHub Actions run name: Final Release Proof ${tag} @ ${git_head}"
 echo
-echo "10. Local dry-run of the final proof command plan:"
+echo "11. Local dry-run of the final proof command plan:"
 local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
   --git-head "$git_head" \
   --release-evidence-dir ".release-evidence/${tag}-published" \
@@ -456,7 +461,7 @@ else
 fi
 print_command "${local_final[@]}"
 echo
-echo "11. Audit final release status after final proof completes:"
+echo "12. Audit final release status after final proof completes:"
 release_status=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-head "$git_head" \
   --public-key "$public_key" \
   --docs-deployment-run-id "$docs_run_id" \
@@ -472,7 +477,7 @@ print_command "${release_status[@]}"
 
 if [ -z "$docs_deployment_run_id" ]; then
   docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-  docs_run_reminder+="Deploy Docs workflow run id before steps 7, 9, and 11."
+  docs_run_reminder+="Deploy Docs workflow run id before steps 8, 10, and 12."
   echo
   echo "$docs_run_reminder"
 fi

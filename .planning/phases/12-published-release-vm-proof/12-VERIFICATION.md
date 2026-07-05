@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- The final release handoff now prints the command operators run to set final-scope GitHub secrets from the filled
+  local env file, before it prints the read-only `--check` audit. The handoff remains no-side-effect and does not print
+  secret values.
+- Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, rendered `pnpm release:handoff -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output, and `git diff --check`. Full validation
+  passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch,
+  host audio mutation, or support-matrix promotion was performed.
 - `pnpm release:status` now stops published release evidence and VM evidence archive checks at the first missing
   `gh release download` artifact, so absent public releases no longer produce follow-on checksum, extraction, layout,
   or manifest errors for files that were never downloaded.

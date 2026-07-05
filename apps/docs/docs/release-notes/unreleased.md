@@ -101,6 +101,8 @@ These notes describe source-tree progress. They are not a public release announc
   verification evidence, so the failed switch remains actionable after the click.
 - The docs home page product screenshot now has descriptive alt text instead of being hidden as decoration, keeping the
   above-the-fold product preview available to assistive technology.
+- The final release handoff now prints the operator command that sets final-scope GitHub secrets from the filled local
+  env file before the read-only secret audit, without printing or committing secret values.
 - Native-backend live-apply preflight now names routes blocked by non-100% gain and provides a `Reset gains` action
   that restores affected routes to 100% without touching host audio.
 - Native-backend non-100% gain blockers now explain both repair paths: reset affected route gains to 100%, or switch

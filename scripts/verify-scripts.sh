@@ -358,6 +358,17 @@ printf '%s\n' "$release_handoff_plan" |
     echo "verify-scripts: release handoff plan is missing secret env-template setup" >&2
     exit 1
   }
+printf '%s\n' "$release_handoff_plan" |
+  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final" |
+  grep -F -- "--env-file /secure/loopwire-release-secrets.env" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing filled env-file secret setup" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_plan" |
+  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope final" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing explicit final-scope secret check" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "protected GitHub surfaces" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing protected workflow dispatch wording" >&2
   exit 1
@@ -375,6 +386,19 @@ printf '%s\n' "$release_handoff_plan" | grep -F "git push origin refs/tags/v0.1.
 printf '%s\n' "$release_handoff_env_plan" | grep -F "bash scripts/setup-github-secrets.sh" |
   grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
     echo "verify-scripts: release handoff env-file plan did not preserve the secret setup env-file" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_env_plan" |
+  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final" |
+  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not print the secret-setting command" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_env_plan" |
+  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check" |
+  grep -F -- "--scope final" |
+  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan did not print the final-scope secret check" >&2
     exit 1
   }
 printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm release:fetch-docs-proof" |
@@ -484,7 +508,7 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
     exit 1
   }
 release_handoff_docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 7, 9, and 11."
+release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 8, 10, and 12."
 printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "$release_handoff_docs_run_reminder" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2

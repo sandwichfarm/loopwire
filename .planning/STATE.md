@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T23:15:09+02:00"
-last_activity: 2026-07-05 - Release status now stops missing release-archive checks at download failure
+last_updated: "2026-07-06T00:00:13+02:00"
+last_activity: 2026-07-05 - Final release handoff now prints the secret-setting command before the secret audit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:status` now stops published release evidence and VM evidence archive checks
-at the first missing `gh release download` artifact, so absent public releases no longer cascade into checksum,
-extraction, or manifest errors for files that were never downloaded. Phase 12 remains gated on public GitHub Release
-install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:handoff` now prints the final-scope GitHub secret-setting command from the
+filled local env file before the read-only secret audit, so the operator handoff includes the missing source-owned
+bridge between template creation and `--check`. Phase 12 remains gated on public GitHub Release install, Bunny
+deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ install, Bunny deployment proof, final proof workflow success, and operator-run 
 
 ## Verification Log
 
+- 2026-07-05 Final release secret-setting handoff: `scripts/plan-final-release-handoff.sh` now prints
+  `bash scripts/setup-github-secrets.sh --repo <repo> --scope final --env-file <secret-env-file>` before the final
+  secret audit, and the audit command now carries explicit `--scope final`. Focused validation passed:
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm verify:scripts`; `pnpm verify:docs`; rendered `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag
+  v0.1.0 --git-head $(git rev-parse HEAD)` output; and `git diff --check`. Full validation passed: `pnpm check`.
+  No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation,
+  or support-matrix promotion was performed.
 - 2026-07-05 Release status missing-archive fail-fast: `scripts/audit-final-release-state.sh` now wraps release asset
   downloads and returns immediately when a checksum, checksum signature, release evidence archive, or VM evidence
   archive is missing. Live read-only `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
