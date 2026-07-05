@@ -270,6 +270,9 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm release:fetch-docs-proof` now rejects unsafe docs dist, deployment manifest, and env-file paths before it
   rewrites local proof outputs or renders Bunny secret recovery commands, including traversal, URL syntax, glob syntax,
   symlinks, and existing paths with the wrong artifact type.
+- New `pnpm release:select-docs-run` finds a completed successful Deploy Docs run for the expected commit that exposes
+  both docs proof artifacts, and `pnpm release:handoff` now reuses that selected run id across docs proof fetch, final
+  proof dispatch, and final status instead of asking operators to manually replace a placeholder.
 - `pnpm release:handoff` now rejects absolute or parent-traversal VM handoff output paths before rendering VM SSH plan
   and runbook commands.
 - VM evidence asset preparation now rejects unsafe custom `--release-dir` values before dry-run or execution, including

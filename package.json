@@ -19,6 +19,7 @@
     "release:handoff": "bash scripts/plan-final-release-handoff.sh",
     "release:agent-ready": "bash scripts/verify-agent-release-ready.sh",
     "release:status": "bash scripts/audit-final-release-state.sh",
+    "release:select-docs-run": "bash scripts/select-docs-deployment-run.sh",
     "release:fetch-docs-proof": "bash scripts/fetch-docs-deployment-proof.sh",
     "jack:provider": "pnpm --filter @loopwire/audio-host build && node packages/audio-host/dist/jack-ports-cli.js",
     "jack:ports": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-jack-ports.mjs",

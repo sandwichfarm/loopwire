@@ -5,6 +5,19 @@
 
 ## Evidence Passed
 
+- `pnpm release:handoff` now avoids a manual docs-run placeholder by rendering a
+  `docs_deployment_run_id="$(...)"` selector command backed by `pnpm release:select-docs-run`. The selected run id is
+  reused for docs proof fetch, final proof dispatch, and final status. The selector filters Deploy Docs runs by the
+  expected commit, requires completed successful status, and requires both `loopwire-docs` and
+  `loopwire-docs-deployment` artifacts before printing a run id.
+- Focused validation passed: `bash -n scripts/select-docs-deployment-run.sh scripts/plan-final-release-handoff.sh
+  scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`,
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)
+  --allow-dirty --skip-local-gates`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write,
+  release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix
+  promotion was performed.
 - Final Release Proof and `pnpm release:fetch-docs-proof` now verify that the selected Deploy Docs run completed
   successfully for the expected `--git-head` before downloading or trusting docs deployment artifacts. The reusable
   `scripts/verify-workflow-run.sh` helper rejects incomplete, failed, or wrong-commit runs, and release-readiness,

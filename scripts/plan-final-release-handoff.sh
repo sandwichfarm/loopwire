@@ -225,6 +225,10 @@ print_command() {
   printf '  %s\n' "$(shell_join "$@")"
 }
 
+print_raw_command() {
+  printf '  %s\n' "$*"
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --)
@@ -399,12 +403,22 @@ echo
 echo "7. Dispatch docs deployment for the same release ref:"
 print_command gh workflow run deploy-docs.yml --repo "$repo" --ref "$tag"
 echo
-echo "8. Download and verify docs deployment proof artifacts:"
-fetch_docs_proof=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head")
+echo "8. Select, download, and verify docs deployment proof artifacts:"
+fetch_docs_proof_suffix=(--git-head "$git_head")
 if [ -n "$env_file" ]; then
-  fetch_docs_proof+=(--env-file "$env_file")
+  fetch_docs_proof_suffix+=(--env-file "$env_file")
 fi
-print_command "${fetch_docs_proof[@]}"
+if [ -z "$docs_deployment_run_id" ]; then
+  docs_run_selector="$(shell_join bash scripts/select-docs-deployment-run.sh --repo "$repo" --git-head "$git_head")"
+  print_raw_command "docs_deployment_run_id=\"\$($docs_run_selector)\""
+  fetch_docs_proof_prefix="$(shell_join pnpm release:fetch-docs-proof -- --repo "$repo" --run-id)"
+  fetch_docs_proof_suffix_rendered="$(shell_join "${fetch_docs_proof_suffix[@]}")"
+  print_raw_command "${fetch_docs_proof_prefix} \"\$docs_deployment_run_id\" ${fetch_docs_proof_suffix_rendered}"
+else
+  fetch_docs_proof=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id")
+  fetch_docs_proof+=("${fetch_docs_proof_suffix[@]}")
+  print_command "${fetch_docs_proof[@]}"
+fi
 echo
 echo "9. Render the operator VM evidence handoff:"
 print_command pnpm vm:host-setup -- --all
@@ -429,19 +443,26 @@ fi
 print_command "${vm_prepare[@]}"
 echo
 echo "10. Dispatch final release proof after docs and VM evidence assets exist:"
-final_proof=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
+final_proof_prefix=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
   -f "tag=${tag}" \
-  -f "git_head=${git_head}" \
-  -f "docs_deployment_run_id=${docs_run_id}" \
+  -f "git_head=${git_head}")
+final_proof_suffix=(\
   -f "release_evidence_asset=${release_evidence_asset}" \
   -f "vm_evidence_asset=${vm_evidence_asset}")
 if [ -n "$docs_base_url" ]; then
-  final_proof+=(-f "docs_base_url=${docs_base_url}")
+  final_proof_suffix+=(-f "docs_base_url=${docs_base_url}")
 else
-  [ -z "$docs_hostname" ] || final_proof+=(-f "docs_hostname=${docs_hostname}")
-  [ -z "$docs_remote_prefix" ] || final_proof+=(-f "docs_remote_prefix=${docs_remote_prefix}")
+  [ -z "$docs_hostname" ] || final_proof_suffix+=(-f "docs_hostname=${docs_hostname}")
+  [ -z "$docs_remote_prefix" ] || final_proof_suffix+=(-f "docs_remote_prefix=${docs_remote_prefix}")
 fi
-print_command "${final_proof[@]}"
+if [ -z "$docs_deployment_run_id" ]; then
+  final_proof_prefix_rendered="$(shell_join "${final_proof_prefix[@]}")"
+  final_proof_suffix_rendered="$(shell_join "${final_proof_suffix[@]}")"
+  print_raw_command "${final_proof_prefix_rendered} -f \"docs_deployment_run_id=\$docs_deployment_run_id\" ${final_proof_suffix_rendered}"
+else
+  final_proof=("${final_proof_prefix[@]}" -f "docs_deployment_run_id=${docs_run_id}" "${final_proof_suffix[@]}")
+  print_command "${final_proof[@]}"
+fi
 echo "  expected GitHub Actions run name: Final Release Proof ${tag} @ ${git_head}"
 echo
 echo "11. Local dry-run of the final proof command plan:"
@@ -462,22 +483,27 @@ fi
 print_command "${local_final[@]}"
 echo
 echo "12. Audit final release status after final proof completes:"
-release_status=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-head "$git_head" \
-  --public-key "$public_key" \
-  --docs-deployment-run-id "$docs_run_id" \
-  --vm-start-port "$vm_start_port" \
-  --support-matrix "$support_matrix")
+release_status_prefix=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-head "$git_head" \
+  --public-key "$public_key")
+release_status_suffix=(--vm-start-port "$vm_start_port" --support-matrix "$support_matrix")
 if [ -n "$env_file" ]; then
-  release_status+=(--env-file "$env_file")
+  release_status_suffix+=(--env-file "$env_file")
 fi
 if [ -n "$secret_list_file" ]; then
-  release_status+=(--secret-list-file "$secret_list_file")
+  release_status_suffix+=(--secret-list-file "$secret_list_file")
 fi
-print_command "${release_status[@]}"
+if [ -z "$docs_deployment_run_id" ]; then
+  release_status_prefix_rendered="$(shell_join "${release_status_prefix[@]}")"
+  release_status_suffix_rendered="$(shell_join "${release_status_suffix[@]}")"
+  print_raw_command "${release_status_prefix_rendered} --docs-deployment-run-id \"\$docs_deployment_run_id\" ${release_status_suffix_rendered}"
+else
+  release_status=("${release_status_prefix[@]}" --docs-deployment-run-id "$docs_run_id" "${release_status_suffix[@]}")
+  print_command "${release_status[@]}"
+fi
 
 if [ -z "$docs_deployment_run_id" ]; then
-  docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-  docs_run_reminder+="Deploy Docs workflow run id before steps 8, 10, and 12."
+  docs_run_reminder="operator-deferred: run the docs_deployment_run_id selection command after Deploy Docs completes; "
+  docs_run_reminder+="steps 8, 10, and 12 reuse that verified run id."
   echo
   echo "$docs_run_reminder"
 fi

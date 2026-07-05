@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T01:32:53+02:00"
-last_activity: 2026-07-06 - Final proof and docs proof fetch now verify selected Deploy Docs run status and commit
+last_updated: "2026-07-06T01:53:26+02:00"
+last_activity: 2026-07-06 - Release handoff now selects a verified docs deployment run instead of using a placeholder
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - Final Release Proof and `pnpm release:fetch-docs-proof` now verify that the selected
-Deploy Docs run completed successfully for the expected `--git-head` before downloading or trusting docs deployment
-artifacts. This prevents a stale, failed, or wrong-commit Deploy Docs run from satisfying final proof setup. Phase 12
-remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run
-VM evidence.
+Last activity: 2026-07-06 - `pnpm release:handoff` now prints a `docs_deployment_run_id="$(...)"`
+selection command backed by `pnpm release:select-docs-run`, then reuses that verified run id for docs proof fetch,
+final proof dispatch, and final status. The selector requires a completed successful Deploy Docs run for the expected
+commit with both docs proof artifacts. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof,
+final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +85,19 @@ VM evidence.
 
 ## Verification Log
 
+- 2026-07-06 Docs deployment run selection proof: added `scripts/select-docs-deployment-run.sh` and the
+  `pnpm release:select-docs-run` package script. The no-side-effect release handoff now renders a
+  `docs_deployment_run_id="$(...)"` selector command when no run id is pinned, then reuses that value in
+  `pnpm release:fetch-docs-proof`, final proof dispatch, and `pnpm release:status`. The selector filters Deploy Docs
+  runs by `--git-head`, requires completed successful status, and requires both `loopwire-docs` and
+  `loopwire-docs-deployment` artifacts before printing the run id. Focused validation passed: `bash -n
+  scripts/select-docs-deployment-run.sh scripts/plan-final-release-handoff.sh scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh`; `pnpm verify:scripts`; `pnpm verify:docs`; `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`; `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --git-head $(git rev-parse HEAD) --allow-dirty --skip-local-gates`; and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, or support-matrix promotion was performed.
 - 2026-07-06 Deploy Docs run-status proof: added `scripts/verify-workflow-run.sh` and wired it into
   `scripts/fetch-docs-deployment-proof.sh` plus `.github/workflows/final-release-proof.yml`, so selected Deploy Docs
   run IDs must be completed, successful, and for the expected commit before docs deployment artifacts are downloaded or

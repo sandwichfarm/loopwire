@@ -10,6 +10,7 @@ bash -n \
   scripts/stage-release-artifacts.sh \
   scripts/deploy-docs-bunny.sh \
   scripts/verify-docs-live.sh \
+  scripts/select-docs-deployment-run.sh \
   scripts/fetch-docs-deployment-proof.sh \
   scripts/prepare-release-signing-key.sh \
   scripts/render-aur-pkgbuild.sh \
@@ -89,6 +90,10 @@ if (root.scripts["release:agent-ready"] !== "bash scripts/verify-agent-release-r
 }
 if (root.scripts["release:status"] !== "bash scripts/audit-final-release-state.sh") {
   console.error("verify-scripts: root package is missing release:status");
+  process.exit(1);
+}
+if (root.scripts["release:select-docs-run"] !== "bash scripts/select-docs-deployment-run.sh") {
+  console.error("verify-scripts: root package is missing release:select-docs-run");
   process.exit(1);
 }
 if (root.scripts["release:fetch-docs-proof"] !== "bash scripts/fetch-docs-deployment-proof.sh") {
@@ -240,6 +245,7 @@ verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 release_handoff_help="$(bash scripts/plan-final-release-handoff.sh --help)"
 agent_release_ready_help="$(bash scripts/verify-agent-release-ready.sh --help)"
 fetch_docs_proof_help="$(bash scripts/fetch-docs-deployment-proof.sh --help)"
+select_docs_run_help="$(bash scripts/select-docs-deployment-run.sh --help)"
 bash scripts/plan-final-release-handoff.sh -- --help >/dev/null || {
   echo "verify-scripts: release handoff does not accept the package-script argument separator" >&2
   exit 1
@@ -251,6 +257,10 @@ printf '%s\n' "$agent_release_ready_help" |
   }
 printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--run-id ID" >/dev/null || {
   echo "verify-scripts: docs deployment proof helper help is missing run id support" >&2
+  exit 1
+}
+printf '%s\n' "$select_docs_run_help" | grep -F -- "--manifest-artifact NAME" >/dev/null || {
+  echo "verify-scripts: docs deployment run selector help is missing manifest artifact support" >&2
   exit 1
 }
 printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--manifest-artifact NAME" >/dev/null || {
@@ -466,6 +476,10 @@ printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run deploy-docs.yml
   echo "verify-scripts: release handoff plan is missing docs workflow dispatch" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "bash scripts/select-docs-deployment-run.sh" >/dev/null && {
+  echo "verify-scripts: release handoff plan selected a docs run despite an explicit run id" >&2
+  exit 1
+}
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:fetch-docs-proof" |
   grep -F -- "--run-id 123456" |
   grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" >/dev/null || {
@@ -515,6 +529,26 @@ release_handoff_placeholder_plan="$(
     --git-head 0123456789abcdef0123456789abcdef01234567
 )"
 printf '%s\n' "$release_handoff_placeholder_plan" |
+  grep -F 'docs_deployment_run_id="$(bash scripts/select-docs-deployment-run.sh --repo sandwichfarm/loopwire --git-head 0123456789abcdef0123456789abcdef01234567)"' >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing docs-run selection command" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "pnpm release:fetch-docs-proof" |
+  grep -F -- '--run-id "$docs_deployment_run_id"' >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan did not reuse selected docs run for proof fetch" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "gh workflow run final-release-proof.yml" |
+  grep -F -- '-f "docs_deployment_run_id=$docs_deployment_run_id"' >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan did not reuse selected docs run for final proof" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "pnpm release:status" |
+  grep -F -- '--docs-deployment-run-id "$docs_deployment_run_id"' >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan did not reuse selected docs run for status audit" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "1. Verify agent-ready release automation for this exact commit:" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing agent-ready preflight step" >&2
     exit 1
@@ -524,8 +558,8 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
     echo "verify-scripts: release handoff placeholder plan is missing commit-scoped hosted agent-ready command" >&2
     exit 1
   }
-release_handoff_docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 8, 10, and 12."
+release_handoff_docs_run_reminder="operator-deferred: run the docs_deployment_run_id selection command after "
+release_handoff_docs_run_reminder+="Deploy Docs completes; steps 8, 10, and 12 reuse that verified run id."
 printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "$release_handoff_docs_run_reminder" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2
@@ -5118,6 +5152,55 @@ echo "unexpected fake gh args: $*" >&2
 exit 64
 EOF
 chmod +x "$fake_gh_dir/gh"
+if [ "$(
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+    LOOPWIRE_FAKE_GH_ARTIFACT_MODE=ok \
+    PATH="$fake_gh_dir:$PATH" \
+    bash scripts/select-docs-deployment-run.sh \
+      --repo sandwichfarm/loopwire \
+      --git-head 0123456789abcdef0123456789abcdef01234567 \
+      2>"$tmp_dir/select-docs-run.log"
+)" != "123456" ]; then
+  echo "verify-scripts: docs deployment run selector did not print the selected run id" >&2
+  exit 1
+fi
+grep -F "selected Deploy Docs workflow run 123456 for 0123456789abcdef0123456789abcdef01234567" \
+  "$tmp_dir/select-docs-run.log" >/dev/null || {
+    echo "verify-scripts: docs deployment run selector did not report the selected run" >&2
+    exit 1
+  }
+if LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/select-docs-deployment-run.sh \
+    --repo sandwichfarm/loopwire \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    >"$tmp_dir/select-docs-run-missing-artifact.out" \
+    2>"$tmp_dir/select-docs-run-missing-artifact.log"; then
+  echo "verify-scripts: docs deployment run selector accepted a run missing deployment proof" >&2
+  exit 1
+fi
+grep -F "no successful Deploy Docs run for 0123456789abcdef0123456789abcdef01234567 exposed both loopwire-docs and loopwire-docs-deployment" \
+  "$tmp_dir/select-docs-run-missing-artifact.log" >/dev/null || {
+    echo "verify-scripts: docs deployment run selector did not report missing deployment proof" >&2
+    exit 1
+  }
+if LOOPWIRE_FAKE_GH_RUN_MODE=running \
+  LOOPWIRE_FAKE_GH_ARTIFACT_MODE=ok \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/select-docs-deployment-run.sh \
+    --repo sandwichfarm/loopwire \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    >"$tmp_dir/select-docs-run-running.out" \
+    2>"$tmp_dir/select-docs-run-running.log"; then
+  echo "verify-scripts: docs deployment run selector accepted an unfinished run" >&2
+  exit 1
+fi
+grep -F "no completed successful Deploy Docs run found for the expected commit" \
+  "$tmp_dir/select-docs-run-running.log" >/dev/null || {
+    echo "verify-scripts: docs deployment run selector did not report unfinished runs" >&2
+    exit 1
+  }
 LOOPWIRE_FAKE_GH_RUN_MODE=success PATH="$fake_gh_dir:$PATH" \
   bash scripts/verify-workflow-run.sh \
     --repo sandwichfarm/loopwire \

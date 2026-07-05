@@ -217,7 +217,7 @@ into checksum, extraction, or manifest errors for files that were never download
 
 The handoff prints the agent-ready release automation preflight for the exact commit, the required secret check, strict
 release readiness command, reviewed annotated tag command, exact tag push ref, Release workflow dispatch, Deploy Docs
-workflow dispatch, docs deployment proof download, all-target VM host setup and doctor preflights, VM SSH
+workflow dispatch, docs deployment run selection, docs deployment proof download, all-target VM host setup and doctor preflights, VM SSH
 plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local
 final-proof dry-run, followed by a final `pnpm release:status` audit of the published release state. After the
 final-proof dispatch command, it prints the expected GitHub Actions run name that `release:status` will require:
@@ -242,8 +242,11 @@ The fixture mirrors the names that must appear in `gh secret list` output. It in
 operators can save their own names-only list from GitHub and pass that local file to the same `--secret-list-file` flag
 when rehearsing the release handoff on an offline machine.
 
-If the Deploy Docs run id is not known yet, the docs proof and final proof commands include
-`<docs-deployment-run-id>` and print an `operator-deferred` reminder. `--env-file` accepts the same local file used by
+If the Deploy Docs run id is not known yet, the handoff prints a `docs_deployment_run_id="$(...)"`
+assignment using `pnpm release:select-docs-run` / `scripts/select-docs-deployment-run.sh`, then reuses that verified
+run id in the docs proof fetch, final proof dispatch, and final status audit commands. The selector is read-only and
+requires a completed successful Deploy Docs run for the expected commit that exposes both `loopwire-docs` and
+`loopwire-docs-deployment` artifacts. `--env-file` accepts the same local file used by
 `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. Bunny storage credentials
 are ignored by the handoff so access keys never appear in rendered release commands. When `--env-file` is present, the
@@ -259,16 +262,21 @@ rejected before the helper can regenerate `SHA256SUMS` or `SHA256SUMS.sig`.
 After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
 
 ```bash
+docs_deployment_run_id="$(pnpm --silent release:select-docs-run -- \
+  --repo sandwichfarm/loopwire \
+  --git-head "$(git rev-parse HEAD)")"
+
 pnpm release:fetch-docs-proof -- \
   --repo sandwichfarm/loopwire \
-  --run-id <docs-deployment-run-id> \
+  --run-id "$docs_deployment_run_id" \
   --git-head "$(git rev-parse HEAD)" \
   --env-file /secure/loopwire-release-secrets.env
 ```
 
-The helper first verifies that the selected Deploy Docs run completed successfully for the expected `--git-head`, then
-downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is non-dry-run proof for
-the same commit, and writes the default paths consumed by `pnpm release:status`. Downloads and manifest checks are staged
+The selector first finds a commit-scoped Deploy Docs run that completed successfully and exposes both docs proof
+artifacts. The fetch helper then verifies that the selected Deploy Docs run completed successfully for the expected `--git-head`,
+downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is
+non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`. Downloads and manifest checks are staged
 first, so a missing deployment artifact cannot leave partial docs proof in the final local paths. If the deployment
 artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the
 deploy-scope recovery command without reading or printing secret values. Custom `--docs-dist` and `--manifest`
