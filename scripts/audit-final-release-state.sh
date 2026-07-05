@@ -194,7 +194,10 @@ docs_deployment_run_id_hint() {
     return
   fi
 
-  output="$(gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 --json databaseId 2>/dev/null || true)"
+  output="$(
+    gh run list --repo "$repo" --workflow deploy-docs.yml --commit "$expected_git_head" --limit 1 \
+      --json databaseId 2>/dev/null || true
+  )"
   if [ -z "$output" ]; then
     echo "<docs-deployment-run-id>"
     return

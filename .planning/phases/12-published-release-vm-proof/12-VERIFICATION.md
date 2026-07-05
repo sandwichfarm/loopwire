@@ -2645,6 +2645,18 @@
   `headSha` without a 40-character `--commit` filter, while retaining stale-SHA rejection coverage and selected
   Deploy Docs run coverage. No secret write, release tag, public release, Bunny deployment, VM launch, host audio
   mutation, or support-matrix promotion was performed.
+- Final release missing-docs-manifest recovery hints are now commit-scoped when no Deploy Docs run id has already been
+  cached: `docs_deployment_run_id_hint` lists `deploy-docs.yml` with `--commit "$expected_git_head"` before printing a
+  concrete `pnpm release:fetch-docs-proof` handoff. This keeps recovery commands tied to the target release commit even
+  if the first verified Deploy Docs probe could not provide a reusable run id.
+- Focused validation passed for commit-scoped recovery hints: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located `docs_deployment_run_id_hint` and
+  `check_docs_deployment_manifest` before implementation. `bash -n scripts/audit-final-release-state.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, stale Deploy Docs
+  query scan, `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)
+  --skip-gh`, and `pnpm check` passed or failed only on expected operator-deferred final release gates. No secret
+  write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was
+  performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

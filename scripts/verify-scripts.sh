@@ -4549,7 +4549,7 @@ NODE
       run_mode="$LOOPWIRE_FAKE_GH_CI_RUN_MODE"
     fi
     if [ -n "${LOOPWIRE_FAKE_GH_TRACE:-}" ]; then
-      printf '%s\t%s\n' "run list" "$workflow_name" >>"$LOOPWIRE_FAKE_GH_TRACE"
+      printf '%s\t%s\t%s\n' "run list" "$workflow_name" "$commit_filter" >>"$LOOPWIRE_FAKE_GH_TRACE"
     fi
     case "$run_mode" in
       empty)
@@ -5166,6 +5166,11 @@ docs_run_list_count="$(
 )"
 if [ "$docs_run_list_count" != "1" ]; then
   echo "verify-scripts: release status re-queried Deploy Docs instead of reusing verified run id" >&2
+  exit 1
+fi
+if awk -F '\t' '$1 == "run list" && $2 == "deploy-docs.yml" && $3 != "0123456789abcdef0123456789abcdef01234567" { bad++ } END { exit bad ? 0 : 1 }' \
+  "$release_status_docs_run_trace"; then
+  echo "verify-scripts: release status queried Deploy Docs without the expected commit filter" >&2
   exit 1
 fi
 grep -F "Deploy Docs artifacts visible:" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
