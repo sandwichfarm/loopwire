@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T21:01:48+02:00"
-last_activity: 2026-07-05 - Desktop preview smoke proof now exercises hidden-monitor recovery in Chromium
+last_updated: "2026-07-05T21:15:28+02:00"
+last_activity: 2026-07-05 - Final-proof secret-list rehearsal now has a value-free committed fixture
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm verify:desktop-preview` now builds the desktop app, starts Vite preview, drives
-system Chromium through CDP, verifies hidden-monitor `Show all` recovery on desktop and mobile viewports, checks for
-horizontal overflow, and writes screenshots for review. Phase 12 remains gated on public GitHub Release install, Bunny
+Last activity: 2026-07-05 - final-proof secret-list rehearsal now has a committed names-only fixture that
+`verify:scripts` runs through `setup-github-secrets.sh --check --scope final`, proving the offline operator handoff
+path without live GitHub API access or secret values. Phase 12 remains gated on public GitHub Release install, Bunny
 deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -84,6 +84,13 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Final-proof secret-list rehearsal: added `scripts/fixtures/github-secret-list-final.tsv`, a names-only
+  GitHub secret-list fixture for offline final-proof handoff rehearsal. `verify:scripts` now enforces the fixture has
+  one uppercase secret name per line, includes the required final-proof secret names, and passes
+  `setup-github-secrets.sh --check --scope final` without using live GitHub API access or secret values. Focused
+  validation passed: `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope final
+  --secret-list-file scripts/fixtures/github-secret-list-final.tsv`; `pnpm verify:docs`; `pnpm verify:scripts`; and
+  `git diff --check`.
 - 2026-07-05 Desktop preview smoke proof: added `pnpm verify:desktop-preview`, a dependency-free Chromium/CDP smoke that
   builds the desktop app, starts Vite preview, captures desktop and mobile screenshots, and verifies the hidden-monitor
   recovery tray restores monitors without horizontal overflow. Focused validation passed:

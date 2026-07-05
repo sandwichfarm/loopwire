@@ -219,6 +219,18 @@ template command:
 bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env
 ```
 
+For offline rehearsal without GitHub API access, use the committed names-only fixture to prove the final-proof secret
+audit path without exposing values:
+
+```bash
+bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope final \
+  --secret-list-file scripts/fixtures/github-secret-list-final.tsv
+```
+
+The fixture mirrors the names that must appear in `gh secret list` output. It intentionally contains no secret values;
+operators can save their own names-only list from GitHub and pass that local file to the same `--secret-list-file` flag
+when rehearsing the release handoff on an offline machine.
+
 If the Deploy Docs run id is not known yet, the docs proof and final proof commands include
 `<docs-deployment-run-id>` and print an `operator-deferred` reminder. `--env-file` accepts the same local file used by
 `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,

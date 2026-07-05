@@ -219,6 +219,9 @@ These notes describe source-tree progress. They are not a public release announc
   final-proof scope.
 - GitHub secret checks and release readiness now accept a names-only `--secret-list-file` artifact, so final-proof
   secret blockers can be replayed deterministically without a live `gh secret list` call or any secret values.
+- The repo now includes `scripts/fixtures/github-secret-list-final.tsv`, a names-only final-proof secret-list fixture
+  that `verify:scripts` runs through `setup-github-secrets.sh --check --scope final` to keep offline release handoff
+  rehearsal value-free and reproducible.
 - New `pnpm release:handoff` renders the no-side-effect release operator plan, including secret checks, workflow
   dispatch commands, docs deployment proof download, VM evidence collection, VM evidence asset prep, and final-proof
   dry-run commands.

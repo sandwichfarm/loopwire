@@ -139,6 +139,27 @@ node scripts/verify-desktop-preview.mjs --help | grep -F -- "--skip-if-missing" 
   echo "verify-scripts: desktop preview verifier help is missing skip-if-missing support" >&2
   exit 1
 }
+awk 'NF != 1 || $1 !~ /^[A-Z0-9_]+$/ { exit 1 }' \
+  scripts/fixtures/github-secret-list-final.tsv || {
+    echo "verify-scripts: committed GitHub secret-list fixture must contain names only" >&2
+    exit 1
+  }
+for required_secret in \
+  BUNNY_STORAGE_ZONE \
+  BUNNY_ACCESS_KEY \
+  BUNNY_PULL_ZONE_HOSTNAME \
+  LOOPWIRE_RELEASE_PRIVATE_KEY; do
+  grep -Fx -- "$required_secret" scripts/fixtures/github-secret-list-final.tsv >/dev/null || {
+    echo "verify-scripts: GitHub secret-list fixture is missing ${required_secret}" >&2
+    exit 1
+  }
+done
+bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope final \
+  --secret-list-file scripts/fixtures/github-secret-list-final.tsv \
+  | grep -F -- "ok: final release proof secrets are present" >/dev/null || {
+    echo "verify-scripts: final secret-list fixture does not satisfy offline check mode" >&2
+    exit 1
+  }
 node scripts/verify-support-matrix.mjs --help | grep -F -- "--require-published-release" >/dev/null || {
   echo "verify-scripts: support matrix verifier help is missing published release strictness support" >&2
   exit 1

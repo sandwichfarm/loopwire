@@ -656,6 +656,9 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:prepa
 assert_contains "apps/docs/docs/developer/release.md" 'Custom `--output` paths may point at temp locations'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
+assert_contains "apps/docs/docs/developer/release.md" "scripts/fixtures/github-secret-list-final.tsv"
+assert_contains "apps/docs/docs/developer/release.md" "offline rehearsal without GitHub API access"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "scripts/fixtures/github-secret-list-final.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:agent-ready"
 assert_contains "apps/docs/docs/developer/release.md" 'Use `--skip-local-gates` only for'
