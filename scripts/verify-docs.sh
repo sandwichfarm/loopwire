@@ -668,6 +668,7 @@ assert_contains "apps/docs/docs/developer/release.md" "Other local final-proof i
 assert_contains "apps/docs/docs/developer/release.md" '`--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
+assert_contains "apps/docs/docs/developer/release.md" "cannot leave partial docs proof"
 assert_contains "apps/docs/docs/developer/release.md" "symlinks, and existing paths with the wrong file or directory type"
 assert_contains "apps/docs/docs/developer/release.md" '`--env-file` recovery paths may be absolute'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
@@ -688,6 +689,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'Local file inputs for `--
 assert_contains "apps/docs/docs/developer/release.md" '`--release-private-key-file`, and `--release-public-key-file`'
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "release private-key, and release"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "cannot leave partial docs proof behind"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "before reading those artifacts"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"

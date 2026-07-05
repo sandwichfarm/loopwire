@@ -5,6 +5,13 @@
 
 ## Evidence Passed
 
+- `scripts/fetch-docs-deployment-proof.sh` now stages Deploy Docs artifact downloads and manifest verification in a
+  temporary directory before replacing the requested local docs proof paths, so a missing deployment artifact cannot
+  leave partial `loopwire-docs` proof behind.
+- `pnpm verify:scripts` passed with a fake GitHub fixture proving the staged docs artifact layout still verifies and
+  a missing deployment artifact leaves no final docs dist or deployment manifest output.
+- `pnpm check`, `git diff --check`, added-line length scan, and codebase-memory MCP fast index refresh passed after the
+  atomic docs deployment proof update.
 - `scripts/audit-final-release-state.sh` now verifies the live downloadable
   `loopwire-vm-evidence-<tag>.tar.gz` asset during non-`--skip-gh` status audits: it downloads the archive plus
   `SHA256SUMS` and `SHA256SUMS.sig`, verifies the signed checksum entry, safe-extracts the archive, and checks the

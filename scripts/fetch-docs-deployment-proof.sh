@@ -189,17 +189,18 @@ download_artifact() {
 
 normalize_manifest_location() {
   local download_dir="$1"
+  local destination="$2"
   local found=""
 
-  if [ -s "$manifest_path" ]; then
+  if [ -s "$destination" ]; then
     return
   fi
 
   found="$(find "$download_dir" -type f -name deployment-manifest.json | sort | head -1)"
   [ -n "$found" ] || fail "deployment manifest artifact did not contain deployment-manifest.json"
 
-  mkdir -p "$(dirname "$manifest_path")"
-  mv "$found" "$manifest_path"
+  mkdir -p "$(dirname "$destination")"
+  mv "$found" "$destination"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -269,20 +270,32 @@ fi
 command -v gh >/dev/null 2>&1 || fail "gh is required to download workflow artifacts"
 command -v node >/dev/null 2>&1 || fail "node is required to verify deployment manifests"
 
-mkdir -p "$docs_dist" "$(dirname "$manifest_path")"
-rm -rf "$docs_dist"
-rm -f "$manifest_path"
-mkdir -p "$docs_dist"
-
-manifest_download_dir="$(mktemp -d)"
+stage_dir="$(mktemp -d)"
 cleanup() {
-  rm -rf "$manifest_download_dir"
+  rm -rf "$stage_dir"
 }
 trap cleanup EXIT
 
-download_artifact "docs dist" "$docs_artifact" "$docs_dist"
+staged_docs_dist="$stage_dir/docs-dist"
+manifest_download_dir="$stage_dir/manifest-artifact"
+staged_manifest_path="$stage_dir/deployment-manifest.json"
+mkdir -p "$staged_docs_dist" "$manifest_download_dir"
+
+download_artifact "docs dist" "$docs_artifact" "$staged_docs_dist"
 download_artifact "docs deployment manifest" "$manifest_artifact" "$manifest_download_dir"
-normalize_manifest_location "$manifest_download_dir"
+normalize_manifest_location "$manifest_download_dir" "$staged_manifest_path"
+
+node scripts/verify-docs-deployment-manifest.mjs \
+  --manifest "$staged_manifest_path" \
+  --dist "$staged_docs_dist" \
+  --git-head "$git_head" \
+  --expected-dry-run false
+
+mkdir -p "$(dirname "$docs_dist")" "$(dirname "$manifest_path")"
+rm -rf "$docs_dist"
+rm -f "$manifest_path"
+mv "$staged_docs_dist" "$docs_dist"
+mv "$staged_manifest_path" "$manifest_path"
 
 node scripts/verify-docs-deployment-manifest.mjs \
   --manifest "$manifest_path" \

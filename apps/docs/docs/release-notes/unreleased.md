@@ -222,6 +222,8 @@ These notes describe source-tree progress. They are not a public release announc
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.
+- `pnpm release:fetch-docs-proof` now stages downloads and manifest verification before replacing local proof paths, so
+  a missing deployment artifact cannot leave partial docs proof behind.
 - `pnpm release:fetch-docs-proof` now accepts `--env-file` for missing-deployment-artifact recovery hints, preserving
   the same local secret-file setup path without reading or printing secret values.
 - `pnpm release:fetch-docs-proof` now rejects unsafe docs dist, deployment manifest, and env-file paths before it

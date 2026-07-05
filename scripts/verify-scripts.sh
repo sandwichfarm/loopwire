@@ -4676,12 +4676,14 @@ NODE
         printf '%s\n' '#!/usr/bin/env bash' 'echo install loopwire' >"$output_dir/install.sh"
         ;;
       loopwire-docs-deployment)
-        node - "$output_dir" "$LOOPWIRE_FAKE_DOCS_DIST" <<'NODE'
+        node - "$output_dir" "${LOOPWIRE_FAKE_DOCS_DIST:-}" <<'NODE'
 const { createHash } = require("node:crypto");
-const { readdirSync, readFileSync, writeFileSync } = require("node:fs");
-const { join } = require("node:path");
+const { existsSync, readdirSync, readFileSync, writeFileSync } = require("node:fs");
+const { dirname, join } = require("node:path");
 
-const [outputDir, docsDist] = process.argv.slice(2);
+const [outputDir, docsDistArg] = process.argv.slice(2);
+const stagedDocsDist = join(dirname(outputDir), "docs-dist");
+const docsDist = docsDistArg && existsSync(docsDistArg) ? docsDistArg : stagedDocsDist;
 const uploads = readdirSync(docsDist)
   .sort()
   .map((relativePath) => {
@@ -4855,6 +4857,10 @@ grep -F -- "--env-file $fetch_docs_missing_env_file" "$tmp_dir/fetch-docs-proof-
 }
 if grep -F "env-access-key-that-must-not-print" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null; then
   echo "verify-scripts: docs deployment proof helper leaked the env-file Bunny access key" >&2
+  exit 1
+fi
+if [ -e "$fetch_docs_missing_dist/index.html" ] || [ -e "$fetch_docs_missing_manifest" ]; then
+  echo "verify-scripts: docs deployment proof helper left partial proof files after a missing deployment artifact" >&2
   exit 1
 fi
 rm -rf "$fetch_docs_proof_root" "$fetch_docs_missing_root"

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T15:58:18+02:00"
-last_activity: 2026-07-05 - Release status verifies signed VM evidence archive manifests
+last_updated: "2026-07-05T16:17:02+02:00"
+last_activity: 2026-07-05 - Docs deployment proof fetch is atomic
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:status` now verifies the downloadable
-`loopwire-vm-evidence-<tag>.tar.gz` release asset with the signed `SHA256SUMS` manifest, safe extraction, and
-`vm-evidence/manifest.json` target/tag strictness before it treats the GitHub Release VM archive as usable final proof.
-Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:fetch-docs-proof` now stages downloaded Deploy Docs artifacts and verifies
+the deployment manifest before replacing the durable local docs proof paths. A failed or missing deployment manifest
+artifact leaves no partial docs proof behind. Phase 12 remains gated on public GitHub Release install, Bunny deployment
+proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,14 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Atomic docs deployment proof fetch: `scripts/fetch-docs-deployment-proof.sh` now downloads docs and
+  deployment-manifest artifacts into a temporary staging directory, verifies the staged manifest against the staged docs
+  bytes and expected commit, then replaces the durable local proof paths only after verification passes. The fake GitHub
+  fixture in `scripts/verify-scripts.sh` now follows the staged layout and asserts that a missing deployment artifact
+  leaves no partial docs dist or manifest in the requested output paths. Focused validation passed:
+  `bash -n scripts/fetch-docs-deployment-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm verify:docs`; and `pnpm verify:scripts`. Full validation passed: `pnpm check`; `git diff --check`; added-line
+  length scan; and codebase-memory MCP fast index refresh with 3416 nodes and 6678 edges.
 - 2026-07-05 Release status VM archive proof: `scripts/audit-final-release-state.sh` now downloads the published
   VM evidence release asset during live status audits, verifies it is covered by signed `SHA256SUMS`, safe-extracts it,
   and validates the root VM evidence archive manifest against `vm/targets.tsv` with published-release strictness. The
