@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T19:17:23+02:00"
-last_activity: 2026-07-05 - Agent-ready hosted workflow checks are now filtered by exact release commit
+last_updated: "2026-07-05T19:32:38+02:00"
+last_activity: 2026-07-05 - Final release status workflow probes are now filtered by exact release commit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `release:agent-ready -- --require-hosted-checks` now filters CI and Deploy Docs workflow
-lookups by the exact `--git-head`, so newer unrelated hosted runs cannot mask the target release commit's proof state.
-Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - `release:status` now filters CI, Deploy Docs, and Final Release Proof workflow lookups by
+the exact `--git-head`, while still preserving explicit `--docs-deployment-run-id` audits. Phase 12 remains gated on
+public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 

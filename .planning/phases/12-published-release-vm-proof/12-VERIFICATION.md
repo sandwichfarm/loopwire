@@ -2633,6 +2633,18 @@
   --require-hosted-checks --skip-local-gates`, verifying CI run `28748375402` and Deploy Docs run `28748375393` for
   commit `4ec7b00098c11edc8f60314a6d6ea3f50c51ba08`. No secret write, release tag, public release, Bunny deployment,
   VM launch, host audio mutation, or support-matrix promotion was performed.
+- Final release status workflow probes are now commit-scoped instead of "latest overall" probes:
+  `scripts/audit-final-release-state.sh` passes `--commit "$expected_git_head"` when listing CI, Deploy Docs, and
+  Final Release Proof workflow runs, while preserving selected-run wording and proof behavior for an explicit
+  `--docs-deployment-run-id`. This prevents newer unrelated workflow runs from satisfying or confusing final release
+  status for the target release commit.
+- Focused validation passed for commit-scoped final status workflow checks: codebase-memory MCP `index_status`
+  reported `home-sandwich-Develop-loopwire` ready, and graph search located `run_workflow_probe` before implementation.
+  `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm
+  verify:scripts`, and `pnpm verify:docs` passed. The fake GitHub fixture now rejects workflow-list probes that request
+  `headSha` without a 40-character `--commit` filter, while retaining stale-SHA rejection coverage and selected
+  Deploy Docs run coverage. No secret write, release tag, public release, Bunny deployment, VM launch, host audio
+  mutation, or support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

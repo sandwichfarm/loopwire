@@ -4515,12 +4515,20 @@ NODE
     ;;
   "run list")
     workflow_name=""
+    commit_filter=""
+    json_fields=""
     shift 2
     while [ "$#" -gt 0 ]; do
       case "$1" in
-        --repo | --workflow | --limit | --json)
+        --repo | --workflow | --limit | --json | --commit)
           if [ "$1" = "--workflow" ]; then
             workflow_name="${2:?missing fake workflow name}"
+          fi
+          if [ "$1" = "--commit" ]; then
+            commit_filter="${2:?missing fake commit filter}"
+          fi
+          if [ "$1" = "--json" ]; then
+            json_fields="${2:?missing fake json fields}"
           fi
           shift 2
           ;;
@@ -4530,6 +4538,12 @@ NODE
           ;;
       esac
     done
+    if printf '%s\n' "$json_fields" | grep -F "headSha" >/dev/null; then
+      [[ "$commit_filter" =~ ^[0-9a-fA-F]{40}$ ]] || {
+        echo "unexpected or missing fake run commit filter: $commit_filter" >&2
+        exit 64
+      }
+    fi
     run_mode="${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}"
     if [ "$workflow_name" = "ci.yml" ] && [ -n "${LOOPWIRE_FAKE_GH_CI_RUN_MODE:-}" ]; then
       run_mode="$LOOPWIRE_FAKE_GH_CI_RUN_MODE"
@@ -5573,7 +5587,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted an empty workflow run list" >&2
   exit 1
 fi
-grep -F "latest Deploy Docs workflow run did not return any workflow runs" \
+grep -F "commit-scoped Deploy Docs workflow run did not return any workflow runs" \
   "$release_status_empty_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block an empty workflow run list" >&2
     exit 1
@@ -5589,7 +5603,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted a failed workflow run" >&2
   exit 1
 fi
-grep -F "latest Deploy Docs workflow run latest completed run did not succeed: failure" \
+grep -F "commit-scoped Deploy Docs workflow run commit-scoped completed run did not succeed: failure" \
   "$release_status_failed_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block a failed workflow run" >&2
     exit 1
@@ -5607,7 +5621,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted a failed CI workflow run" >&2
   exit 1
 fi
-grep -F "latest CI workflow run latest completed run did not succeed: failure" \
+grep -F "commit-scoped CI workflow run commit-scoped completed run did not succeed: failure" \
   "$release_status_failed_ci_log" >/dev/null || {
     echo "verify-scripts: release status did not block a failed CI workflow run" >&2
     exit 1
@@ -5624,7 +5638,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted a workflow run from the wrong commit" >&2
   exit 1
 fi
-grep -F "latest Deploy Docs workflow run latest run is for 0123456789abcdef0123456789abcdef01234567" \
+grep -F "commit-scoped Deploy Docs workflow run commit-scoped run is for 0123456789abcdef0123456789abcdef01234567" \
   "$release_status_stale_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block stale workflow SHA evidence" >&2
     exit 1
@@ -5688,7 +5702,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status unexpectedly passed without VM evidence" >&2
   exit 1
 fi
-grep -F "latest run verified: databaseId=123456 headSha=0123456789abcdef0123456789abcdef01234567" \
+grep -F "commit-scoped run verified: databaseId=123456 headSha=0123456789abcdef0123456789abcdef01234567" \
   "$release_status_matching_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not accept matching workflow SHA evidence" >&2
     exit 1
@@ -5710,8 +5724,8 @@ grep -F "VM evidence archive manifest verified: 9 target(s) for v0.1.0." \
     echo "verify-scripts: release status did not verify the VM archive manifest" >&2
     exit 1
   }
-grep -F "==> latest CI workflow run" "$release_status_matching_workflow_log" >/dev/null || {
-  echo "verify-scripts: release status did not audit the latest CI workflow run" >&2
+grep -F "==> commit-scoped CI workflow run" "$release_status_matching_workflow_log" >/dev/null || {
+  echo "verify-scripts: release status did not audit the commit-scoped CI workflow run" >&2
   exit 1
 }
 secret_artifact_missing_bunny_log="$tmp_dir/setup-github-secrets-artifact-missing-bunny.log"

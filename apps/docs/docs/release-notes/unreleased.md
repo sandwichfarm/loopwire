@@ -259,8 +259,9 @@ These notes describe source-tree progress. They are not a public release announc
   symlinks, and wrong existing file/directory types.
 - `pnpm release:status --env-file` now keeps the default release public-key path implicit in its embedded VM evidence
   asset-prep handoff, while still rendering `--public-key` when the operator supplies that override explicitly.
-- `pnpm release:status` now requires the latest CI workflow run for the expected commit before final release status can
-  pass, keeping release handoff tied to the same hosted `pnpm check` gate used on pushes.
+- `pnpm release:status` now filters CI, Deploy Docs, and Final Release Proof workflow lookups by the expected release
+  commit before final release status can pass, keeping release handoff tied to the same hosted proof surfaces used on
+  pushes and final-proof dispatches.
 - New `pnpm release:status` audits the remaining final proof surfaces from one read-only command and exits nonzero
   until GitHub secrets, a non-draft/non-prerelease release with required assets, completed successful workflow runs for
   the expected commit, a parseable release signing public key, non-dry-run docs deployment manifest proof, VM evidence,
@@ -436,12 +437,13 @@ These notes describe source-tree progress. They are not a public release announc
   `pnpm vm:render-ssh-plan`, so multi-VM proof handoffs no longer repeat port `2222` for every missing target.
 - `pnpm release:status` now uses the same VM evidence start-port default as the final release handoff, and exposes
   `--vm-start-port` when an operator chooses a different forwarded-port range.
-- `pnpm release:status` now threads the verified latest Deploy Docs workflow run id into the final release handoff, so
-  the docs proof fetch and final proof dispatch commands no longer fall back to a placeholder after a successful docs run.
+- `pnpm release:status` now threads the verified commit-scoped Deploy Docs workflow run id into the final release
+  handoff, so the docs proof fetch and final proof dispatch commands no longer fall back to a placeholder after a
+  successful docs run for the release commit.
 - `pnpm release:status` now reuses the already verified Deploy Docs run id when printing missing-manifest recovery,
   avoiding a second unverified run lookup for the docs proof fetch command.
 - `pnpm release:status` can now audit a pinned Deploy Docs run with `--docs-deployment-run-id`, keeping final proof
-  rehearsals tied to the operator-selected docs deployment instead of only the latest workflow run.
+  rehearsals tied to the operator-selected docs deployment instead of the commit-scoped workflow lookup.
 - `pnpm release:status --vm-evidence-root` now passes the selected evidence root into support-matrix verification, so
   promoted support rows are checked against the same copied-back VM evidence bundle path as the matrix status gate.
 - Pinned Deploy Docs release-status audits now label the evidence as the selected run, avoiding latest-run wording when

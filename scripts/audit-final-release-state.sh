@@ -559,8 +559,10 @@ try {
   process.exit(1);
 }
 
-const runDescription = Array.isArray(parsed) ? "latest run" : "selected run";
-const completedDescription = Array.isArray(parsed) ? "latest completed run" : "selected completed run";
+const runDescription = Array.isArray(parsed) ? "commit-scoped run" : "selected run";
+const completedDescription = Array.isArray(parsed)
+  ? "commit-scoped completed run"
+  : "selected completed run";
 const runs = Array.isArray(parsed) ? parsed : [parsed];
 if (!Array.isArray(runs)) {
   console.error(`${label} did not return a workflow run array.`);
@@ -606,7 +608,7 @@ NODE
   fi
 
   echo "ok: $label"
-  if [ "$label" = "latest Deploy Docs workflow run" ] || [ "$label" = "Deploy Docs workflow run" ]; then
+  if [ "$label" = "commit-scoped Deploy Docs workflow run" ] || [ "$label" = "Deploy Docs workflow run" ]; then
     latest_docs_deployment_run_id="$(workflow_run_id_from_json "$output")"
   fi
   [ -z "$validation" ] || printf '%s\n' "$validation" | indent
@@ -764,13 +766,13 @@ run_gate \
   check_published_vm_evidence_archive || failed=1
 
 run_workflow_probe \
-  "latest CI workflow run" \
+  "commit-scoped CI workflow run" \
   "$expected_git_head" \
-  gh run list --repo "$repo" --workflow ci.yml --limit 1 \
+  gh run list --repo "$repo" --workflow ci.yml --commit "$expected_git_head" --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
 
-docs_workflow_label="latest Deploy Docs workflow run"
-docs_workflow_probe=(gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
+docs_workflow_label="commit-scoped Deploy Docs workflow run"
+docs_workflow_probe=(gh run list --repo "$repo" --workflow deploy-docs.yml --commit "$expected_git_head" --limit 1 \
   --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
 if [ -n "$docs_deployment_run_id" ]; then
   docs_workflow_label="Deploy Docs workflow run"
@@ -787,9 +789,9 @@ run_gate \
   check_docs_deployment_manifest || failed=1
 
 run_workflow_probe \
-  "latest Final Release Proof workflow run" \
+  "commit-scoped Final Release Proof workflow run" \
   "$expected_git_head" \
-  gh run list --repo "$repo" --workflow final-release-proof.yml --limit 1 \
+  gh run list --repo "$repo" --workflow final-release-proof.yml --commit "$expected_git_head" --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
 
 run_vm_evidence_gate \
