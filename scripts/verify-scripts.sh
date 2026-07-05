@@ -1566,6 +1566,70 @@ if bash scripts/prepare-vm-evidence-release-asset.sh \
   exit 1
 fi
 rm -rf "$prepare_vm_release_symlink_root"
+prepare_vm_release_path_guard_root="$(mktemp -d)"
+prepare_vm_release_env_file="$prepare_vm_release_path_guard_root/release.env"
+prepare_vm_release_env_symlink="$prepare_vm_release_path_guard_root/release-env-symlink"
+prepare_vm_release_private_key="$prepare_vm_release_path_guard_root/release-private.pem"
+prepare_vm_release_private_key_symlink="$prepare_vm_release_path_guard_root/release-private-symlink.pem"
+prepare_vm_release_public_key_dir="$prepare_vm_release_path_guard_root/release-public-dir"
+prepare_vm_release_evidence_root_file="$prepare_vm_release_path_guard_root/evidence-root-file"
+printf '%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem" \
+  >"$prepare_vm_release_env_file"
+ln -s "$prepare_vm_release_env_file" "$prepare_vm_release_env_symlink"
+printf '%s\n' "not needed for dry-run" >"$prepare_vm_release_private_key"
+ln -s "$prepare_vm_release_private_key" "$prepare_vm_release_private_key_symlink"
+mkdir -p "$prepare_vm_release_public_key_dir"
+printf '%s\n' "not a directory" >"$prepare_vm_release_evidence_root_file"
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir dist/release \
+  --env-file "$prepare_vm_release_env_symlink" \
+  --evidence-root .vm/evidence \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted a symlink env file" >&2
+  rm -rf "$prepare_vm_release_path_guard_root"
+  exit 1
+fi
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir dist/release \
+  --private-key "$prepare_vm_release_private_key_symlink" \
+  --evidence-root .vm/evidence \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted a symlink private key" >&2
+  rm -rf "$prepare_vm_release_path_guard_root"
+  exit 1
+fi
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir dist/release \
+  --private-key "$prepare_vm_release_private_key" \
+  --public-key "$prepare_vm_release_public_key_dir" \
+  --evidence-root .vm/evidence \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted a directory public key" >&2
+  rm -rf "$prepare_vm_release_path_guard_root"
+  exit 1
+fi
+if bash scripts/prepare-vm-evidence-release-asset.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-dir dist/release \
+  --private-key "$prepare_vm_release_private_key" \
+  --evidence-root "$prepare_vm_release_evidence_root_file" \
+  --all \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence release helper accepted a file evidence root" >&2
+  rm -rf "$prepare_vm_release_path_guard_root"
+  exit 1
+fi
+rm -rf "$prepare_vm_release_path_guard_root"
 prepare_vm_release_env_file="$(mktemp)"
 cat >"$prepare_vm_release_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs

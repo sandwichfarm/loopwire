@@ -106,6 +106,49 @@ validate_release_dir_path() {
   fi
 }
 
+validate_local_path() {
+  local value="$1"
+  local label="$2"
+  local expected_type="$3"
+  local require_existing="$4"
+  local normalized
+
+  reject_unsafe_value "$value" "$label"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink"
+  if [ "$require_existing" = "true" ] && [ ! -e "$value" ]; then
+    fail "$label must exist"
+  fi
+
+  if [ -e "$value" ]; then
+    case "$expected_type" in
+      file)
+        [ -f "$value" ] || fail "$label must be a file when it exists"
+        ;;
+      dir)
+        [ -d "$value" ] || fail "$label must be a directory when it exists"
+        ;;
+      *)
+        fail "unknown local path type for $label: $expected_type"
+        ;;
+    esac
+  fi
+}
+
 refresh_manifest() {
   local dir="$1"
   local files=()
@@ -168,7 +211,7 @@ load_env_file() {
   local key
   local value
 
-  [ -f "$env_file" ] || fail "env file does not exist: $env_file"
+  validate_local_path "$env_file" "env file" file true
 
   while IFS= read -r line || [ -n "$line" ]; do
     line_no=$((line_no + 1))
@@ -274,10 +317,10 @@ done
 validate_repo "$repo"
 validate_tag "$tag"
 validate_release_dir_path "$release_dir"
-reject_unsafe_value "$private_key_file" "private key path"
-reject_unsafe_value "$public_key_file" "public key path"
-reject_unsafe_value "$evidence_root" "evidence root"
-reject_unsafe_value "$env_file" "env file"
+validate_local_path "$private_key_file" "private key path" file false
+[ -z "$public_key_file" ] || validate_local_path "$public_key_file" "public key path" file false
+validate_local_path "$evidence_root" "evidence root" dir false
+[ -z "$env_file" ] || validate_local_path "$env_file" "env file" file true
 
 if [ "$all_targets" = "true" ] && [ "${#targets[@]}" -gt 0 ]; then
   fail "use either --all or --target, not both"
@@ -339,8 +382,10 @@ if [ "$dry_run" = "true" ]; then
   exit 0
 fi
 
-[ -d "$release_dir" ] || fail "missing release directory: $release_dir"
-[ -f "$private_key_file" ] || fail "missing private key: $private_key_file"
+validate_local_path "$release_dir" "release directory" dir true
+validate_local_path "$private_key_file" "private key path" file true
+[ -z "$public_key_file" ] || validate_local_path "$public_key_file" "public key path" file true
+validate_local_path "$evidence_root" "evidence root" dir true
 command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
 command -v openssl >/dev/null 2>&1 || fail "OpenSSL is required"
 

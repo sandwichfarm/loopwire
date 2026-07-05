@@ -454,6 +454,9 @@ The helper reruns the packager, regenerates and re-signs `SHA256SUMS`, verifies
 evidence archive is a signed release asset before extraction. `--env-file` consumes only
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE` for this helper; Bunny storage credentials
 are ignored so access keys never appear in the dry-run or upload handoff output.
+The helper validates `--env-file`, `--private-key`, `--public-key`, and `--evidence-root` before artifact reads or
+signing: traversal, root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and existing wrong-type paths
+fail closed.
 
 This workflow is intentionally `workflow_dispatch` only. It should fail until the public release, live Bunny.net docs,
 release evidence archive, and VM evidence archive all exist.

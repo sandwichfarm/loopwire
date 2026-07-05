@@ -215,6 +215,8 @@ These notes describe source-tree progress. They are not a public release announc
   and runbook commands.
 - VM evidence asset preparation now rejects unsafe custom `--release-dir` values before dry-run or execution, including
   parent traversal, URL syntax, glob metacharacters, symlinks, and file paths that could redirect checksum regeneration.
+- VM evidence asset preparation now rejects unsafe env-file, private-key, public-key, and evidence-root paths before
+  reading local release artifacts or rendering the signed VM evidence handoff.
 - Final release proof dry-runs now reject unsafe local `--release-dir` values before rendering a signed-release proof
   plan, including traversal, root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and file paths.
 - `pnpm release:status` now preserves `--env-file` in its generated `pnpm release:fetch-docs-proof` recovery command
