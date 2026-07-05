@@ -165,9 +165,9 @@ printf '%s\n' "$release_readiness_help" | grep -F -- "docs deployment manifest v
   exit 1
 }
 printf '%s\n' "$release_readiness_help" |
-  grep -F -- "final release proof workflow, asset-name validator" >/dev/null ||
+  grep -F -- "final release proof workflow, release tag-ref verifier" >/dev/null ||
   printf '%s\n' "$release_readiness_help" |
-    grep -F -- "final release proof workflow, asset-name validator, asset checksum verifier, Nix package verifier" \
+    grep -F -- "final release proof workflow, release tag-ref verifier, asset-name validator" \
       >/dev/null || {
     echo "verify-scripts: release readiness help is missing final proof wiring check" >&2
     exit 1
@@ -6257,6 +6257,11 @@ grep -F "ok: final proof scripts parse" "$tmp_dir/release-readiness-offline.log"
   echo "verify-scripts: release readiness did not verify final proof script syntax" >&2
   exit 1
 }
+grep -F "ok: release tag-ref verifier: scripts/verify-release-tag-ref.sh" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+  echo "verify-scripts: release readiness did not require the release tag-ref verifier" >&2
+  exit 1
+}
 grep -F "ok: VM evidence packager supports published-release strictness" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify VM evidence packager strictness" >&2
@@ -6280,7 +6285,7 @@ grep -F "ok: docs deployment workflow verifies manifest before artifact upload" 
     echo "verify-scripts: release readiness did not verify docs deployment workflow wiring" >&2
     exit 1
   }
-grep -F "ok: final release proof workflow verifies release, docs deployment, and VM evidence archives" \
+grep -F "ok: final release proof workflow verifies release tag refs, docs deployment, and VM evidence archives" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify final release proof workflow wiring" >&2
     exit 1

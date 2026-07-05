@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T17:21:44+02:00"
-last_activity: 2026-07-05 - Final proof verifies release tag refs
+last_updated: "2026-07-05T17:37:22+02:00"
+last_activity: 2026-07-05 - Readiness guards final proof tag-ref wiring
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm verify:final-release` now resolves the live GitHub `refs/tags/<tag>` object, follows
-annotated tags to their target commit, and blocks final release proof when that commit does not match `--git-head`.
-Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - release readiness and workflow-contract checks now fail if
+`scripts/verify-final-release-proof.sh` stops invoking the shared release tag-ref verifier. Phase 12 remains gated on
+public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,15 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Final proof tag-ref contract guard: `scripts/verify-release-readiness.sh` now treats
+  `scripts/verify-release-tag-ref.sh` as a required final-proof helper, includes it in final proof syntax checks, and
+  fails readiness if the composed final proof script stops invoking it. `scripts/verify-github-workflows.sh` now also
+  asserts the final proof wrapper includes the release tag-ref gate. Focused validation passed:
+  `bash -n scripts/verify-github-workflows.sh scripts/verify-release-readiness.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`; `pnpm verify:workflows`; `pnpm verify:docs`; and `pnpm verify:scripts`. Full validation
+  passed: `pnpm check`; `git diff --check`; `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --git-head $(git rev-parse HEAD) --skip-gh` with expected operator-deferred blockers; and codebase-memory MCP fast
+  index refresh with 3432 nodes and 6686 edges.
 - 2026-07-05 Final proof tag-ref proof: `scripts/verify-final-release-proof.sh` now runs
   `scripts/verify-release-tag-ref.sh` before published-release downloads, so the composed manual proof rejects
   lightweight or annotated release tags that do not resolve to the expected `--git-head` commit. `release:status`

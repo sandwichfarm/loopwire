@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Release readiness and workflow contract checks now guard final proof tag-ref wiring: readiness requires
+  `scripts/verify-release-tag-ref.sh`, includes it in final proof syntax checks, and fails if
+  `scripts/verify-final-release-proof.sh` no longer invokes it.
+- Focused validation passed: `bash -n scripts/verify-github-workflows.sh scripts/verify-release-readiness.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:workflows`, `pnpm verify:docs`, and
+  `pnpm verify:scripts`. Full validation passed: `pnpm check`, `git diff --check`, `pnpm release:status -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD) --skip-gh` with expected operator-deferred
+  blockers, and codebase-memory MCP fast index refresh with 3432 nodes and 6686 edges.
 - `scripts/verify-final-release-proof.sh` now verifies the live GitHub release tag ref through
   `scripts/verify-release-tag-ref.sh` before published-release downloads, keeping manual final proof aligned with
   `release:status`.

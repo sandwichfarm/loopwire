@@ -562,6 +562,7 @@ assert_contains \
   "apps/docs/docs/release-notes/unreleased.md" \
   "Release readiness now fails if the final release proof workflow"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'reintroduces `--release-dir`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "shared release tag-ref verifier"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:prepare-release-evidence` wiring disappears'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "agent-ready release checks no longer use"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'These notes describe the `v0.1.0` release contents'

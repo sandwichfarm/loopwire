@@ -164,6 +164,8 @@ assert_contains ".github/workflows/final-release-proof.yml" "Release evidence ar
 assert_contains ".github/workflows/final-release-proof.yml" "scripts/verify-final-release-proof.sh"
 assert_final_proof_step_has_github_token
 assert_final_proof_step_uses_published_release_inputs
+assert_contains "scripts/verify-final-release-proof.sh" "scripts/verify-release-tag-ref.sh"
+assert_contains "scripts/verify-final-release-proof.sh" "release tag ref"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-base-url"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-hostname"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-remote-prefix"
