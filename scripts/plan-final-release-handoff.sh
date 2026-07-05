@@ -437,6 +437,7 @@ else
   [ -z "$docs_remote_prefix" ] || final_proof+=(-f "docs_remote_prefix=${docs_remote_prefix}")
 fi
 print_command "${final_proof[@]}"
+echo "  expected GitHub Actions run name: Final Release Proof ${tag} @ ${git_head}"
 echo
 echo "10. Local dry-run of the final proof command plan:"
 local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \

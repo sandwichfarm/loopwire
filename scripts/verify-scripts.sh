@@ -451,6 +451,11 @@ printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run final-release-p
   echo "verify-scripts: release handoff plan is missing final proof workflow dispatch" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" |
+  grep -F "expected GitHub Actions run name: Final Release Proof v0.1.0 @ 0123456789abcdef0123456789abcdef01234567" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing final proof run-name hint" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | grep -F -- "--plan-output" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing local final-proof dry-run" >&2
   exit 1

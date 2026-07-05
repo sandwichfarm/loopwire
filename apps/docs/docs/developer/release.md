@@ -211,8 +211,10 @@ The handoff prints the agent-ready release automation preflight for the exact co
 release readiness command, reviewed annotated tag command, exact tag push ref, Release workflow dispatch, Deploy Docs
 workflow dispatch, docs deployment proof download, all-target VM host setup and doctor preflights, VM SSH
 plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local
-final-proof dry-run, followed by a final `pnpm release:status` audit of the published release state. It does not set
-secrets, create tags, dispatch workflows, upload VM evidence, or mutate host audio. It starts with an
+final-proof dry-run, followed by a final `pnpm release:status` audit of the published release state. After the
+final-proof dispatch command, it prints the expected GitHub Actions run name that `release:status` will require:
+`Final Release Proof <tag> @ <git-head>`. It does not set secrets, create tags, dispatch workflows, upload VM evidence,
+or mutate host audio. It starts with an
 `Operator-deferred after agent delivery` section that names secret filling, protected workflow dispatch, VM guest
 execution, and signed evidence upload as operator-only activities. It also prints the safe no-value template command:
 

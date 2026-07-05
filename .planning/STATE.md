@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T22:45:39+02:00"
-last_activity: 2026-07-05 - Final proof workflow runs are now tag-bound in release status
+last_updated: "2026-07-05T22:59:27+02:00"
+last_activity: 2026-07-05 - Final release handoff now prints expected final-proof run name
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Final Release Proof workflow runs now include the audited tag and commit in their visible
-GitHub Actions run name, and `pnpm release:status` rejects a commit-scoped final-proof run whose title does not match
-the selected release tag. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof
-workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - the final release handoff now prints the expected GitHub Actions run name immediately
+after the final-proof dispatch command, so operators can match the workflow run that `pnpm release:status` will accept.
+Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Final-proof run-name handoff: the generated release ceremony now prints
+  `expected GitHub Actions run name: Final Release Proof <tag> @ <git-head>` immediately after the final proof dispatch
+  command, matching the run-title contract that `pnpm release:status` enforces. Focused validation passed:
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; rendered
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output;
+  `pnpm verify:docs`; `pnpm verify:scripts`; and `git diff --check`. Full validation passed: `pnpm check`. No secret
+  write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - 2026-07-05 Tag-bound final proof workflow status: the manual Final Release Proof workflow now uses the visible run
   name `Final Release Proof <tag> @ <git-head>`, and `pnpm release:status` rejects a successful commit-scoped
   final-proof run whose title names a different release tag. Focused validation passed:

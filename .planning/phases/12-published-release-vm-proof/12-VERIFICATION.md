@@ -5,6 +5,13 @@
 
 ## Evidence Passed
 
+- The final release handoff now prints the expected GitHub Actions run name immediately after the final proof dispatch
+  command, so operators can visually match the workflow run that `pnpm release:status` will accept.
+- Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, rendered `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  $(git rev-parse HEAD)` output, `pnpm verify:docs`, `pnpm verify:scripts`, and `git diff --check`. Full validation
+  passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM
+  launch, host audio mutation, or support-matrix promotion was performed.
 - Final Release Proof workflow runs now include the audited tag and commit in their visible GitHub Actions run name,
   and `pnpm release:status` rejects a successful commit-scoped final-proof run whose title names a different release
   tag.
