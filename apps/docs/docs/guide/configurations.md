@@ -71,6 +71,9 @@ targets. JACK virtual port creation and true mixer-style gain remain planned bac
 The desktop exposes a `Host apply` control. `Preview` mode runs selected backend adapters without mutating the host.
 `Live armed` mode is session-local and routes commands through the Tauri command bridge, which only allows `pactl`,
 `pw-cli`, `pw-link`, `jack_lsp`, `jack_connect`, and `jack_disconnect` without invoking a shell.
+Editing the active configuration disarms live apply and returns the session to preview mode, because source, output,
+monitor, route, gain, mute, host-binding, and metadata edits are saved first in Loopwire state. Re-arm live apply after
+the edit when you want the changed configuration verified on the host.
 Changing the selected backend runs a backend-change transaction in preview mode and disarms any previous live-apply
 session, so backend changes cannot silently carry a live mutation state across audio systems. Loopwire commits the new
 backend as the saved startup-restore choice only after the active configuration verifies against it. Backend selection,

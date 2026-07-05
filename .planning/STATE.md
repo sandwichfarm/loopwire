@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T02:36:16+02:00"
-last_activity: 2026-07-05 - Automatic backend selection verifies before persistence
+last_updated: "2026-07-05T02:48:54+02:00"
+last_activity: 2026-07-05 - Active configuration edits disarm live apply
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - automatic single-backend selection now uses the same `backend-change` transaction path as
-manual backend choices, so a lone detected backend is applied and verified against the active configuration before it
-is persisted for startup restore. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
-Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - active configuration edits now save through a shared helper that disarms live apply, returns
+the session to preview mode, and tells the user to re-arm before verifying edited routes, endpoints, host bindings, or
+metadata on the host. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny
+deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,12 @@ Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Live edit disarm UX: active configuration edits now use `saveConfigurationEdit`, which persists the state
+  edit and disarms `Live armed` back to preview when the user changes sources, outputs, monitors, hidden monitor state,
+  host bindings, routes, route gain/mute, reset-gain fixes, names, or descriptions. Runtime copy tells the user to
+  re-arm before verifying the edited configuration on the host. Focused validation passed:
+  `pnpm --filter @loopwire/desktop typecheck`. Configuration docs, unreleased notes, and docs verification now cover
+  the edit-disarms-live rule.
 - 2026-07-05 Automatic backend selection verification: desktop startup detection now awaits `selectOnlyAvailableBackend`,
   and the single-backend auto-select path calls `chooseBackend(..., "auto")` instead of directly persisting
   `setSelectedBackend`. The auto path now shares backend-change busy/token behavior, preview apply/verify, source and

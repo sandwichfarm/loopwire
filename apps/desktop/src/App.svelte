@@ -784,8 +784,24 @@
     runtimeNote = hostApplyMode === "live" ? "Live host apply armed for the next switch." : "Preview runtime ready.";
   }
 
+  function saveConfigurationEdit(nextState: LoopwireState, message: string): void {
+    const wasLive = hostApplyMode === "live";
+    applyState(nextState);
+
+    if (wasLive) {
+      hostApplyMode = "preview";
+    }
+
+    runtimeStatus = "verified";
+    runtimeNote = wasLive ? `${message} Live apply was disarmed; re-arm it to verify this edit on the host.` : message;
+  }
+
   function toggleMonitor(monitorId: string): void {
-    applyState(setMonitorHidden(state, activeConfiguration.id, monitorId, !isMonitorHidden(state, activeConfiguration, monitorId)));
+    const hidden = !isMonitorHidden(state, activeConfiguration, monitorId);
+    saveConfigurationEdit(
+      setMonitorHidden(state, activeConfiguration.id, monitorId, hidden),
+      hidden ? "Monitor hidden for this configuration." : "Monitor restored for this configuration."
+    );
   }
 
   function addSourceToActiveConfiguration(source: SourceCandidate): void {
@@ -803,11 +819,10 @@
         },
         new Date().toISOString()
       );
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote = output
-        ? `Added ${source.label} and routed it to ${output.label}.`
-        : `Added ${source.label}.`;
+      saveConfigurationEdit(
+        updated.state,
+        output ? `Added ${source.label} and routed it to ${output.label}.` : `Added ${source.label}.`
+      );
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not add source.";
@@ -831,12 +846,12 @@
         new Date().toISOString()
       );
       const addedRouteCount = updated.configuration.routes.length - activeConfiguration.routes.length;
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote =
+      saveConfigurationEdit(
+        updated.state,
         addedRouteCount > 0
           ? `Added ${output.label} and routed ${addedRouteCount} sources to it.`
-          : `Added ${output.label}.`;
+          : `Added ${output.label}.`
+      );
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not add output.";
@@ -855,9 +870,7 @@
         },
         new Date().toISOString()
       );
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote = `Added ${monitor.label} as a monitor.`;
+      saveConfigurationEdit(updated.state, `Added ${monitor.label} as a monitor.`);
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not add monitor.";
@@ -868,12 +881,12 @@
     try {
       const removedRouteCount = activeConfiguration.routes.filter((route) => route.from === endpoint.id).length;
       const updated = removeInputSourceFromConfiguration(state, activeConfiguration.id, endpoint.id, new Date().toISOString());
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote =
+      saveConfigurationEdit(
+        updated.state,
         removedRouteCount > 0
           ? `Removed ${endpoint.label} and ${removedRouteCount} routes.`
-          : `Removed ${endpoint.label}.`;
+          : `Removed ${endpoint.label}.`
+      );
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not remove source.";
@@ -884,12 +897,12 @@
     try {
       const removedRouteCount = activeConfiguration.routes.filter((route) => route.to === endpoint.id).length;
       const updated = removeOutputBusFromConfiguration(state, activeConfiguration.id, endpoint.id, new Date().toISOString());
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote =
+      saveConfigurationEdit(
+        updated.state,
         removedRouteCount > 0
           ? `Removed ${endpoint.label} and ${removedRouteCount} routes.`
-          : `Removed ${endpoint.label}.`;
+          : `Removed ${endpoint.label}.`
+      );
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not remove output.";
@@ -899,9 +912,7 @@
   function removeMonitorFromActiveConfiguration(endpoint: AudioEndpoint): void {
     try {
       const updated = removeMonitorFromConfiguration(state, activeConfiguration.id, endpoint.id, new Date().toISOString());
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote = `Removed ${endpoint.label}.`;
+      saveConfigurationEdit(updated.state, `Removed ${endpoint.label}.`);
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not remove monitor.";
@@ -954,11 +965,12 @@
   function updateEndpointDeviceName(endpointId: string, deviceName: string): void {
     const updated = setEndpointDeviceName(state, activeConfiguration.id, endpointId, deviceName, new Date().toISOString());
 
-    applyState(updated.state);
-    runtimeStatus = "verified";
-    runtimeNote = deviceName
-      ? `Saved ${deviceName} as the host binding for ${describeEndpoint(endpointId)}.`
-      : `Cleared the host binding for ${describeEndpoint(endpointId)}.`;
+    saveConfigurationEdit(
+      updated.state,
+      deviceName
+        ? `Saved ${deviceName} as the host binding for ${describeEndpoint(endpointId)}.`
+        : `Cleared the host binding for ${describeEndpoint(endpointId)}.`
+    );
   }
 
   function addSelectedRouteToActiveConfiguration(): void {
@@ -973,9 +985,10 @@
         new Date().toISOString()
       );
       const route = updated.configuration.routes.at(-1);
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote = route ? `Added route ${describeRouteLabel(updated.configuration, route)}.` : "Added route.";
+      saveConfigurationEdit(
+        updated.state,
+        route ? `Added route ${describeRouteLabel(updated.configuration, route)}.` : "Added route."
+      );
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not add route.";
@@ -986,9 +999,7 @@
     try {
       const routeLabel = describeRoute(route.id);
       const updated = removeRouteFromConfiguration(state, activeConfiguration.id, route.id, new Date().toISOString());
-      applyState(updated.state);
-      runtimeStatus = "verified";
-      runtimeNote = `Removed route ${routeLabel}.`;
+      saveConfigurationEdit(updated.state, `Removed route ${routeLabel}.`);
     } catch (error) {
       runtimeStatus = "failed";
       runtimeNote = error instanceof Error ? error.message : "Could not remove route.";
@@ -1004,9 +1015,10 @@
 
     const gain = Number((event.currentTarget as HTMLInputElement).value) / 100;
     const updated = setRouteGain(state, activeConfiguration.id, routeId, gain, new Date().toISOString());
-    applyState(updated.state);
-    runtimeStatus = "verified";
-    runtimeNote = `Saved ${Math.round(gain * 100)}% gain for ${describeRoute(routeId)} in the app runtime.`;
+    saveConfigurationEdit(
+      updated.state,
+      `Saved ${Math.round(gain * 100)}% gain for ${describeRoute(routeId)} in the app runtime.`
+    );
   }
 
   function toggleRouteMuted(routeId: string): void {
@@ -1019,9 +1031,10 @@
     }
 
     const updated = setRouteMuted(state, activeConfiguration.id, routeId, !route.muted, new Date().toISOString());
-    applyState(updated.state);
-    runtimeStatus = "verified";
-    runtimeNote = `${describeRoute(routeId)} is ${route.muted ? "active" : "muted"} in the app runtime.`;
+    saveConfigurationEdit(
+      updated.state,
+      `${describeRoute(routeId)} is ${route.muted ? "active" : "muted"} in the app runtime.`
+    );
   }
 
   function resetNativeRouteGains(): void {
@@ -1036,13 +1049,13 @@
       nextState = setRouteGain(nextState, activeConfiguration.id, route.id, 1, updatedAt).state;
     }
 
-    applyState(nextState);
-    runtimeStatus = "verified";
     const route = nativeGainBlockerRoutes[0];
-    runtimeNote =
+    saveConfigurationEdit(
+      nextState,
       nativeGainBlockerRoutes.length === 1 && route
         ? `Reset ${describeRouteLabel(activeConfiguration, route)} to 100% for live apply.`
-        : `Reset ${nativeGainBlockerRoutes.length} route gains to 100% for ${displayBackendName(state.selectedBackend)} live apply.`;
+        : `Reset ${nativeGainBlockerRoutes.length} route gains to 100% for ${displayBackendName(state.selectedBackend)} live apply.`
+    );
   }
 
   async function minimizeWindow(): Promise<void> {
@@ -1413,17 +1426,13 @@
   function handleNameChange(event: Event): void {
     const name = (event.currentTarget as HTMLInputElement).value;
     const updated = updateConfiguration(state, activeConfiguration.id, { name }, new Date().toISOString());
-    applyState(updated.state);
-    runtimeStatus = "verified";
-    runtimeNote = `Saved ${updated.configuration.name}.`;
+    saveConfigurationEdit(updated.state, `Saved ${updated.configuration.name}.`);
   }
 
   function handleDescriptionChange(event: Event): void {
     const description = (event.currentTarget as HTMLTextAreaElement).value;
     const updated = updateConfiguration(state, activeConfiguration.id, { description }, new Date().toISOString());
-    applyState(updated.state);
-    runtimeStatus = "verified";
-    runtimeNote = `Saved notes for ${updated.configuration.name}.`;
+    saveConfigurationEdit(updated.state, `Saved notes for ${updated.configuration.name}.`);
   }
 
   function exportActiveConfiguration(): void {
