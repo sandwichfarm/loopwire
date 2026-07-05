@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- `scripts/audit-final-release-state.sh` now verifies the live downloadable
+  `loopwire-release-evidence-<tag>.tar.gz` asset during non-`--skip-gh` status audits: it downloads the archive plus
+  `SHA256SUMS` and `SHA256SUMS.sig`, verifies the signed checksum entry, safe-extracts the archive, and checks
+  `release-evidence.json` against the selected tag, repository, commit, release public key, successful
+  published-release smoke, and absence of release blockers.
+- `pnpm verify:scripts` passed with a fake GitHub fixture proving release status blocks a missing downloadable release
+  evidence archive asset, verifies release evidence before reporting a missing VM archive, and accepts a signed release
+  directory containing both release-evidence and VM-evidence archives.
+- `pnpm check`, `git diff --check`, added-line length scan, and codebase-memory MCP fast index refresh passed after the
+  release evidence archive status update.
 - `scripts/fetch-docs-deployment-proof.sh` now stages Deploy Docs artifact downloads and manifest verification in a
   temporary directory before replacing the requested local docs proof paths, so a missing deployment artifact cannot
   leave partial `loopwire-docs` proof behind.

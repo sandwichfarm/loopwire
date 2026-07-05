@@ -679,6 +679,9 @@ assert_contains "apps/docs/docs/developer/release.md" "wrong file or directory t
 assert_contains "apps/docs/docs/developer/release.md" "uses that same root"
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"
 assert_contains "apps/docs/docs/developer/release.md" "docs deployment manifest"
+assert_contains "apps/docs/docs/developer/release.md" "signed downloadable release evidence archive"
+assert_contains "apps/docs/docs/developer/release.md" 'release-evidence.json` does not match'
+assert_contains "apps/docs/docs/developer/release.md" "selected tag/repo/commit"
 assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, Deploy Docs, and Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "successful CI, docs, or proof run for an older commit"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifest"
@@ -760,6 +763,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'validates custom `
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'stricter mode for `Verified` rows'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>.tar.gz"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "verifies its signed"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "tag/repo/commit before final proof"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "covered by the same signed checksum manifest"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-release-evidence"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-dsp-provider-plan"

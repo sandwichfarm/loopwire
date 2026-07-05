@@ -431,6 +431,84 @@ check_published_vm_evidence_archive() {
     --require-published-release
 }
 
+check_published_release_evidence_archive() {
+  local asset="loopwire-release-evidence-${tag}.tar.gz"
+  local tmp_dir
+  local evidence_root
+  local evidence_dir=""
+  local evidence_dirs=()
+
+  if [ "$skip_gh" = "true" ]; then
+    echo "skipped: live GitHub lookup disabled"
+    return 0
+  fi
+
+  command -v gh >/dev/null 2>&1 || {
+    echo "missing: gh is required to download the release evidence asset" >&2
+    return 1
+  }
+
+  tmp_dir="$(mktemp -d)"
+  cleanup_release_archive() {
+    rm -rf "$tmp_dir"
+  }
+  trap cleanup_release_archive RETURN
+
+  gh release download "$tag" \
+    --repo "$repo" \
+    --dir "$tmp_dir" \
+    --pattern SHA256SUMS \
+    --clobber >/dev/null
+  gh release download "$tag" \
+    --repo "$repo" \
+    --dir "$tmp_dir" \
+    --pattern SHA256SUMS.sig \
+    --clobber >/dev/null
+  gh release download "$tag" \
+    --repo "$repo" \
+    --dir "$tmp_dir" \
+    --pattern "$asset" \
+    --clobber >/dev/null
+
+  bash scripts/verify-release-asset-checksum.sh \
+    --release-dir "$tmp_dir" \
+    --asset "$asset" \
+    --public-key "$public_key" \
+    --label "release evidence archive"
+
+  bash scripts/extract-safe-tar.sh \
+    --archive "$tmp_dir/$asset" \
+    --output-dir "$tmp_dir/extracted" \
+    --label "release evidence archive" >/dev/null
+
+  evidence_root="$tmp_dir/extracted"
+  if [ -f "$evidence_root/$tag/release-evidence.json" ]; then
+    evidence_dir="$evidence_root/$tag"
+  elif [ -f "$evidence_root/release-evidence.json" ]; then
+    evidence_dir="$evidence_root"
+  else
+    while IFS= read -r candidate; do
+      evidence_dirs+=("$candidate")
+    done < <(find "$evidence_root" -mindepth 1 -maxdepth 1 -type d | sort)
+
+    if [ "${#evidence_dirs[@]}" -eq 1 ] && [ -f "${evidence_dirs[0]}/release-evidence.json" ]; then
+      evidence_dir="${evidence_dirs[0]}"
+    else
+      echo "release evidence archive must contain release-evidence.json or exactly one top-level evidence directory" >&2
+      return 1
+    fi
+  fi
+
+  node scripts/verify-release-evidence.mjs \
+    --evidence-dir "$evidence_dir" \
+    --public-key "$public_key" \
+    --release-tag "$tag" \
+    --repo "$repo" \
+    --git-head "$expected_git_head" \
+    --require-published-release \
+    --require-no-release-blockers
+}
+
 run_workflow_probe() {
   local label="$1"
   local expected_head="$2"
@@ -655,6 +733,10 @@ run_release_probe \
   "$tag" \
   gh release view "$tag" --repo "$repo" \
     --json tagName,url,targetCommitish,isDraft,isPrerelease,assets || failed=1
+
+run_gate \
+  "published release evidence archive asset" \
+  check_published_release_evidence_archive || failed=1
 
 run_gate \
   "published VM evidence archive asset" \

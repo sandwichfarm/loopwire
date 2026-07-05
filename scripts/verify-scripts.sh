@@ -5242,9 +5242,68 @@ grep -F "GitHub Release object is missing required asset(s): loopwire-vm-evidenc
     echo "verify-scripts: release status did not block missing release assets" >&2
     exit 1
   }
+release_status_missing_release_archive_asset_log="$tmp_dir/release-status-missing-release-archive-asset.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --public-key "$release_status_public_key" \
+    --secret-list-file "$secret_list_all_final" >"$release_status_missing_release_archive_asset_log" 2>&1; then
+  echo "verify-scripts: release status accepted missing downloadable release evidence archive asset" >&2
+  exit 1
+fi
+grep -F "blocked: published release evidence archive asset" \
+  "$release_status_missing_release_archive_asset_log" >/dev/null || {
+    echo "verify-scripts: release status did not block missing downloadable release evidence archive asset" >&2
+    exit 1
+  }
+grep -F "fake release download dir is not configured" \
+  "$release_status_missing_release_archive_asset_log" >/dev/null || {
+    echo "verify-scripts: release status did not preserve release archive download failure details" >&2
+    exit 1
+  }
+release_status_release_only_dir="$tmp_dir/release-status-release-only-dir"
+release_status_release_archive_root="$tmp_dir/release-status-release-archive-root"
+mkdir -p "$release_status_release_only_dir" "$release_status_release_archive_root"
+cp -R "$release_evidence_dir" "$release_status_release_archive_root/v0.1.0"
+node - "$release_status_release_archive_root/v0.1.0/release-evidence.json" "$release_status_public_key" <<'NODE'
+const fs = require("node:fs");
+
+const [manifestPath, publicKey] = process.argv.slice(2);
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const command = manifest.commands.find((entry) => entry.name === "published-release-smoke");
+
+manifest.release.publicKey = publicKey;
+if (!command) {
+  throw new Error("missing published-release-smoke command");
+}
+command.command = [
+  "bash scripts/verify-published-release.sh",
+  "--repo sandwichfarm/loopwire",
+  "--tag v0.1.0",
+  `--public-key ${publicKey}`
+].join(" ");
+
+fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
+tar -C "$release_status_release_archive_root" \
+  -czf "$release_status_release_only_dir/loopwire-release-evidence-v0.1.0.tar.gz" \
+  v0.1.0
+(
+  cd "$release_status_release_only_dir"
+  sha256sum loopwire-release-evidence-v0.1.0.tar.gz >SHA256SUMS
+  sha256sum --check SHA256SUMS >/dev/null
+)
+bash scripts/sign-release-artifacts.sh \
+  --release-dir "$release_status_release_only_dir" \
+  --private-key "$release_status_private_key" >/dev/null
 release_status_missing_vm_archive_asset_log="$tmp_dir/release-status-missing-vm-archive-asset.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_RELEASE_DIR="$release_status_release_only_dir" \
   PATH="$fake_gh_dir:$PATH" \
   bash scripts/audit-final-release-state.sh \
     --repo sandwichfarm/loopwire \
@@ -5255,12 +5314,21 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted missing downloadable VM evidence archive asset" >&2
   exit 1
 fi
+grep -F "ok: published release evidence archive asset" \
+  "$release_status_missing_vm_archive_asset_log" >/dev/null || {
+    echo "verify-scripts: release status did not verify the signed release evidence archive asset first" >&2
+    exit 1
+  }
+grep -F "Release evidence verified:" "$release_status_missing_vm_archive_asset_log" >/dev/null || {
+  echo "verify-scripts: release status did not run the release evidence verifier" >&2
+  exit 1
+}
 grep -F "blocked: published VM evidence archive asset" \
   "$release_status_missing_vm_archive_asset_log" >/dev/null || {
     echo "verify-scripts: release status did not block missing downloadable VM evidence archive asset" >&2
     exit 1
   }
-grep -F "fake release download dir is not configured" \
+grep -F "fake release asset not found: loopwire-vm-evidence-v0.1.0.tar.gz" \
   "$release_status_missing_vm_archive_asset_log" >/dev/null || {
     echo "verify-scripts: release status did not preserve VM archive download failure details" >&2
     exit 1
@@ -5336,6 +5404,9 @@ release_status_matching_workflow_log="$tmp_dir/release-status-matching-workflow.
 release_status_fake_release_dir="$tmp_dir/release-status-fake-release-dir"
 release_status_fake_vm_archive_root="$tmp_dir/release-status-fake-vm-archive-root"
 mkdir -p "$release_status_fake_release_dir" "$release_status_fake_vm_archive_root"
+cp \
+  "$release_status_release_only_dir/loopwire-release-evidence-v0.1.0.tar.gz" \
+  "$release_status_fake_release_dir/loopwire-release-evidence-v0.1.0.tar.gz"
 node - "$release_status_fake_vm_archive_root/manifest.json" <<'NODE'
 const fs = require("node:fs");
 const output = process.argv[2];
@@ -5367,7 +5438,9 @@ tar -C "$release_status_fake_vm_archive_root" \
   manifest.json
 (
   cd "$release_status_fake_release_dir"
-  sha256sum loopwire-vm-evidence-v0.1.0.tar.gz >SHA256SUMS
+  sha256sum \
+    loopwire-release-evidence-v0.1.0.tar.gz \
+    loopwire-vm-evidence-v0.1.0.tar.gz >SHA256SUMS
   sha256sum --check SHA256SUMS >/dev/null
 )
 bash scripts/sign-release-artifacts.sh \
@@ -5391,6 +5464,14 @@ grep -F "latest run verified: databaseId=123456 headSha=0123456789abcdef01234567
     echo "verify-scripts: release status did not accept matching workflow SHA evidence" >&2
     exit 1
   }
+grep -F "ok: published release evidence archive asset" "$release_status_matching_workflow_log" >/dev/null || {
+  echo "verify-scripts: release status did not verify the signed release evidence archive asset" >&2
+  exit 1
+}
+grep -F "Release evidence verified:" "$release_status_matching_workflow_log" >/dev/null || {
+  echo "verify-scripts: release status did not verify the release evidence archive contents" >&2
+  exit 1
+}
 grep -F "ok: published VM evidence archive asset" "$release_status_matching_workflow_log" >/dev/null || {
   echo "verify-scripts: release status did not verify the signed VM evidence archive asset" >&2
   exit 1

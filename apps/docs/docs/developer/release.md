@@ -261,14 +261,14 @@ pnpm release:status -- \
 ```
 
 The status command checks required GitHub secrets, the release signing public key, the GitHub Release object and
-required release assets, the signed downloadable VM evidence archive manifest,
-completed successful CI, Deploy Docs, and Final Release Proof workflow runs, the docs deployment manifest,
+required release assets, the signed downloadable release evidence archive, the signed downloadable VM evidence archive
+manifest, completed successful CI, Deploy Docs, and Final Release Proof workflow runs, the docs deployment manifest,
 published-release-bound VM evidence, support-matrix claims, and the local handoff plan. It exits nonzero until every
-final proof surface is present. Draft releases,
-prereleases, mismatched release tags, releases missing canonical tarballs, signed checksums, release evidence, or VM
-evidence archives, and VM evidence archives whose signed manifest does not match the selected tag and `vm/targets.tsv`
-target set are blockers. Empty, failed, cancelled, or still-running workflow lists are release blockers, even when the
-GitHub API call itself succeeds. The workflow run
+final proof surface is present. Draft releases, prereleases, mismatched release tags, releases missing canonical
+tarballs, signed checksums, release evidence, or VM evidence archives, release evidence archives whose
+`release-evidence.json` does not match the selected tag/repo/commit, and VM evidence archives whose signed manifest
+does not match the selected tag and `vm/targets.tsv` target set are blockers. Empty, failed, cancelled, or still-running
+workflow lists are release blockers, even when the GitHub API call itself succeeds. The workflow run
 `headSha` and docs deployment manifest source commit must match `--git-head`, which defaults to the current checkout
 when omitted, so a successful CI, docs, or proof run for an older commit cannot satisfy final status. The docs deployment
 manifest must be non-dry-run proof for the built docs dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
@@ -286,7 +286,8 @@ instead of expanding the default public-key path. If the docs deployment manifes
 the matching `pnpm release:fetch-docs-proof` command for the expected commit and preserves `--env-file` when supplied.
 Custom local path inputs for `release:status`, including `--env-file`, `--secret-list-file`,
 `--docs-deployment-manifest`, `--docs-dist`, `--vm-evidence-root`, and `--support-matrix`, reject traversal,
-root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and existing paths with the wrong file or directory type before the audit begins.
+root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and existing paths with the wrong file or
+directory type before the audit begins.
 When `--vm-evidence-root` points at copied-back VM evidence outside `.vm/evidence`, `release:status` uses that same root
 for both the matrix evidence-status audit and the support-matrix promotion audit, so a promoted row is checked against
 the operator-selected evidence bundle path.
