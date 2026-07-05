@@ -4057,8 +4057,10 @@ echo "unexpected fake gh args: $*" >&2
 exit 64
 EOF
 chmod +x "$fake_gh_dir/gh"
-fetch_docs_proof_dist="$tmp_dir/fetched-docs-dist"
-fetch_docs_proof_manifest="$tmp_dir/fetched-docs-deployment/deployment-manifest.json"
+fetch_docs_proof_root="dist/verify-scripts/fetch-docs-proof"
+fetch_docs_proof_dist="$fetch_docs_proof_root/docs-dist"
+fetch_docs_proof_manifest="$fetch_docs_proof_root/docs-deployment/deployment-manifest.json"
+rm -rf "$fetch_docs_proof_root"
 LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_proof_dist" PATH="$fake_gh_dir:$PATH" \
   bash scripts/fetch-docs-deployment-proof.sh \
     --repo sandwichfarm/loopwire \
@@ -4081,8 +4083,26 @@ if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
   echo "verify-scripts: docs deployment proof helper accepted an invalid run id" >&2
   exit 1
 fi
-fetch_docs_missing_dist="$tmp_dir/fetched-docs-dist-missing-artifact"
-fetch_docs_missing_manifest="$tmp_dir/fetched-docs-deployment-missing-artifact/deployment-manifest.json"
+if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --run-id 123456 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --docs-dist /tmp/loopwire-docs-dist >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted an absolute docs dist path" >&2
+  exit 1
+fi
+if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --run-id 123456 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --manifest ../deployment-manifest.json >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted a parent-traversal manifest path" >&2
+  exit 1
+fi
+fetch_docs_missing_root="dist/verify-scripts/fetch-docs-proof-missing-artifact"
+fetch_docs_missing_dist="$fetch_docs_missing_root/docs-dist"
+fetch_docs_missing_manifest="$fetch_docs_missing_root/docs-deployment/deployment-manifest.json"
+rm -rf "$fetch_docs_missing_root"
 fetch_docs_missing_env_file="$tmp_dir/fetch-docs-proof-release-secrets.env"
 cat >"$fetch_docs_missing_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=loopwire-docs
@@ -4130,6 +4150,7 @@ if grep -F "env-access-key-that-must-not-print" "$tmp_dir/fetch-docs-proof-missi
   echo "verify-scripts: docs deployment proof helper leaked the env-file Bunny access key" >&2
   exit 1
 fi
+rm -rf "$fetch_docs_proof_root" "$fetch_docs_missing_root"
 secret_list_release_key_only="$tmp_dir/secret-list-release-key-only.tsv"
 secret_list_all_final="$tmp_dir/secret-list-all-final.tsv"
 printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z" >"$secret_list_release_key_only"

@@ -571,6 +571,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-doc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'names-only `--secret-list-file` artifact'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:handoff`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects absolute'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:status`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "parseable release signing public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "non-dry-run docs deployment manifest proof"
@@ -592,6 +593,7 @@ assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
+assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
 assert_contains "apps/docs/docs/developer/release.md" 'If the docs deployment manifest is missing'
 assert_contains "apps/docs/docs/developer/release.md" "uses that same root"

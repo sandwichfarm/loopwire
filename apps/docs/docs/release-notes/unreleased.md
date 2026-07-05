@@ -209,6 +209,8 @@ These notes describe source-tree progress. They are not a public release announc
   `pnpm release:status` consumes it.
 - `pnpm release:fetch-docs-proof` now accepts `--env-file` for missing-deployment-artifact recovery hints, preserving
   the same local secret-file setup path without reading or printing secret values.
+- `pnpm release:fetch-docs-proof` now rejects absolute or parent-traversal output paths before it rewrites the docs dist
+  and deployment manifest locations.
 - `pnpm release:status` now preserves `--env-file` in its generated `pnpm release:fetch-docs-proof` recovery command
   when the docs deployment manifest is missing.
 - `pnpm release:status --env-file` now keeps the default release public-key path implicit in its embedded VM evidence

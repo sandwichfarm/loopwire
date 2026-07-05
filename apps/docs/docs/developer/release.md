@@ -198,7 +198,8 @@ pnpm release:fetch-docs-proof -- \
 The helper downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is
 non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`. If the deployment
 artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the recovery command without
-reading or printing secret values.
+reading or printing secret values. Custom `--docs-dist` and `--manifest` outputs must stay repo-relative because the
+helper rewrites those paths while normalizing downloaded artifacts.
 
 To audit the current final-release state from one read-only command:
 

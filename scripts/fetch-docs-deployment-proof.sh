@@ -61,11 +61,13 @@ validate_git_head() {
 validate_output_path() {
   local value="$1"
   local label="$2"
+  local normalized
 
   [ -n "$value" ] || fail "$label must not be empty"
-  case "$value" in
-    / | . | .. | ./*/.. | ../* | */../* | */..)
-      fail "$label is not a safe output path: $value"
+  normalized="${value#./}"
+  case "$normalized" in
+    /* | ~* | *://* | "" | . | .. | ../* | */../* | */.. | */./* | */.)
+      fail "$label must be a repo-relative output path without . or .. segments: $value"
       ;;
   esac
 }
