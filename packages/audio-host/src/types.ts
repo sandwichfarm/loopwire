@@ -1,4 +1,4 @@
-export type AudioBackendKind = "pipewire" | "pulseaudio" | "jack" | "alsa";
+export type AudioBackendKind = "pipewire" | "pulseaudio" | "jack" | "alsa" | "dsp";
 
 export type BackendAvailability = "available" | "unavailable";
 

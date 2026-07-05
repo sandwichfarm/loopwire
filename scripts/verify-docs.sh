@@ -147,6 +147,7 @@ assert_contains "apps/docs/docs/guide/backends.md" "JSON stdin"
 assert_contains "apps/docs/docs/guide/backends.md" "stored by configuration"
 assert_contains "apps/docs/docs/guide/backends.md" "Release artifacts ship"
 assert_contains "apps/docs/docs/guide/backends.md" '`loopwire-dsp-provider`'
+assert_contains "apps/docs/docs/guide/backends.md" 'Persisted `selectedBackend: "dsp"` state'
 assert_contains "apps/docs/docs/guide/backends.md" "seed-source"
 assert_contains "apps/docs/docs/guide/backends.md" "live backend DSP still needs"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:plan"
@@ -234,6 +235,8 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "--backend dsp"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-command"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-timeout-ms"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--dsp-provider-mode live"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" 'Persisted `selectedBackend: "dsp"` state is honored'
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "still requires an explicit"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "supportsLiveGraph:true"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" '`operations` list'
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--require-live-capability"
@@ -728,6 +731,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm dsp:plan`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm dsp:verify`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`loopwire-dsp-provider`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--dsp-provider-mode live"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'Persisted `selectedBackend: "dsp"` state now survives'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "supportsLiveGraph:true"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "capabilities.operations"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-live-capability"

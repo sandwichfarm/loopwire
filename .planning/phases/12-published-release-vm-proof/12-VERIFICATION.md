@@ -2608,6 +2608,19 @@
   `DSP provider graph-edge plan` and the read-only `read-source`, `write-output`, `verify-output`, and `clear-output`
   operation rows. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
   support-matrix promotion was performed.
+- Persisted DSP backend selection is now schema-valid and fail-closed at boot restore: `@loopwire/core` includes `dsp`
+  in `audioBackendKinds`, persisted `selectedBackend: "dsp"` round-trips through `serializeState`/`restoreState`, and
+  `scripts/restore-background.mjs` validates the resolved backend before live restore so a persisted DSP backend cannot
+  bypass the explicit `--dsp-provider-command` and `--dsp-provider-mode live` trust boundary. Desktop live-apply
+  preflight blocks DSP without an explicit graph-edge capability report instead of silently treating it as ready.
+- Focused validation passed for persisted DSP restore safety: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located background restore, selected backend persistence,
+  route-control, and live-apply preflight surfaces before implementation. `node --check scripts/restore-background.mjs`,
+  `bash -n scripts/verify-autostart.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:autostart`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm --filter @loopwire/core test`, `pnpm --filter @loopwire/audio-host
+  test`, `pnpm --filter @loopwire/desktop test`, `pnpm --filter @loopwire/desktop typecheck`, and package typechecks
+  passed. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

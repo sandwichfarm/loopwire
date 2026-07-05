@@ -198,10 +198,12 @@ provider command before enabling boot restore. Release artifacts install `loopwi
 provider for contract smoke and local restore preflight. It stores seeded source buffers and configuration-scoped rendered output
 buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
-provider. `--mode live --backend dsp` now requires `--dsp-provider-mode live` and a provider `capabilities` result
-with `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and `clear-output` in its
-`operations` list; the bundled file-backed provider declares `supportsLiveGraph:false` and is rejected for live
-restore. Use live mode only with a real provider that captures from and writes to the host audio graph.
+provider. Persisted `selectedBackend: "dsp"` state is honored for startup restore, but it still requires an explicit
+`--dsp-provider-command` after the persisted backend is resolved. `--mode live --backend dsp` or persisted DSP live
+restore requires `--dsp-provider-mode live` and a provider `capabilities` result with `supportsLiveGraph:true` plus
+`read-source`, `write-output`, `verify-output`, and `clear-output` in its `operations` list; the bundled file-backed
+provider declares `supportsLiveGraph:false` and is rejected for live restore. Use live mode only with a real provider
+that captures from and writes to the host audio graph.
 
 Seed every source your configuration routes before running execute-mode preflight:
 
@@ -280,7 +282,8 @@ the generated `ExecStart` line. For DSP provider restore, the helper appends `--
 flags. Packaged services pass those flags after `loopwire --background`; source-checkout services pass them after
 `pnpm restore:background --`, so both boot paths keep the same runtime contract. The packaged JACK wrapper is a
 preflight/delegation surface, not a native JACK client creator. The packaged DSP provider is likewise a file-backed
-preflight provider unless a separate live provider is configured with `--dsp-provider-mode live`.
+preflight provider unless a separate live provider is configured with `--dsp-provider-command` and
+`--dsp-provider-mode live`.
 
 The helper supports both the packaged launcher path through `--binary "$HOME/.local/bin/loopwire"` and the source
 checkout path through `--source-dir "$PWD"`.

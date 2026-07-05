@@ -45,7 +45,8 @@ const defaultBackendDisplayName: BackendDisplayName = (kind) => {
     pipewire: "PipeWire",
     pulseaudio: "PulseAudio",
     jack: "JACK",
-    alsa: "ALSA"
+    alsa: "ALSA",
+    dsp: "DSP Provider"
   };
 
   return labels[kind];
@@ -130,6 +131,13 @@ function liveApplyBlockers(
 
   if (backend === "alsa") {
     return ["ALSA live apply is not implemented; use PipeWire, PulseAudio, or JACK."];
+  }
+
+  if (backend === "dsp" && !backendSupportsPerEdgeGain(backend, capability)) {
+    return [
+      "DSP provider live apply needs an explicit live provider capability report; use background restore provider " +
+        "settings or select PipeWire, PulseAudio, or JACK for desktop live apply."
+    ];
   }
 
   if (backend === "pulseaudio") {

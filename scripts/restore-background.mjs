@@ -242,6 +242,7 @@ async function main() {
     selectBackend,
     mode: args.mode
   });
+  validateResolvedRestoreBackend(selectedBackend, args);
   const dspProviderCapability = await verifyDspProviderCapability(runner, selectedBackend, args);
   const adapter = createRuntimeAdapter(audioHost, runner, selectedBackend, args.mode, args);
   const result = await verifyStartupConfiguration(restored.state, adapter, new Date().toISOString());
@@ -335,6 +336,23 @@ function selectRestoreBackend({ requestedBackend, persistedBackend, detection, s
 
 function backgroundRestoreBackendGuidance() {
   return "Open Loopwire, use Settings > Audio backend to save a verified backend, then re-run Restore on boot.";
+}
+
+function validateResolvedRestoreBackend(selectedBackend, args) {
+  if (selectedBackend !== "dsp") {
+    return;
+  }
+
+  if (!args.dspProviderCommand) {
+    throw new Error(
+      "DSP background restore requires --dsp-provider-command after resolving the persisted backend. " +
+        "Use preview with an explicit provider command for rehearsals, or configure a real live DSP provider."
+    );
+  }
+
+  if (args.mode === "live" && args.dspProviderMode !== "live") {
+    throw new Error("--backend dsp --mode live requires --dsp-provider-mode live");
+  }
 }
 
 async function verifyDspProviderCapability(runner, backend, args) {

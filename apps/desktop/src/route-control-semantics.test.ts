@@ -39,6 +39,11 @@ describe("route control semantics", () => {
       badge: "Planned",
       message: "ALSA route apply and per-edge controls are not implemented yet."
     });
+    expect(describeRouteControlSemantics("dsp")).toEqual({
+      mode: "planned",
+      badge: "DSP",
+      message: "DSP provider controls require an explicit live provider before desktop live apply can use them."
+    });
   });
 
   it("uses backend-selection state when no backend is selected", () => {
@@ -70,6 +75,7 @@ describe("route control semantics", () => {
     expect(routeGainEditingLockedForBackend("jack")).toBe(true);
     expect(routeGainEditingLockedForBackend("pulseaudio")).toBe(false);
     expect(routeGainEditingLockedForBackend("alsa")).toBe(false);
+    expect(routeGainEditingLockedForBackend("dsp")).toBe(false);
     expect(routeGainEditingLockedForBackend(undefined)).toBe(false);
   });
 });

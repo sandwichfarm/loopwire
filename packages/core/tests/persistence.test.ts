@@ -27,6 +27,14 @@ describe("persistence", () => {
     expect(restored.state.appliedAt).toBe("2026-07-03T11:00:00.000Z");
   });
 
+  it("preserves explicit DSP provider backend selection for background restore", () => {
+    const original = setSelectedBackend(createDefaultState(), "dsp");
+    const restored = restoreState(serializeState(original));
+
+    expect(restored.ok).toBe(true);
+    expect(restored.state.selectedBackend).toBe("dsp");
+  });
+
   it("falls back when the payload is corrupt", () => {
     const fallback = createDefaultState("2026-07-03T12:00:00.000Z");
     const restored = restoreState("{nope", fallback);

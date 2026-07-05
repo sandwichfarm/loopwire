@@ -101,6 +101,14 @@ export function describeRouteControlSemantics(
     };
   }
 
+  if (backend === "dsp") {
+    return {
+      mode: "planned",
+      badge: "DSP",
+      message: "DSP provider controls require an explicit live provider before desktop live apply can use them."
+    };
+  }
+
   return {
     mode: "planned",
     badge: "Planned",

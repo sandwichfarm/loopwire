@@ -56,6 +56,16 @@ const graphEdgeJack: LiveApplyBackendCapability = {
   }
 };
 
+const graphEdgeDsp: LiveApplyBackendCapability = {
+  kind: "dsp",
+  displayName: "DSP Provider",
+  mixing: {
+    controlScope: "graph-edge",
+    supportsPerEdgeGain: true,
+    supportsPerEdgeMute: true
+  }
+};
+
 const unavailablePulseAudio: LiveApplyBackendCapability = {
   kind: "pulseaudio",
   displayName: "PulseAudio",
@@ -136,6 +146,31 @@ describe("describeLiveApplyPreflight", () => {
     expect(describeLiveApplyPreflight(baseConfiguration, "alsa").blockers).toEqual([
       "ALSA live apply is not implemented; use PipeWire, PulseAudio, or JACK."
     ]);
+  });
+
+  it("blocks persisted DSP provider live apply until explicit provider capability is available", () => {
+    const result = describeLiveApplyPreflight(baseConfiguration, "dsp");
+
+    expect(result).toEqual({
+      ok: false,
+      mode: "blocked",
+      badge: "Blocked",
+      message:
+        "DSP provider live apply needs an explicit live provider capability report; use background restore provider " +
+        "settings or select PipeWire, PulseAudio, or JACK for desktop live apply.",
+      blockers: [
+        "DSP provider live apply needs an explicit live provider capability report; use background restore provider " +
+          "settings or select PipeWire, PulseAudio, or JACK for desktop live apply."
+      ]
+    });
+  });
+
+  it("allows DSP provider live apply when graph-edge capability is explicit", () => {
+    expect(describeLiveApplyPreflight(baseConfiguration, "dsp", undefined, graphEdgeDsp)).toMatchObject({
+      ok: true,
+      badge: "Ready",
+      message: "DSP Provider live apply is ready for Studio."
+    });
   });
 
   it("blocks native PipeWire when route gain is non-unity or sources lack host ports", () => {

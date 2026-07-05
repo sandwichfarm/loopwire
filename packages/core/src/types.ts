@@ -1,6 +1,6 @@
 export const schemaVersion = 1 as const;
 
-export const audioBackendKinds = ["pipewire", "pulseaudio", "jack", "alsa"] as const;
+export const audioBackendKinds = ["pipewire", "pulseaudio", "jack", "alsa", "dsp"] as const;
 
 export type AudioBackendKind = (typeof audioBackendKinds)[number];
 

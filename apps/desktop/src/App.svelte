@@ -1708,7 +1708,15 @@
   }
 
   function displayBackendName(kind: AudioBackendKind): string {
-    return backendCandidates.find((candidate) => candidate.kind === kind)?.displayName ?? kind;
+    const fallbackLabels: Record<AudioBackendKind, string> = {
+      pipewire: "PipeWire",
+      pulseaudio: "PulseAudio",
+      jack: "JACK",
+      alsa: "ALSA",
+      dsp: "DSP Provider"
+    };
+
+    return backendCandidates.find((candidate) => candidate.kind === kind)?.displayName ?? fallbackLabels[kind];
   }
 
   function backendCapabilityFor(kind: AudioBackendKind | undefined): RouteControlBackendCapability | undefined {

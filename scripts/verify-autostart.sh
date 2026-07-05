@@ -165,6 +165,22 @@ assert_contains "$restore_output" '"operations": ['
 assert_contains "$restore_output" '"apply"'
 assert_contains "$restore_output" '"verify"'
 
+node - "$state_file" <<'NODE'
+const fs = require("node:fs");
+const path = process.argv[2];
+const state = JSON.parse(fs.readFileSync(path, "utf8"));
+state.selectedBackend = "dsp";
+fs.writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`);
+NODE
+if pnpm restore:background -- \
+  --state-file "$state_file" \
+  --mode live \
+  --pretty >"$dsp_reject_output" 2>&1; then
+  echo "restore background accepted persisted DSP live restore without provider command." >&2
+  exit 1
+fi
+assert_contains "$dsp_reject_output" "DSP background restore requires --dsp-provider-command"
+
 cat >"$dsp_provider" <<SH
 #!/usr/bin/env bash
 set -euo pipefail

@@ -132,6 +132,9 @@ These notes describe source-tree progress. They are not a public release announc
   does not yet capture or inject live PipeWire/JACK streams. Live DSP restore now requires `--dsp-provider-mode live`,
   and restore now probes provider `capabilities` for `supportsLiveGraph:true`, so file-backed preflight cannot be
   mistaken for a live audio provider.
+- Persisted `selectedBackend: "dsp"` state now survives core restore, and source-checkout background restore rejects
+  live DSP startup until an explicit `--dsp-provider-command` and live provider mode are supplied after backend
+  resolution.
 - Live DSP provider preflight now also requires the provider `capabilities.operations` list to include `read-source`,
   `write-output`, `verify-output`, and `clear-output`, so restore cannot arm against a provider that cannot verify or
   roll back Loopwire-owned outputs.

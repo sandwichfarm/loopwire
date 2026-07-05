@@ -184,8 +184,10 @@ output from verifying another configuration that reuses the same output id. `ver
 an exit-0 command with empty stdout is treated as failed verification. Release artifacts ship
 `loopwire-dsp-provider`, a bundled file-backed provider that can seed source buffers, persist rendered outputs, verify
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
-for contract smoke and restore preflight but not for live graph restore. This is still not native live host DSP: live backend DSP still needs
-a host adapter that can capture source streams and inject the rendered outputs into PipeWire or JACK.
+for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
+accepted for startup restore only when the restore command also supplies the explicit DSP provider command. This is
+still not native live host DSP: live backend DSP still needs a host adapter that can capture source streams and inject
+the rendered outputs into PipeWire or JACK.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 
