@@ -342,6 +342,7 @@ process.exit(pkg.scripts?.[scriptName] === expected ? 0 : 1);
 
 check_package_script "verify:docs-deployment" "node scripts/verify-docs-deployment-manifest.mjs"
 check_package_script "verify:final-release" "bash scripts/verify-final-release-proof.sh"
+check_package_script "release:agent-ready" "bash scripts/verify-agent-release-ready.sh"
 check_package_script "vm:package-evidence" "bash scripts/package-vm-evidence.sh"
 check_package_script "vm:prepare-release-evidence" "bash scripts/prepare-vm-evidence-release-asset.sh"
 

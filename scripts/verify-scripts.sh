@@ -17,6 +17,7 @@ bash -n \
   scripts/verify-nix-release-package.sh \
   scripts/setup-github-secrets.sh \
   scripts/plan-final-release-handoff.sh \
+  scripts/verify-agent-release-ready.sh \
   scripts/audit-final-release-state.sh \
   scripts/ct-host-check.sh \
   scripts/vm-matrix.sh \
@@ -72,6 +73,10 @@ if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deploym
 }
 if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff.sh") {
   console.error("verify-scripts: root package is missing release:handoff");
+  process.exit(1);
+}
+if (root.scripts["release:agent-ready"] !== "bash scripts/verify-agent-release-ready.sh") {
+  console.error("verify-scripts: root package is missing release:agent-ready");
   process.exit(1);
 }
 if (root.scripts["release:status"] !== "bash scripts/audit-final-release-state.sh") {
@@ -199,6 +204,7 @@ pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 release_handoff_help="$(bash scripts/plan-final-release-handoff.sh --help)"
+agent_release_ready_help="$(bash scripts/verify-agent-release-ready.sh --help)"
 fetch_docs_proof_help="$(bash scripts/fetch-docs-deployment-proof.sh --help)"
 bash scripts/plan-final-release-handoff.sh -- --help >/dev/null || {
   echo "verify-scripts: release handoff does not accept the package-script argument separator" >&2
@@ -230,6 +236,14 @@ printf '%s\n' "$release_handoff_help" | grep -F -- "--release-private-key-file F
 }
 printf '%s\n' "$release_handoff_help" | grep -F -- "--env-file FILE" >/dev/null || {
   echo "verify-scripts: release handoff help is missing env-file support" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--skip-local-gates" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing skip-local-gates support" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "operator-deferred release ceremony" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing operator-deferred wording" >&2
   exit 1
 }
 printf '%s\n' "$release_handoff_help" | grep -F -- "Operator-only activities" >/dev/null || {
@@ -384,6 +398,36 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
     echo "verify-scripts: release handoff placeholder plan is missing private-key operator-deferred reminder" >&2
     exit 1
   }
+agent_release_ready_plan="$(
+  bash scripts/verify-agent-release-ready.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --skip-local-gates
+)"
+printf '%s\n' "$agent_release_ready_plan" |
+  grep -F "Agent-ready release status: ready for operator-deferred ceremony" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke is missing ready status" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_plan" |
+  grep -F "skipped: local repo gates (--skip-local-gates)" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not report skipped local gates" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_plan" |
+  grep -F "Re-run strict final proof from published GitHub Release and Bunny.net surfaces." >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke is missing strict final-proof reminder" >&2
+    exit 1
+  }
+if bash scripts/verify-agent-release-ready.sh \
+  --repo https://github.com/sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted a URL-like repository" >&2
+  exit 1
+fi
 if bash scripts/plan-final-release-handoff.sh \
   --repo https://github.com/sandwichfarm/loopwire \
   --tag v0.1.0 \

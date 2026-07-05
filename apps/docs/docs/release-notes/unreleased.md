@@ -207,6 +207,9 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm release:handoff` now starts with an `Operator-deferred after agent delivery` section and prints the
   `--write-env-template /secure/loopwire-release-secrets.env` command, separating repo-ready automation from later
   operator-only secret entry, workflow dispatch, VM execution, and signed evidence upload.
+- New `pnpm release:agent-ready` verifies repo-side release readiness and handoff rendering without secrets or GitHub
+  mutations, then reminds operators that strict final proof still requires published release assets, Bunny deployment
+  proof, final-proof workflow success, and VM evidence from operator-controlled hosts.
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.

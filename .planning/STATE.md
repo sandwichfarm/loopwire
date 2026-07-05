@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T12:48:15+02:00"
-last_activity: 2026-07-05 - Release handoff separates operator-deferred actions
+last_updated: "2026-07-05T13:02:20+02:00"
+last_activity: 2026-07-05 - Agent-ready release gate verifies repo-side handoff readiness
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:handoff` now starts with an `Operator-deferred after agent delivery`
-section, prints the no-value secret env-template command, and labels docs-run/private-key placeholders as
-operator-deferred rather than generic blockers. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:agent-ready` now verifies repo-side release readiness, final handoff
+rendering, workflow contracts, docs contracts, VM matrix/cloud-init metadata, packaging metadata, and local release
+artifact smoke before operator-only ceremony work begins. Phase 12 remains gated on public GitHub Release install,
+Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,21 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Agent-ready release gate: `scripts/verify-agent-release-ready.sh` and package script
+  `pnpm release:agent-ready` now provide a read-only repo-side handoff readiness gate. The gate runs offline release
+  readiness, asserts the final release handoff renders the `Operator-deferred after agent delivery` section and safe
+  env-template command, and by default verifies workflow contracts, docs contracts, VM matrix/cloud-init metadata,
+  packaging metadata, and local release artifact smoke. `--skip-local-gates` keeps script-contract tests fast while
+  preserving the default full local gate. Release docs, unreleased notes, `scripts/verify-scripts.sh`,
+  `scripts/verify-release-readiness.sh`, `scripts/verify-requirements.sh`, and `scripts/verify-docs.sh` assert the new
+  command. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh scripts/verify-release-readiness.sh scripts/verify-requirements.sh`;
+  `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)
+  --skip-local-gates`; `bash scripts/verify-docs.sh`; `bash scripts/verify-requirements.sh`;
+  `bash scripts/verify-release-readiness.sh --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`;
+  `bash scripts/verify-scripts.sh`; and default `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --git-head $(git rev-parse HEAD)`.
 - 2026-07-05 Operator-deferred release handoff: `scripts/plan-final-release-handoff.sh` now separates repository-ready
   automation from later operator-only work by printing an `Operator-deferred after agent delivery` section for secret
   entry, protected workflow dispatch, VM execution, and signed evidence upload. The handoff also prints the safe

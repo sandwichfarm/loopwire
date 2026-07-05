@@ -184,6 +184,22 @@ pnpm release:handoff -- \
   --env-file /secure/loopwire-release-secrets.env
 ```
 
+To prove the repository is ready for that handoff before operator-only secret entry, workflow dispatch, VM execution,
+or evidence upload:
+
+```bash
+pnpm release:agent-ready -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head "$(git rev-parse HEAD)"
+```
+
+`release:agent-ready` is read-only. It runs offline release readiness, verifies the final handoff renders the
+`Operator-deferred after agent delivery` section, and by default also checks workflow contracts, docs contracts, VM
+matrix/cloud-init metadata, packaging metadata, and local release artifact smoke. Use `--skip-local-gates` only for
+fast script-contract rehearsal; strict final proof still requires published GitHub Release assets, Bunny deployment
+proof, a successful final-proof workflow, and VM evidence from operator-controlled hosts.
+
 The handoff prints the required secret check, strict release readiness command, Release workflow dispatch, Deploy Docs
 workflow dispatch, docs deployment proof download, VM SSH plan/runbook/evidence commands, VM evidence asset preparation
 command, final proof workflow dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch

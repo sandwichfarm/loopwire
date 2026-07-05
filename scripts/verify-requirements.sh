@@ -92,6 +92,7 @@ assert_file "scripts/render-nix-release-package.sh"
 assert_file "scripts/verify-nix-release-package.sh"
 assert_script "package.json" "nix:render-release" "bash scripts/render-nix-release-package.sh"
 assert_script "package.json" "verify:nix-release" "bash scripts/verify-nix-release-package.sh"
+assert_script "package.json" "release:agent-ready" "bash scripts/verify-agent-release-ready.sh"
 
 for requirement in DOCS-01 DOCS-02 DOCS-03 DOCS-04; do
   assert_requirement_checked "$requirement"

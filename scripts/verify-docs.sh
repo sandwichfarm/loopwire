@@ -580,6 +580,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Operator-deferred after agent delivery"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--write-env-template /secure/loopwire-release-secrets.env"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "operator-only secret entry"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:agent-ready`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "repo-side release readiness"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects unsafe docs dist'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact type"
@@ -627,6 +629,9 @@ assert_contains "apps/docs/docs/developer/release.md" 'Custom `--output` paths m
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
+assert_contains "apps/docs/docs/developer/release.md" "pnpm release:agent-ready"
+assert_contains "apps/docs/docs/developer/release.md" 'Use `--skip-local-gates` only for'
+assert_contains "apps/docs/docs/developer/release.md" "strict final proof still requires published GitHub Release assets"
 assert_contains "apps/docs/docs/developer/release.md" "Operator-deferred after agent delivery"
 assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
 assert_contains "apps/docs/docs/developer/release.md" 'print an `operator-deferred` reminder'
