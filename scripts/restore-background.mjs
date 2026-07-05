@@ -213,12 +213,12 @@ async function readPersistedStateFile(stateFile) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const rawState = await readPersistedStateFile(args.stateFile);
   const [{ getActiveConfiguration, restoreState, selectBackend, verifyStartupConfiguration }, audioHost] = await Promise.all([
     import("../packages/core/dist/index.js"),
     import("../packages/audio-host/dist/index.js")
   ]);
 
-  const rawState = await readPersistedStateFile(args.stateFile);
   const restored = restoreState(rawState);
 
   if (!restored.ok) {

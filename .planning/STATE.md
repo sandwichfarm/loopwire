@@ -88,10 +88,11 @@ proof, and operator-run VM evidence.
   failures with the state path plus a concrete recovery action: open Loopwire once, choose the desired configuration,
   and enable Restore on boot again. `scripts/verify-scripts.sh` now runs the missing-state path directly and asserts
   the actionable error. Requirements and docs checks also cover the guidance, and start-on-boot docs plus unreleased
-  notes explain the behavior. Focused validation passed: `node --check scripts/restore-background.mjs`, `bash -n
-  scripts/verify-requirements.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:requirements`,
-  `bash scripts/verify-docs.sh`, `git diff --check`, and `pnpm verify:scripts`. Full local validation passed:
-  `pnpm check`.
+  notes explain the behavior. The state-file read now runs before dynamic package imports, so this recovery works on a
+  fresh checkout before build artifacts exist. Focused validation passed: `node --check scripts/restore-background.mjs`,
+  direct missing-state restore probe, `bash -n scripts/verify-requirements.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:requirements`, `bash scripts/verify-docs.sh`, `git diff --check`, and
+  `pnpm verify:scripts`. Full local validation passed after the fresh-checkout ordering fix: `pnpm check`.
 - 2026-07-05 Background restore backend guidance: `scripts/restore-background.mjs` now tells users to open Loopwire
   Settings > Audio backend and save a verified backend when boot restore cannot safely choose between multiple
   available backends or when the saved backend is unavailable. The ambiguity error now names detected backend
