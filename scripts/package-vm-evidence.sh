@@ -21,11 +21,13 @@ Usage:
 
 The archive layout is:
   vm-evidence/<target>/...
+  vm-evidence/manifest.json
 
 When no --target is provided, every target from vm/targets.tsv is packaged. Every target bundle is verified with
 scripts/verify-vm-evidence.sh before it is copied into the archive. Use --require-published-release for final release
-archives so every VM bundle proves installed-release smoke from published artifacts. The completed archive is also
-validated with scripts/extract-safe-tar.sh so final release proof will reject unsafe member paths before upload.
+archives so every VM bundle proves installed-release smoke from published artifacts. The archive manifest binds the
+selected release tag, targets, strictness mode, and deterministic vm-evidence/<target> layout. The completed archive is
+also validated with scripts/extract-safe-tar.sh so final release proof will reject unsafe member paths before upload.
 Custom --output values must use a basename accepted by scripts/validate-release-asset-name.sh for the selected tag, and
 must not contain parent traversal, URL syntax, glob metacharacters, symlinks, or directory targets.
 
@@ -219,6 +221,38 @@ for target in "${targets[@]}"; do
   cp -R "$source_dir"/. "$tmp_dir/vm-evidence/$target"/
 done
 
+manifest_flags=()
+for target in "${targets[@]}"; do
+  manifest_flags+=(--target "$target")
+done
+if [ "$require_published_release" = "true" ]; then
+  manifest_flags+=(--require-published-release)
+fi
+
+node - "$tmp_dir/vm-evidence/manifest.json" "$tag" "$require_published_release" "$source_date_epoch" "${targets[@]}" <<'NODE'
+const fs = require("node:fs");
+
+const [output, tag, requirePublishedRelease, sourceDateEpoch, ...targets] = process.argv.slice(2);
+const generatedAt = new Date(Number(sourceDateEpoch) * 1000).toISOString();
+const manifest = {
+  kind: "loopwire.vm-evidence-archive",
+  version: 1,
+  tag,
+  generatedAt,
+  requirePublishedRelease: requirePublishedRelease === "true",
+  layout: "vm-evidence/<target>",
+  targetCount: targets.length,
+  targets
+};
+
+fs.writeFileSync(output, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
+
+node scripts/verify-vm-evidence-archive-manifest.mjs \
+  --manifest "$tmp_dir/vm-evidence/manifest.json" \
+  --tag "$tag" \
+  "${manifest_flags[@]}" >/dev/null
+
 tar \
   --sort=name \
   --mtime="@${source_date_epoch}" \
@@ -233,6 +267,11 @@ bash scripts/extract-safe-tar.sh \
   --archive "$output" \
   --output-dir "$tmp_dir/archive-smoke" \
   --label "VM evidence archive" >/dev/null
+
+node scripts/verify-vm-evidence-archive-manifest.mjs \
+  --manifest "$tmp_dir/archive-smoke/vm-evidence/manifest.json" \
+  --tag "$tag" \
+  "${manifest_flags[@]}" >/dev/null
 
 for target in "${targets[@]}"; do
   tar -tzf "$output" "vm-evidence/${target}/command-results.tsv" >/dev/null || \

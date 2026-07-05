@@ -259,6 +259,12 @@ jobs:
           elif [ -d "${vm_evidence_root}/vm-evidence" ]; then
             vm_evidence_root="${vm_evidence_root}/vm-evidence"
           fi
+          node scripts/verify-vm-evidence-archive-manifest.mjs \
+            --manifest "${vm_evidence_root}/manifest.json" \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --targets-file vm/targets.tsv \
+            --require-all-targets \
+            --require-published-release
           printf 'LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s\n' "$vm_evidence_root" >>"$GITHUB_ENV"
 
       - name: Verify final release proof

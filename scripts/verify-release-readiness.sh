@@ -272,6 +272,7 @@ check_file "scripts/verify-nix-release-package.sh" "Nix release package verifier
 check_file "scripts/extract-safe-tar.sh" "safe release archive extractor"
 check_file "scripts/package-vm-evidence.sh" "VM evidence packager"
 check_file "scripts/prepare-vm-evidence-release-asset.sh" "VM signed-release asset helper"
+check_file "scripts/verify-vm-evidence-archive-manifest.mjs" "VM evidence archive manifest verifier"
 check_file "package.json" "package manifest"
 check_file ".github/workflows/deploy-docs.yml" "docs deployment workflow"
 check_file ".github/workflows/final-release-proof.yml" "final release proof workflow"
@@ -293,6 +294,15 @@ if [ -s "scripts/verify-docs-deployment-manifest.mjs" ]; then
     echo "ok: docs deployment manifest verifier parses"
   else
     echo "invalid: docs deployment manifest verifier has syntax errors" >&2
+    failed=1
+  fi
+fi
+
+if [ -s "scripts/verify-vm-evidence-archive-manifest.mjs" ]; then
+  if node --check scripts/verify-vm-evidence-archive-manifest.mjs >/dev/null; then
+    echo "ok: VM evidence archive manifest verifier parses"
+  else
+    echo "invalid: VM evidence archive manifest verifier has syntax errors" >&2
     failed=1
   fi
 fi
@@ -366,6 +376,7 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     grep -F -- "scripts/validate-release-asset-name.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/verify-release-asset-checksum.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/extract-safe-tar.sh" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "scripts/verify-vm-evidence-archive-manifest.mjs" "$final_proof_workflow" >/dev/null &&
     grep -F -- "gh run download" "$final_proof_workflow" >/dev/null &&
     grep -F -- "loopwire-docs-deployment" "$final_proof_workflow" >/dev/null &&
     grep -F -- 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}' "$final_proof_workflow" \

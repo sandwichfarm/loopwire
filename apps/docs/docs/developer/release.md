@@ -453,12 +453,14 @@ live docs base URL or Bunny pull-zone hostname. By default it downloads these re
 - `loopwire-release-evidence-<tag>.tar.gz`, produced by the release workflow.
 - `loopwire-vm-evidence-<tag>.tar.gz`, produced by the operator after collecting all VM target bundles.
 
-The VM evidence archive must contain either target directories at its root, `.vm/evidence/<target>` directories, or a
-`vm-evidence/<target>` root. The workflow checks out the exact tag commit, downloads the signed `SHA256SUMS` manifest,
+The VM evidence archive must contain a `vm-evidence/manifest.json` root manifest plus `vm-evidence/<target>` bundles.
+The manifest must bind the release tag, every `vm/targets.tsv` target, published-release strictness, and the
+deterministic archive layout. The workflow checks out the exact tag commit, downloads the signed `SHA256SUMS` manifest,
 downloads both archives from the GitHub Release, verifies each archive is listed in the signed checksum manifest with
 `scripts/verify-release-asset-checksum.sh`, validates both downloaded tarballs with `scripts/extract-safe-tar.sh`
-before extraction, verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every
-VM target bundle to include published-release smoke, verifies support-matrix promotion rules, and reruns
+before extraction, verifies the VM evidence archive manifest with `scripts/verify-vm-evidence-archive-manifest.mjs`,
+verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, requires every VM target bundle to
+include published-release smoke, verifies support-matrix promotion rules, and reruns
 `pnpm verify:docs`. The composed `scripts/verify-final-release-proof.sh` step must not pass `--release-dir`; by this
 stage all release proof comes from GitHub Release downloads, signed checksum verification, live docs evidence, and
 operator-collected VM evidence.
@@ -476,12 +478,14 @@ pnpm vm:package-evidence -- \
 
 The packager re-runs
 `scripts/verify-vm-evidence.sh --require-published-release --release-tag <tag> --require-github-release-source` for
-each selected target before writing `vm-evidence/<target>` entries into the archive. The final proof also runs
+each selected target before writing `vm-evidence/<target>` entries and a `vm-evidence/manifest.json` root manifest into
+the archive. The final proof also runs
 `scripts/verify-published-release.sh --require-github-release-source`, so a local `--release-dir` smoke cannot satisfy
 public release proof. Each VM bundle must include `published-release.json` matching the release tag and GitHub release
 source, in addition to a successful `published-release-smoke` ledger row.
 After writing, it validates the archive with
-`scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
+`scripts/extract-safe-tar.sh` and validates the extracted root manifest, so unsafe paths, link members, tag mismatches,
+or missing target declarations are caught before the tarball is attached to a release.
 Custom `--output` paths may point at temp locations for local rehearsal, but the basename must still be a validated
 `loopwire-vm-evidence-<tag>*.tar.gz` release asset name and the path must not use traversal, URL syntax, glob
 metacharacters, symlinks, or a directory target.

@@ -400,9 +400,11 @@ pnpm vm:package-evidence -- \
 ```
 
 The packager verifies each selected target bundle before writing the deterministic `vm-evidence/<target>` archive
-layout. It then validates the finished tarball with `scripts/extract-safe-tar.sh`, so unsafe paths or link members fail
-before the archive can become final proof material. It also fails if any target is missing or lacks published-release
-smoke. Custom `--output` paths can use temp directories for local rehearsal, but the basename must still be a validated
+layout and a `vm-evidence/manifest.json` root manifest that binds the release tag, selected targets, and
+published-release strictness. It then validates the finished tarball with `scripts/extract-safe-tar.sh` and verifies the
+extracted manifest, so unsafe paths, link members, tag mismatches, or missing target declarations fail before the archive
+can become final proof material. It also fails if any target is missing or lacks published-release smoke. Custom
+`--output` paths can use temp directories for local rehearsal, but the basename must still be a validated
 `loopwire-vm-evidence-<tag>*.tar.gz` release asset name and the path cannot contain traversal, URL syntax, glob
 metacharacters, symlinks, or a directory target.
 

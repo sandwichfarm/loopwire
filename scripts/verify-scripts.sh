@@ -56,6 +56,7 @@ node --check scripts/promote-vm-evidence.mjs
 node --check scripts/restore-background.mjs
 node --check scripts/verify-docs-deployment-manifest.mjs
 node --check scripts/verify-support-matrix.mjs
+node --check scripts/verify-vm-evidence-archive-manifest.mjs
 node -e '
 const root = require("./package.json");
 const audioHost = require("./packages/audio-host/package.json");
@@ -1770,6 +1771,10 @@ printf '%s\n' "$package_vm_evidence_help" | grep -F -- "--require-published-rele
 }
 printf '%s\n' "$package_vm_evidence_help" | grep -F -- "vm-evidence/<target>" >/dev/null || {
   echo "verify-scripts: VM evidence packager help is missing archive layout" >&2
+  exit 1
+}
+printf '%s\n' "$package_vm_evidence_help" | grep -F -- "vm-evidence/manifest.json" >/dev/null || {
+  echo "verify-scripts: VM evidence packager help is missing archive manifest layout" >&2
   exit 1
 }
 printf '%s\n' "$package_vm_evidence_help" | grep -F -- "scripts/validate-release-asset-name.sh" >/dev/null || {
@@ -5901,6 +5906,7 @@ mkdir -p "$release_tag_repo/scripts" \
   "$release_tag_repo/apps/docs/docs/release-notes"
 cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release-readiness.sh"
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
+cp scripts/verify-vm-evidence-archive-manifest.mjs "$release_tag_repo/scripts/verify-vm-evidence-archive-manifest.mjs"
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
 cp scripts/validate-release-asset-name.sh "$release_tag_repo/scripts/validate-release-asset-name.sh"
 cp scripts/verify-release-asset-checksum.sh "$release_tag_repo/scripts/verify-release-asset-checksum.sh"
@@ -6740,6 +6746,35 @@ tar -tzf "$vm_evidence_archive" "vm-evidence/arch-hyprland-pipewire/command-resu
   echo "verify-scripts: VM evidence packager archive is missing target command ledger" >&2
   exit 1
 }
+tar -tzf "$vm_evidence_archive" "vm-evidence/manifest.json" >/dev/null || {
+  echo "verify-scripts: VM evidence packager archive is missing root manifest" >&2
+  exit 1
+}
+mkdir -p "$tmp_dir/vm-evidence-archive-extract"
+bash scripts/extract-safe-tar.sh \
+  --archive "$vm_evidence_archive" \
+  --output-dir "$tmp_dir/vm-evidence-archive-extract" \
+  --label "VM evidence archive" >/dev/null
+node scripts/verify-vm-evidence-archive-manifest.mjs \
+  --manifest "$tmp_dir/vm-evidence-archive-extract/vm-evidence/manifest.json" \
+  --tag v0.1.0 \
+  --target arch-hyprland-pipewire \
+  --require-published-release >/dev/null
+node - "$tmp_dir/vm-evidence-archive-extract/vm-evidence/manifest.json" <<'NODE'
+const fs = require("node:fs");
+const path = process.argv[2];
+const manifest = JSON.parse(fs.readFileSync(path, "utf8"));
+manifest.tag = "v0.2.0";
+fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+NODE
+if node scripts/verify-vm-evidence-archive-manifest.mjs \
+  --manifest "$tmp_dir/vm-evidence-archive-extract/vm-evidence/manifest.json" \
+  --tag v0.1.0 \
+  --target arch-hyprland-pipewire \
+  --require-published-release >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence archive manifest verifier accepted a mismatched tag" >&2
+  exit 1
+fi
 vm_release_dir="$tmp_dir/vm-evidence-release-dir"
 mkdir -p "$vm_release_dir"
 printf '%s\n' "fake release payload" >"$vm_release_dir/loopwire-linux-x86_64.tar.gz"
