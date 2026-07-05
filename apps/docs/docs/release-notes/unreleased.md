@@ -228,8 +228,9 @@ These notes describe source-tree progress. They are not a public release announc
   proof, final-proof workflow success, and VM evidence from operator-controlled hosts.
 - `pnpm release:agent-ready` now includes the read-only DSP provider graph-edge plan in its default local gates, so
   release handoff cannot skip the current gain/mute proof surface by accident.
-- `pnpm release:agent-ready -- --require-hosted-checks` now verifies the latest hosted CI and Deploy Docs workflow runs
-  succeeded for the exact release commit before the operator-deferred ceremony continues.
+- `pnpm release:agent-ready -- --require-hosted-checks` now filters hosted CI and Deploy Docs workflow lookups by the
+  exact release commit before the operator-deferred ceremony continues, so newer unrelated runs cannot mask the target
+  SHA's proof state.
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.

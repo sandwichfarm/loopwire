@@ -462,10 +462,15 @@ cat >"$agent_ready_fake_bin/gh" <<'EOF'
 set -euo pipefail
 
 workflow=""
+commit=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --workflow)
       workflow="${2:?missing --workflow value}"
+      shift 2
+      ;;
+    --commit)
+      commit="${2:?missing --commit value}"
       shift 2
       ;;
     *)
@@ -473,6 +478,11 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+[ "$commit" = "0123456789abcdef0123456789abcdef01234567" ] || {
+  echo "unexpected commit filter: $commit" >&2
+  exit 1
+}
 
 case "$workflow" in
   ci.yml)
@@ -501,22 +511,22 @@ agent_release_ready_hosted_plan="$(
     --skip-local-gates
 )"
 printf '%s\n' "$agent_release_ready_hosted_plan" |
-  grep -F "ok: latest hosted CI workflow run" >/dev/null || {
+  grep -F "ok: commit-scoped hosted CI workflow run" >/dev/null || {
     echo "verify-scripts: agent-ready release did not verify hosted CI" >&2
     exit 1
   }
 printf '%s\n' "$agent_release_ready_hosted_plan" |
-  grep -F "ok: latest hosted Deploy Docs workflow run" >/dev/null || {
+  grep -F "ok: commit-scoped hosted Deploy Docs workflow run" >/dev/null || {
     echo "verify-scripts: agent-ready release did not verify hosted docs" >&2
     exit 1
   }
 printf '%s\n' "$agent_release_ready_hosted_plan" |
-  grep -F "databaseId=111 headSha=0123456789abcdef0123456789abcdef01234567" >/dev/null || {
+  grep -F "commit-scoped run verified: databaseId=111 headSha=0123456789abcdef0123456789abcdef01234567" >/dev/null || {
     echo "verify-scripts: agent-ready release hosted CI proof is missing run evidence" >&2
     exit 1
   }
 printf '%s\n' "$agent_release_ready_hosted_plan" |
-  grep -F "databaseId=222 headSha=0123456789abcdef0123456789abcdef01234567" >/dev/null || {
+  grep -F "commit-scoped run verified: databaseId=222 headSha=0123456789abcdef0123456789abcdef01234567" >/dev/null || {
     echo "verify-scripts: agent-ready release hosted docs proof is missing run evidence" >&2
     exit 1
   }

@@ -201,7 +201,7 @@ pnpm release:agent-ready -- \
 matrix/cloud-init metadata, packaging metadata, a read-only DSP provider graph-edge plan, and local release artifact
 smoke. Use `--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof topology.
 Use `--skip-local-gates` only for fast script-contract rehearsal. Add `--require-hosted-checks` when the checkout has
-already been pushed and you need the handoff tied to successful hosted CI and Deploy Docs runs for the exact
+already been pushed and you need the handoff tied to successful hosted CI and Deploy Docs runs filtered by the exact
 `--git-head`; it is optional because it requires GitHub API access.
 The strict final proof still requires published GitHub Release assets.
 It also still requires Bunny deployment proof, a successful final-proof workflow, and VM evidence from

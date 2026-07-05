@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T19:01:21+02:00"
-last_activity: 2026-07-05 - Persisted DSP startup restore now fails closed without explicit live provider command
+last_updated: "2026-07-05T19:17:23+02:00"
+last_activity: 2026-07-05 - Agent-ready hosted workflow checks are now filtered by exact release commit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `selectedBackend: "dsp"` now survives core persisted-state restore, while background live
-restore rejects resolved DSP startup unless an explicit `--dsp-provider-command` and live provider mode are supplied.
-The desktop route-control and live-apply preflight also show DSP as provider-backed instead of silently ready. Phase 12
-remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run
-VM evidence.
+Last activity: 2026-07-05 - `release:agent-ready -- --require-hosted-checks` now filters CI and Deploy Docs workflow
+lookups by the exact `--git-head`, so newer unrelated hosted runs cannot mask the target release commit's proof state.
+Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 

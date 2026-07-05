@@ -130,7 +130,7 @@ run_hosted_workflow_probe() {
 
   echo "==> $label"
   if ! output="$(
-    gh run list --repo "$repo" --workflow "$workflow" --limit 1 \
+    gh run list --repo "$repo" --workflow "$workflow" --commit "$git_head" --limit 1 \
       --json databaseId,status,conclusion,headSha,url 2>&1
   )"; then
     echo "blocked: $label" >&2
@@ -162,17 +162,17 @@ if (runs.length === 0) {
 
 const run = runs[0] ?? {};
 if (run.status !== "completed") {
-  console.error(`${label} latest run is not completed: ${run.status ?? "unknown"}.`);
+  console.error(`${label} commit-scoped run is not completed: ${run.status ?? "unknown"}.`);
   process.exit(1);
 }
 
 if (run.conclusion !== "success") {
-  console.error(`${label} latest completed run did not succeed: ${run.conclusion ?? "unknown"}.`);
+  console.error(`${label} commit-scoped completed run did not succeed: ${run.conclusion ?? "unknown"}.`);
   process.exit(1);
 }
 
 if (run.headSha !== expectedHead) {
-  console.error(`${label} latest run is for ${run.headSha ?? "unknown"}, not ${expectedHead}.`);
+  console.error(`${label} commit-scoped run is for ${run.headSha ?? "unknown"}, not ${expectedHead}.`);
   process.exit(1);
 }
 
@@ -181,7 +181,7 @@ const fields = [
   run.headSha ? `headSha=${run.headSha}` : null,
   run.url ? `url=${run.url}` : null
 ].filter(Boolean);
-console.log(`latest run verified: ${fields.join(" ")}`);
+console.log(`commit-scoped run verified: ${fields.join(" ")}`);
 NODE
   )"; then
     echo "blocked: $label" >&2
@@ -280,8 +280,8 @@ printf '%s\n' "$handoff" | indent
 echo
 
 if [ "$require_hosted_checks" = "true" ]; then
-  run_hosted_workflow_probe "latest hosted CI workflow run" ci.yml
-  run_hosted_workflow_probe "latest hosted Deploy Docs workflow run" deploy-docs.yml
+  run_hosted_workflow_probe "commit-scoped hosted CI workflow run" ci.yml
+  run_hosted_workflow_probe "commit-scoped hosted Deploy Docs workflow run" deploy-docs.yml
 else
   echo "skipped: hosted workflow checks (--require-hosted-checks not set)"
   echo

@@ -2621,6 +2621,18 @@
   test`, `pnpm --filter @loopwire/desktop test`, `pnpm --filter @loopwire/desktop typecheck`, and package typechecks
   passed. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
   support-matrix promotion was performed.
+- Agent-ready hosted workflow checks are now commit-scoped instead of "latest overall" probes:
+  `scripts/verify-agent-release-ready.sh` passes `--commit "$git_head"` to `gh run list` for CI and Deploy Docs, and
+  reports `commit-scoped run verified` evidence. This prevents a newer unrelated branch/tag run from masking whether
+  the release handoff commit itself has successful hosted checks.
+- Focused validation passed for commit-scoped hosted workflow checks: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located `run_hosted_workflow_probe` before implementation.
+  `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm
+  verify:scripts`, and `pnpm verify:docs` passed. Live read-only GitHub validation passed with `pnpm
+  release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 4ec7b00098c11edc8f60314a6d6ea3f50c51ba08
+  --require-hosted-checks --skip-local-gates`, verifying CI run `28748375402` and Deploy Docs run `28748375393` for
+  commit `4ec7b00098c11edc8f60314a6d6ea3f50c51ba08`. No secret write, release tag, public release, Bunny deployment,
+  VM launch, host audio mutation, or support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is
