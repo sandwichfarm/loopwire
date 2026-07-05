@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T02:24:27+02:00"
-last_activity: 2026-07-05 - Backend changes are serialized while verification is in flight
+last_updated: "2026-07-05T02:36:16+02:00"
+last_activity: 2026-07-05 - Automatic backend selection verifies before persistence
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - desktop backend-change transactions now use a busy/token guard so backend, host-apply, and
-configuration-switch controls stay disabled while verification is in flight, and stale backend verification results are
-ignored when a newer selection starts first. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
-install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - automatic single-backend selection now uses the same `backend-change` transaction path as
+manual backend choices, so a lone detected backend is applied and verified against the active configuration before it
+is persisted for startup restore. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
+Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,12 @@ install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Automatic backend selection verification: desktop startup detection now awaits `selectOnlyAvailableBackend`,
+  and the single-backend auto-select path calls `chooseBackend(..., "auto")` instead of directly persisting
+  `setSelectedBackend`. The auto path now shares backend-change busy/token behavior, preview apply/verify, source and
+  monitor picker refresh, and commit-after-verify persistence with manual backend choices. Focused validation passed:
+  `pnpm --filter @loopwire/desktop typecheck`. Backend/configuration docs, unreleased notes, and docs verification now
+  state that automatic single-backend selection is not persisted until the active configuration verifies.
 - 2026-07-05 Serialized backend-change UX: desktop backend changes now set `backendSelectionBusy`, use a
   `backendSelectionToken` to ignore stale transaction results, disable backend selection, host-apply arming, and
   configuration switching while verification is in flight, and show busy copy in the backend chooser summary. Focused

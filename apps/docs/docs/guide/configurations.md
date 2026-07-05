@@ -76,6 +76,8 @@ session, so backend changes cannot silently carry a live mutation state across a
 backend as the saved startup-restore choice only after the active configuration verifies against it. Backend selection,
 host-apply arming, and configuration switching controls stay disabled while a backend-change transaction is in flight,
 and stale backend results are ignored if a newer selection starts first.
+Automatic single-backend selection uses the same transaction path during startup detection, so a lone detected backend
+is not persisted until the active configuration verifies against it.
 After startup restore, a backend change, or a configuration click, the desktop shows a runtime activity ledger with the
 exact operations that ran, including the exact unload, apply, verify, and rollback operations when the transaction
 includes them, so switch behavior is inspectable instead of being reduced to a single status line.

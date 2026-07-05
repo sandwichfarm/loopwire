@@ -64,7 +64,6 @@
     setMonitorHidden,
     setRouteGain,
     setRouteMuted,
-    setSelectedBackend,
     updateConfiguration,
     verifyStartupConfiguration,
     type AudioBackendKind,
@@ -124,6 +123,7 @@
     readonly routeCount: number;
     readonly mutedCount: number;
   };
+  type BackendSelectionOrigin = "manual" | "auto";
   const storageKey = "loopwire.state.v1";
   const chromeStorageKey = "loopwire.chrome.v1";
   const routingBoardTop = 150;
@@ -491,7 +491,7 @@
       backendCandidates = report.candidates;
       backendCapabilityReports = report.reports;
       backendDetectionNote = describeBackendDetection(report);
-      selectOnlyAvailableBackend(report.candidates);
+      await selectOnlyAvailableBackend(report.candidates);
     } catch (error) {
       backendCandidates = fallbackBackendCandidates;
       backendCapabilityReports = [];
@@ -611,11 +611,11 @@
     }
   }
 
-  function selectOnlyAvailableBackend(candidates: readonly BackendCandidate[]): void {
+  async function selectOnlyAvailableBackend(candidates: readonly BackendCandidate[]): Promise<void> {
     const decision = selectBackend(candidates, state.selectedBackend);
 
     if (decision.mode === "auto" && decision.backend.kind !== state.selectedBackend) {
-      applyState(setSelectedBackend(state, decision.backend.kind));
+      await chooseBackend(decision.backend.kind, "auto");
     }
   }
 
@@ -708,7 +708,7 @@
     return selectionToken === backendSelectionToken;
   }
 
-  async function chooseBackend(kind: AudioBackendKind): Promise<void> {
+  async function chooseBackend(kind: AudioBackendKind, origin: BackendSelectionOrigin = "manual"): Promise<void> {
     const selectionToken = ++backendSelectionToken;
     backendSelectionBusy = true;
     const previousMode = hostApplyMode;
@@ -718,7 +718,10 @@
     }
 
     runtimeStatus = "applying";
-    runtimeNote = `Verifying ${displayBackendName(kind)} with ${activeConfiguration.name}.`;
+    runtimeNote =
+      origin === "auto"
+        ? `Verifying the only available backend, ${displayBackendName(kind)}, with ${activeConfiguration.name}.`
+        : `Verifying ${displayBackendName(kind)} with ${activeConfiguration.name}.`;
 
     const result = await applyBackendSelection(
       state,
@@ -746,6 +749,8 @@
       const disarmNote = `${displayBackendName(kind)} selected; live host apply was disarmed for preview verification.`;
       runtimeStatus = result.ok ? "ready" : "failed";
       runtimeNote = result.ok ? `${disarmNote} ${describeRuntimeSuccess(result)}` : `${disarmNote} ${result.reason}`;
+    } else if (origin === "auto" && result.ok) {
+      runtimeNote = `${displayBackendName(kind)} was the only available backend and verified with ${activeConfiguration.name}.`;
     }
 
     backendSelectionBusy = false;

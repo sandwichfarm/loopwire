@@ -66,6 +66,8 @@ These notes describe source-tree progress. They are not a public release announc
   commits the backend as the saved startup-restore choice only after the active configuration verifies.
 - Backend-change transactions now keep backend, host-apply, and configuration-switch controls disabled while verification
   is in flight, and stale backend verification results are ignored when a newer selection starts first.
+- Automatic single-backend selection now uses the same backend-change transaction path before persisting the detected
+  backend for startup restore.
 - Configuration switching and startup restore now show a runtime activity ledger with unload, apply, verify, and
   rollback entries from the actual runtime plan.
 - Backend route-control semantics report whether controls are graph-edge, stream-level, link-only, or unavailable.
