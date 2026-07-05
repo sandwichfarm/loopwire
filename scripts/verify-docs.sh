@@ -584,11 +584,14 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:prepare-release-e
 assert_contains "apps/docs/docs/developer/release.md" "scripts/verify-release-asset-checksum.sh"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "pnpm vm:package-evidence"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "vm-evidence/<target>"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "basename must still be a validated"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'manual `Final Release Proof` workflow'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof dry-runs can now write"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--plan-output` file'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:package-evidence` command'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "validates custom output basenames"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:prepare-release-evidence` command'
+assert_contains "apps/docs/docs/developer/release.md" 'Custom `--output` paths may point at temp locations'
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"

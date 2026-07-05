@@ -326,6 +326,8 @@ These notes describe source-tree progress. They are not a public release announc
   command before the manual proof workflow.
 - New `pnpm vm:package-evidence` command packages verified VM bundles into
   `loopwire-vm-evidence-<tag>.tar.gz` with the `vm-evidence/<target>` layout expected by final release proof.
+- `pnpm vm:package-evidence` now validates custom output basenames against the tag-bound VM evidence release asset
+  naming contract before writing archives.
 - New `pnpm vm:prepare-release-evidence` command prepares that VM evidence tarball inside a release directory,
   regenerates and re-signs `SHA256SUMS`, verifies the archive entry, and prints the exact GitHub upload command.
 - `pnpm vm:prepare-release-evidence` can now read release signing key paths from the local release env file, matching

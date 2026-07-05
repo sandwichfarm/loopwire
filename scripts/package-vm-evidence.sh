@@ -26,6 +26,8 @@ When no --target is provided, every target from vm/targets.tsv is packaged. Ever
 scripts/verify-vm-evidence.sh before it is copied into the archive. Use --require-published-release for final release
 archives so every VM bundle proves installed-release smoke from published artifacts. The completed archive is also
 validated with scripts/extract-safe-tar.sh so final release proof will reject unsafe member paths before upload.
+Custom --output values must use a basename accepted by scripts/validate-release-asset-name.sh for the selected tag, and
+must not contain parent traversal, URL syntax, glob metacharacters, symlinks, or directory targets.
 
 SOURCE_DATE_EPOCH controls tar metadata timestamps and defaults to 0.
 USAGE
@@ -56,6 +58,36 @@ reject_unsafe_value() {
       fail "$label must be a single safe value"
       ;;
   esac
+}
+
+validate_output_path() {
+  local value="$1"
+  local normalized
+  local asset_name
+
+  reject_unsafe_value "$value" "output path"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "output path must not be empty"
+  case "$normalized" in
+    *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "output path must not contain URL syntax or glob metacharacters"
+      ;;
+    */)
+      fail "output path must be a file, not a directory"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "output path must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "output path must not be a symlink"
+  [ ! -d "$value" ] || fail "output path must be a file, not a directory"
+  asset_name="$(basename "$normalized")"
+  bash scripts/validate-release-asset-name.sh --kind vm-evidence --tag "$tag" --asset "$asset_name" >/dev/null
 }
 
 target_exists() {
@@ -143,7 +175,7 @@ fi
 if [ -z "$output" ]; then
   output="dist/release/loopwire-vm-evidence-${tag}.tar.gz"
 fi
-reject_unsafe_value "$output" "output path"
+validate_output_path "$output"
 
 verify_flags=()
 if [ "$require_published_release" = "true" ]; then

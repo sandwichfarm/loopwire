@@ -424,6 +424,9 @@ public release proof. Each VM bundle must include `published-release.json` match
 source, in addition to a successful `published-release-smoke` ledger row.
 After writing, it validates the archive with
 `scripts/extract-safe-tar.sh` so unsafe paths or link members are caught before the tarball is attached to a release.
+Custom `--output` paths may point at temp locations for local rehearsal, but the basename must still be a validated
+`loopwire-vm-evidence-<tag>*.tar.gz` release asset name and the path must not use traversal, URL syntax, glob
+metacharacters, symlinks, or a directory target.
 Prepare the archive as a signed release asset with the release private key:
 
 ```bash

@@ -399,7 +399,9 @@ pnpm vm:package-evidence -- \
 The packager verifies each selected target bundle before writing the deterministic `vm-evidence/<target>` archive
 layout. It then validates the finished tarball with `scripts/extract-safe-tar.sh`, so unsafe paths or link members fail
 before the archive can become final proof material. It also fails if any target is missing or lacks published-release
-smoke.
+smoke. Custom `--output` paths can use temp directories for local rehearsal, but the basename must still be a validated
+`loopwire-vm-evidence-<tag>*.tar.gz` release asset name and the path cannot contain traversal, URL syntax, glob
+metacharacters, symlinks, or a directory target.
 
 `environment.json` is structured proof that the bundle was captured for the selected `vm/targets.tsv` row. The
 verifier checks the target distro, desktop/session, architecture, observed guest environment, and expected audio

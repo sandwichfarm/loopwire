@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T04:47:20+02:00"
-last_activity: 2026-07-05 - Release handoff keeps VM output paths repo-relative
+last_updated: "2026-07-05T05:02:20+02:00"
+last_activity: 2026-07-05 - VM evidence archive outputs stay tag-bound
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - release handoff rendering now rejects absolute or parent-traversal VM SSH plan and runbook
-output paths before printing release-operator commands. Phase 12 remains gated on configuring Bunny secrets, public
-GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - VM evidence archive packaging now validates custom output basenames against the selected
+release tag's VM evidence asset naming contract before writing archives. Phase 12 remains gated on configuring Bunny
+secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,14 @@ GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 VM evidence archive output-name hardening: `scripts/package-vm-evidence.sh` now validates custom
+  `--output` paths before writing archives. Temp absolute paths remain valid for local rehearsal, but the basename must
+  pass `scripts/validate-release-asset-name.sh --kind vm-evidence --tag <tag>`, and paths with traversal, URL syntax,
+  glob metacharacters, symlink targets, or directory targets fail closed. `scripts/verify-scripts.sh` now covers help
+  text, invalid output basenames, traversal, and unsafe archive members using a valid asset basename. Release and VM
+  matrix docs plus unreleased notes document the tag-bound output contract. Focused validation passed:
+  `bash -n scripts/package-vm-evidence.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `bash scripts/verify-docs.sh`, and `git diff --check`.
 - 2026-07-05 Release handoff output-path hardening: `scripts/plan-final-release-handoff.sh` now requires custom
   `--vm-ssh-plan` and `--vm-runbook` outputs to be repo-relative paths without `.`, `..`, absolute paths, home-directory
   expansion, or URL syntax before rendering commands that create reviewable VM handoff artifacts. `scripts/verify-scripts.sh`

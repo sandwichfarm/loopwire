@@ -1359,6 +1359,10 @@ printf '%s\n' "$package_vm_evidence_help" | grep -F -- "vm-evidence/<target>" >/
   echo "verify-scripts: VM evidence packager help is missing archive layout" >&2
   exit 1
 }
+printf '%s\n' "$package_vm_evidence_help" | grep -F -- "scripts/validate-release-asset-name.sh" >/dev/null || {
+  echo "verify-scripts: VM evidence packager help is missing output asset-name validation" >&2
+  exit 1
+}
 prepare_vm_release_help="$(bash scripts/prepare-vm-evidence-release-asset.sh --help)"
 bash scripts/prepare-vm-evidence-release-asset.sh -- --help >/dev/null || {
   echo "verify-scripts: VM evidence release helper does not accept the package-script argument separator" >&2
@@ -5976,8 +5980,26 @@ if bash scripts/package-vm-evidence.sh \
   --evidence-root "$unsafe_vm_evidence_root" \
   --target arch-hyprland-pipewire \
   --require-published-release \
-  --output "$tmp_dir/unsafe-loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null 2>&1; then
+  --output "$tmp_dir/loopwire-vm-evidence-v0.1.0-unsafe-member.tar.gz" >/dev/null 2>&1; then
   echo "verify-scripts: VM evidence packager accepted an unsafe archive member" >&2
+  exit 1
+fi
+if bash scripts/package-vm-evidence.sh \
+  --tag v0.1.0 \
+  --evidence-root "$status_root" \
+  --target arch-hyprland-pipewire \
+  --require-published-release \
+  --output "$tmp_dir/not-loopwire-vm-evidence.tar.gz" >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence packager accepted a non-release-asset output basename" >&2
+  exit 1
+fi
+if bash scripts/package-vm-evidence.sh \
+  --tag v0.1.0 \
+  --evidence-root "$status_root" \
+  --target arch-hyprland-pipewire \
+  --require-published-release \
+  --output "../loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence packager accepted parent traversal in output path" >&2
   exit 1
 fi
 if bash scripts/package-vm-evidence.sh \
