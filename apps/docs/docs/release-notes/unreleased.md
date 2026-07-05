@@ -514,6 +514,8 @@ These notes describe source-tree progress. They are not a public release announc
   deterministic SSH ports and operator-owned image placeholders.
 - New `pnpm vm:render-runbook` command emits a markdown VM evidence runbook with host setup, launch, SSH evidence,
   verification, support-matrix promotion, and AArch64 firmware handoffs.
+- The final release handoff now prints `pnpm vm:host-setup -- --all` and `pnpm vm:doctor -- --all` before VM SSH
+  planning and evidence collection, so host virtualization readiness is explicit before operator-run guests.
 - VM evidence runbooks now include the final-release `pnpm vm:collect-matrix` command with published-release smoke and
   all-target strictness, so operator handoffs do not silently collect source-checkout-only support evidence.
 - VM evidence collectors now forward `--require-github-release-source` through direct guest, SSH, and matrix collection

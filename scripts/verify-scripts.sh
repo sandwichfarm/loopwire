@@ -430,6 +430,14 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:fetch-docs-proof" 
     echo "verify-scripts: release handoff plan is missing docs deployment proof fetch" >&2
     exit 1
   }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:host-setup -- --all" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing all-target VM host setup preflight" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:doctor -- --all" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing all-target VM doctor preflight" >&2
+  exit 1
+}
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:collect-matrix" | grep -F -- "--require-github-release-source" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing GitHub-source VM evidence collection" >&2
   exit 1

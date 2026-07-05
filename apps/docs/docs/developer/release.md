@@ -209,11 +209,12 @@ operator-controlled hosts.
 
 The handoff prints the agent-ready release automation preflight for the exact commit, the required secret check, strict
 release readiness command, reviewed annotated tag command, exact tag push ref, Release workflow dispatch, Deploy Docs
-workflow dispatch, docs deployment proof download, VM SSH plan/runbook/evidence commands, VM evidence asset preparation
-command, final proof workflow dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch
-workflows, upload VM evidence, or mutate host audio. It starts with an `Operator-deferred after agent delivery` section
-that names secret filling, protected workflow dispatch, VM guest execution, and signed evidence upload as operator-only
-activities. It also prints the safe no-value template command:
+workflow dispatch, docs deployment proof download, all-target VM host setup and doctor preflights, VM SSH
+plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local
+final-proof dry-run. It does not set secrets, create tags, dispatch workflows, upload VM evidence, or mutate host
+audio. It starts with an `Operator-deferred after agent delivery` section that names secret filling, protected workflow
+dispatch, VM guest execution, and signed evidence upload as operator-only activities. It also prints the safe no-value
+template command:
 
 ```bash
 bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env

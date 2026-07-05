@@ -2679,6 +2679,16 @@
   `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output, and
   `git diff --check` passed. Full validation passed: `pnpm check`. No secret write, release tag, public release,
   Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was performed.
+- The generated final release handoff now prints all-target VM host setup and doctor preflights before VM SSH plan
+  rendering, matrix evidence collection, and signed VM evidence asset preparation. This makes host virtualization
+  readiness explicit before operator-run guests.
+- Focused validation passed for the VM host preflight handoff update: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located VM doctor, host plan, SSH plan, runbook, and
+  evidence status surfaces before implementation. `bash -n scripts/plan-final-release-handoff.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, rendered
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output, and
+  `git diff --check` passed. Full validation passed: `pnpm check`. No secret write, release tag, public release,
+  Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

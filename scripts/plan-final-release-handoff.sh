@@ -402,6 +402,8 @@ fi
 print_command "${fetch_docs_proof[@]}"
 echo
 echo "8. Render the operator VM evidence handoff:"
+print_command pnpm vm:host-setup -- --all
+print_command pnpm vm:doctor -- --all
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
 print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --start-port "$vm_start_port" --output "$vm_runbook"
 print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-release-repo "$repo" \
