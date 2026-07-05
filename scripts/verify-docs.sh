@@ -710,6 +710,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'release-evidence.json` do
 assert_contains "apps/docs/docs/developer/release.md" "tag/repo/commit"
 assert_contains "apps/docs/docs/developer/release.md" "same verified run id"
 assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, Deploy Docs, and Final Release Proof"
+assert_contains "apps/docs/docs/developer/release.md" '`Final Release Proof <tag> @ <git-head>`'
 assert_contains "apps/docs/docs/developer/release.md" "successful CI, docs, or proof run for an older commit"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifest"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-dist"
@@ -823,6 +824,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:rende
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-runbook` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now prints `pnpm vm:host-setup -- --all`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now ends with `pnpm release:status`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final Release Proof workflow runs now include the audited tag"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence runbooks now include the final-release"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence collectors now forward"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup now supports"

@@ -280,7 +280,9 @@ The status command checks required GitHub secrets, the release signing public ke
 required release assets, the release tag ref, the signed downloadable release evidence archive, the signed downloadable
 VM evidence archive manifest, completed successful CI, Deploy Docs, and Final Release Proof workflow runs filtered by
 the expected release commit, the docs deployment manifest, published-release-bound VM evidence, support-matrix claims,
-and the local handoff plan. It exits
+and the local handoff plan. The Final Release Proof workflow run must also use the visible run name
+`Final Release Proof <tag> @ <git-head>`, preventing a successful proof run for the same commit but a different release
+tag from satisfying final status. It exits
 nonzero until every final proof surface is present. Draft releases, prereleases, mismatched release tags, release tag
 refs that do not resolve to `--git-head`, releases missing canonical tarballs, signed checksums, release evidence, or
 VM evidence archives, release evidence archives whose `release-evidence.json` does not match the selected

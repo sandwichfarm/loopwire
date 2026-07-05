@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Final Release Proof workflow runs now include the audited tag and commit in their visible GitHub Actions run name,
+  and `pnpm release:status` rejects a successful commit-scoped final-proof run whose title names a different release
+  tag.
+- Focused validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-github-workflows.sh scripts/verify-docs.sh`, `pnpm verify:workflows`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion
+  was performed.
 - The final release handoff now ends with `pnpm release:status` after final-proof dispatch and local final-proof
   dry-run, so operators finish publication on the same read-only aggregate audit that checks published release assets,
   docs deployment proof, final-proof workflow status, VM evidence, and support-matrix claims.

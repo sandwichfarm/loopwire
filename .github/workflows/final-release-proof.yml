@@ -1,4 +1,5 @@
 name: Final Release Proof
+run-name: Final Release Proof ${{ inputs.tag }} @ ${{ inputs.git_head }}
 
 on:
   workflow_dispatch:

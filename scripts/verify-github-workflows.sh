@@ -128,6 +128,7 @@ assert_contains "package.json" '"verify:docs-deployment": "node scripts/verify-d
 assert_contains "package.json" '"verify:docs-live": "bash scripts/verify-docs-live.sh"'
 
 assert_contains ".github/workflows/final-release-proof.yml" "workflow_dispatch:"
+assert_contains ".github/workflows/final-release-proof.yml" 'run-name: Final Release Proof ${{ inputs.tag }} @ ${{ inputs.git_head }}'
 assert_contains ".github/workflows/final-release-proof.yml" "actions: read"
 assert_contains ".github/workflows/final-release-proof.yml" "Verify final release proof"
 assert_contains ".github/workflows/final-release-proof.yml" "Set up Nix"
@@ -173,6 +174,8 @@ assert_contains ".github/workflows/final-release-proof.yml" "--vm-evidence-root"
 assert_contains ".github/workflows/final-release-proof.yml" "packaging/release-signing-public.pem"
 assert_contains ".github/workflows/final-release-proof.yml" "Release tag"
 assert_contains ".github/workflows/final-release-proof.yml" "40-character SHA"
+assert_contains "scripts/audit-final-release-state.sh" "displayTitle"
+assert_contains "scripts/audit-final-release-state.sh" 'Final Release Proof ${expectedTag} @ ${expectedHead}'
 
 assert_contains ".github/workflows/release.yml" "tags:"
 assert_contains ".github/workflows/release.yml" "v*"

@@ -4612,54 +4612,69 @@ NODE
     if [ -n "${LOOPWIRE_FAKE_GH_TRACE:-}" ]; then
       printf '%s\t%s\t%s\n' "run list" "$workflow_name" "$commit_filter" >>"$LOOPWIRE_FAKE_GH_TRACE"
     fi
+    run_title="$workflow_name"
+    if [ "$workflow_name" = "final-release-proof.yml" ]; then
+      case "${LOOPWIRE_FAKE_GH_FINAL_PROOF_TITLE_MODE:-ok}" in
+        ok)
+          run_title="Final Release Proof v0.1.0 @ 0123456789abcdef0123456789abcdef01234567"
+          ;;
+        wrong-tag)
+          run_title="Final Release Proof v0.2.0 @ 0123456789abcdef0123456789abcdef01234567"
+          ;;
+        *)
+          echo "unexpected LOOPWIRE_FAKE_GH_FINAL_PROOF_TITLE_MODE: ${LOOPWIRE_FAKE_GH_FINAL_PROOF_TITLE_MODE}" >&2
+          exit 64
+          ;;
+      esac
+    fi
     case "$run_mode" in
       empty)
         printf '%s\n' '[]'
         ;;
       success)
-        cat <<'JSON'
-[
-  {
-    "databaseId": 123456,
-    "status": "completed",
-    "conclusion": "success",
-    "headBranch": "master",
-    "headSha": "0123456789abcdef0123456789abcdef01234567",
-    "createdAt": "2026-07-04T00:00:00Z",
-    "url": "https://github.example/actions/runs/123456"
-  }
-]
-JSON
+        node - "$run_title" "completed" "success" <<'NODE'
+const [displayTitle, status, conclusion] = process.argv.slice(2);
+console.log(JSON.stringify([{
+  databaseId: 123456,
+  status,
+  conclusion,
+  headBranch: "master",
+  headSha: "0123456789abcdef0123456789abcdef01234567",
+  displayTitle,
+  createdAt: "2026-07-04T00:00:00Z",
+  url: "https://github.example/actions/runs/123456"
+}], null, 2));
+NODE
         ;;
       failed)
-        cat <<'JSON'
-[
-  {
-    "databaseId": 123456,
-    "status": "completed",
-    "conclusion": "failure",
-    "headBranch": "master",
-    "headSha": "0123456789abcdef0123456789abcdef01234567",
-    "createdAt": "2026-07-04T00:00:00Z",
-    "url": "https://github.example/actions/runs/123456"
-  }
-]
-JSON
+        node - "$run_title" "completed" "failure" <<'NODE'
+const [displayTitle, status, conclusion] = process.argv.slice(2);
+console.log(JSON.stringify([{
+  databaseId: 123456,
+  status,
+  conclusion,
+  headBranch: "master",
+  headSha: "0123456789abcdef0123456789abcdef01234567",
+  displayTitle,
+  createdAt: "2026-07-04T00:00:00Z",
+  url: "https://github.example/actions/runs/123456"
+}], null, 2));
+NODE
         ;;
       running)
-        cat <<'JSON'
-[
-  {
-    "databaseId": 123456,
-    "status": "in_progress",
-    "conclusion": null,
-    "headBranch": "master",
-    "headSha": "0123456789abcdef0123456789abcdef01234567",
-    "createdAt": "2026-07-04T00:00:00Z",
-    "url": "https://github.example/actions/runs/123456"
-  }
-]
-JSON
+        node - "$run_title" "in_progress" "" <<'NODE'
+const [displayTitle, status, conclusion] = process.argv.slice(2);
+console.log(JSON.stringify([{
+  databaseId: 123456,
+  status,
+  conclusion: conclusion === "" ? null : conclusion,
+  headBranch: "master",
+  headSha: "0123456789abcdef0123456789abcdef01234567",
+  displayTitle,
+  createdAt: "2026-07-04T00:00:00Z",
+  url: "https://github.example/actions/runs/123456"
+}], null, 2));
+NODE
         ;;
       *)
         echo "unexpected fake gh run mode: ${run_mode}" >&2
@@ -4711,6 +4726,7 @@ console.log(JSON.stringify({
   conclusion: conclusion === "" ? null : conclusion,
   headBranch: "master",
   headSha: "0123456789abcdef0123456789abcdef01234567",
+  displayTitle: "Deploy Docs",
   createdAt: "2026-07-04T00:00:00Z",
   url: `https://github.example/actions/runs/${databaseId}`
 }, null, 2));
@@ -5707,6 +5723,24 @@ fi
 grep -F "commit-scoped Deploy Docs workflow run commit-scoped run is for 0123456789abcdef0123456789abcdef01234567" \
   "$release_status_stale_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block stale workflow SHA evidence" >&2
+    exit 1
+  }
+release_status_wrong_final_proof_title_log="$tmp_dir/release-status-wrong-final-proof-title.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_FINAL_PROOF_TITLE_MODE=wrong-tag \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_wrong_final_proof_title_log" 2>&1; then
+  echo "verify-scripts: release status accepted a final proof workflow run titled for the wrong tag" >&2
+  exit 1
+fi
+grep -F "commit-scoped Final Release Proof workflow run commit-scoped run is titled Final Release Proof v0.2.0" \
+  "$release_status_wrong_final_proof_title_log" >/dev/null || {
+    echo "verify-scripts: release status did not block mismatched final proof run title" >&2
     exit 1
   }
 release_status_matching_workflow_log="$tmp_dir/release-status-matching-workflow.log"

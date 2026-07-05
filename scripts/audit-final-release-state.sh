@@ -551,8 +551,8 @@ run_workflow_probe() {
     return 1
   fi
 
-  if ! validation="$(node - "$label" "$expected_head" "$output" <<'NODE' 2>&1
-const [label, expectedHead, raw] = process.argv.slice(2);
+  if ! validation="$(node - "$label" "$expected_head" "$tag" "$output" <<'NODE' 2>&1
+const [label, expectedHead, expectedTag, raw] = process.argv.slice(2);
 let parsed;
 
 try {
@@ -595,9 +595,20 @@ if (run.headSha !== expectedHead) {
   process.exit(1);
 }
 
+if (label === "commit-scoped Final Release Proof workflow run") {
+  const expectedTitle = `Final Release Proof ${expectedTag} @ ${expectedHead}`;
+  if (run.displayTitle !== expectedTitle) {
+    console.error(
+      `${label} ${runDescription} is titled ${run.displayTitle ?? "unknown"}, not ${expectedTitle}.`
+    );
+    process.exit(1);
+  }
+}
+
 const fields = [
   run.databaseId ? `databaseId=${run.databaseId}` : null,
   run.headSha ? `headSha=${run.headSha}` : null,
+  run.displayTitle ? `displayTitle=${run.displayTitle}` : null,
   run.url ? `url=${run.url}` : null
 ].filter(Boolean);
 console.log(`${runDescription} verified: ${fields.join(" ")}`);
@@ -795,7 +806,7 @@ run_workflow_probe \
   "commit-scoped Final Release Proof workflow run" \
   "$expected_git_head" \
   gh run list --repo "$repo" --workflow final-release-proof.yml --commit "$expected_git_head" --limit 1 \
-    --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
+    --json databaseId,status,conclusion,headBranch,headSha,displayTitle,createdAt,url || failed=1
 
 run_vm_evidence_gate \
   "published-release-bound VM evidence" \

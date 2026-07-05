@@ -569,6 +569,8 @@ These notes describe source-tree progress. They are not a public release announc
 - The final release handoff now ends with `pnpm release:status`, so operators finish publication with the same
   read-only aggregate audit that checks GitHub Release assets, docs deployment proof, final-proof workflow status, VM
   evidence, and support-matrix claims.
+- Final Release Proof workflow runs now include the audited tag and commit in their visible run name, and
+  `pnpm release:status` rejects commit-scoped final-proof runs whose title does not match the selected release tag.
 - The final release proof workflow now requires a docs deployment run id, downloads that run's
   `loopwire-docs-deployment` artifact, rebuilds docs from the release commit, and verifies `deployment-manifest.json`
   before accepting the live docs smoke.
