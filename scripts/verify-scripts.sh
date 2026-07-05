@@ -253,6 +253,14 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--require-hosted-checks"
   echo "verify-scripts: agent-ready release help is missing hosted-check support" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--dsp-configuration FILE" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing DSP configuration support" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--dsp-frame-count N" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing DSP frame-count support" >&2
+  exit 1
+}
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "operator-deferred release ceremony" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing operator-deferred wording" >&2
   exit 1
@@ -524,6 +532,24 @@ if bash scripts/verify-agent-release-ready.sh \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
   --skip-local-gates >/dev/null 2>&1; then
   echo "verify-scripts: agent-ready release accepted a URL-like repository" >&2
+  exit 1
+fi
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --dsp-configuration ../unsafe.json \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted unsafe DSP configuration path" >&2
+  exit 1
+fi
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --dsp-frame-count nope \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted invalid DSP frame count" >&2
   exit 1
 fi
 if bash scripts/plan-final-release-handoff.sh \

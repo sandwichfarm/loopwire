@@ -198,11 +198,14 @@ pnpm release:agent-ready -- \
 
 `release:agent-ready` is read-only. It runs offline release readiness, verifies the final handoff renders the
 `Operator-deferred after agent delivery` section, and by default also checks workflow contracts, docs contracts, VM
-matrix/cloud-init metadata, packaging metadata, and local release artifact smoke. Use `--skip-local-gates` only for
-fast script-contract rehearsal. Add `--require-hosted-checks` when the checkout has already been pushed and you need
-the handoff tied to successful hosted CI and Deploy Docs runs for the exact `--git-head`; it is optional because it
-requires GitHub API access. The strict final proof still requires published GitHub Release assets, Bunny deployment
-proof, a successful final-proof workflow, and VM evidence from operator-controlled hosts.
+matrix/cloud-init metadata, packaging metadata, a read-only DSP provider graph-edge plan, and local release artifact
+smoke. Use `--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof topology.
+Use `--skip-local-gates` only for fast script-contract rehearsal. Add `--require-hosted-checks` when the checkout has
+already been pushed and you need the handoff tied to successful hosted CI and Deploy Docs runs for the exact
+`--git-head`; it is optional because it requires GitHub API access.
+The strict final proof still requires published GitHub Release assets.
+It also still requires Bunny deployment proof, a successful final-proof workflow, and VM evidence from
+operator-controlled hosts.
 
 The handoff prints the required secret check, strict release readiness command, reviewed annotated tag command,
 exact tag push ref, Release workflow dispatch, Deploy Docs workflow dispatch, docs deployment proof download, VM SSH

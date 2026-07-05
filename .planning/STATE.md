@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T18:29:19+02:00"
-last_activity: 2026-07-05 - Docs hero screenshot reflects current Settings UI above the fold
+last_updated: "2026-07-05T18:42:53+02:00"
+last_activity: 2026-07-05 - Agent-ready release preflight now includes read-only DSP graph-edge plan proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - docs homepage screenshot and hero stacking now show the current Settings UI above the
-fold instead of the older topbar-only backend/chrome controls. Phase 12 remains gated on public GitHub Release install,
-Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:agent-ready` now includes the read-only DSP provider graph-edge plan in its
+default local gates, so operator handoff readiness cannot skip the current gain/mute proof surface. Phase 12 remains
+gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM
+evidence.
 
 ## Blockers / Concerns
 

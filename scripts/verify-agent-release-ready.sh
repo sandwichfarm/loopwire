@@ -7,6 +7,8 @@ git_head=""
 public_key="packaging/release-signing-public.pem"
 skip_local_gates="false"
 require_hosted_checks="false"
+dsp_configuration="scripts/fixtures/dsp-provider-configuration.json"
+dsp_frame_count="16"
 
 usage() {
   cat <<'USAGE'
@@ -18,6 +20,9 @@ Usage:
 Options:
   --git-head SHA         Expected release/source commit, default current checkout HEAD
   --public-key FILE      Release public key, default packaging/release-signing-public.pem
+  --dsp-configuration FILE
+                         Release DSP proof topology, default scripts/fixtures/dsp-provider-configuration.json
+  --dsp-frame-count N    Source frame count for read-only DSP provider planning, default 16
   --skip-local-gates     Only verify offline release readiness and handoff rendering
   --require-hosted-checks
                          Require latest CI and Deploy Docs workflow runs to be successful for --git-head
@@ -47,6 +52,32 @@ validate_tag() {
 validate_git_head() {
   local pattern='^[0-9a-fA-F]{40}$'
   [[ "$git_head" =~ $pattern ]] || fail "git head must be a 40-character SHA: $git_head"
+}
+
+validate_positive_integer() {
+  local value="$1"
+  local label="$2"
+
+  [[ "$value" =~ ^[1-9][0-9]*$ ]] || fail "$label must be a positive integer"
+}
+
+validate_relative_path() {
+  local value="$1"
+  local label="$2"
+
+  reject_unsafe_value "$value" "$label"
+  case "$value" in
+    "" | /* | ~ | ~/* | *"://"* | *"*"* | *"?"* | *"["* | *"]"*)
+      fail "$label must be a relative path without glob, URL, root, or home syntax"
+      ;;
+  esac
+
+  IFS='/' read -r -a parts <<<"$value"
+  for part in "${parts[@]}"; do
+    if [ "$part" = "." ] || [ "$part" = ".." ]; then
+      fail "$label must not contain . or .. path segments"
+    fi
+  done
 }
 
 reject_unsafe_value() {
@@ -187,6 +218,14 @@ while [ "$#" -gt 0 ]; do
       public_key="${2:?missing value for --public-key}"
       shift 2
       ;;
+    --dsp-configuration)
+      dsp_configuration="${2:?missing value for --dsp-configuration}"
+      shift 2
+      ;;
+    --dsp-frame-count)
+      dsp_frame_count="${2:?missing value for --dsp-frame-count}"
+      shift 2
+      ;;
     --skip-local-gates)
       skip_local_gates="true"
       shift
@@ -215,6 +254,8 @@ validate_repo
 validate_tag
 validate_git_head
 reject_unsafe_value "$public_key" "public key"
+validate_relative_path "$dsp_configuration" "DSP configuration"
+validate_positive_integer "$dsp_frame_count" "DSP frame count"
 
 echo "Agent-ready release check for ${repo}@${tag}"
 echo "Expected release commit: ${git_head}"
@@ -249,6 +290,9 @@ fi
 if [ "$skip_local_gates" != "true" ]; then
   run_gate "workflow contracts" bash scripts/verify-github-workflows.sh
   run_gate "documentation contracts" bash scripts/verify-docs.sh
+  run_gate \
+    "DSP provider graph-edge plan" \
+    bash scripts/collect-dsp-provider-plan.sh --configuration "$dsp_configuration" --frame-count "$dsp_frame_count"
   run_gate "VM matrix metadata and cloud-init" bash scripts/vm-matrix.sh validate
   run_gate "VM cloud-init rendering" bash scripts/vm-matrix.sh verify-cloud-init
   run_gate "packaging metadata" bash scripts/verify-packaging.sh

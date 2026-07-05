@@ -2595,6 +2595,19 @@
   `bash -n scripts/collect-dsp-provider-plan.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
   direct `pnpm dsp:plan -- --configuration scripts/fixtures/dsp-provider-configuration.json --frame-count 16
   --format tsv`, which emitted `clear-output`; `pnpm verify:scripts`; and `pnpm verify:docs`.
+- `scripts/verify-agent-release-ready.sh` now includes a default read-only DSP provider graph-edge plan gate, with
+  safe `--dsp-configuration` and `--dsp-frame-count` overrides for alternate release proof topologies. This keeps the
+  agent-ready handoff aligned with the current gain/mute proof surface before operator-only publication work begins.
+- Focused validation passed for the agent-ready DSP gate: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located the DSP provider plan, route-control semantics, and
+  release preflight surfaces before implementation. `bash -n scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh scripts/collect-dsp-provider-plan.sh`,
+  `bash scripts/collect-dsp-provider-plan.sh --configuration scripts/fixtures/dsp-provider-configuration.json
+  --frame-count 16`, `pnpm verify:scripts`, `pnpm verify:docs`, and full `pnpm release:agent-ready -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` passed. The agent-ready output included
+  `DSP provider graph-edge plan` and the read-only `read-source`, `write-output`, `verify-output`, and `clear-output`
+  operation rows. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

@@ -653,6 +653,8 @@ assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file releas
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:agent-ready"
 assert_contains "apps/docs/docs/developer/release.md" 'Use `--skip-local-gates` only for'
+assert_contains "apps/docs/docs/developer/release.md" "read-only DSP provider graph-edge plan"
+assert_contains "apps/docs/docs/developer/release.md" '`--dsp-configuration` and `--dsp-frame-count`'
 assert_contains "apps/docs/docs/developer/release.md" "strict final proof still requires published GitHub Release assets"
 assert_contains "apps/docs/docs/developer/release.md" "Operator-deferred after agent delivery"
 assert_contains "apps/docs/docs/developer/release.md" "reviewed annotated tag command"
@@ -666,6 +668,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'validates `--env-file`, `
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe env-file, private-key, public-key, and evidence-root paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "signed VM evidence handoff"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "no implicit tag step"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "read-only DSP provider graph-edge plan"
 assert_contains "apps/docs/docs/developer/release.md" 'When `--release-dir` is used for local signed-release rehearsal'
 assert_contains "apps/docs/docs/developer/release.md" "release surface"
 assert_contains "apps/docs/docs/developer/release.md" "Other local final-proof inputs are checked"
