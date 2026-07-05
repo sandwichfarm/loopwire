@@ -11,6 +11,7 @@ release_private_key_file=""
 release_public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY_FILE:-}"
 env_file=""
 secret_list_file=""
+write_env_template_file=""
 dry_run="false"
 check_mode="false"
 print_required="false"
@@ -38,6 +39,7 @@ Usage:
   setup-github-secrets.sh --repo owner/name --check [--scope deploy|final] [--secret-list-file FILE]
   setup-github-secrets.sh --print-required [--scope deploy|final]
   setup-github-secrets.sh --print-env-template
+  setup-github-secrets.sh --write-env-template FILE
   setup-github-secrets.sh --repo owner/name --dry-run [secret options]
 
 Environment fallback:
@@ -53,6 +55,7 @@ Env files:
   It also accepts LOOPWIRE_RELEASE_PRIVATE_KEY_FILE for a local private-key path.
   Command-line flags override env-file values.
   --print-env-template prints the committed no-value template accepted by --env-file.
+  --write-env-template FILE writes that template with 0600 permissions and refuses overwrites.
 
 Secret-list files:
   --secret-list-file accepts saved `gh secret list` output for offline check-mode rehearsal.
@@ -163,6 +166,51 @@ validate_local_file_path() {
 
   [ ! -L "$value" ] || fail "$label must not be a symlink"
   [ -f "$value" ] || fail "$label must be a file"
+}
+
+validate_local_output_file_path() {
+  value="$1"
+  label="$2"
+  normalized="${value#./}"
+  parent_dir="$(dirname "$value")"
+
+  reject_unsafe_value "$value" "$label"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'* | */)
+      fail "$label must not be root, home-expanded, URL-like, directory-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink"
+  [ ! -e "$value" ] || fail "$label already exists; refusing to overwrite"
+  [ -d "$parent_dir" ] || fail "$label parent directory must exist"
+  [ ! -L "$parent_dir" ] || fail "$label parent directory must not be a symlink"
+}
+
+write_env_template() {
+  local old_umask
+
+  validate_local_output_file_path "$write_env_template_file" "env template output file"
+
+  old_umask="$(umask)"
+  umask 077
+  if ! (set -C; print_env_template >"$write_env_template_file"); then
+    umask "$old_umask"
+    fail "unable to write env template output file: $write_env_template_file"
+  fi
+  umask "$old_umask"
+  chmod 600 "$write_env_template_file"
+
+  echo "Wrote release secret env template: $write_env_template_file"
+  echo "File permissions set to 0600. Fill values locally; do not commit this file."
 }
 
 validate_storage_zone() {
@@ -628,6 +676,10 @@ while [ "$#" -gt 0 ]; do
       print_env_template="true"
       shift
       ;;
+    --write-env-template)
+      write_env_template_file="${2:?missing value for --write-env-template}"
+      shift 2
+      ;;
     -h | --help)
       usage
       exit 0
@@ -642,6 +694,28 @@ done
 
 validate_scope
 
+if [ "$print_env_template" = "true" ] && [ -n "$write_env_template_file" ]; then
+  echo "--print-env-template and --write-env-template are mutually exclusive." >&2
+  exit 2
+fi
+
+if [ -n "$write_env_template_file" ] &&
+  { [ "$check_mode" = "true" ] ||
+    [ "$dry_run" = "true" ] ||
+    [ "$print_required" = "true" ] ||
+    [ -n "$env_file" ] ||
+    [ -n "$secret_list_file" ] ||
+    [ "$storage_zone_explicit" = "true" ] ||
+    [ "$access_key_explicit" = "true" ] ||
+    [ "$storage_endpoint_explicit" = "true" ] ||
+    [ "$pull_zone_hostname_explicit" = "true" ] ||
+    [ "$remote_prefix_explicit" = "true" ] ||
+    [ "$release_private_key_file_explicit" = "true" ] ||
+    [ "$release_public_key_file_explicit" = "true" ]; }; then
+  echo "--write-env-template cannot be combined with secret, check, or dry-run options." >&2
+  exit 2
+fi
+
 if [ "$print_required" = "true" ]; then
   print_required
   exit 0
@@ -649,6 +723,11 @@ fi
 
 if [ "$print_env_template" = "true" ]; then
   print_env_template
+  exit 0
+fi
+
+if [ -n "$write_env_template_file" ]; then
+  write_env_template
   exit 0
 fi
 

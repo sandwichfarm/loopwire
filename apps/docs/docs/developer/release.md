@@ -505,7 +505,8 @@ Audit or preview the GitHub secret ceremony before setting anything:
 
 ```bash
 bash scripts/setup-github-secrets.sh --print-required
-bash scripts/setup-github-secrets.sh --print-env-template > /secure/loopwire-release-secrets.env
+bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env
+bash scripts/setup-github-secrets.sh --print-env-template
 bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check
 bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy
 bash scripts/setup-github-secrets.sh \
@@ -535,9 +536,10 @@ uncommitted file with simple `KEY=VALUE` lines for `BUNNY_STORAGE_ZONE`, `BUNNY_
 `BUNNY_STORAGE_ENDPOINT`, `BUNNY_PULL_ZONE_HOSTNAME`, `BUNNY_REMOTE_PREFIX`,
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`; command-line flags override env-file
 values. `.env.example` is the committed key-name template; copy it to an uncommitted path such as
-`/secure/loopwire-release-secrets.env` before filling values, or run `--print-env-template` to generate the same
-no-value template from the helper. Use file paths for release keys instead of storing raw private-key material in the
-env file. Local file inputs for `--env-file`, `--secret-list-file`,
+`/secure/loopwire-release-secrets.env` before filling values, or run
+`--write-env-template /secure/loopwire-release-secrets.env` to create the same no-value template with `0600`
+permissions. `--print-env-template` prints the same template to stdout for review. Use file paths for release keys
+instead of storing raw private-key material in the env file. Local file inputs for `--env-file`, `--secret-list-file`,
 `--release-private-key-file`, and `--release-public-key-file` reject traversal, root/home-expanded paths, URL syntax,
 glob metacharacters, symlinks, and non-file paths before the helper reads them. When `--release-public-key-file` is
 supplied, the helper parses the private key, parses the public key, derives the public key from the private key, and

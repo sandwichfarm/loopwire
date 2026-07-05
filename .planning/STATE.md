@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T11:48:20+02:00"
-last_activity: 2026-07-05 - GitHub secret helper prints env-file template
+last_updated: "2026-07-05T12:02:45+02:00"
+last_activity: 2026-07-05 - GitHub secret helper writes env-file template safely
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --print-env-template` now prints the same no-value
-release-secret env-file template as `.env.example`, keeping the Bunny/docs/release key ceremony available from the
-helper itself. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment
-proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --write-env-template` now creates the no-value
+release-secret env-file template with `0600` permissions while refusing existing files, symlinks, and unsafe paths.
+Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,16 @@ proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 GitHub secret env template write mode: `scripts/setup-github-secrets.sh --write-env-template` now writes
+  the same no-value release-secret env-file template accepted by `--env-file`, refuses existing files and symlinks, and
+  applies `0600` permissions. This makes the Bunny storage, live-docs hostname, and release signing key-file ceremony
+  executable from the helper without shell redirection or secret values. `scripts/verify-scripts.sh` covers
+  byte-for-byte template output, permissions, overwrite refusal, symlink refusal, and incompatible option rejection.
+  Release docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the safer operator command. Focused
+  validation passed: `bash -n scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  direct positive `--write-env-template` smoke with `.env.example` comparison and `0600` mode check; direct existing
+  file, symlink, and combined `--dry-run` negative probes; `bash scripts/verify-docs.sh`; `pnpm verify:scripts`; and
+  `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 GitHub secret env template print mode: `scripts/setup-github-secrets.sh --print-env-template` now emits
   the no-value release-secret env-file template accepted by `--env-file`, matching `.env.example` byte-for-byte. This
   keeps the Bunny storage, live-docs hostname, and release signing key-file handoff available from the helper without

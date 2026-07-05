@@ -5111,6 +5111,45 @@ cmp -s .env.example "$github_secret_env_template" || {
   echo "verify-scripts: GitHub secret helper env template drifted from .env.example" >&2
   exit 1
 }
+github_secret_written_env_template="$tmp_dir/setup-github-secrets-written.env"
+github_secret_write_template_output="$(
+  bash scripts/setup-github-secrets.sh --write-env-template "$github_secret_written_env_template"
+)"
+cmp -s .env.example "$github_secret_written_env_template" || {
+  echo "verify-scripts: GitHub secret helper written env template drifted from .env.example" >&2
+  exit 1
+}
+github_secret_written_env_template_mode="$(stat -c '%a' "$github_secret_written_env_template")"
+[ "$github_secret_written_env_template_mode" = "600" ] || {
+  echo "verify-scripts: GitHub secret helper wrote env template with mode $github_secret_written_env_template_mode" >&2
+  exit 1
+}
+printf '%s\n' "$github_secret_write_template_output" | grep -F "File permissions set to 0600" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not report 0600 env-template permissions" >&2
+  exit 1
+}
+github_secret_existing_env_template="$tmp_dir/setup-github-secrets-existing.env"
+printf '%s\n' "existing" >"$github_secret_existing_env_template"
+if bash scripts/setup-github-secrets.sh --write-env-template "$github_secret_existing_env_template" >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper overwrote an existing env template" >&2
+  exit 1
+fi
+grep -Fx "existing" "$github_secret_existing_env_template" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper changed an existing env template while rejecting overwrite" >&2
+  exit 1
+}
+github_secret_env_template_symlink="$tmp_dir/setup-github-secrets-template-link.env"
+ln -s "$github_secret_written_env_template" "$github_secret_env_template_symlink"
+if bash scripts/setup-github-secrets.sh --write-env-template "$github_secret_env_template_symlink" >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper wrote env template through a symlink" >&2
+  exit 1
+fi
+if bash scripts/setup-github-secrets.sh \
+  --write-env-template "$tmp_dir/setup-github-secrets-combined.env" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted env-template write with dry-run" >&2
+  exit 1
+fi
 secret_check_ok="$(
   PATH="$fake_gh_dir:$PATH" \
     bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check

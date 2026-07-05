@@ -414,6 +414,8 @@ These notes describe source-tree progress. They are not a public release announc
   key-name template without committing secret values.
 - The GitHub secret helper can now print the same no-value env-file template with `--print-env-template`, keeping the
   local release-secret ceremony available from the script itself.
+- The GitHub secret helper can now create the local release-secret env template with `--write-env-template`, refusing
+  existing files and writing the no-value template with `0600` permissions.
 - JACK live port delegation now preserves the process environment while applying Loopwire-specific overrides, so
   provider scripts that use `/usr/bin/env node` keep resolving Node on CI and operator hosts.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,
