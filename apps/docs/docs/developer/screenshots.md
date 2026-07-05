@@ -19,9 +19,13 @@ The docs home page uses `apps/docs/docs/public/product-screenshot.svg`.
 5. Run:
 
 ```bash
+pnpm verify:desktop-preview
 pnpm verify:docs
 pnpm build:docs
 ```
+
+`pnpm verify:desktop-preview` uses a system Chromium through the Chrome DevTools Protocol. Pass
+`--skip-if-missing` on hosts where Chromium is not installed and use the build/docs checks as the minimum fallback.
 
 ## Acceptance
 

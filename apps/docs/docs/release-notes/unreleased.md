@@ -154,6 +154,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Desktop live-apply preflight rules are now covered by focused regression tests, including no-backend, ALSA,
   PulseAudio, native PipeWire, native JACK blocker behavior, and selected-backend capability lookup for the
   configuration-switch guard.
+- `pnpm verify:desktop-preview` can build the desktop app, start a Vite preview, drive system Chromium through CDP,
+  capture desktop/mobile screenshots, and verify the hidden-monitor recovery tray has no horizontal overflow.
 - Configuration CRUD, source-picker additions, output-bus additions, monitor additions, import/export, persistence
   migration, and startup re-apply through the app runtime contract.
 - Desktop configuration switching is now serialized so in-flight switch, create, duplicate, import, and delete actions

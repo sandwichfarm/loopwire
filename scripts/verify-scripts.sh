@@ -56,6 +56,7 @@ node --check scripts/describe-dsp-provider.mjs
 node --check scripts/promote-vm-evidence.mjs
 node --check scripts/restore-background.mjs
 node --check scripts/verify-docs-deployment-manifest.mjs
+node --check scripts/verify-desktop-preview.mjs
 node --check scripts/verify-support-matrix.mjs
 node --check scripts/verify-vm-evidence-archive-manifest.mjs
 node -e '
@@ -71,6 +72,10 @@ if (!root.scripts["dsp:provider"]) {
 }
 if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deployment-manifest.mjs") {
   console.error("verify-scripts: root package is missing verify:docs-deployment");
+  process.exit(1);
+}
+if (root.scripts["verify:desktop-preview"] !== "node scripts/verify-desktop-preview.mjs") {
+  console.error("verify-scripts: root package is missing verify:desktop-preview");
   process.exit(1);
 }
 if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff.sh") {
@@ -128,6 +133,10 @@ node scripts/promote-vm-evidence.mjs --help | grep -F -- "--evidence-root DIR" >
 }
 node scripts/verify-support-matrix.mjs --help | grep -F -- "--matrix FILE" >/dev/null || {
   echo "verify-scripts: support matrix verifier help is missing matrix path support" >&2
+  exit 1
+}
+node scripts/verify-desktop-preview.mjs --help | grep -F -- "--skip-if-missing" >/dev/null || {
+  echo "verify-scripts: desktop preview verifier help is missing skip-if-missing support" >&2
   exit 1
 }
 node scripts/verify-support-matrix.mjs --help | grep -F -- "--require-published-release" >/dev/null || {

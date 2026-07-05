@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T20:45:45+02:00"
-last_activity: 2026-07-05 - Hidden monitor recovery now has a scoped Show all path when multiple monitors are hidden
+last_updated: "2026-07-05T21:01:48+02:00"
+last_activity: 2026-07-05 - Desktop preview smoke proof now exercises hidden-monitor recovery in Chromium
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - hidden monitor recovery now has a scoped `Show all` path when multiple monitors are hidden
-in the active configuration, preserving monitor bindings while reducing recovery clicks. Phase 12 remains gated on
-public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm verify:desktop-preview` now builds the desktop app, starts Vite preview, drives
+system Chromium through CDP, verifies hidden-monitor `Show all` recovery on desktop and mobile viewports, checks for
+horizontal overflow, and writes screenshots for review. Phase 12 remains gated on public GitHub Release install, Bunny
+deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,14 @@ public GitHub Release install, Bunny deployment proof, final proof workflow succ
 
 ## Verification Log
 
+- 2026-07-05 Desktop preview smoke proof: added `pnpm verify:desktop-preview`, a dependency-free Chromium/CDP smoke that
+  builds the desktop app, starts Vite preview, captures desktop and mobile screenshots, and verifies the hidden-monitor
+  recovery tray restores monitors without horizontal overflow. Focused validation passed:
+  `node --check scripts/verify-desktop-preview.mjs`; `node scripts/verify-desktop-preview.mjs --help`;
+  `pnpm verify:desktop-preview -- --screenshot-dir /tmp/loopwire-desktop-preview-smoke`, which wrote
+  `/tmp/loopwire-desktop-preview-smoke/desktop-preview-desktop.png` and
+  `/tmp/loopwire-desktop-preview-smoke/desktop-preview-mobile.png`; `pnpm verify:scripts`; `pnpm verify:docs`; and
+  `git diff --check`.
 - 2026-07-05 Hidden monitor bulk recovery: the desktop monitor tray now offers `Show all` when multiple monitors are
   hidden in the active configuration, backed by a tested `restoreHiddenMonitors` helper that preserves visibility
   scoping for other configurations and clears legacy hidden ids through the existing core primitive. Focused validation
