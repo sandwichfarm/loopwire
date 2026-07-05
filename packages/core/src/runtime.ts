@@ -1,8 +1,9 @@
-import { activateConfiguration, getActiveConfiguration, getConfigurationById } from "./configuration.js";
+import { activateConfiguration, getActiveConfiguration, getConfigurationById, setSelectedBackend } from "./configuration.js";
+import type { AudioBackendKind } from "./types.js";
 import type { LoopwireConfiguration, LoopwireState } from "./types.js";
 
 export type RuntimeOperation = "unload" | "apply" | "verify" | "rollback";
-export type RuntimeTransactionReason = "switch" | "startup";
+export type RuntimeTransactionReason = "switch" | "startup" | "backend-change";
 export type RuntimeStatus = "verified" | "failed" | "rolled_back";
 
 export interface RuntimeOperationResult {
@@ -87,6 +88,18 @@ export function createStartupVerificationPlan(state: LoopwireState, createdAt: s
   };
 }
 
+export function createBackendSelectionPlan(state: LoopwireState, createdAt: string): ConfigurationRuntimePlan {
+  const toConfiguration = getActiveConfiguration(state);
+
+  return {
+    id: `backend-change-${toConfiguration.id}-${createdAt}`,
+    reason: "backend-change",
+    toConfigurationId: toConfiguration.id,
+    operations: ["apply", "verify"],
+    createdAt
+  };
+}
+
 export async function applyConfigurationSwitch(
   state: LoopwireState,
   targetConfigurationId: string,
@@ -104,6 +117,26 @@ export async function verifyStartupConfiguration(
 ): Promise<ConfigurationRuntimeResult> {
   const plan = createStartupVerificationPlan(state, appliedAt);
   return runConfigurationPlan(state, plan, adapter, appliedAt);
+}
+
+export async function applyBackendSelection(
+  state: LoopwireState,
+  selectedBackend: AudioBackendKind,
+  adapter: ConfigurationRuntimeAdapter,
+  appliedAt: string
+): Promise<ConfigurationRuntimeResult> {
+  const nextState = setSelectedBackend(state, selectedBackend);
+  const plan = createBackendSelectionPlan(nextState, appliedAt);
+  const result = await runConfigurationPlan(nextState, plan, adapter, appliedAt);
+
+  if (!result.ok) {
+    return {
+      ...result,
+      state
+    };
+  }
+
+  return result;
 }
 
 async function runConfigurationPlan(

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyBackendSelection,
   applyConfigurationSwitch,
+  createBackendSelectionPlan,
   createConfigurationSwitchPlan,
   createDefaultState,
   verifyStartupConfiguration,
@@ -97,5 +99,41 @@ describe("configuration runtime", () => {
     expect(result.state.activeConfigurationId).toBe("call");
     expect(result.state.appliedAt).toBe("2026-07-03T12:50:00.000Z");
     expect(calls).toEqual(["apply:call", "verify:call"]);
+  });
+
+  it("plans a backend change as apply and verify of the active configuration", () => {
+    const state = { ...createDefaultState("2026-07-03T12:00:00.000Z"), activeConfigurationId: "call" };
+    const plan = createBackendSelectionPlan(state, "2026-07-03T12:55:00.000Z");
+
+    expect(plan.reason).toBe("backend-change");
+    expect(plan.toConfigurationId).toBe("call");
+    expect(plan.operations).toEqual(["apply", "verify"]);
+    expect(plan.fromConfigurationId).toBeUndefined();
+  });
+
+  it("commits a selected backend only after the active configuration verifies", async () => {
+    const state = createDefaultState("2026-07-03T12:00:00.000Z");
+    const { adapter, calls } = createAdapter();
+
+    const result = await applyBackendSelection(state, "jack", adapter, "2026-07-03T13:00:00.000Z");
+
+    expect(result.ok).toBe(true);
+    expect(result.plan.reason).toBe("backend-change");
+    expect(result.state.selectedBackend).toBe("jack");
+    expect(result.state.activeConfigurationId).toBe("studio");
+    expect(result.state.appliedAt).toBe("2026-07-03T13:00:00.000Z");
+    expect(calls).toEqual(["apply:studio", "verify:studio"]);
+  });
+
+  it("keeps the previous backend when backend-change verification fails", async () => {
+    const state = { ...createDefaultState("2026-07-03T12:00:00.000Z"), selectedBackend: "pipewire" as const };
+    const { adapter, calls } = createAdapter("verify");
+
+    const result = await applyBackendSelection(state, "jack", adapter, "2026-07-03T13:05:00.000Z");
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("rolled_back");
+    expect(result.state.selectedBackend).toBe("pipewire");
+    expect(calls).toEqual(["apply:studio", "verify:studio", "rollback:studio"]);
   });
 });

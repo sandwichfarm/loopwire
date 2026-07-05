@@ -62,8 +62,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Desktop backend selection now has a dedicated chooser panel that shows selected, available, and unavailable backends,
   explains that the choice is persisted for startup restore, and keeps the active workspace ahead of the sidebar on
   mobile.
-- Changing the selected backend now disarms live host apply and immediately runs preview verification for the active
-  configuration against the new backend.
+- Changing the selected backend now runs a backend-change transaction in preview mode, disarms live host apply, and
+  commits the backend as the saved startup-restore choice only after the active configuration verifies.
 - Configuration switching and startup restore now show a runtime activity ledger with unload, apply, verify, and
   rollback entries from the actual runtime plan.
 - Backend route-control semantics report whether controls are graph-edge, stream-level, link-only, or unavailable.

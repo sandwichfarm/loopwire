@@ -49,7 +49,9 @@ export {
   type RestoreResult
 } from "./persistence.js";
 export {
+  applyBackendSelection,
   applyConfigurationSwitch,
+  createBackendSelectionPlan,
   createConfigurationSwitchPlan,
   createStartupVerificationPlan,
   verifyStartupConfiguration,

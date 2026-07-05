@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T01:56:31+02:00"
-last_activity: 2026-07-05 - Release status keeps env-file public key defaults implicit
+last_updated: "2026-07-05T02:10:37+02:00"
+last_activity: 2026-07-05 - Backend changes verify before becoming persisted startup choices
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:status --env-file` no longer marks the default release public key as an
-explicit handoff override, so the embedded VM evidence asset-prep command stays on the shared local release env-file
-unless the operator supplied `--public-key` directly. Phase 12 remains gated on configuring Bunny secrets, public
-GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - manual desktop backend changes now run through a core `backend-change` runtime transaction
+that applies and verifies the active configuration before committing the backend as the persisted startup-restore
+choice. Live apply is still disarmed before the change, and the runtime ledger now names backend-change transactions.
+Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,14 @@ GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Backend-change transaction: `@loopwire/core` now exposes `createBackendSelectionPlan` and
+  `applyBackendSelection`, using a `backend-change` runtime reason with apply/verify operations against the active
+  configuration. Failed backend-change apply/verify keeps the previous selected backend instead of persisting a choice
+  that did not verify. The desktop backend chooser now uses that transaction before refreshing backend-specific source
+  and monitor pickers, and the runtime ledger labels these entries as `Backend change`. Focused validation passed:
+  `pnpm --filter @loopwire/core test -- runtime.test.ts`, `pnpm --filter @loopwire/core typecheck`, and
+  `pnpm --filter @loopwire/desktop typecheck`. Backend/configuration docs and unreleased notes now describe
+  commit-after-verify backend selection.
 - 2026-07-05 Release status env-file public-key explicitness: `scripts/audit-final-release-state.sh` now forwards
   `--public-key` to the embedded final release handoff only when the operator supplied that flag or no env file is in
   use. `scripts/verify-scripts.sh` covers explicit public-key preservation, env-file-only VM evidence asset-prep

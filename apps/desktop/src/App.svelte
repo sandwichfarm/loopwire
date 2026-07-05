@@ -42,6 +42,7 @@
     addMonitorToConfiguration,
     addOutputBusToConfiguration,
     addRouteToConfiguration,
+    applyBackendSelection,
     applyConfigurationSwitch,
     createConfigurationSwitchPlan,
     createConfiguration,
@@ -700,17 +701,35 @@
     return switchToken === configurationSwitchToken;
   }
 
-  function chooseBackend(kind: AudioBackendKind): void {
+  async function chooseBackend(kind: AudioBackendKind): Promise<void> {
     const previousMode = hostApplyMode;
-    applyState(setSelectedBackend(state, kind));
 
     if (previousMode === "live") {
       hostApplyMode = "preview";
     }
 
-    void refreshMonitorTargetDevices(kind);
-    void refreshSourceCandidates(kind);
-    void verifyBackendSelection(kind, previousMode);
+    runtimeStatus = "applying";
+    runtimeNote = `Verifying ${displayBackendName(kind)} with ${activeConfiguration.name}.`;
+
+    const result = await applyBackendSelection(
+      state,
+      kind,
+      createRuntimeAdapterForBackend(kind, "preview"),
+      new Date().toISOString()
+    );
+
+    if (result.ok) {
+      applyState(result.state);
+      await Promise.all([refreshMonitorTargetDevices(kind), refreshSourceCandidates(kind)]);
+    }
+
+    updateRuntimeStatus(result);
+
+    if (previousMode === "live") {
+      const disarmNote = `${displayBackendName(kind)} selected; live host apply was disarmed for preview verification.`;
+      runtimeStatus = result.ok ? "ready" : "failed";
+      runtimeNote = result.ok ? `${disarmNote} ${describeRuntimeSuccess(result)}` : `${disarmNote} ${result.reason}`;
+    }
   }
 
   function handleBackendChange(event: Event): void {
@@ -720,7 +739,7 @@
       return;
     }
 
-    chooseBackend(value as AudioBackendKind);
+    void chooseBackend(value as AudioBackendKind);
   }
 
   function toggleHostApplyMode(): void {
@@ -739,19 +758,6 @@
     hostApplyMode = hostApplyMode === "preview" ? "live" : "preview";
     runtimeStatus = "ready";
     runtimeNote = hostApplyMode === "live" ? "Live host apply armed for the next switch." : "Preview runtime ready.";
-  }
-
-  async function verifyBackendSelection(kind: AudioBackendKind, previousMode: HostApplyMode): Promise<void> {
-    await verifyStartupState();
-
-    if (previousMode === "live") {
-      const verificationStatus = runtimeStatus;
-      const verificationNote = runtimeNote;
-      const disarmNote = `${displayBackendName(kind)} selected; live host apply was disarmed for preview verification.`;
-
-      runtimeStatus = runtimeStatus === "failed" ? "failed" : "ready";
-      runtimeNote = verificationStatus === "failed" ? `${disarmNote} ${verificationNote}` : disarmNote;
-    }
   }
 
   function toggleMonitor(monitorId: string): void {
@@ -1074,9 +1080,10 @@
     );
   }
 
-  function createSelectedRuntimeAdapter(mode: HostApplyMode): ConfigurationRuntimeAdapter {
-    const backend = state.selectedBackend;
-
+  function createRuntimeAdapterForBackend(
+    backend: AudioBackendKind | undefined,
+    mode: HostApplyMode
+  ): ConfigurationRuntimeAdapter {
     if (!backend) {
       return appRuntimeAdapter;
     }
@@ -1087,6 +1094,10 @@
       verify: (configuration, plan) => runSelectedHostRuntimeOperation(backend, "verify", configuration, plan, mode),
       rollback: (configuration, plan) => runSelectedHostRuntimeOperation(backend, "rollback", configuration, plan, mode)
     };
+  }
+
+  function createSelectedRuntimeAdapter(mode: HostApplyMode): ConfigurationRuntimeAdapter {
+    return createRuntimeAdapterForBackend(state.selectedBackend, mode);
   }
 
   function createHostRuntimeAdapter(
@@ -1279,6 +1290,10 @@
   function runtimeActivityTitle(reason: RuntimeTransactionReason | undefined): string {
     if (reason === "startup") {
       return "Startup restore";
+    }
+
+    if (reason === "backend-change") {
+      return "Backend change";
     }
 
     return "Configuration switch";
@@ -1987,7 +2002,7 @@
               class:available={candidate.availability === "available"}
               disabled={candidate.availability !== "available"}
               aria-pressed={candidate.kind === state.selectedBackend}
-              on:click={() => chooseBackend(candidate.kind)}
+              on:click={() => void chooseBackend(candidate.kind)}
             >
               <strong>{candidate.displayName}</strong>
               <small>{backendNextAction(candidate)}</small>
