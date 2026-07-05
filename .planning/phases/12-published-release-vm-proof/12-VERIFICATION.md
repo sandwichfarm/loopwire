@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- `scripts/verify-final-release-proof.sh` now verifies the live GitHub release tag ref through
+  `scripts/verify-release-tag-ref.sh` before published-release downloads, keeping manual final proof aligned with
+  `release:status`.
+- Focused validation passed: `bash -n scripts/verify-release-tag-ref.sh scripts/audit-final-release-state.sh
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  and `pnpm verify:docs`. Full validation passed: `pnpm check`, `git diff --check`, `pnpm release:status -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD) --skip-gh` with expected operator-deferred
+  blockers, and codebase-memory MCP fast index refresh with 3432 nodes and 6691 edges.
 - `scripts/audit-final-release-state.sh` now resolves the live GitHub release tag ref, dereferences annotated tags,
   and rejects final release status when the tag target commit does not match `--git-head`.
 - `pnpm verify:scripts` passed with fake GitHub coverage for mismatched release tag refs and annotated tag refs that

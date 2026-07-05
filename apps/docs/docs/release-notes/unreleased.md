@@ -383,6 +383,8 @@ These notes describe source-tree progress. They are not a public release announc
   tag/repo/commit before final proof can be marked ready.
 - `pnpm release:status` now resolves the GitHub tag ref, including annotated tags, and rejects releases whose tag does
   not point at the expected `--git-head` commit.
+- Final release proof now runs the same live GitHub tag-ref check before published-release downloads, so the manual
+  proof workflow rejects a release whose `refs/tags/<tag>` no longer resolves to the expected commit.
 - Local release-directory verification now derives the expected evidence tag from the single
   `loopwire-release-evidence-<tag>.tar.gz` asset when `--tag` is omitted, rejecting archive-name and manifest tag drift.
 - Release evidence verification now validates source-state metadata such as `git.head` and `git.statusShort`, and final

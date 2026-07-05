@@ -30,6 +30,7 @@ bash -n \
   scripts/verify-release-artifacts.sh \
   scripts/verify-release-readiness.sh \
   scripts/verify-published-release.sh \
+  scripts/verify-release-tag-ref.sh \
   scripts/verify-final-release-proof.sh \
   scripts/validate-release-asset-name.sh \
   scripts/verify-release-asset-checksum.sh \
@@ -203,6 +204,7 @@ pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 \
     exit 1
   }
 verify_published_release_help="$(bash scripts/verify-published-release.sh --help)"
+verify_release_tag_ref_help="$(bash scripts/verify-release-tag-ref.sh --help)"
 verify_final_release_help="$(bash scripts/verify-final-release-proof.sh --help)"
 release_handoff_help="$(bash scripts/plan-final-release-handoff.sh --help)"
 agent_release_ready_help="$(bash scripts/verify-agent-release-ready.sh --help)"
@@ -217,6 +219,10 @@ printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--run-id ID" >/dev/null || 
 }
 printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--manifest-artifact NAME" >/dev/null || {
   echo "verify-scripts: docs deployment proof helper help is missing manifest artifact support" >&2
+  exit 1
+}
+printf '%s\n' "$verify_release_tag_ref_help" | grep -F -- "--git-head SHA" >/dev/null || {
+  echo "verify-scripts: release tag ref verifier help is missing git-head support" >&2
   exit 1
 }
 printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--docs-dist DIR" >/dev/null || {
@@ -797,6 +803,10 @@ grep -F "dry-run: Nix release package:" "$final_release_plan_output" >/dev/null 
   echo "verify-scripts: final release plan output is missing Nix release package command" >&2
   exit 1
 }
+grep -F "dry-run: release tag ref:" "$final_release_plan_output" >/dev/null || {
+  echo "verify-scripts: final release plan output is missing release tag ref command" >&2
+  exit 1
+}
 grep -F "dry-run: docs deployment manifest:" "$final_release_plan_output" >/dev/null || {
   echo "verify-scripts: final release plan output is missing docs deployment manifest command" >&2
   exit 1
@@ -828,6 +838,10 @@ printf '%s\n' "$final_release_dry_run" \
     echo "verify-scripts: final release dry-run is missing published-release GitHub-source strictness" >&2
     exit 1
   }
+printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-release-tag-ref.sh" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing release tag ref verification" >&2
+  exit 1
+}
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-nix-release-package.sh" >/dev/null || {
   echo "verify-scripts: final release dry-run is missing Nix release package verification" >&2
   exit 1
@@ -5321,6 +5335,58 @@ grep -F "GitHub Release object is missing required asset(s): loopwire-vm-evidenc
     echo "verify-scripts: release status did not block missing release assets" >&2
     exit 1
   }
+release_tag_ref_wrong_log="$tmp_dir/release-tag-ref-wrong.log"
+if LOOPWIRE_FAKE_GH_TAG_MODE=wrong-commit \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-release-tag-ref.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 >"$release_tag_ref_wrong_log" 2>&1; then
+  echo "verify-scripts: release tag ref verifier accepted the wrong commit" >&2
+  exit 1
+fi
+grep -F "release tag ref resolves to ffffffffffffffffffffffffffffffffffffffff" \
+  "$release_tag_ref_wrong_log" >/dev/null || {
+    echo "verify-scripts: release tag ref verifier did not report the mismatched commit" >&2
+    exit 1
+  }
+release_tag_ref_annotated_log="$tmp_dir/release-tag-ref-annotated.log"
+LOOPWIRE_FAKE_GH_TAG_MODE=annotated \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-release-tag-ref.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 >"$release_tag_ref_annotated_log"
+grep -F "release tag ref verified: v0.1.0 -> 0123456789abcdef0123456789abcdef01234567" \
+  "$release_tag_ref_annotated_log" >/dev/null || {
+    echo "verify-scripts: release tag ref verifier did not accept the annotated tag target commit" >&2
+    exit 1
+  }
+final_release_wrong_tag_ref_root="$tmp_dir/final-release-wrong-tag-ref"
+mkdir -p "$final_release_wrong_tag_ref_root/release-evidence" "$final_release_wrong_tag_ref_root/vm-evidence"
+printf '%s\n' '{"gitHead":"0123456789abcdef0123456789abcdef01234567"}' \
+  >"$final_release_wrong_tag_ref_root/deployment-manifest.json"
+final_release_wrong_tag_ref_log="$tmp_dir/final-release-wrong-tag-ref.log"
+if LOOPWIRE_FAKE_GH_TAG_MODE=wrong-commit \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-final-release-proof.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --public-key packaging/release-signing-public.pem \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --release-evidence-dir "$final_release_wrong_tag_ref_root/release-evidence" \
+    --docs-base-url https://docs.example.test \
+    --docs-deployment-manifest "$final_release_wrong_tag_ref_root/deployment-manifest.json" \
+    --vm-evidence-root "$final_release_wrong_tag_ref_root/vm-evidence" \
+    --support-matrix apps/docs/docs/guide/support-matrix.md >"$final_release_wrong_tag_ref_log" 2>&1; then
+  echo "verify-scripts: final release proof accepted a tag ref that resolves to the wrong commit" >&2
+  exit 1
+fi
+grep -F "release tag ref resolves to ffffffffffffffffffffffffffffffffffffffff" \
+  "$final_release_wrong_tag_ref_log" >/dev/null || {
+    echo "verify-scripts: final release proof did not report the mismatched release tag ref" >&2
+    exit 1
+  }
 release_status_wrong_tag_ref_log="$tmp_dir/release-status-wrong-tag-ref.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \
@@ -6247,6 +6313,7 @@ cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
 cp scripts/verify-vm-evidence-archive-manifest.mjs "$release_tag_repo/scripts/verify-vm-evidence-archive-manifest.mjs"
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
+cp scripts/verify-release-tag-ref.sh "$release_tag_repo/scripts/verify-release-tag-ref.sh"
 cp scripts/validate-release-asset-name.sh "$release_tag_repo/scripts/validate-release-asset-name.sh"
 cp scripts/verify-release-asset-checksum.sh "$release_tag_repo/scripts/verify-release-asset-checksum.sh"
 cp scripts/verify-nix-release-package.sh "$release_tag_repo/scripts/verify-nix-release-package.sh"

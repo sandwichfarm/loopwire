@@ -30,6 +30,7 @@ Usage:
 
 Checks:
   - signed published release assets plus public release evidence archive,
+  - live GitHub release tag ref, including annotated tag dereference,
   - deployed docs homepage and public /install.sh,
   - Bunny deployment manifest against the release commit docs build,
   - Nix package build proof from the published release assets,
@@ -358,6 +359,12 @@ if [ "$dry_run" != "true" ]; then
   [ -s "$docs_deployment_manifest" ] || fail "docs deployment manifest must not be empty: $docs_deployment_manifest"
   [ -s "$support_matrix" ] || fail "support matrix must not be empty: $support_matrix"
 fi
+
+run_step "release tag ref" \
+  bash scripts/verify-release-tag-ref.sh \
+  --repo "$repo" \
+  --tag "$tag" \
+  --git-head "$git_head"
 
 published_release=(
   bash scripts/verify-published-release.sh

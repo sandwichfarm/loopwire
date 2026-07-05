@@ -698,7 +698,10 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "release private-ke
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "cannot leave partial docs proof behind"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "second unverified run lookup"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "including annotated tags"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof now runs the same live GitHub tag-ref check"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "before reading those artifacts"
+assert_contains "apps/docs/docs/developer/release.md" "verifies the live GitHub release"
+assert_contains "apps/docs/docs/developer/release.md" "tag ref resolves to the expected tag commit"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
 assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'

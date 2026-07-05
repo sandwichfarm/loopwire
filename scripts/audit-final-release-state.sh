@@ -437,76 +437,15 @@ check_published_vm_evidence_archive() {
 }
 
 check_release_tag_ref() {
-  local ref_json
-  local tag_json
-  local resolved
-
   if [ "$skip_gh" = "true" ]; then
     echo "skipped: live GitHub lookup disabled"
     return 0
   fi
 
-  command -v gh >/dev/null 2>&1 || {
-    echo "missing: gh is required to verify the release tag ref" >&2
-    return 1
-  }
-
-  ref_json="$(gh api "repos/${repo}/git/ref/tags/${tag}")"
-  resolved="$(
-    node - "$ref_json" <<'NODE'
-const raw = process.argv[2];
-const ref = JSON.parse(raw);
-const object = ref?.object;
-if (!object || typeof object.sha !== "string" || typeof object.type !== "string") {
-  console.error("release tag ref did not include object.type and object.sha");
-  process.exit(1);
-}
-if (object.type === "commit") {
-  console.log(`commit\t${object.sha}`);
-} else if (object.type === "tag") {
-  console.log(`tag\t${object.sha}`);
-} else {
-  console.error(`release tag ref points at unsupported object type: ${object.type}`);
-  process.exit(1);
-}
-NODE
-  )"
-
-  case "$resolved" in
-    commit$'\t'*)
-      resolved="${resolved#*$'\t'}"
-      ;;
-    tag$'\t'*)
-      tag_json="$(gh api "repos/${repo}/git/tags/${resolved#*$'\t'}")"
-      resolved="$(
-        node - "$tag_json" <<'NODE'
-const raw = process.argv[2];
-const tag = JSON.parse(raw);
-const object = tag?.object;
-if (!object || typeof object.sha !== "string" || typeof object.type !== "string") {
-  console.error("annotated release tag did not include target object.type and object.sha");
-  process.exit(1);
-}
-if (object.type !== "commit") {
-  console.error(`annotated release tag points at unsupported object type: ${object.type}`);
-  process.exit(1);
-}
-console.log(object.sha);
-NODE
-      )"
-      ;;
-    *)
-      echo "release tag ref parser returned unexpected output: $resolved" >&2
-      return 1
-      ;;
-  esac
-
-  if [ "${resolved,,}" != "${expected_git_head,,}" ]; then
-    echo "release tag ref resolves to ${resolved}, not expected commit ${expected_git_head}" >&2
-    return 1
-  fi
-
-  echo "release tag ref verified: ${tag} -> ${resolved}"
+  bash scripts/verify-release-tag-ref.sh \
+    --repo "$repo" \
+    --tag "$tag" \
+    --git-head "$expected_git_head"
 }
 
 check_published_release_evidence_archive() {
