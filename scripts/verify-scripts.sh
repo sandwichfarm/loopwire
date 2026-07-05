@@ -1177,6 +1177,15 @@ node scripts/restore-background.mjs --help | grep -F -- "--dsp-provider-mode" >/
   echo "verify-scripts: restore background help is missing DSP provider mode option" >&2
   exit 1
 }
+grep -F "Open Loopwire, use Settings > Audio backend to save a verified backend" \
+  scripts/restore-background.mjs >/dev/null || {
+    echo "verify-scripts: restore background backend guidance is missing the Settings recovery path" >&2
+    exit 1
+  }
+grep -F "Multiple backends are available (" scripts/restore-background.mjs >/dev/null || {
+  echo "verify-scripts: restore background backend ambiguity error does not name candidates" >&2
+  exit 1
+}
 if node scripts/restore-background.mjs --mode preview --retry-pending-ms 1 >/dev/null 2>&1; then
   echo "verify-scripts: restore background accepted pending retries outside live mode" >&2
   exit 1

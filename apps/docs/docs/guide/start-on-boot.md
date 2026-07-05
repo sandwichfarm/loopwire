@@ -129,6 +129,10 @@ pnpm restore:background -- \
 `--mode preview` validates the persisted state and runs dry-run backend adapters. `--mode live` is the explicit host
 mutation path and should only be used after the selected backend and routes are correct.
 
+If background restore reports multiple available backends, or that the saved backend is unavailable, open Loopwire and
+use **Settings > Audio backend** to save a verified backend before enabling Restore on boot again. Boot restore is
+intentionally fail-closed instead of guessing between audio systems at login.
+
 For PulseAudio compatibility routes, background restore keeps normal switch verification strict but reports missing app
 streams as pending until those apps launch. That lets Loopwire-owned sinks remain ready at login without claiming that an
 app stream was already moved.

@@ -214,6 +214,8 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" 'install the distro `nod
 assert_contains "apps/docs/docs/guide/start-on-boot.md" 'preflights `loopwire --background --help`'
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "default.target.wants/loopwire.service"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--source-dir"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "Settings > Audio backend"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "fail-closed instead of guessing"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "pending until those apps launch"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--retry-pending-ms"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--jack-provider-command"
@@ -491,6 +493,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "live-apply preflig
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "configuration-switch guard now"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Editing the active configuration now disarms live apply"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "re-arm before verifying the edited"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Background restore now tells users to open Settings > Audio backend"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Changing the selected backend now runs a backend-change transaction"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "commits the backend as the saved startup-restore choice"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "only after the active configuration verifies"

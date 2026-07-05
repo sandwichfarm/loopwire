@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T03:07:43+02:00"
-last_activity: 2026-07-05 - Final release status requires CI proof
+last_updated: "2026-07-05T03:27:18+02:00"
+last_activity: 2026-07-05 - Background restore backend failures point to Settings
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - final release status now requires the expected commit's latest CI workflow run to be
-completed successfully before release readiness can pass, alongside docs deployment, final proof, release assets, and VM
-evidence. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof,
-and operator-run VM evidence.
+Last activity: 2026-07-05 - background restore now gives actionable Settings > Audio backend recovery guidance when
+boot restore finds multiple candidate backends or the saved backend is unavailable. Phase 12 remains gated on
+configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,14 @@ and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Background restore backend guidance: `scripts/restore-background.mjs` now tells users to open Loopwire
+  Settings > Audio backend and save a verified backend when boot restore cannot safely choose between multiple
+  available backends or when the saved backend is unavailable. The ambiguity error now names detected backend
+  candidates instead of only saying "multiple backends." Start-on-boot docs, unreleased notes, requirements checks,
+  script checks, and docs checks now cover the recovery path. Focused validation passed: `node --check
+  scripts/restore-background.mjs`, `bash -n scripts/verify-requirements.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:requirements`, `bash scripts/verify-docs.sh`, `pnpm verify:scripts`, and
+  `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Final release CI status gate: `scripts/audit-final-release-state.sh` now verifies the latest `ci.yml`
   workflow run for the expected release commit before accepting final release readiness. The fake GitHub verifier can
   fail CI independently from other workflow probes, and docs now state that `release:status` binds final handoff to the

@@ -70,6 +70,8 @@ These notes describe source-tree progress. They are not a public release announc
   backend for startup restore.
 - Editing the active configuration now disarms live apply and tells the user to re-arm before verifying the edited
   routes, endpoints, host bindings, or metadata on the host.
+- Background restore now tells users to open Settings > Audio backend and save a verified backend when boot restore
+  finds multiple backends or a saved backend is unavailable, instead of failing with a terse backend name.
 - Configuration switching and startup restore now show a runtime activity ledger with unload, apply, verify, and
   rollback entries from the actual runtime plan.
 - Backend route-control semantics report whether controls are graph-edge, stream-level, link-only, or unavailable.

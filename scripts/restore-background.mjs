@@ -289,7 +289,9 @@ function selectRestoreBackend({ requestedBackend, persistedBackend, detection, s
 
     const candidate = detection.candidates.find((item) => item.kind === backend);
     if (!candidate || candidate.availability !== "available") {
-      throw new Error(`Selected backend is not available for background restore: ${backend}`);
+      throw new Error(
+        `Selected backend is not available for background restore: ${backend}. ${backgroundRestoreBackendGuidance()}`
+      );
     }
 
     return backend;
@@ -301,10 +303,18 @@ function selectRestoreBackend({ requestedBackend, persistedBackend, detection, s
   }
 
   if (decision.mode === "prompt") {
-    throw new Error("Multiple backends are available; choose and persist one before enabling background restore.");
+    const names = decision.candidates.map((candidate) => candidate.displayName).join(", ");
+    throw new Error(
+      `Multiple backends are available (${names}); choose and persist one before enabling background restore. ` +
+        backgroundRestoreBackendGuidance()
+    );
   }
 
   throw new Error(decision.reason);
+}
+
+function backgroundRestoreBackendGuidance() {
+  return "Open Loopwire, use Settings > Audio backend to save a verified backend, then re-run Restore on boot.";
 }
 
 async function verifyDspProviderCapability(runner, backend, args) {
