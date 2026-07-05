@@ -219,6 +219,9 @@ These notes describe source-tree progress. They are not a public release announc
   plan, including traversal, root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and file paths.
 - `pnpm release:status` now preserves `--env-file` in its generated `pnpm release:fetch-docs-proof` recovery command
   when the docs deployment manifest is missing.
+- `pnpm release:status` now rejects unsafe local docs, VM evidence, and support-matrix paths before auditing final proof
+  surfaces, including traversal, root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and wrong existing
+  file/directory types.
 - `pnpm release:status --env-file` now keeps the default release public-key path implicit in its embedded VM evidence
   asset-prep handoff, while still rendering `--public-key` when the operator supplies that override explicitly.
 - `pnpm release:status` now requires the latest CI workflow run for the expected commit before final release status can

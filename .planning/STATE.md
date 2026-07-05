@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T06:03:14+02:00"
-last_activity: 2026-07-05 - Final proof local release directory fails closed
+last_updated: "2026-07-05T06:18:13+02:00"
+last_activity: 2026-07-05 - Release status local proof paths fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - final release proof now rejects unsafe local signed-release directories before dry-run or
-execution can use them as the release surface. Phase 12 remains gated on configuring Bunny secrets, public GitHub
-Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - release status now rejects unsafe local docs, VM evidence, and support-matrix paths before
+auditing final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
+Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,16 @@ Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release status local proof-path hardening: `scripts/audit-final-release-state.sh` now validates custom
+  local docs deployment manifest, docs dist, VM evidence root, and support-matrix paths before running the final release
+  status audit. Absolute and relative local paths remain valid for operator-collected proof, but root/home-expanded
+  paths, parent traversal, URL syntax, glob metacharacters, symlinks, and existing paths with the wrong file/directory
+  type fail closed before final status can inspect those surfaces. `scripts/verify-scripts.sh` now rejects traversal in
+  `--docs-deployment-manifest`, quoted tilde in `--docs-dist`, symlinked docs dist paths, and directory-valued support
+  matrix paths. Release docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the status path
+  contract. Focused validation passed: direct `scripts/audit-final-release-state.sh` positive/negative smokes,
+  `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `git diff --check`,
+  `pnpm verify:scripts`, and `bash scripts/verify-docs.sh`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Final proof local release-dir hardening: `scripts/verify-final-release-proof.sh` now validates optional
   `--release-dir` values before dry-run or execution. Absolute and relative local release directories remain valid for
   signed-release rehearsal, but root/home-expanded paths, parent traversal, URL syntax, glob metacharacters, symlinks,

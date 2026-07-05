@@ -39,6 +39,8 @@ Options:
   --skip-gh                   Skip live GitHub release/workflow lookups
 
 The command is read-only. It exits nonzero while any required final release proof surface is missing or unverifiable.
+Custom local path values may be absolute or relative, but they must not contain parent traversal, URL syntax, glob
+metacharacters, root/home expansion, symlinks, or an existing path with the wrong file/directory type.
 USAGE
 }
 
@@ -83,6 +85,44 @@ reject_unsafe_value() {
       fail "$label must not contain newlines"
       ;;
   esac
+}
+
+validate_local_path() {
+  local value="$1"
+  local label="$2"
+  local expected_type="$3"
+  local normalized
+
+  reject_unsafe_value "$value" "$label"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink"
+  if [ -e "$value" ]; then
+    case "$expected_type" in
+      file)
+        [ -f "$value" ] || fail "$label must be a file when it exists"
+        ;;
+      dir)
+        [ -d "$value" ] || fail "$label must be a directory when it exists"
+        ;;
+      *)
+        fail "unknown local path type for $label: $expected_type"
+        ;;
+    esac
+  fi
 }
 
 indent() {
@@ -518,11 +558,11 @@ reject_unsafe_value "$expected_git_head" "git head"
 reject_unsafe_value "$env_file" "env file"
 reject_unsafe_value "$secret_list_file" "secret-list file"
 reject_unsafe_value "$docs_deployment_run_id" "docs deployment run id"
-reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest"
-reject_unsafe_value "$docs_dist" "docs dist"
-reject_unsafe_value "$vm_evidence_root" "VM evidence root"
+validate_local_path "$docs_deployment_manifest" "docs deployment manifest" file
+validate_local_path "$docs_dist" "docs dist" dir
+validate_local_path "$vm_evidence_root" "VM evidence root" dir
 reject_unsafe_value "$vm_start_port" "VM start port"
-reject_unsafe_value "$support_matrix" "support matrix"
+validate_local_path "$support_matrix" "support matrix" file
 validate_docs_deployment_run_id
 validate_vm_start_port
 

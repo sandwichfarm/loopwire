@@ -453,6 +453,46 @@ if bash scripts/audit-final-release-state.sh \
   echo "verify-scripts: release status accepted an invalid docs deployment run id" >&2
   exit 1
 fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --docs-deployment-manifest ../deployment-manifest.json \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted traversal in docs deployment manifest" >&2
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --docs-dist '~/loopwire-docs-dist' \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted home expansion in docs dist" >&2
+  exit 1
+fi
+release_status_path_guard_root="$(mktemp -d)"
+release_status_docs_dist_symlink="$release_status_path_guard_root/docs-dist-symlink"
+release_status_support_matrix_dir="$release_status_path_guard_root/support-matrix-dir"
+ln -s "$release_status_path_guard_root" "$release_status_docs_dist_symlink"
+mkdir -p "$release_status_support_matrix_dir"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --docs-dist "$release_status_docs_dist_symlink" \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted a symlink docs dist" >&2
+  rm -rf "$release_status_path_guard_root"
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --support-matrix "$release_status_support_matrix_dir" \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted a directory support matrix" >&2
+  rm -rf "$release_status_path_guard_root"
+  exit 1
+fi
+rm -rf "$release_status_path_guard_root"
 node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-all-vm-targets" >/dev/null || {
   echo "verify-scripts: release evidence verifier help is missing all-target support" >&2
   exit 1
