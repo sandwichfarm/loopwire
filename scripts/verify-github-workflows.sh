@@ -111,7 +111,7 @@ assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_STORAGE_ENDPOINT"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_REMOTE_PREFIX"
 assert_contains ".github/workflows/deploy-docs.yml" "Bunny.net secrets are not configured; skipping deployment."
 assert_contains ".github/workflows/deploy-docs.yml" "--write-env-template /secure/loopwire-release-secrets.env"
-assert_contains ".github/workflows/deploy-docs.yml" '--repo ${GITHUB_REPOSITORY} --env-file /secure/loopwire-release-secrets.env'
+assert_contains ".github/workflows/deploy-docs.yml" '--repo ${GITHUB_REPOSITORY} --scope deploy --env-file /secure/loopwire-release-secrets.env'
 assert_contains ".github/workflows/deploy-docs.yml" "For final proof, include BUNNY_PULL_ZONE_HOSTNAME"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/deploy-docs-bunny.sh"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/verify-docs-live.sh"

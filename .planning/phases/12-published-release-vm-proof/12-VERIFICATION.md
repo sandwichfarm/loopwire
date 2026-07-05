@@ -5,6 +5,17 @@
 
 ## Evidence Passed
 
+- Final-scope GitHub secret setup now fails before dry-run output or any `gh secret set` call unless the operator
+  supplies the complete final-proof input set: Bunny storage zone, Bunny access key, Bunny pull-zone hostname, release
+  private-key file, and release public-key file. Deploy scope remains narrower and accepts only the Bunny upload pair.
+- Missing-secret recovery commands now render explicit `--scope deploy` or `--scope final`, and final-scope recovery
+  commands point operators at a complete input set or a filled local env file instead of partial writes.
+- Focused validation passed: `bash -n scripts/setup-github-secrets.sh scripts/fetch-docs-deployment-proof.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh scripts/verify-github-workflows.sh`, deploy dry-run
+  `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope deploy --storage-zone loopwire-docs
+  --access-key dry-run-access-key --dry-run`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:workflows`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - The final release handoff now prints the command operators run to set final-scope GitHub secrets from the filled
   local env file, before it prints the read-only `--check` audit. The handoff remains no-side-effect and does not print
   secret values.

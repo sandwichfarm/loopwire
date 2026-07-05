@@ -160,11 +160,11 @@ report_missing_deployment_artifact() {
   echo "likely cause: Deploy Docs did not run the Bunny.net deployment step, so it did not upload deployment proof." >&2
   echo "next: configure required Bunny.net GitHub secrets, rerun Deploy Docs, then rerun this helper:" >&2
   if [ -n "$env_file" ]; then
-    printf '  %s\n' "$(shell_join bash scripts/setup-github-secrets.sh --repo "$repo" --env-file "$env_file")" >&2
+    printf '  %s\n' "$(shell_join bash scripts/setup-github-secrets.sh --repo "$repo" --scope deploy --env-file "$env_file")" >&2
   else
-    echo "  bash scripts/setup-github-secrets.sh --repo $repo --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>" >&2
-    echo "  # Or load Bunny values and release key file paths from a local uncommitted env file:" >&2
-    echo "  bash scripts/setup-github-secrets.sh --repo $repo --env-file <secret-env-file>" >&2
+    echo "  bash scripts/setup-github-secrets.sh --repo $repo --scope deploy --storage-zone <zone> --access-key <key>" >&2
+    echo "  # Or load Bunny values from a local uncommitted env file:" >&2
+    echo "  bash scripts/setup-github-secrets.sh --repo $repo --scope deploy --env-file <secret-env-file>" >&2
   fi
 }
 

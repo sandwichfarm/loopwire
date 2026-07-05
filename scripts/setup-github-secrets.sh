@@ -30,7 +30,8 @@ usage() {
 Set GitHub Actions secrets needed for Loopwire Bunny.net docs deployment.
 
 Usage:
-  setup-github-secrets.sh --repo owner/name [--storage-zone ZONE --access-key KEY]
+  setup-github-secrets.sh --repo owner/name [--scope deploy|final]
+                          [--storage-zone ZONE --access-key KEY]
                           [--storage-endpoint URL] [--pull-zone-hostname HOST]
                           [--remote-prefix PATH]
                           [--release-private-key-file FILE]
@@ -40,7 +41,7 @@ Usage:
   setup-github-secrets.sh --print-required [--scope deploy|final]
   setup-github-secrets.sh --print-env-template
   setup-github-secrets.sh --write-env-template FILE
-  setup-github-secrets.sh --repo owner/name --dry-run [secret options]
+  setup-github-secrets.sh --repo owner/name --dry-run [--scope deploy|final] [secret options]
 
 Environment fallback:
   BUNNY_STORAGE_ZONE
@@ -440,41 +441,47 @@ print_missing_secret_next_steps() {
     if [ "$scope" = "deploy" ]; then
       cat >&2 <<EOF
 next: set Bunny.net deployment secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope deploy \\
     --storage-zone <zone> --access-key <key>
   # Or create, fill, and load a local uncommitted env file:
   bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope deploy --env-file <secret-env-file>
 EOF
     else
       cat >&2 <<EOF
 next: set Bunny.net deployment secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
-    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope final \\
+    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host> \\
+    --release-private-key-file <private-key> \\
+    --release-public-key-file packaging/release-signing-public.pem
   # Or create, fill, and load Bunny values and release key file paths from a local uncommitted env file:
   bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope final --env-file <secret-env-file>
 EOF
     fi
   fi
   if [ "$missing_bunny" != "true" ] && [ "$missing_docs_live" = "true" ]; then
     cat >&2 <<EOF
 next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
-  bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope final \\
+    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host> \\
+    --release-private-key-file <private-key> \\
+    --release-public-key-file packaging/release-signing-public.pem
   # Or create, fill, and load it from a local uncommitted env file:
   bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope final --env-file <secret-env-file>
 EOF
   fi
   if [ "$missing_release_key" = "true" ]; then
     cat >&2 <<EOF
 next: set release signing secret from a local private key:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope final \\
+    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host> \\
     --release-private-key-file <private-key> \\
     --release-public-key-file packaging/release-signing-public.pem
   # Or create, fill, and load LOOPWIRE_RELEASE_PRIVATE_KEY_FILE from a local uncommitted env file:
   bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --scope final --env-file <secret-env-file>
 EOF
   fi
 }
@@ -537,7 +544,30 @@ set_github_secret() {
   gh secret set "$secret_name" --repo "$repo"
 }
 
+require_set_input() {
+  value="$1"
+  label="$2"
+  hint="$3"
+
+  [ -n "$value" ] || fail "${label} is required for ${scope}-scope secret setup; use ${hint} or --env-file"
+}
+
+validate_required_inputs_for_set_scope() {
+  require_set_input "$storage_zone" "BUNNY_STORAGE_ZONE" "--storage-zone"
+  require_set_input "$access_key" "BUNNY_ACCESS_KEY" "--access-key"
+
+  if [ "$scope" = "deploy" ]; then
+    return
+  fi
+
+  require_set_input "$pull_zone_hostname" "BUNNY_PULL_ZONE_HOSTNAME" "--pull-zone-hostname"
+  require_set_input "$release_private_key_file" "LOOPWIRE_RELEASE_PRIVATE_KEY_FILE" "--release-private-key-file"
+  require_set_input "$release_public_key_file" "LOOPWIRE_RELEASE_PUBLIC_KEY_FILE" "--release-public-key-file"
+}
+
 validate_requested_secret_set() {
+  validate_required_inputs_for_set_scope
+
   if [ -n "$storage_zone" ] || [ -n "$access_key" ]; then
     if [ -z "$storage_zone" ] || [ -z "$access_key" ]; then
       echo "Bunny.net deployment secrets require both storage zone and access key." >&2

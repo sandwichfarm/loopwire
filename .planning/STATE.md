@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T00:00:13+02:00"
-last_activity: 2026-07-05 - Final release handoff now prints the secret-setting command before the secret audit
+last_updated: "2026-07-06T00:22:22+02:00"
+last_activity: 2026-07-06 - Final-scope GitHub secret setup now requires the complete deploy, live-docs, and signing input set before any secret write
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:handoff` now prints the final-scope GitHub secret-setting command from the
-filled local env file before the read-only secret audit, so the operator handoff includes the missing source-owned
-bridge between template creation and `--check`. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-06 - `scripts/setup-github-secrets.sh --scope final` now validates the complete final-proof
+input set before dry-run output or any `gh secret set` call, while `--scope deploy` remains limited to Bunny upload
+credentials. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow
+success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,17 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-06 Final-scope secret setup hardening: `scripts/setup-github-secrets.sh` now requires
+  `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`, `BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and
+  `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE` before final-scope set or dry-run output, preventing partial secret writes before
+  final proof. Deploy scope remains upload-only for `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`, and generated recovery
+  commands now preserve explicit `--scope deploy` or `--scope final`. Focused validation passed:
+  `bash -n scripts/setup-github-secrets.sh scripts/fetch-docs-deployment-proof.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh scripts/verify-github-workflows.sh`; deploy dry-run
+  `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope deploy --storage-zone loopwire-docs
+  --access-key dry-run-access-key --dry-run`; `pnpm verify:scripts`; `pnpm verify:docs`; `pnpm verify:workflows`; and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-05 Final release secret-setting handoff: `scripts/plan-final-release-handoff.sh` now prints
   `bash scripts/setup-github-secrets.sh --repo <repo> --scope final --env-file <secret-env-file>` before the final
   secret audit, and the audit command now carries explicit `--scope final`. Focused validation passed:

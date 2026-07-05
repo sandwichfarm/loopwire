@@ -265,8 +265,9 @@ The helper downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies th
 non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`. Downloads and
 manifest checks are staged first, so a missing deployment artifact cannot leave partial docs proof in the final local
 paths. If the deployment artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the
-recovery command without reading or printing secret values. Custom `--docs-dist` and `--manifest` outputs must stay
-repo-relative because the helper rewrites those paths while normalizing downloaded artifacts. Those outputs also reject
+deploy-scope recovery command without reading or printing secret values. Custom `--docs-dist` and `--manifest`
+outputs must stay repo-relative because the helper rewrites those paths while normalizing downloaded artifacts. Those
+outputs also reject
 URL syntax, glob metacharacters, symlinks, and existing paths with the wrong file or directory type before downloads
 begin. Custom `--env-file` recovery paths may be absolute or relative local files, but they reject traversal, URL
 syntax, glob metacharacters, symlinks, and existing non-file paths before the helper renders the secret setup command.
@@ -558,6 +559,10 @@ pnpm release:prepare-key -- \
   --public-key-out packaging/release-signing-public.pem
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope final \
+  --storage-zone loopwire-docs \
+  --access-key "$BUNNY_ACCESS_KEY" \
+  --pull-zone-hostname docs.example.test \
   --release-private-key-file /secure/loopwire-release-private.pem \
   --release-public-key-file packaging/release-signing-public.pem
 ```
@@ -583,6 +588,7 @@ bash scripts/setup-github-secrets.sh \
   --secret-list-file release-secret-names.tsv
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope final \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
   --pull-zone-hostname docs.example.test \
@@ -591,15 +597,19 @@ bash scripts/setup-github-secrets.sh \
   --dry-run
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope final \
   --env-file /secure/loopwire-release-secrets.env \
   --dry-run
 ```
 
 `--check` reads secret names only. The default `--scope final` checks all final-proof secrets. Use
 `--check --scope deploy` to verify only the Bunny.net upload pair before the final release-signing and live-docs
-secrets are available. `--secret-list-file` accepts saved `gh secret list` output for deterministic release rehearsal;
-the artifact may contain secret names and metadata columns, but never secret values. `--dry-run` validates inputs and
-prints secret names that would be set without printing secret values or writing to GitHub. `--env-file` accepts a local
+secrets are available. Set mode uses the same scopes before any `gh secret set` call runs: `--scope deploy` requires
+`BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`; the default `--scope final` also requires
+`BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`.
+`--secret-list-file` accepts saved `gh secret list` output for deterministic release rehearsal; the artifact may
+contain secret names and metadata columns, but never secret values. `--dry-run` validates inputs and prints secret
+names that would be set without printing secret values or writing to GitHub. `--env-file` accepts a local
 uncommitted file with simple `KEY=VALUE` lines for `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`,
 `BUNNY_STORAGE_ENDPOINT`, `BUNNY_PULL_ZONE_HOSTNAME`, `BUNNY_REMOTE_PREFIX`,
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`; command-line flags override env-file
@@ -616,18 +626,24 @@ fails before any secret write if the pair does not match. If the GitHub CLI cann
 those secrets as missing.
 When required secrets are missing, `--check` prints next-step commands with placeholders rather than values. If
 only Bunny.net storage or live-docs secrets are missing, it prints only the Bunny setup command; if only
-`LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. `BUNNY_PULL_ZONE_HOSTNAME` is
+`LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing setup section with complete final-scope
+placeholders. `BUNNY_PULL_ZONE_HOSTNAME` is
 required for final proof because the docs deployment must run post-upload live smoke against the served pull-zone URL.
 The Bunny next-step output includes direct flags plus
 `bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>` and the safer
 `--env-file <secret-env-file>` route, so operators can keep values out of shell history and avoid unsafe redirection.
-If storage credentials are already configured and only the hostname is missing, set it without re-entering storage
-credentials:
+If storage credentials are already configured and only the hostname is missing, the helper still needs the complete
+final-scope input set because it cannot read existing secret values back from GitHub:
 
 ```bash
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
-  --pull-zone-hostname docs.example.test
+  --scope final \
+  --storage-zone loopwire-docs \
+  --access-key "$BUNNY_ACCESS_KEY" \
+  --pull-zone-hostname docs.example.test \
+  --release-private-key-file /secure/loopwire-release-private.pem \
+  --release-public-key-file packaging/release-signing-public.pem
 ```
 
 The helper rejects Bunny values that would fail deployment: storage zones cannot contain slashes, storage endpoints
@@ -683,7 +699,7 @@ notice prints the safe local recovery sequence: create `/secure/loopwire-release
 `--write-env-template`, fill it locally, then run the same helper with the local env file:
 
 ```bash
-bash scripts/setup-github-secrets.sh --repo <owner/repo> --env-file /secure/loopwire-release-secrets.env
+bash scripts/setup-github-secrets.sh --repo <owner/repo> --scope deploy --env-file /secure/loopwire-release-secrets.env
 ```
 
 For final release proof, include `BUNNY_PULL_ZONE_HOSTNAME` in that env file so the live-docs smoke can run against the
@@ -744,6 +760,7 @@ The GitHub secret helper can set or audit the deployment secrets:
 ```bash
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope deploy \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
   --pull-zone-hostname docs.example.test \

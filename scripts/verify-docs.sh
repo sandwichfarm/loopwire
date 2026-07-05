@@ -485,10 +485,12 @@ assert_contains "apps/docs/docs/developer/release.md" "BUNNY_STORAGE_ENDPOINT"
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_REMOTE_PREFIX"
 assert_contains "apps/docs/docs/developer/release.md" "--check --scope deploy"
 assert_contains "apps/docs/docs/developer/release.md" 'default `--scope final`'
+assert_contains "apps/docs/docs/developer/release.md" 'Set mode uses the same scopes before any `gh secret set` call runs'
+assert_contains "apps/docs/docs/developer/release.md" "LOOPWIRE_RELEASE_PUBLIC_KEY_FILE"
 assert_contains "apps/docs/docs/developer/release.md" 'underlying `gh secret list` error'
 assert_contains "apps/docs/docs/developer/release.md" "prints next-step commands with placeholders"
 assert_contains "apps/docs/docs/developer/release.md" "only Bunny.net storage or live-docs secrets are missing"
-assert_contains "apps/docs/docs/developer/release.md" "it prints only the release signing command"
+assert_contains "apps/docs/docs/developer/release.md" "release signing setup section with complete final-scope"
 assert_contains "apps/docs/docs/developer/release.md" '`pnpm verify:release-readiness` also prints no-value next steps'
 assert_contains "apps/docs/docs/developer/release.md" 'git tag -a <tag> -m "Loopwire <tag>"'
 assert_contains "apps/docs/docs/developer/release.md" "post-upload live"
@@ -614,6 +616,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "custom remote and 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "rejects unsafe local output paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-all-targets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret helper now rejects Bunny storage zones"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "enforces scope-complete inputs before set or dry-run output"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the release private key against the release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret set` stdin contract'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints no-value next steps"
@@ -641,7 +644,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'no-value template with `0
 assert_contains "apps/docs/docs/developer/release.md" "prints the same template to stdout"
 assert_contains "apps/docs/docs/developer/release.md" "--write-env-template <secret-env-file>"
 assert_contains "apps/docs/docs/developer/release.md" "Bunny.net secrets are missing, the deploy job emits a notice"
-assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --repo <owner/repo> --env-file /secure/loopwire-release-secrets.env"
+assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --repo <owner/repo> --scope deploy --env-file /secure/loopwire-release-secrets.env"
 assert_contains "apps/docs/docs/developer/release.md" 'include `BUNNY_PULL_ZONE_HOSTNAME` in that env file'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The Deploy Docs workflow now prints the same safe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--env-file /secure/loopwire-release-secrets.env"

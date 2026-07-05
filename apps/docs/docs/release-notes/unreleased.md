@@ -227,6 +227,9 @@ These notes describe source-tree progress. They are not a public release announc
   instead of misreporting API or auth failures as missing release/deploy secrets.
 - GitHub secret checks now support `--scope deploy` for Bunny.net upload readiness separately from the default strict
   final-proof scope.
+- The GitHub secret helper now enforces scope-complete inputs before set or dry-run output: deploy scope requires the
+  Bunny.net upload pair, while final scope also requires the pull-zone hostname plus matching release private/public
+  key files before any `gh secret set` call can run.
 - GitHub secret checks and release readiness now accept a names-only `--secret-list-file` artifact, so final-proof
   secret blockers can be replayed deterministically without a live `gh secret list` call or any secret values.
 - The repo now includes `scripts/fixtures/github-secret-list-final.tsv`, a names-only final-proof secret-list fixture

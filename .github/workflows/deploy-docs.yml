@@ -103,7 +103,7 @@ jobs:
           else
             echo "::notice::Bunny.net secrets are not configured; skipping deployment."
             echo "::notice::Create a local no-value secret template with: bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
-            echo "::notice::Fill it locally, then set repository secrets with: bash scripts/setup-github-secrets.sh --repo ${GITHUB_REPOSITORY} --env-file /secure/loopwire-release-secrets.env"
+            echo "::notice::Fill it locally, then set deploy secrets with: bash scripts/setup-github-secrets.sh --repo ${GITHUB_REPOSITORY} --scope deploy --env-file /secure/loopwire-release-secrets.env"
             echo "::notice::For final proof, include BUNNY_PULL_ZONE_HOSTNAME in that env file so live-docs smoke can run."
             echo "deploy=false" >>"$GITHUB_OUTPUT"
           fi

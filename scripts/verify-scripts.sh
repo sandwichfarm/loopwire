@@ -4249,6 +4249,7 @@ github_secret_dry_run="$(
     --repo sandwichfarm/loopwire \
     --storage-zone loopwire-docs \
     --access-key dry-run-access-key \
+    --pull-zone-hostname docs.example.test \
     --storage-endpoint ny.storage.bunnycdn.com \
     --remote-prefix private-prefix-value \
     --release-private-key-file "$tmp_secret_file" \
@@ -4312,6 +4313,55 @@ if printf '%s\n' "$github_secret_env_dry_run" | grep -F "env-private-prefix" >/d
   echo "verify-scripts: GitHub secret helper env-file dry-run leaked remote prefix" >&2
   exit 1
 fi
+github_secret_deploy_dry_run="$(
+  bash scripts/setup-github-secrets.sh \
+    --repo sandwichfarm/loopwire \
+    --scope deploy \
+    --storage-zone loopwire-docs \
+    --access-key dry-run-access-key \
+    --dry-run
+)"
+printf '%s\n' "$github_secret_deploy_dry_run" |
+  grep -F "would set GitHub secret for sandwichfarm/loopwire: BUNNY_ACCESS_KEY" >/dev/null || {
+    echo "verify-scripts: GitHub secret helper deploy dry-run did not include access key" >&2
+    exit 1
+  }
+if printf '%s\n' "$github_secret_deploy_dry_run" | grep -F "LOOPWIRE_RELEASE_PRIVATE_KEY" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper deploy dry-run required release key material" >&2
+  exit 1
+fi
+github_secret_missing_pull_log="$tmp_dir/setup-github-secrets-missing-pull.log"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --storage-zone loopwire-docs \
+  --access-key dry-run-access-key \
+  --release-private-key-file "$tmp_secret_file" \
+  --release-public-key-file "$tmp_secret_public_key" \
+  --dry-run >"$github_secret_missing_pull_log" 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted final-scope setup without pull-zone hostname" >&2
+  exit 1
+fi
+grep -F "BUNNY_PULL_ZONE_HOSTNAME is required for final-scope secret setup" \
+  "$github_secret_missing_pull_log" >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not explain missing final pull-zone hostname" >&2
+    exit 1
+  }
+github_secret_missing_public_key_log="$tmp_dir/setup-github-secrets-missing-public-key.log"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --storage-zone loopwire-docs \
+  --access-key dry-run-access-key \
+  --pull-zone-hostname docs.example.test \
+  --release-private-key-file "$tmp_secret_file" \
+  --dry-run >"$github_secret_missing_public_key_log" 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted final-scope setup without public-key validation" >&2
+  exit 1
+fi
+grep -F "LOOPWIRE_RELEASE_PUBLIC_KEY_FILE is required for final-scope secret setup" \
+  "$github_secret_missing_public_key_log" >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not explain missing final public-key file" >&2
+    exit 1
+  }
 github_secret_env_override_dry_run="$(
   bash scripts/setup-github-secrets.sh \
     --repo sandwichfarm/loopwire \
@@ -4345,7 +4395,11 @@ github_secret_private_key_symlink="$tmp_dir/setup-github-secrets-private-key-sym
 ln -s "$tmp_secret_file" "$github_secret_private_key_symlink"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --storage-zone loopwire-docs \
+  --access-key dry-run-access-key \
+  --pull-zone-hostname docs.example.test \
   --release-private-key-file "$github_secret_private_key_symlink" \
+  --release-public-key-file "$tmp_secret_public_key" \
   --dry-run >/dev/null 2>&1; then
   echo "verify-scripts: GitHub secret helper accepted a symlink release private key" >&2
   exit 1
@@ -4354,6 +4408,9 @@ github_secret_public_key_dir="$tmp_dir/setup-github-secrets-public-key-dir"
 mkdir -p "$github_secret_public_key_dir"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --storage-zone loopwire-docs \
+  --access-key dry-run-access-key \
+  --pull-zone-hostname docs.example.test \
   --release-private-key-file "$tmp_secret_file" \
   --release-public-key-file "$github_secret_public_key_dir" \
   --dry-run >/dev/null 2>&1; then
@@ -4362,6 +4419,7 @@ if bash scripts/setup-github-secrets.sh \
 fi
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope deploy \
   --storage-zone "loopwire/docs" \
   --access-key dry-run-access-key \
   --dry-run >/dev/null 2>&1; then
@@ -4370,6 +4428,7 @@ if bash scripts/setup-github-secrets.sh \
 fi
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope deploy \
   --storage-zone loopwire-docs \
   --access-key dry-run-access-key \
   --remote-prefix "../escape" \
@@ -4379,6 +4438,7 @@ if bash scripts/setup-github-secrets.sh \
 fi
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope deploy \
   --storage-zone loopwire-docs \
   --access-key dry-run-access-key \
   --pull-zone-hostname "https://docs.example.test" \
@@ -4386,23 +4446,21 @@ if bash scripts/setup-github-secrets.sh \
   echo "verify-scripts: GitHub secret helper accepted a URL as pull-zone hostname" >&2
   exit 1
 fi
-hostname_only_secret_dry_run="$(
-  bash scripts/setup-github-secrets.sh \
-    --repo sandwichfarm/loopwire \
-    --pull-zone-hostname docs.example.test \
-    --dry-run
-)"
-printf '%s\n' "$hostname_only_secret_dry_run" |
-  grep -F "would set GitHub secret for sandwichfarm/loopwire: BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
-    echo "verify-scripts: GitHub secret helper did not allow hostname-only dry-run setup" >&2
-    exit 1
-  }
-if printf '%s\n' "$hostname_only_secret_dry_run" | grep -F "BUNNY_STORAGE_ZONE" >/dev/null; then
-  echo "verify-scripts: GitHub secret helper required storage secrets for hostname-only setup" >&2
-  exit 1
-fi
+hostname_only_secret_log="$tmp_dir/setup-github-secrets-hostname-only.log"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --pull-zone-hostname docs.example.test \
+  --dry-run >"$hostname_only_secret_log" 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted hostname-only final-scope setup" >&2
+  exit 1
+fi
+grep -F "BUNNY_STORAGE_ZONE is required for final-scope secret setup" "$hostname_only_secret_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not explain rejected hostname-only setup" >&2
+  exit 1
+}
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --scope deploy \
   --storage-zone loopwire-docs \
   --access-key dry-run-access-key \
   --storage-endpoint $'ny.storage.bunnycdn.com\nescape' \
@@ -4415,6 +4473,9 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$tmp_dir/bad-
 openssl pkey -in "$tmp_dir/bad-release-key.pem" -pubout -out "$bad_secret_public_key" >/dev/null 2>&1
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --storage-zone loopwire-docs \
+  --access-key dry-run-access-key \
+  --pull-zone-hostname docs.example.test \
   --release-private-key-file "$tmp_secret_file" \
   --release-public-key-file "$bad_secret_public_key" \
   --dry-run >/dev/null 2>&1; then
@@ -4424,7 +4485,11 @@ fi
 printf '%s\n' "not a private key" >"$tmp_dir/not-a-private-key.pem"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --storage-zone loopwire-docs \
+  --access-key dry-run-access-key \
+  --pull-zone-hostname docs.example.test \
   --release-private-key-file "$tmp_dir/not-a-private-key.pem" \
+  --release-public-key-file "$tmp_secret_public_key" \
   --dry-run >/dev/null 2>&1; then
   echo "verify-scripts: GitHub secret helper accepted an invalid release private key" >&2
   exit 1
@@ -5995,7 +6060,7 @@ grep -F "next: set Bunny.net deployment secrets without printing values" "$secre
   echo "verify-scripts: GitHub secret check did not print Bunny next step" >&2
   exit 1
 }
-grep -F -- "--env-file <secret-env-file>" "$secret_missing_required_log" >/dev/null || {
+grep -F -- "--scope final --env-file <secret-env-file>" "$secret_missing_required_log" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not print env-file Bunny next step" >&2
   exit 1
 }
@@ -6014,11 +6079,16 @@ if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
   echo "verify-scripts: GitHub deploy-scope secret check accepted missing Bunny secrets" >&2
   exit 1
 fi
+grep -F -- "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope deploy" \
+  "$secret_deploy_missing_required_log" >/dev/null || {
+  echo "verify-scripts: GitHub deploy-scope check did not print deploy-scope setup" >&2
+  exit 1
+}
 grep -F -- "--storage-zone <zone> --access-key <key>" "$secret_deploy_missing_required_log" >/dev/null || {
   echo "verify-scripts: GitHub deploy-scope check did not print deploy-only Bunny setup" >&2
   exit 1
 }
-grep -F -- "--env-file <secret-env-file>" "$secret_deploy_missing_required_log" >/dev/null || {
+grep -F -- "--scope deploy --env-file <secret-env-file>" "$secret_deploy_missing_required_log" >/dev/null || {
   echo "verify-scripts: GitHub deploy-scope check did not print env-file Bunny setup" >&2
   exit 1
 }
@@ -6046,7 +6116,7 @@ grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke a
     echo "verify-scripts: GitHub secret check did not print pull-zone hostname next step" >&2
     exit 1
   }
-grep -F -- "--env-file <secret-env-file>" "$secret_missing_live_docs_log" >/dev/null || {
+grep -F -- "--scope final --env-file <secret-env-file>" "$secret_missing_live_docs_log" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not print env-file pull-zone hostname next step" >&2
   exit 1
 }
@@ -6093,6 +6163,10 @@ grep -F "next: set release signing secret from a local private key" "$secret_mis
 }
 grep -F -- "--write-env-template <secret-env-file>" "$secret_missing_release_log" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not print env-template write step for release key" >&2
+  exit 1
+}
+grep -F -- "--scope final --env-file <secret-env-file>" "$secret_missing_release_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not print final-scope env-file release key setup" >&2
   exit 1
 }
 if grep -F "next: set Bunny.net deployment secrets without printing values" \
