@@ -417,6 +417,9 @@ These notes describe source-tree progress. They are not a public release announc
   local release-secret ceremony available from the script itself.
 - The GitHub secret helper can now create the local release-secret env template with `--write-env-template`, refusing
   existing files and writing the no-value template with `0600` permissions.
+- The Deploy Docs workflow now prints the same safe `--write-env-template /secure/loopwire-release-secrets.env` and
+  `--env-file /secure/loopwire-release-secrets.env` recovery commands when Bunny.net upload secrets are missing, plus
+  the `BUNNY_PULL_ZONE_HOSTNAME` reminder needed for final live-docs proof.
 - JACK live port delegation now preserves the process environment while applying Loopwire-specific overrides, so
   provider scripts that use `/usr/bin/env node` keep resolving Node on CI and operator hosts.
 - VM evidence collection now writes `environment.json`, and verification rejects bundles whose observed distro,

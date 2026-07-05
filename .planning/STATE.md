@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T12:17:29+02:00"
-last_activity: 2026-07-05 - Missing-secret recovery prints env-template setup
+last_updated: "2026-07-05T12:35:09+02:00"
+last_activity: 2026-07-05 - Deploy Docs skip notice prints secret recovery commands
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Missing-secret recovery output from `scripts/setup-github-secrets.sh --check` and
-`scripts/verify-release-readiness.sh` now prints the `--write-env-template <secret-env-file>` setup step before the
-`--env-file <secret-env-file>` load step. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
-install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - The hosted Deploy Docs missing-secret skip notice now prints the safe
+`--write-env-template /secure/loopwire-release-secrets.env` and
+`--env-file /secure/loopwire-release-secrets.env` recovery commands plus the `BUNNY_PULL_ZONE_HOSTNAME` final-proof
+reminder. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof,
+and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,15 @@ install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Hosted Deploy Docs secret recovery notice: `.github/workflows/deploy-docs.yml` now keeps unrelated docs CI
+  green when Bunny storage secrets are absent while printing no-value local recovery commands for
+  `scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env` and
+  `--repo ${GITHUB_REPOSITORY} --env-file /secure/loopwire-release-secrets.env`. Release docs and unreleased notes now
+  document that hosted skip output, including the `BUNNY_PULL_ZONE_HOSTNAME` reminder required for final live-docs proof.
+  `scripts/verify-github-workflows.sh` and `scripts/verify-docs.sh` assert the workflow and docs contracts. Focused
+  validation passed: `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh`;
+  `bash scripts/verify-github-workflows.sh`; `bash scripts/verify-docs.sh`; `pnpm verify:workflows`; and
+  `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Missing-secret env-template recovery: `scripts/setup-github-secrets.sh --check` and
   `scripts/verify-release-readiness.sh` now include `--write-env-template <secret-env-file>` in Bunny storage,
   live-docs hostname, and release-key recovery output before the existing `--env-file <secret-env-file>` load command.

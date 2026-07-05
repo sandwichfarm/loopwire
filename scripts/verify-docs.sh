@@ -591,6 +591,12 @@ assert_contains "apps/docs/docs/developer/release.md" "--write-env-template /sec
 assert_contains "apps/docs/docs/developer/release.md" 'no-value template with `0600`'
 assert_contains "apps/docs/docs/developer/release.md" "prints the same template to stdout"
 assert_contains "apps/docs/docs/developer/release.md" "--write-env-template <secret-env-file>"
+assert_contains "apps/docs/docs/developer/release.md" "Bunny.net secrets are missing, the deploy job emits a notice"
+assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --repo <owner/repo> --env-file /secure/loopwire-release-secrets.env"
+assert_contains "apps/docs/docs/developer/release.md" 'include `BUNNY_PULL_ZONE_HOSTNAME` in that env file'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "The Deploy Docs workflow now prints the same safe"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "--env-file /secure/loopwire-release-secrets.env"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'the `BUNNY_PULL_ZONE_HOSTNAME` reminder'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof now validates local public-key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact types before reading proof claims"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "root/home-expanded paths"

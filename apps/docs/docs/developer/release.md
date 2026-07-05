@@ -610,7 +610,16 @@ The docs deployment workflow builds VitePress, uploads a docs artifact, and depl
 workflow dispatch, `main`, `master`, or `v*` tags. The deploy job is assigned to the `docs-production` GitHub
 environment so repository protection rules can require manual review or protected branches.
 
-If Bunny.net secrets are missing, the deploy job emits a notice and skips upload instead of failing unrelated CI.
+If Bunny.net secrets are missing, the deploy job emits a notice and skips upload instead of failing unrelated CI. The
+notice prints the safe local recovery sequence: create `/secure/loopwire-release-secrets.env` with
+`--write-env-template`, fill it locally, then run the same helper with the local env file:
+
+```bash
+bash scripts/setup-github-secrets.sh --repo <owner/repo> --env-file /secure/loopwire-release-secrets.env
+```
+
+For final release proof, include `BUNNY_PULL_ZONE_HOSTNAME` in that env file so the live-docs smoke can run against the
+Bunny pull-zone URL after upload.
 
 Deployment uses `scripts/deploy-docs-bunny.sh`, which uploads raw files with Bunny Edge Storage's `PUT` endpoint and
 the storage-zone password in the `AccessKey` header. The script defaults to `https://storage.bunnycdn.com`, and
