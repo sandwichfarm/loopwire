@@ -2491,6 +2491,12 @@
   scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; and
   `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD) --public-key
   packaging/release-signing-public.pem`.
+- Hosted CI run `28739869664` exposed an environment-sensitive Rust test failure in
+  `reports_packaged_background_launcher_preflight_success`; the packaged-launcher success test now uses a symlink to
+  the system `true` binary instead of executing a generated temp shell script. Focused validation passed:
+  `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+  reports_packaged_background_launcher_preflight_success -- --nocapture`; `cargo fmt --manifest-path
+  apps/desktop/src-tauri/Cargo.toml --check`; and `pnpm check`.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

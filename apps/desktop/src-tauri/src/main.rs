@@ -1026,18 +1026,19 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn reports_packaged_background_launcher_preflight_success() {
+        use std::os::unix::fs::symlink;
+
         let temp_dir = unique_temp_dir();
         let launcher = temp_dir.join("bin/loopwire");
         let gui = temp_dir.join("lib/loopwire/loopwire-gui");
+        let true_binary = [Path::new("/bin/true"), Path::new("/usr/bin/true")]
+            .into_iter()
+            .find(|path| path.is_file())
+            .expect("system true binary");
 
-        write_executable(
-            &launcher,
-            "#!/usr/bin/env sh\n\
-            if [ \"${1:-}\" = '--background' ] && [ \"${2:-}\" = '--help' ]; then\n\
-              exit 0\n\
-            fi\n\
-            exit 2\n",
-        );
+        fs::create_dir_all(launcher.parent().expect("launcher parent"))
+            .expect("create launcher parent");
+        symlink(true_binary, &launcher).expect("link launcher");
         fs::create_dir_all(gui.parent().expect("gui parent")).expect("create gui parent");
         fs::write(&gui, "").expect("write gui");
 

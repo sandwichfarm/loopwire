@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T13:47:49+02:00"
-last_activity: 2026-07-05 - Final release handoff now renders explicit tag creation and push commands
+last_updated: "2026-07-05T14:02:03+02:00"
+last_activity: 2026-07-05 - Hosted CI background-launcher preflight test made deterministic
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - the final release handoff now renders the reviewed annotated tag creation command and the
-exact `refs/tags/<tag>` push before workflow dispatch, so the operator-deferred release ceremony has no implicit tag
-step. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
+Last activity: 2026-07-05 - hosted CI exposed an environment-sensitive packaged background-launcher preflight success
+test that executed a generated shell script from the temp directory. The test now links the packaged launcher candidate
+to the system `true` binary so it still proves the success preflight path without depending on temp-script execution.
+Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
 operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -84,6 +85,13 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Hosted CI background-launcher preflight stabilization: GitHub Actions CI run `28739869664` failed in
+  `reports_packaged_background_launcher_preflight_success` with `assertion failed: status.available` while local
+  validation had passed. The Rust test now links the packaged launcher candidate to `/bin/true` or `/usr/bin/true`
+  instead of executing a generated temp shell script for the success case. Focused validation passed:
+  `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+  reports_packaged_background_launcher_preflight_success -- --nocapture`; `cargo fmt --manifest-path
+  apps/desktop/src-tauri/Cargo.toml --check`; and `pnpm check`.
 - 2026-07-05 Release handoff explicit tag ceremony: `scripts/plan-final-release-handoff.sh` now prints
   `git tag -a <tag> <git-head> -m "Loopwire <tag>"` and `git push origin refs/tags/<tag>` as step 3, before release,
   docs, VM, and final-proof workflow dispatch. Step references were renumbered so the docs deployment run id reminder
