@@ -31,6 +31,8 @@ These notes describe source-tree progress. They are not a public release announc
   stream-level control boundary instead of letting the final stream move silently win.
 - PulseAudio backend detection and support-bundle summaries now expose `one output per source` as a known gap, matching
   the runtime and desktop preflight boundary.
+- Support bundles can now include read-only DSP provider plan summaries with `--include-dsp-provider-plan`, writing
+  `dsp-provider-plan.json` and `support-bundle.json` `dspProvider` metadata without running provider execute mode.
 - PulseAudio compatibility verification now fails when a configured route has no matching live stream, instead of
   reporting fake success for an absent app stream.
 - PulseAudio startup and background restore now keep absent matching streams pending until those apps launch, without

@@ -307,7 +307,9 @@ writes `support-bundle.json`, `command-results.tsv`, `notes.md`, backend detecti
 status. The manifest also summarizes `detect-audio.json` as `audio.backends`, including availability, route-control
 scope, per-edge gain/mute flags, diagnostics, and known gaps. When `--configuration` or `--state-file` is provided, it
 also writes `jack-port-requirements.json` and summarizes read-only JACK readiness as `jack` in the manifest, including
-matched and missing ports for each requirement. It never uploads data automatically.
+matched and missing ports for each requirement. Add `--include-dsp-provider-plan` for DSP restore or per-edge gain
+triage; the bundle then writes `dsp-provider-plan.json` and summarizes read-only DSP provider operations as
+`dspProvider` without running provider execute mode. It never uploads data automatically.
 
 ## Published Release Smoke
 

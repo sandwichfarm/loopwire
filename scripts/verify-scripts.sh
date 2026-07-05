@@ -1684,6 +1684,14 @@ node scripts/collect-support-bundle.mjs --help | grep -F -- "--jack-ports-file F
   echo "verify-scripts: support bundle help is missing JACK readiness options" >&2
   exit 1
 }
+node scripts/collect-support-bundle.mjs --help | grep -F -- "--include-dsp-provider-plan" >/dev/null || {
+  echo "verify-scripts: support bundle help is missing DSP provider plan option" >&2
+  exit 1
+}
+node scripts/collect-support-bundle.mjs --help | grep -F -- "--dsp-provider-command COMMAND" >/dev/null || {
+  echo "verify-scripts: support bundle help is missing DSP provider command option" >&2
+  exit 1
+}
 node scripts/describe-jack-ports.mjs --help | grep -F -- "--loopwire-owned-only" >/dev/null || {
   echo "verify-scripts: JACK port description help is missing Loopwire-owned filtering" >&2
   exit 1
@@ -6243,6 +6251,9 @@ if (manifest.audio?.status !== "parsed" || !Array.isArray(manifest.audio.backend
 if (manifest.jack?.status !== "not_requested") {
   process.exit(1);
 }
+if (manifest.dspProvider?.status !== "not_requested") {
+  process.exit(1);
+}
 if (!manifest.audio.backends.some((backend) => backend.kind === "pipewire" && Array.isArray(backend.gaps))) {
   process.exit(1);
 }
@@ -6279,6 +6290,44 @@ if (!manifest.commands.some((command) => command.name === "jack-readiness" && co
 }
 ' "$support_jack_dir/support-bundle.json" || {
   echo "verify-scripts: support bundle JACK readiness summary invalid" >&2
+  exit 1
+}
+support_dsp_dir="$tmp_dir/support-bundle-dsp"
+node scripts/collect-support-bundle.mjs \
+  --output-dir "$support_dsp_dir" \
+  --profile quick \
+  --configuration "$jack_configuration" \
+  --jack-ports-file "$jack_ports_file" \
+  --include-dsp-provider-plan \
+  --dsp-frame-count 2 >/dev/null
+[ -s "$support_dsp_dir/dsp-provider-plan.json" ] || {
+  echo "verify-scripts: support bundle DSP provider plan log missing" >&2
+  exit 1
+}
+node -e '
+const fs = require("node:fs");
+const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+if (manifest.dspProvider?.status !== "parsed" || manifest.dspProvider.ok !== true) {
+  process.exit(1);
+}
+if (manifest.dspProvider.frameCount !== 2 || manifest.dspProvider.providerCommand !== "not_provided") {
+  process.exit(1);
+}
+if (manifest.dspProvider.providerCapability?.status !== "not_requested") {
+  process.exit(1);
+}
+if (!manifest.dspProvider.operations.some((item) => item.operation === "clear-output" && item.frames === 2)) {
+  process.exit(1);
+}
+const command = manifest.commands.find((item) => item.name === "dsp-provider-plan");
+if (!command || command.exitCode !== 0 || !command.command.includes("scripts/describe-dsp-provider.mjs")) {
+  process.exit(1);
+}
+if (command.command.includes("--execute")) {
+  process.exit(1);
+}
+' "$support_dsp_dir/support-bundle.json" || {
+  echo "verify-scripts: support bundle DSP provider summary invalid" >&2
   exit 1
 }
 

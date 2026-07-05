@@ -186,6 +186,16 @@ For JACK reports tied to a saved configuration export, include read-only port re
 pnpm collect:support -- --output-dir .support/jack-case --configuration exported-loopwire-config.json
 ```
 
+For DSP-provider restore or per-edge gain reports tied to a saved configuration export, include the read-only provider
+operation plan:
+
+```bash
+pnpm collect:support -- \
+  --output-dir .support/dsp-case \
+  --configuration exported-loopwire-config.json \
+  --include-dsp-provider-plan
+```
+
 Review the generated directory before sharing it. The collector redacts local user, host, home directory, runtime uid
 paths, process ids, cookies, and email-like values, but you should still remove anything private before attaching it.
 
@@ -193,6 +203,7 @@ Attach:
 
 - `support-bundle.json`.
 - `detect-audio.json`.
+- `dsp-provider-plan.json` when DSP provider plan collection was requested.
 - `ct-host-check.log`.
 - `autostart-status.log`.
 - Distro, desktop environment, session type, and audio stack.
@@ -205,3 +216,6 @@ gain/mute support, diagnostics, and known gaps. That summary is the fastest way 
 PipeWire, PulseAudio compatibility, JACK, or ALSA diagnostics-only mode without reading every raw command log first.
 When a configuration or state file is provided, the manifest also includes `jack.status` and
 `jack-port-requirements.json` with read-only JACK readiness results.
+When `--include-dsp-provider-plan` is provided, it also includes `dspProvider.status` and `dsp-provider-plan.json`
+with the read-only source/output operations Loopwire would ask a DSP provider to perform. The collector does not run
+provider execute mode.
