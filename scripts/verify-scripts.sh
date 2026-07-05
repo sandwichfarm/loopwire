@@ -323,6 +323,7 @@ release_handoff_plan="$(
     --docs-hostname docs.example.test \
     --docs-remote-prefix preview \
     --release-private-key-file /secure/loopwire-release-private.pem \
+    --vm-start-port 2700 \
     --secret-list-file release-secret-names.tsv
 )"
 release_handoff_env_plan="$(
@@ -454,6 +455,13 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | gr
   echo "verify-scripts: release handoff plan is missing local final-proof dry-run" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:status" |
+  grep -F -- "--docs-deployment-run-id 123456" |
+  grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" |
+  grep -F -- "--vm-start-port 2700" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing final release status audit" >&2
+    exit 1
+  }
 release_handoff_placeholder_plan="$(
   bash scripts/plan-final-release-handoff.sh \
     --repo sandwichfarm/loopwire \
@@ -471,7 +479,7 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
     exit 1
   }
 release_handoff_docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 7 and 9."
+release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 7, 9, and 11."
 printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "$release_handoff_docs_run_reminder" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2

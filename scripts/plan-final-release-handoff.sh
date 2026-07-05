@@ -454,10 +454,24 @@ else
   [ -z "$docs_remote_prefix" ] || local_final+=(--docs-remote-prefix "$docs_remote_prefix")
 fi
 print_command "${local_final[@]}"
+echo
+echo "11. Audit final release status after final proof completes:"
+release_status=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-head "$git_head" \
+  --public-key "$public_key" \
+  --docs-deployment-run-id "$docs_run_id" \
+  --vm-start-port "$vm_start_port" \
+  --support-matrix "$support_matrix")
+if [ -n "$env_file" ]; then
+  release_status+=(--env-file "$env_file")
+fi
+if [ -n "$secret_list_file" ]; then
+  release_status+=(--secret-list-file "$secret_list_file")
+fi
+print_command "${release_status[@]}"
 
 if [ -z "$docs_deployment_run_id" ]; then
   docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
-  docs_run_reminder+="Deploy Docs workflow run id before steps 7 and 9."
+  docs_run_reminder+="Deploy Docs workflow run id before steps 7, 9, and 11."
   echo
   echo "$docs_run_reminder"
 fi

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T22:14:10+02:00"
-last_activity: 2026-07-05 - Final release handoff now includes all-target VM host preflights
+last_updated: "2026-07-05T22:29:28+02:00"
+last_activity: 2026-07-05 - Final release handoff now ends with aggregate release status audit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - the final release handoff now prints all-target `pnpm vm:host-setup -- --all` and
-`pnpm vm:doctor -- --all` commands before VM SSH planning and evidence collection, making host virtualization
-readiness explicit before operator-run guests. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - the final release handoff now ends with `pnpm release:status`, so the operator ceremony
+finishes on the read-only aggregate audit that checks GitHub Release assets, docs deployment proof, final-proof
+workflow status, VM evidence, and support-matrix claims. Phase 12 remains gated on public GitHub Release install,
+Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Final release status audit handoff: the generated release ceremony now ends with `pnpm release:status`
+  after final-proof dispatch and local final-proof dry-run, so operators finish publication on the same read-only
+  aggregate audit that checks published release assets, docs deployment proof, final-proof workflow status, VM
+  evidence, and support-matrix claims. Focused validation passed:
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm verify:scripts`; `pnpm verify:docs`; rendered `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag
+  v0.1.0 --git-head $(git rev-parse HEAD)` output; and `git diff --check`. Full validation passed: `pnpm check`. No
+  secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or support-matrix
+  promotion was performed.
 - 2026-07-05 Final release VM host preflight handoff: the generated release ceremony now prints all-target
   `pnpm vm:host-setup -- --all` and `pnpm vm:doctor -- --all` before VM SSH plan rendering, guest collection, and VM
   evidence asset preparation, so operators prove host virtualization readiness before running guests. Focused

@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- The final release handoff now ends with `pnpm release:status` after final-proof dispatch and local final-proof
+  dry-run, so operators finish publication on the same read-only aggregate audit that checks published release assets,
+  docs deployment proof, final-proof workflow status, VM evidence, and support-matrix claims.
+- Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, rendered `pnpm release:handoff -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)` output, and `git diff --check`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, VM launch, host audio
+  mutation, or support-matrix promotion was performed.
 - The docs homepage product screenshot now depicts the current desktop Settings panel with audio backend, host apply,
   window chrome, and restore-on-boot cards, and the hero stacking keeps that screenshot visible above the fold.
 - Focused validation passed: `pnpm verify:docs`, `pnpm --filter @loopwire/docs docs:build`, and `git diff --check`.

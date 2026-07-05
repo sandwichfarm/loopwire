@@ -566,6 +566,9 @@ These notes describe source-tree progress. They are not a public release announc
   shared release tag-ref verifier, so final proof cannot silently drift away from the live tag binding gate.
 - The final release handoff now prints an exact-commit `pnpm release:agent-ready -- --require-hosted-checks` preflight
   before secret checks, tagging, workflow dispatch, VM evidence, or final proof steps.
+- The final release handoff now ends with `pnpm release:status`, so operators finish publication with the same
+  read-only aggregate audit that checks GitHub Release assets, docs deployment proof, final-proof workflow status, VM
+  evidence, and support-matrix claims.
 - The final release proof workflow now requires a docs deployment run id, downloads that run's
   `loopwire-docs-deployment` artifact, rebuilds docs from the release commit, and verifies `deployment-manifest.json`
   before accepting the live docs smoke.

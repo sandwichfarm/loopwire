@@ -439,6 +439,7 @@ assert_contains "apps/docs/docs/developer/release.md" "public key used to verify
 assert_contains "apps/docs/docs/developer/release.md" "BUNNY_PULL_ZONE_HOSTNAME"
 assert_contains "apps/docs/docs/developer/release.md" "agent-ready release automation preflight for the exact commit"
 assert_contains "apps/docs/docs/developer/release.md" "all-target VM host setup and doctor preflights"
+assert_contains "apps/docs/docs/developer/release.md" 'final `pnpm release:status` audit'
 assert_contains "apps/docs/docs/developer/release.md" "requires both canonical Linux tarballs"
 assert_contains "apps/docs/docs/developer/release.md" "missing-architecture rejection case"
 assert_contains "apps/docs/docs/developer/release.md" "tampered-asset rejection"
@@ -821,6 +822,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:launc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-launch-plan` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-runbook` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now prints `pnpm vm:host-setup -- --all`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now ends with `pnpm release:status`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence runbooks now include the final-release"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence collectors now forward"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup now supports"
