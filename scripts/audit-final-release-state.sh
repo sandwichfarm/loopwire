@@ -376,6 +376,29 @@ NODE
   echo
 }
 
+download_release_asset_or_explain() {
+  local asset="$1"
+  local label="$2"
+  local output
+
+  if ! output="$(
+    gh release download "$tag" \
+      --repo "$repo" \
+      --dir "$tmp_dir" \
+      --pattern "$asset" \
+      --clobber 2>&1
+  )"; then
+    echo "missing: $label: $asset" >&2
+    [ -z "$output" ] || printf '%s\n' "$output" >&2
+    return 1
+  fi
+
+  if [ ! -s "$tmp_dir/$asset" ]; then
+    echo "missing: $label: $asset" >&2
+    return 1
+  fi
+}
+
 check_published_vm_evidence_archive() {
   local asset="loopwire-vm-evidence-${tag}.tar.gz"
   local tmp_dir
@@ -397,21 +420,9 @@ check_published_vm_evidence_archive() {
   }
   trap cleanup_vm_archive RETURN
 
-  gh release download "$tag" \
-    --repo "$repo" \
-    --dir "$tmp_dir" \
-    --pattern SHA256SUMS \
-    --clobber >/dev/null
-  gh release download "$tag" \
-    --repo "$repo" \
-    --dir "$tmp_dir" \
-    --pattern SHA256SUMS.sig \
-    --clobber >/dev/null
-  gh release download "$tag" \
-    --repo "$repo" \
-    --dir "$tmp_dir" \
-    --pattern "$asset" \
-    --clobber >/dev/null
+  download_release_asset_or_explain "SHA256SUMS" "VM evidence archive checksum" || return 1
+  download_release_asset_or_explain "SHA256SUMS.sig" "VM evidence archive checksum signature" || return 1
+  download_release_asset_or_explain "$asset" "VM evidence archive asset" || return 1
 
   bash scripts/verify-release-asset-checksum.sh \
     --release-dir "$tmp_dir" \
@@ -474,21 +485,9 @@ check_published_release_evidence_archive() {
   }
   trap cleanup_release_archive RETURN
 
-  gh release download "$tag" \
-    --repo "$repo" \
-    --dir "$tmp_dir" \
-    --pattern SHA256SUMS \
-    --clobber >/dev/null
-  gh release download "$tag" \
-    --repo "$repo" \
-    --dir "$tmp_dir" \
-    --pattern SHA256SUMS.sig \
-    --clobber >/dev/null
-  gh release download "$tag" \
-    --repo "$repo" \
-    --dir "$tmp_dir" \
-    --pattern "$asset" \
-    --clobber >/dev/null
+  download_release_asset_or_explain "SHA256SUMS" "release evidence archive checksum" || return 1
+  download_release_asset_or_explain "SHA256SUMS.sig" "release evidence archive checksum signature" || return 1
+  download_release_asset_or_explain "$asset" "release evidence archive asset" || return 1
 
   bash scripts/verify-release-asset-checksum.sh \
     --release-dir "$tmp_dir" \

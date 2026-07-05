@@ -206,6 +206,9 @@ already been pushed and you need the handoff tied to successful hosted CI and De
 The strict final proof still requires published GitHub Release assets.
 It also still requires Bunny deployment proof, a successful final-proof workflow, and VM evidence from
 operator-controlled hosts.
+When the published release or one of its evidence archives is absent, `release:status` stops that archive check at the
+download failure and prints the missing asset plus the underlying `gh release download` detail, rather than cascading
+into checksum, extraction, or manifest errors for files that were never downloaded.
 
 The handoff prints the agent-ready release automation preflight for the exact commit, the required secret check, strict
 release readiness command, reviewed annotated tag command, exact tag push ref, Release workflow dispatch, Deploy Docs

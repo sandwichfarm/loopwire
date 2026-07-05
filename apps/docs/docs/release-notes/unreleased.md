@@ -573,6 +573,8 @@ These notes describe source-tree progress. They are not a public release announc
   `pnpm release:status` rejects commit-scoped final-proof runs whose title does not match the selected release tag.
 - The final release handoff now prints that expected Final Release Proof run name immediately after the dispatch
   command, so operators can match the workflow run that `pnpm release:status` will accept.
+- `pnpm release:status` now stops published release evidence and VM evidence archive checks at the missing download
+  failure, avoiding follow-on checksum, extraction, and manifest errors for absent release assets.
 - The final release proof workflow now requires a docs deployment run id, downloads that run's
   `loopwire-docs-deployment` artifact, rebuilds docs from the release commit, and verifies `deployment-manifest.json`
   before accepting the live docs smoke.

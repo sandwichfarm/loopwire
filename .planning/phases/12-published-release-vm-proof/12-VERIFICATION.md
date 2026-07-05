@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- `pnpm release:status` now stops published release evidence and VM evidence archive checks at the first missing
+  `gh release download` artifact, so absent public releases no longer produce follow-on checksum, extraction, layout,
+  or manifest errors for files that were never downloaded.
+- Focused validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:scripts`, and live read-only `pnpm release:status -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)`, which still blocks as expected but reports only
+  the missing release downloads in the published release archive sections. Full validation passed: `pnpm check`. No
+  secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - The final release handoff now prints the expected GitHub Actions run name immediately after the final proof dispatch
   command, so operators can visually match the workflow run that `pnpm release:status` will accept.
 - Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh

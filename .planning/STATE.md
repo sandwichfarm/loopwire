@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T22:59:27+02:00"
-last_activity: 2026-07-05 - Final release handoff now prints expected final-proof run name
+last_updated: "2026-07-05T23:15:09+02:00"
+last_activity: 2026-07-05 - Release status now stops missing release-archive checks at download failure
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - the final release handoff now prints the expected GitHub Actions run name immediately
-after the final-proof dispatch command, so operators can match the workflow run that `pnpm release:status` will accept.
-Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:status` now stops published release evidence and VM evidence archive checks
+at the first missing `gh release download` artifact, so absent public releases no longer cascade into checksum,
+extraction, or manifest errors for files that were never downloaded. Phase 12 remains gated on public GitHub Release
+install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,16 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release status missing-archive fail-fast: `scripts/audit-final-release-state.sh` now wraps release asset
+  downloads and returns immediately when a checksum, checksum signature, release evidence archive, or VM evidence
+  archive is missing. Live read-only `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  $(git rev-parse HEAD)` still blocks as expected, but its published release evidence and VM evidence archive sections
+  now report only the missing download plus `release not found`, with no `verify-release-asset-checksum`,
+  `extract-safe-tar`, `find`, archive-layout, or VM-manifest cascade. Focused validation passed:
+  `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm verify:docs`; `pnpm verify:scripts`; and the live read-only status audit above. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, or support-matrix promotion was performed.
 - 2026-07-05 Final-proof run-name handoff: the generated release ceremony now prints
   `expected GitHub Actions run name: Final Release Proof <tag> @ <git-head>` immediately after the final proof dispatch
   command, matching the run-title contract that `pnpm release:status` enforces. Focused validation passed:

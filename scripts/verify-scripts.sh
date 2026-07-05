@@ -5591,6 +5591,15 @@ grep -F "fake release download dir is not configured" \
     echo "verify-scripts: release status did not preserve release archive download failure details" >&2
     exit 1
   }
+if grep -F "verify-release-asset-checksum: missing release evidence archive" \
+    "$release_status_missing_release_archive_asset_log" >/dev/null ||
+  grep -F "extract-safe-tar: missing release evidence archive" \
+    "$release_status_missing_release_archive_asset_log" >/dev/null ||
+  grep -F "release evidence archive must contain release-evidence.json" \
+    "$release_status_missing_release_archive_asset_log" >/dev/null; then
+  echo "verify-scripts: release status cascaded after a missing release evidence archive download" >&2
+  exit 1
+fi
 grep -F "ok: release tag ref" "$release_status_missing_release_archive_asset_log" >/dev/null || {
   echo "verify-scripts: release status did not verify the release tag ref before release archive download" >&2
   exit 1
@@ -5663,6 +5672,15 @@ grep -F "fake release asset not found: loopwire-vm-evidence-v0.1.0.tar.gz" \
     echo "verify-scripts: release status did not preserve VM archive download failure details" >&2
     exit 1
   }
+if grep -F "verify-release-asset-checksum: missing VM evidence archive" \
+    "$release_status_missing_vm_archive_asset_log" >/dev/null ||
+  grep -F "extract-safe-tar: missing VM evidence archive" \
+    "$release_status_missing_vm_archive_asset_log" >/dev/null ||
+  grep -F "verify-vm-evidence-archive-manifest: missing manifest" \
+    "$release_status_missing_vm_archive_asset_log" >/dev/null; then
+  echo "verify-scripts: release status cascaded after a missing VM evidence archive download" >&2
+  exit 1
+fi
 release_status_empty_workflow_log="$tmp_dir/release-status-empty-workflow.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=empty \

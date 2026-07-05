@@ -441,6 +441,8 @@ assert_contains "apps/docs/docs/developer/release.md" "agent-ready release autom
 assert_contains "apps/docs/docs/developer/release.md" "all-target VM host setup and doctor preflights"
 assert_contains "apps/docs/docs/developer/release.md" 'final `pnpm release:status` audit'
 assert_contains "apps/docs/docs/developer/release.md" "expected GitHub Actions run name"
+assert_contains "apps/docs/docs/developer/release.md" "rather than cascading"
+assert_contains "apps/docs/docs/developer/release.md" "into checksum, extraction, or manifest errors"
 assert_contains "apps/docs/docs/developer/release.md" "requires both canonical Linux tarballs"
 assert_contains "apps/docs/docs/developer/release.md" "missing-architecture rejection case"
 assert_contains "apps/docs/docs/developer/release.md" "tampered-asset rejection"
@@ -827,6 +829,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now ends with `pnpm release:status`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final Release Proof workflow runs now include the audited tag"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints that expected Final Release Proof run name"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "avoiding follow-on checksum, extraction, and manifest errors"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence runbooks now include the final-release"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence collectors now forward"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM host setup now supports"
