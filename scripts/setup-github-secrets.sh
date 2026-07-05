@@ -124,6 +124,30 @@ reject_unsafe_value() {
   esac
 }
 
+validate_local_file_path() {
+  value="$1"
+  label="$2"
+  normalized="${value#./}"
+
+  reject_unsafe_value "$value" "$label"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink"
+  [ -f "$value" ] || fail "$label must be a file"
+}
+
 validate_storage_zone() {
   reject_unsafe_value "$storage_zone" "storage zone"
 
@@ -239,7 +263,7 @@ load_env_file() {
   local key
   local value
 
-  [ -f "$env_file" ] || fail "env file does not exist: $env_file"
+  validate_local_file_path "$env_file" "env file"
 
   while IFS= read -r line || [ -n "$line" ]; do
     line_no=$((line_no + 1))
@@ -450,14 +474,12 @@ validate_requested_secret_set() {
     fi
   fi
 
-  if [ -n "$release_private_key_file" ] && [ ! -f "$release_private_key_file" ]; then
-    echo "Release private key file does not exist: $release_private_key_file" >&2
-    exit 1
+  if [ -n "$release_private_key_file" ]; then
+    validate_local_file_path "$release_private_key_file" "release private key file"
   fi
 
-  if [ -n "$release_public_key_file" ] && [ ! -f "$release_public_key_file" ]; then
-    echo "Release public key file does not exist: $release_public_key_file" >&2
-    exit 1
+  if [ -n "$release_public_key_file" ]; then
+    validate_local_file_path "$release_public_key_file" "release public key file"
   fi
 
   if [ -n "$release_private_key_file" ]; then
@@ -612,6 +634,10 @@ fi
 if [ -n "$secret_list_file" ] && [ "$check_mode" != "true" ]; then
   echo "--secret-list-file requires --check." >&2
   exit 2
+fi
+
+if [ -n "$secret_list_file" ]; then
+  validate_local_file_path "$secret_list_file" "secret-list file"
 fi
 
 if [ -n "$env_file" ]; then

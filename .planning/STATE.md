@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T06:36:06+02:00"
-last_activity: 2026-07-05 - Release status local env and secret artifacts fail closed
+last_updated: "2026-07-05T10:07:07+02:00"
+last_activity: 2026-07-05 - GitHub secret setup local artifacts fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - release status now rejects unsafe local env-file, secret-list, docs, VM evidence, and
-support-matrix paths before auditing final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public
-GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - GitHub secret setup now rejects unsafe local env-file, secret-list, release private-key,
+and release public-key paths before reading release ceremony artifacts. Phase 12 remains gated on configuring Bunny
+secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,17 @@ GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 GitHub secret setup local artifact path hardening: `scripts/setup-github-secrets.sh` now validates local
+  `--env-file`, `--secret-list-file`, `--release-private-key-file`, and `--release-public-key-file` paths before reading
+  release ceremony artifacts. Absolute and relative operator files remain valid, but root/home-expanded paths, parent
+  traversal, URL syntax, glob metacharacters, symlinks, and existing non-file paths fail closed before env loading,
+  secret-list replay, release-key parsing, dry-run output, or GitHub secret writes. `scripts/verify-scripts.sh` now
+  rejects symlinked env/private-key files plus directory-valued secret-list/public-key paths. Release docs, unreleased
+  notes, and `scripts/verify-docs.sh` document and assert the setup-secret file boundary. Focused validation passed:
+  generated-key env-file dry-run reached the release private-key secret plan; symlink env-file, directory secret-list,
+  symlink private-key, and directory public-key probes failed with expected errors; `bash -n
+  scripts/setup-github-secrets.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; `git diff --check`;
+  `pnpm verify:scripts`; and `bash scripts/verify-docs.sh`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Release status env/secret artifact path hardening: `scripts/audit-final-release-state.sh` now validates
   optional `--env-file` and `--secret-list-file` as local file paths before running final release status gates. Absolute
   and relative operator files remain valid, but root/home-expanded paths, parent traversal, URL syntax, glob

@@ -626,7 +626,11 @@ assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifes
 assert_contains "apps/docs/docs/developer/release.md" "--docs-dist"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/developer/release.md" "<docs-deployment-run-id>"
+assert_contains "apps/docs/docs/developer/release.md" 'Local file inputs for `--env-file`, `--secret-list-file`'
+assert_contains "apps/docs/docs/developer/release.md" '`--release-private-key-file`, and `--release-public-key-file`'
 assert_contains "apps/docs/docs/developer/release.md" "fails before any secret write if the pair"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "release private-key, and release"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "before reading those artifacts"
 assert_contains "apps/docs/docs/developer/release.md" "contains the project release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
 assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'

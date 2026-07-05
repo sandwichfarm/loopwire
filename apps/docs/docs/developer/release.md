@@ -514,11 +514,13 @@ uncommitted file with simple `KEY=VALUE` lines for `BUNNY_STORAGE_ZONE`, `BUNNY_
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`; command-line flags override env-file
 values. `.env.example` is the committed key-name template; copy it to an uncommitted path such as
 `/secure/loopwire-release-secrets.env` before filling values. Use file paths for release keys instead of storing raw
-private-key material in the env file. When
-`--release-public-key-file` is supplied, the helper parses the private key, parses the public key, derives the public
-key from the private key, and fails before any secret write if the pair does not match. If the GitHub CLI cannot read
-repository secret names, `--check` and the release readiness preflight fail with the underlying `gh secret list` error
-instead of reporting those secrets as missing.
+private-key material in the env file. Local file inputs for `--env-file`, `--secret-list-file`,
+`--release-private-key-file`, and `--release-public-key-file` reject traversal, root/home-expanded paths, URL syntax,
+glob metacharacters, symlinks, and non-file paths before the helper reads them. When `--release-public-key-file` is
+supplied, the helper parses the private key, parses the public key, derives the public key from the private key, and
+fails before any secret write if the pair does not match. If the GitHub CLI cannot read repository secret names,
+`--check` and the release readiness preflight fail with the underlying `gh secret list` error instead of reporting
+those secrets as missing.
 When required secrets are missing, `--check` prints next-step commands with placeholders rather than values. If
 only Bunny.net storage or live-docs secrets are missing, it prints only the Bunny setup command; if only
 `LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. `BUNNY_PULL_ZONE_HOSTNAME` is

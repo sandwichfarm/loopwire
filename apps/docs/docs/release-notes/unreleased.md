@@ -397,6 +397,8 @@ These notes describe source-tree progress. They are not a public release announc
   an operator intentionally audits a specific workflow run id.
 - `scripts/setup-github-secrets.sh` now accepts `--env-file` for local uncommitted Bunny.net values and release key
   file paths, with command-line flags taking precedence and dry-run output still hiding secret values.
+- `scripts/setup-github-secrets.sh` now rejects unsafe local env-file, secret-list, release private-key, and release
+  public-key paths before reading those artifacts during the release secret ceremony.
 - Missing Bunny secret checks now print the `--env-file <secret-env-file>` setup route alongside direct placeholder
   flags, making the safer local-file ceremony visible at the exact release blocker.
 - `.env.example` now mirrors every `--env-file` key accepted by the GitHub secret helper, so operators have a checked

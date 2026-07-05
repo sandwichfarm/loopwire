@@ -3814,6 +3814,34 @@ if bash scripts/setup-github-secrets.sh \
   echo "verify-scripts: GitHub secret helper accepted an unsupported env-file key" >&2
   exit 1
 fi
+github_secret_env_symlink="$tmp_dir/setup-github-secrets-env-symlink"
+ln -s "$github_secret_env_file" "$github_secret_env_symlink"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --env-file "$github_secret_env_symlink" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a symlink env file" >&2
+  exit 1
+fi
+github_secret_private_key_symlink="$tmp_dir/setup-github-secrets-private-key-symlink"
+ln -s "$tmp_secret_file" "$github_secret_private_key_symlink"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --release-private-key-file "$github_secret_private_key_symlink" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a symlink release private key" >&2
+  exit 1
+fi
+github_secret_public_key_dir="$tmp_dir/setup-github-secrets-public-key-dir"
+mkdir -p "$github_secret_public_key_dir"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --release-private-key-file "$tmp_secret_file" \
+  --release-public-key-file "$github_secret_public_key_dir" \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a directory release public key" >&2
+  exit 1
+fi
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --storage-zone "loopwire/docs" \
@@ -4852,6 +4880,15 @@ if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
   --secret-list-file "$secret_list_all_final" >/dev/null 2>&1; then
   echo "verify-scripts: GitHub secret helper accepted a secret-list artifact outside check mode" >&2
+  exit 1
+fi
+github_secret_secret_list_dir="$tmp_dir/setup-github-secrets-secret-list-dir"
+mkdir -p "$github_secret_secret_list_dir"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --check \
+  --secret-list-file "$github_secret_secret_list_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a directory secret-list artifact" >&2
   exit 1
 fi
 secret_check_ok="$(
