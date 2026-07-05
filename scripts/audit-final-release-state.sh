@@ -553,6 +553,12 @@ run_release_probe \
   gh release view "$tag" --repo "$repo" \
     --json tagName,url,targetCommitish,isDraft,isPrerelease,assets || failed=1
 
+run_workflow_probe \
+  "latest CI workflow run" \
+  "$expected_git_head" \
+  gh run list --repo "$repo" --workflow ci.yml --limit 1 \
+    --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
+
 docs_workflow_label="latest Deploy Docs workflow run"
 docs_workflow_probe=(gh run list --repo "$repo" --workflow deploy-docs.yml --limit 1 \
   --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)

@@ -209,6 +209,8 @@ These notes describe source-tree progress. They are not a public release announc
   when the docs deployment manifest is missing.
 - `pnpm release:status --env-file` now keeps the default release public-key path implicit in its embedded VM evidence
   asset-prep handoff, while still rendering `--public-key` when the operator supplies that override explicitly.
+- `pnpm release:status` now requires the latest CI workflow run for the expected commit before final release status can
+  pass, keeping release handoff tied to the same hosted `pnpm check` gate used on pushes.
 - New `pnpm release:status` audits the remaining final proof surfaces from one read-only command and exits nonzero
   until GitHub secrets, a non-draft/non-prerelease release with required assets, completed successful workflow runs for
   the expected commit, a parseable release signing public key, non-dry-run docs deployment manifest proof, VM evidence,

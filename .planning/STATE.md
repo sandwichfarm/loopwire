@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T02:48:54+02:00"
-last_activity: 2026-07-05 - Active configuration edits disarm live apply
+last_updated: "2026-07-05T03:07:43+02:00"
+last_activity: 2026-07-05 - Final release status requires CI proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - active configuration edits now save through a shared helper that disarms live apply, returns
-the session to preview mode, and tells the user to re-arm before verifying edited routes, endpoints, host bindings, or
-metadata on the host. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny
-deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - final release status now requires the expected commit's latest CI workflow run to be
+completed successfully before release readiness can pass, alongside docs deployment, final proof, release assets, and VM
+evidence. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof,
+and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,15 @@ deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Final release CI status gate: `scripts/audit-final-release-state.sh` now verifies the latest `ci.yml`
+  workflow run for the expected release commit before accepting final release readiness. The fake GitHub verifier can
+  fail CI independently from other workflow probes, and docs now state that `release:status` binds final handoff to the
+  hosted `pnpm check` gate used on pushes. Focused validation passed: `bash -n scripts/audit-final-release-state.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `bash scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `git diff --check`, and live `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  57c8307d2c528b62d11aabc45d89978fcd4aefa8`. The live status now accepts CI run `28724899954` for the expected
+  commit while still blocking on missing Bunny secrets, absent GitHub Release, missing docs deployment artifact, absent
+  Final Release Proof run, and missing published-release-bound VM evidence. Full local validation passed: `pnpm check`.
 - 2026-07-05 Live edit disarm UX: active configuration edits now use `saveConfigurationEdit`, which persists the state
   edit and disarms `Live armed` back to preview when the user changes sources, outputs, monitors, hidden monitor state,
   host bindings, routes, route gain/mute, reset-gain fixes, names, or descriptions. Runtime copy tells the user to

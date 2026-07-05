@@ -3748,7 +3748,27 @@ NODE
     exit 0
     ;;
   "run list")
-    case "${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}" in
+    workflow_name=""
+    shift 2
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --repo | --workflow | --limit | --json)
+          if [ "$1" = "--workflow" ]; then
+            workflow_name="${2:?missing fake workflow name}"
+          fi
+          shift 2
+          ;;
+        *)
+          echo "unexpected fake gh run list arg: $1" >&2
+          exit 64
+          ;;
+      esac
+    done
+    run_mode="${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}"
+    if [ "$workflow_name" = "ci.yml" ] && [ -n "${LOOPWIRE_FAKE_GH_CI_RUN_MODE:-}" ]; then
+      run_mode="$LOOPWIRE_FAKE_GH_CI_RUN_MODE"
+    fi
+    case "$run_mode" in
       empty)
         printf '%s\n' '[]'
         ;;
@@ -3798,7 +3818,7 @@ JSON
 JSON
         ;;
       *)
-        echo "unexpected LOOPWIRE_FAKE_GH_RUN_MODE: ${LOOPWIRE_FAKE_GH_RUN_MODE}" >&2
+        echo "unexpected fake gh run mode: ${run_mode}" >&2
         exit 64
         ;;
     esac
@@ -4472,6 +4492,24 @@ grep -F "latest Deploy Docs workflow run latest completed run did not succeed: f
     echo "verify-scripts: release status did not block a failed workflow run" >&2
     exit 1
   }
+release_status_failed_ci_log="$tmp_dir/release-status-failed-ci.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_CI_RUN_MODE=failed \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --secret-list-file "$secret_list_all_final" >"$release_status_failed_ci_log" 2>&1; then
+  echo "verify-scripts: release status accepted a failed CI workflow run" >&2
+  exit 1
+fi
+grep -F "latest CI workflow run latest completed run did not succeed: failure" \
+  "$release_status_failed_ci_log" >/dev/null || {
+    echo "verify-scripts: release status did not block a failed CI workflow run" >&2
+    exit 1
+  }
 release_status_stale_workflow_log="$tmp_dir/release-status-stale-workflow.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \
@@ -4506,6 +4544,10 @@ grep -F "latest run verified: databaseId=123456 headSha=0123456789abcdef01234567
     echo "verify-scripts: release status did not accept matching workflow SHA evidence" >&2
     exit 1
   }
+grep -F "==> latest CI workflow run" "$release_status_matching_workflow_log" >/dev/null || {
+  echo "verify-scripts: release status did not audit the latest CI workflow run" >&2
+  exit 1
+}
 secret_artifact_missing_bunny_log="$tmp_dir/setup-github-secrets-artifact-missing-bunny.log"
 if bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \

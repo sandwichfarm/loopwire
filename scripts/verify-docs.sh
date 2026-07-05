@@ -341,7 +341,7 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:final-release
 assert_contains "apps/docs/docs/developer/release.md" "--public-key packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" '--git-head "$(git rev-parse HEAD)"'
 assert_contains "apps/docs/docs/developer/release.md" "--support-matrix apps/docs/docs/guide/support-matrix.md"
-assert_contains "apps/docs/docs/developer/release.md" "installed-release smoke required for \`Verified\` rows"
+assert_contains "apps/docs/docs/developer/release.md" 'installed-release smoke required for `Verified` rows'
 assert_contains "apps/docs/docs/developer/release.md" "--require-all-vm-targets"
 assert_contains "apps/docs/docs/developer/release.md" "--require-no-release-blockers"
 assert_contains "apps/docs/docs/developer/release.md" "--require-clean-git"
@@ -437,7 +437,7 @@ assert_contains "apps/docs/docs/developer/release.md" "loopwire-docs-deployment"
 assert_contains "apps/docs/docs/developer/release.md" "requires a clean git checkout"
 assert_contains "apps/docs/docs/developer/release.md" "local or remote tag resolves"
 assert_contains "apps/docs/docs/developer/release.md" "to the current checkout commit"
-assert_contains "apps/docs/docs/developer/release.md" "verifies that `pnpm verify:docs-deployment` is present"
+assert_contains "apps/docs/docs/developer/release.md" 'verifies that `pnpm verify:docs-deployment` is present'
 assert_contains "apps/docs/docs/developer/release.md" 'verifies that `pnpm verify:final-release`'
 assert_contains "apps/docs/docs/developer/release.md" '`pnpm vm:package-evidence`'
 assert_contains "apps/docs/docs/developer/release.md" '`pnpm vm:prepare-release-evidence` command plan'
@@ -588,6 +588,8 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
 assert_contains "apps/docs/docs/developer/release.md" 'If the docs deployment manifest is missing'
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"
 assert_contains "apps/docs/docs/developer/release.md" "docs deployment manifest"
+assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, Deploy Docs, and Final Release Proof"
+assert_contains "apps/docs/docs/developer/release.md" "successful CI, docs, or proof run for an older commit"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifest"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-dist"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-docs-deployment"
@@ -597,6 +599,8 @@ assert_contains "apps/docs/docs/developer/release.md" "contains the project rele
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
 assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "latest CI workflow run for the expected commit"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'same hosted `pnpm check` gate'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "no longer gets release-key reset guidance"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now prints no-value next steps"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
@@ -696,7 +700,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe absolute or
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now fails if the public docs installer drifts"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "opensuse-kde-pipewire"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu target"
-assert_contains "apps/docs/docs/release-notes/unreleased.md" "CRC-corrupt \`screenshot.png\` placeholders"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `screenshot.png` placeholders'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Nix flake"
