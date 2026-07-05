@@ -51,6 +51,8 @@ Options:
 
 The script prints commands only. It does not set secrets, create tags, dispatch workflows, upload assets, or mutate host
 audio. Missing docs deployment run id is rendered as a placeholder because it is only known after Deploy Docs completes.
+Operator-only activities such as filling secrets, dispatching workflows, running VM guests, and uploading release
+evidence are intentionally deferred until after the repository is agent-ready.
 The env file accepts the same keys as scripts/setup-github-secrets.sh --env-file, but this handoff only consumes
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE, LOOPWIRE_RELEASE_PUBLIC_KEY_FILE, BUNNY_PULL_ZONE_HOSTNAME, and BUNNY_REMOTE_PREFIX.
 USAGE
@@ -352,6 +354,15 @@ vm_evidence_asset="${vm_evidence_asset:-loopwire-vm-evidence-${tag}.tar.gz}"
 
 echo "Final release handoff plan for ${repo}@${tag}"
 echo
+echo "Operator-deferred after agent delivery:"
+echo "- Fill the local release secret env file and set GitHub secrets; do not commit secret values."
+echo "- Create or push the release tag only after strict readiness passes."
+echo "- Dispatch release/docs/final-proof workflows from protected GitHub surfaces."
+echo "- Run VM guests and upload signed evidence from operator-controlled hosts."
+echo
+echo "Create the no-value secret env template when needed:"
+print_command bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env
+echo
 echo "1. Verify required GitHub secrets are ready:"
 secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
 if [ -n "$env_file" ]; then
@@ -436,8 +447,8 @@ print_command "${local_final[@]}"
 
 if [ -z "$docs_deployment_run_id" ]; then
   echo
-  echo "blocker: replace <docs-deployment-run-id> with the successful Deploy Docs workflow run id before steps 5 and 7."
+  echo "operator-deferred: replace <docs-deployment-run-id> with the successful Deploy Docs workflow run id before steps 5 and 7."
 fi
 if [ "$release_private_key_file" = "<release-private-key-file>" ]; then
-  echo "blocker: pass --release-private-key-file before preparing signed VM evidence release assets."
+  echo "operator-deferred: pass --release-private-key-file or --env-file before preparing signed VM evidence release assets."
 fi

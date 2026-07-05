@@ -577,6 +577,9 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-doc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'names-only `--secret-list-file` artifact'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--write-env-template <secret-env-file>`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:handoff`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Operator-deferred after agent delivery"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "--write-env-template /secure/loopwire-release-secrets.env"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "operator-only secret entry"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects unsafe docs dist'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact type"
@@ -624,6 +627,9 @@ assert_contains "apps/docs/docs/developer/release.md" 'Custom `--output` paths m
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
+assert_contains "apps/docs/docs/developer/release.md" "Operator-deferred after agent delivery"
+assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
+assert_contains "apps/docs/docs/developer/release.md" 'print an `operator-deferred` reminder'
 assert_contains "apps/docs/docs/developer/release.md" 'Custom `--vm-ssh-plan` and `--vm-runbook` outputs'
 assert_contains "apps/docs/docs/developer/release.md" 'validates custom `--release-dir` values'
 assert_contains "apps/docs/docs/developer/release.md" 'regenerate `SHA256SUMS` or `SHA256SUMS.sig`'

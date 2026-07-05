@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T12:35:09+02:00"
-last_activity: 2026-07-05 - Deploy Docs skip notice prints secret recovery commands
+last_updated: "2026-07-05T12:48:15+02:00"
+last_activity: 2026-07-05 - Release handoff separates operator-deferred actions
 progress:
   total_phases: 5
   completed_phases: 4
@@ -25,13 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Position
 
 Phase: 12 Published Release and VM Proof
-Plan: Release proof remains gated on real release, secrets, and VM evidence
+Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - The hosted Deploy Docs missing-secret skip notice now prints the safe
-`--write-env-template /secure/loopwire-release-secrets.env` and
-`--env-file /secure/loopwire-release-secrets.env` recovery commands plus the `BUNNY_PULL_ZONE_HOSTNAME` final-proof
-reminder. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof,
-and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:handoff` now starts with an `Operator-deferred after agent delivery`
+section, prints the no-value secret env-template command, and labels docs-run/private-key placeholders as
+operator-deferred rather than generic blockers. Phase 12 remains gated on public GitHub Release install, Bunny
+deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,16 @@ and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Operator-deferred release handoff: `scripts/plan-final-release-handoff.sh` now separates repository-ready
+  automation from later operator-only work by printing an `Operator-deferred after agent delivery` section for secret
+  entry, protected workflow dispatch, VM execution, and signed evidence upload. The handoff also prints the safe
+  no-value `scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env` command and
+  labels placeholder docs-run/private-key follow-ups as `operator-deferred` reminders. Release docs, unreleased notes,
+  `scripts/verify-scripts.sh`, and `scripts/verify-docs.sh` assert this wording and continue checking that Bunny access
+  keys and storage zones do not leak from handoff env files. Focused validation passed: `bash -n
+  scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD) --public-key
+  packaging/release-signing-public.pem`; `bash scripts/verify-docs.sh`; and `bash scripts/verify-scripts.sh`.
 - 2026-07-05 Hosted Deploy Docs secret recovery notice: `.github/workflows/deploy-docs.yml` now keeps unrelated docs CI
   green when Bunny storage secrets are absent while printing no-value local recovery commands for
   `scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env` and

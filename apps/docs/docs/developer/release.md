@@ -187,9 +187,17 @@ pnpm release:handoff -- \
 The handoff prints the required secret check, strict release readiness command, Release workflow dispatch, Deploy Docs
 workflow dispatch, docs deployment proof download, VM SSH plan/runbook/evidence commands, VM evidence asset preparation
 command, final proof workflow dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch
-workflows, upload VM evidence, or mutate host audio. If the Deploy Docs run id is not known yet, the docs proof and
-final proof commands include `<docs-deployment-run-id>` and print a blocker reminder. `--env-file` accepts the same
-local file used by `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
+workflows, upload VM evidence, or mutate host audio. It starts with an `Operator-deferred after agent delivery` section
+that names secret filling, protected workflow dispatch, VM guest execution, and signed evidence upload as operator-only
+activities. It also prints the safe no-value template command:
+
+```bash
+bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env
+```
+
+If the Deploy Docs run id is not known yet, the docs proof and final proof commands include
+`<docs-deployment-run-id>` and print an `operator-deferred` reminder. `--env-file` accepts the same local file used by
+`scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. Bunny storage credentials
 are ignored by the handoff so access keys never appear in rendered release commands. When `--env-file` is present, the
 rendered secret-check, docs proof fetch, and VM evidence asset-prep commands keep using that env file instead of

@@ -232,6 +232,10 @@ printf '%s\n' "$release_handoff_help" | grep -F -- "--env-file FILE" >/dev/null 
   echo "verify-scripts: release handoff help is missing env-file support" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_help" | grep -F -- "Operator-only activities" >/dev/null || {
+  echo "verify-scripts: release handoff help is missing operator-deferred wording" >&2
+  exit 1
+}
 release_handoff_env_file="$(mktemp)"
 cat >"$release_handoff_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs
@@ -276,6 +280,19 @@ printf '%s\n' "$release_handoff_plan" | grep -F "bash scripts/setup-github-secre
   echo "verify-scripts: release handoff plan is missing secret check" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "Operator-deferred after agent delivery" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing operator-deferred section" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" |
+  grep -F "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing secret env-template setup" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_plan" | grep -F "protected GitHub surfaces" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing protected workflow dispatch wording" >&2
+  exit 1
+}
 printf '%s\n' "$release_handoff_env_plan" | grep -F "bash scripts/setup-github-secrets.sh" |
   grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
     echo "verify-scripts: release handoff env-file plan did not preserve the secret setup env-file" >&2
@@ -304,6 +321,10 @@ printf '%s\n' "$release_handoff_env_plan" | grep -F "gh workflow run final-relea
   }
 if printf '%s\n' "$release_handoff_env_plan" | grep -F "env-access-key-that-must-not-print" >/dev/null; then
   echo "verify-scripts: release handoff env-file plan leaked the Bunny access key" >&2
+  exit 1
+fi
+if printf '%s\n' "$release_handoff_env_plan" | grep -F "env-loopwire-docs" >/dev/null; then
+  echo "verify-scripts: release handoff env-file plan leaked the Bunny storage zone" >&2
   exit 1
 fi
 printf '%s\n' "$release_handoff_env_override_plan" | grep -F "pnpm vm:prepare-release-evidence" |
@@ -347,6 +368,22 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | gr
   echo "verify-scripts: release handoff plan is missing local final-proof dry-run" >&2
   exit 1
 }
+release_handoff_placeholder_plan="$(
+  bash scripts/plan-final-release-handoff.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567
+)"
+printf '%s\n' "$release_handoff_placeholder_plan" |
+  grep -F "operator-deferred: replace <docs-deployment-run-id>" >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" |
+  grep -F "operator-deferred: pass --release-private-key-file or --env-file" >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing private-key operator-deferred reminder" >&2
+    exit 1
+  }
 if bash scripts/plan-final-release-handoff.sh \
   --repo https://github.com/sandwichfarm/loopwire \
   --tag v0.1.0 \
