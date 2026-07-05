@@ -156,6 +156,11 @@ jobs:
             echo "Docs deployment run id must be numeric: ${docs_run_id}" >&2
             exit 1
           fi
+          bash scripts/verify-workflow-run.sh \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-id "$docs_run_id" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --label "Deploy Docs workflow run"
           mkdir -p dist/final-proof/docs-deployment
           gh run download "$docs_run_id" \
             --repo "$GITHUB_REPOSITORY" \

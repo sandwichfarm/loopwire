@@ -142,6 +142,8 @@ assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_DOCS
 assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_DOCS_REMOTE_PREFIX"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url, docs_hostname, or BUNNY_PULL_ZONE_HOSTNAME"
 assert_contains ".github/workflows/final-release-proof.yml" "Download docs deployment manifest"
+assert_contains ".github/workflows/final-release-proof.yml" "scripts/verify-workflow-run.sh"
+assert_contains ".github/workflows/final-release-proof.yml" '--label "Deploy Docs workflow run"'
 assert_contains ".github/workflows/final-release-proof.yml" "gh run download"
 assert_contains ".github/workflows/final-release-proof.yml" "loopwire-docs-deployment"
 assert_contains ".github/workflows/final-release-proof.yml" "deployment-manifest.json"
@@ -167,6 +169,7 @@ assert_final_proof_step_has_github_token
 assert_final_proof_step_uses_published_release_inputs
 assert_contains "scripts/verify-final-release-proof.sh" "scripts/verify-release-tag-ref.sh"
 assert_contains "scripts/verify-final-release-proof.sh" "release tag ref"
+assert_contains "scripts/fetch-docs-deployment-proof.sh" "scripts/verify-workflow-run.sh"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-base-url"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-hostname"
 assert_contains ".github/workflows/final-release-proof.yml" "--docs-remote-prefix"

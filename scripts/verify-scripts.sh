@@ -31,6 +31,7 @@ bash -n \
   scripts/verify-release-readiness.sh \
   scripts/verify-published-release.sh \
   scripts/verify-release-tag-ref.sh \
+  scripts/verify-workflow-run.sh \
   scripts/verify-final-release-proof.sh \
   scripts/validate-release-asset-name.sh \
   scripts/verify-release-asset-checksum.sh \
@@ -5117,11 +5118,52 @@ echo "unexpected fake gh args: $*" >&2
 exit 64
 EOF
 chmod +x "$fake_gh_dir/gh"
+LOOPWIRE_FAKE_GH_RUN_MODE=success PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-workflow-run.sh \
+    --repo sandwichfarm/loopwire \
+    --run-id 123456 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --label "Deploy Docs workflow run" >"$tmp_dir/verify-workflow-run.log"
+grep -F "Deploy Docs workflow run verified: databaseId=123456 headSha=0123456789abcdef0123456789abcdef01234567" \
+  "$tmp_dir/verify-workflow-run.log" >/dev/null || {
+    echo "verify-scripts: workflow run verifier did not accept the matching successful run" >&2
+    exit 1
+  }
+if LOOPWIRE_FAKE_GH_RUN_MODE=failed PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-workflow-run.sh \
+    --repo sandwichfarm/loopwire \
+    --run-id 123456 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --label "Deploy Docs workflow run" >"$tmp_dir/verify-workflow-run-failed.log" 2>&1; then
+  echo "verify-scripts: workflow run verifier accepted a failed run" >&2
+  exit 1
+fi
+grep -F "Deploy Docs workflow run did not succeed: failure" \
+  "$tmp_dir/verify-workflow-run-failed.log" >/dev/null || {
+    echo "verify-scripts: workflow run verifier did not report failed run conclusion" >&2
+    exit 1
+  }
+if LOOPWIRE_FAKE_GH_RUN_MODE=success PATH="$fake_gh_dir:$PATH" \
+  bash scripts/verify-workflow-run.sh \
+    --repo sandwichfarm/loopwire \
+    --run-id 123456 \
+    --git-head ffffffffffffffffffffffffffffffffffffffff \
+    --label "Deploy Docs workflow run" >"$tmp_dir/verify-workflow-run-wrong-head.log" 2>&1; then
+  echo "verify-scripts: workflow run verifier accepted a run for the wrong commit" >&2
+  exit 1
+fi
+grep -F "not expected commit ffffffffffffffffffffffffffffffffffffffff" \
+  "$tmp_dir/verify-workflow-run-wrong-head.log" >/dev/null || {
+    echo "verify-scripts: workflow run verifier did not report headSha mismatch" >&2
+    exit 1
+  }
 fetch_docs_proof_root="dist/verify-scripts/fetch-docs-proof"
 fetch_docs_proof_dist="$fetch_docs_proof_root/docs-dist"
 fetch_docs_proof_manifest="$fetch_docs_proof_root/docs-deployment/deployment-manifest.json"
 rm -rf "$fetch_docs_proof_root"
-LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_proof_dist" PATH="$fake_gh_dir:$PATH" \
+LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_proof_dist" \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  PATH="$fake_gh_dir:$PATH" \
   bash scripts/fetch-docs-deployment-proof.sh \
     --repo sandwichfarm/loopwire \
     --run-id 123456 \
@@ -5132,6 +5174,11 @@ grep -F "Docs deployment manifest verified: $fetch_docs_proof_manifest" "$tmp_di
   echo "verify-scripts: docs deployment proof helper did not verify the fetched manifest" >&2
   exit 1
 }
+grep -F "Deploy Docs workflow run verified: databaseId=123456 headSha=0123456789abcdef0123456789abcdef01234567" \
+  "$tmp_dir/fetch-docs-proof.log" >/dev/null || {
+    echo "verify-scripts: docs deployment proof helper did not verify the selected run" >&2
+    exit 1
+  }
 grep -F "Docs deployment proof ready:" "$tmp_dir/fetch-docs-proof.log" >/dev/null || {
   echo "verify-scripts: docs deployment proof helper did not report ready proof" >&2
   exit 1
@@ -5210,7 +5257,9 @@ BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
 LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=packaging/release-signing-public.pem
 EOF
-if LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_missing_dist" LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
+if LOOPWIRE_FAKE_DOCS_DIST="$fetch_docs_missing_dist" \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
   PATH="$fake_gh_dir:$PATH" \
   bash scripts/fetch-docs-deployment-proof.sh \
     --repo sandwichfarm/loopwire \
@@ -6648,6 +6697,11 @@ grep -F "ok: final release proof workflow verifies release tag refs, docs deploy
     echo "verify-scripts: release readiness did not verify final release proof workflow wiring" >&2
     exit 1
   }
+grep -F "ok: docs deployment proof verifies selected workflow run status" \
+  "$tmp_dir/release-readiness-offline.log" >/dev/null || {
+    echo "verify-scripts: release readiness did not verify docs deployment run status proof" >&2
+    exit 1
+  }
 grep -F "ok: final release proof workflow installs Nix for package proof" \
   "$tmp_dir/release-readiness-offline.log" >/dev/null || {
     echo "verify-scripts: release readiness did not verify final release Nix setup" >&2
@@ -6674,9 +6728,11 @@ mkdir -p "$release_tag_repo/scripts" \
   "$release_tag_repo/apps/docs/docs/release-notes"
 cp scripts/verify-release-readiness.sh "$release_tag_repo/scripts/verify-release-readiness.sh"
 cp scripts/verify-docs-deployment-manifest.mjs "$release_tag_repo/scripts/verify-docs-deployment-manifest.mjs"
+cp scripts/fetch-docs-deployment-proof.sh "$release_tag_repo/scripts/fetch-docs-deployment-proof.sh"
 cp scripts/verify-vm-evidence-archive-manifest.mjs "$release_tag_repo/scripts/verify-vm-evidence-archive-manifest.mjs"
 cp scripts/verify-final-release-proof.sh "$release_tag_repo/scripts/verify-final-release-proof.sh"
 cp scripts/verify-release-tag-ref.sh "$release_tag_repo/scripts/verify-release-tag-ref.sh"
+cp scripts/verify-workflow-run.sh "$release_tag_repo/scripts/verify-workflow-run.sh"
 cp scripts/validate-release-asset-name.sh "$release_tag_repo/scripts/validate-release-asset-name.sh"
 cp scripts/verify-release-asset-checksum.sh "$release_tag_repo/scripts/verify-release-asset-checksum.sh"
 cp scripts/verify-nix-release-package.sh "$release_tag_repo/scripts/verify-nix-release-package.sh"

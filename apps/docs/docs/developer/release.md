@@ -266,10 +266,11 @@ pnpm release:fetch-docs-proof -- \
   --env-file /secure/loopwire-release-secrets.env
 ```
 
-The helper downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is
-non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`. Downloads and
-manifest checks are staged first, so a missing deployment artifact cannot leave partial docs proof in the final local
-paths. If the deployment artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the
+The helper first verifies that the selected Deploy Docs run completed successfully for the expected `--git-head`, then
+downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies that the deployment manifest is non-dry-run proof for
+the same commit, and writes the default paths consumed by `pnpm release:status`. Downloads and manifest checks are staged
+first, so a missing deployment artifact cannot leave partial docs proof in the final local paths. If the deployment
+artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the
 deploy-scope recovery command without reading or printing secret values. Custom `--docs-dist` and `--manifest`
 outputs must stay repo-relative because the helper rewrites those paths while normalizing downloaded artifacts. Those
 outputs also reject

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T01:11:46+02:00"
-last_activity: 2026-07-06 - Final release proof now requires the current checkout HEAD to match the selected git head
+last_updated: "2026-07-06T01:32:53+02:00"
+last_activity: 2026-07-06 - Final proof and docs proof fetch now verify selected Deploy Docs run status and commit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - `scripts/verify-final-release-proof.sh` now requires the current checkout `HEAD` to match
-the selected `--git-head` by default before it builds docs or reads local final-proof evidence, so published release
-assets for one commit cannot be combined with local docs, VM evidence, or support-matrix checks from another checkout.
-Synthetic-SHA rehearsals must pass `--allow-head-mismatch` explicitly. Phase 12 remains gated on public GitHub Release
-install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-06 - Final Release Proof and `pnpm release:fetch-docs-proof` now verify that the selected
+Deploy Docs run completed successfully for the expected `--git-head` before downloading or trusting docs deployment
+artifacts. This prevents a stale, failed, or wrong-commit Deploy Docs run from satisfying final proof setup. Phase 12
+remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run
+VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +85,14 @@ install, Bunny deployment proof, final proof workflow success, and operator-run 
 
 ## Verification Log
 
+- 2026-07-06 Deploy Docs run-status proof: added `scripts/verify-workflow-run.sh` and wired it into
+  `scripts/fetch-docs-deployment-proof.sh` plus `.github/workflows/final-release-proof.yml`, so selected Deploy Docs
+  run IDs must be completed, successful, and for the expected commit before docs deployment artifacts are downloaded or
+  trusted. Focused validation passed: `pnpm verify:scripts`, `pnpm verify:workflows`, `pnpm verify:docs`,
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-06 Final-proof exact-HEAD proof: `scripts/verify-final-release-proof.sh` now verifies the current checkout
   `HEAD` equals `--git-head` before final proof builds docs or reads local evidence, unless fixture rehearsal explicitly
   passes `--allow-head-mismatch`. This prevents public release proof for one commit from being mixed with local docs,

@@ -380,6 +380,7 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     grep -F -- "scripts/verify-release-asset-checksum.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/extract-safe-tar.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "scripts/verify-vm-evidence-archive-manifest.mjs" "$final_proof_workflow" >/dev/null &&
+    grep -F -- "scripts/verify-workflow-run.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "gh run download" "$final_proof_workflow" >/dev/null &&
     grep -F -- "loopwire-docs-deployment" "$final_proof_workflow" >/dev/null &&
     grep -F -- 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}' "$final_proof_workflow" \
@@ -393,6 +394,14 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     echo "ok: final release proof workflow verifies release tag refs, docs deployment, and VM evidence archives"
   else
     echo "invalid: final release proof workflow is missing release tag-ref, docs deployment, or VM evidence verification" >&2
+    failed=1
+  fi
+  if [ -s "scripts/verify-workflow-run.sh" ] &&
+    bash -n scripts/verify-workflow-run.sh &&
+    grep -F -- "scripts/verify-workflow-run.sh" scripts/fetch-docs-deployment-proof.sh >/dev/null; then
+    echo "ok: docs deployment proof verifies selected workflow run status"
+  else
+    echo "invalid: docs deployment proof does not verify selected workflow run status" >&2
     failed=1
   fi
   if grep -F -- "scripts/verify-nix-release-package.sh" scripts/verify-final-release-proof.sh >/dev/null &&

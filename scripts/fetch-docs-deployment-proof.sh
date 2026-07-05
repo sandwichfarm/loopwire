@@ -270,6 +270,12 @@ fi
 command -v gh >/dev/null 2>&1 || fail "gh is required to download workflow artifacts"
 command -v node >/dev/null 2>&1 || fail "node is required to verify deployment manifests"
 
+bash scripts/verify-workflow-run.sh \
+  --repo "$repo" \
+  --run-id "$run_id" \
+  --git-head "$git_head" \
+  --label "Deploy Docs workflow run"
+
 stage_dir="$(mktemp -d)"
 cleanup() {
   rm -rf "$stage_dir"

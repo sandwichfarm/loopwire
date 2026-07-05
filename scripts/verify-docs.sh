@@ -713,6 +713,8 @@ assert_contains "apps/docs/docs/developer/release.md" "release surface"
 assert_contains "apps/docs/docs/developer/release.md" "Other local final-proof inputs are checked"
 assert_contains "apps/docs/docs/developer/release.md" '`--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
+assert_contains "apps/docs/docs/developer/release.md" "Deploy Docs run completed successfully"
+assert_contains "apps/docs/docs/developer/release.md" 'expected `--git-head`'
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "cannot leave partial docs proof"
 assert_contains "apps/docs/docs/developer/release.md" "symlinks, and existing paths with the wrong file or directory type"

@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Final Release Proof and `pnpm release:fetch-docs-proof` now verify that the selected Deploy Docs run completed
+  successfully for the expected `--git-head` before downloading or trusting docs deployment artifacts. The reusable
+  `scripts/verify-workflow-run.sh` helper rejects incomplete, failed, or wrong-commit runs, and release-readiness,
+  workflow, docs, and script contracts now assert the wiring.
+- Focused validation passed: `pnpm verify:scripts`, `pnpm verify:workflows`, `pnpm verify:docs`,
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - Final release proof now requires the current checkout `HEAD` to equal `--git-head` before it builds docs or reads
   local evidence, unless fixture rehearsal explicitly opts into `--allow-head-mismatch`. This prevents public release
   assets for one commit from being combined with local docs, VM evidence, or support-matrix checks from another checkout.
