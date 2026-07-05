@@ -166,6 +166,8 @@ These notes describe source-tree progress. They are not a public release announc
   segmented control with explicit fallback-mode copy.
 - Desktop chrome now defaults to Auto: Loopwire prefers desktop or window-manager decorations in the desktop shell and
   shows fallback controls when decoration control is unavailable.
+- Desktop settings now groups audio backend selection, host-apply arming, window chrome, and restore-on-boot controls
+  in one operational panel instead of scattering persistent preferences across the routing toolbar.
 - Desktop sidebar start-on-boot control for XDG autostart status, enable, and disable, plus CLI helper fallback.
 - Desktop sidebar restore-on-boot control for a user-scoped systemd unit that runs packaged background restore without
   opening the GUI.

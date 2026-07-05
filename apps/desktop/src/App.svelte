@@ -278,6 +278,7 @@
   let monitorPanelOpen = false;
   let transferOpen = false;
   let diagnosticsOpen = false;
+  let settingsOpen = false;
   let routeSourceId = "";
   let routeOutputId = "";
   let startupEnabled = false;
@@ -1966,70 +1967,122 @@
             Diagnostics
           </button>
 
-          <label>
-            <span>Backend</span>
-            <select
-              value={selectedBackend}
-              aria-label="Audio backend"
-              disabled={backendSelectionBusy}
-              on:change={handleBackendChange}
-            >
-              <option value="" disabled>Choose backend</option>
-              {#each backendCandidates as candidate}
-                <option value={candidate.kind} disabled={candidate.availability !== "available"}>
-                  {candidate.displayName}
-                </option>
-              {/each}
-            </select>
-          </label>
-
-          <label class="host-apply-control">
-            <span>Host apply</span>
-            <button
-              type="button"
-              class:armed={hostApplyMode === "live"}
-              aria-pressed={hostApplyMode === "live"}
-              disabled={routingTransactionBusy || (hostApplyMode === "preview" && !liveApplyPreflight.ok)}
-              title={liveApplyPreflight.message}
-              on:click={toggleHostApplyMode}
-            >
-              {hostApplyMode === "live" ? "Live armed" : "Preview"}
-            </button>
-          </label>
-
-          <div class="chrome-control" data-mode={chromeModeSummary.tone} aria-label="Window chrome mode">
-            <span>Chrome</span>
-            <div class="segmented-control" role="group" aria-label="Choose window chrome mode">
-              <button
-                type="button"
-                class:active={chromeMode === "auto"}
-                aria-pressed={chromeMode === "auto"}
-                on:click={() => void setChromeMode("auto")}
-              >
-                Auto
-              </button>
-              <button
-                type="button"
-                class:active={chromeMode === "native"}
-                aria-pressed={chromeMode === "native"}
-                on:click={() => void setChromeMode("native")}
-              >
-                Native
-              </button>
-              <button
-                type="button"
-                class:active={chromeMode === "custom"}
-                aria-pressed={chromeMode === "custom"}
-                on:click={() => void setChromeMode("custom")}
-              >
-                Fallback
-              </button>
-            </div>
-            <strong>{chromeModeSummary.title}</strong>
-            <small>{chromeModeSummary.message}</small>
-          </div>
+          <button
+            type="button"
+            class="source-button secondary"
+            aria-expanded={settingsOpen}
+            aria-controls="settings-panel"
+            on:click={() => (settingsOpen = !settingsOpen)}
+          >
+            Settings
+          </button>
         </div>
       </header>
+
+      {#if settingsOpen}
+        <section id="settings-panel" class="settings-panel" aria-label="Settings">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Settings</p>
+              <h3>Audio and startup behavior</h3>
+            </div>
+            <span>{backendSelectionSummary}</span>
+          </div>
+
+          <div class="settings-grid">
+            <article class="settings-card" data-mode={backendDecision.mode}>
+              <div>
+                <span>Audio backend</span>
+                <strong>{selectedBackendName}</strong>
+              </div>
+              <label>
+                <span>Selected backend</span>
+                <select
+                  value={selectedBackend}
+                  aria-label="Settings audio backend"
+                  disabled={backendSelectionBusy}
+                  on:change={handleBackendChange}
+                >
+                  <option value="" disabled>Choose backend</option>
+                  {#each backendCandidates as candidate}
+                    <option value={candidate.kind} disabled={candidate.availability !== "available"}>
+                      {candidate.displayName}
+                    </option>
+                  {/each}
+                </select>
+              </label>
+              <small>{backendChoiceCallout.action}</small>
+            </article>
+
+            <article class="settings-card" data-mode={liveApplyPreflight.mode}>
+              <div>
+                <span>Host apply</span>
+                <strong>{hostApplyMode === "live" ? "Live armed" : "Preview"}</strong>
+              </div>
+              <button
+                type="button"
+                class:armed={hostApplyMode === "live"}
+                aria-pressed={hostApplyMode === "live"}
+                disabled={routingTransactionBusy || (hostApplyMode === "preview" && !liveApplyPreflight.ok)}
+                title={liveApplyPreflight.message}
+                on:click={toggleHostApplyMode}
+              >
+                {hostApplyMode === "live" ? "Return to preview" : "Arm live apply"}
+              </button>
+              <small>{liveApplyPreflight.message}</small>
+            </article>
+
+            <article class="settings-card" data-mode={chromeModeSummary.tone}>
+              <div>
+                <span>Window chrome</span>
+                <strong>{chromeModeSummary.title}</strong>
+              </div>
+              <div class="segmented-control" role="group" aria-label="Choose window chrome mode">
+                <button
+                  type="button"
+                  class:active={chromeMode === "auto"}
+                  aria-pressed={chromeMode === "auto"}
+                  on:click={() => void setChromeMode("auto")}
+                >
+                  Auto
+                </button>
+                <button
+                  type="button"
+                  class:active={chromeMode === "native"}
+                  aria-pressed={chromeMode === "native"}
+                  on:click={() => void setChromeMode("native")}
+                >
+                  Native
+                </button>
+                <button
+                  type="button"
+                  class:active={chromeMode === "custom"}
+                  aria-pressed={chromeMode === "custom"}
+                  on:click={() => void setChromeMode("custom")}
+                >
+                  Fallback
+                </button>
+              </div>
+              <small>{chromeModeSummary.message}</small>
+            </article>
+
+            <article class="settings-card" data-mode={startupRestoreSummary.tone}>
+              <div>
+                <span>Restore on boot</span>
+                <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable)}</strong>
+              </div>
+              <small>{startupRestoreSummary.message}</small>
+              <button
+                type="button"
+                disabled={backgroundStartupActionDisabled}
+                on:click={() => void setBackgroundStartupEnabled(!backgroundStartupEnabled)}
+              >
+                {backgroundStartupEnabled ? "Disable restore" : "Enable restore"}
+              </button>
+            </article>
+          </div>
+        </section>
+      {/if}
 
       <section
         class="backend-choice-panel"
@@ -2848,34 +2901,94 @@
     gap: 10px;
   }
 
-  .controls label {
+  .settings-panel {
     display: grid;
-    gap: 6px;
+    gap: 14px;
+    padding: 14px;
     color: #d8d0bf;
-    font-size: 0.78rem;
-    font-weight: 700;
+    background: #171817;
+    border: 1px solid rgba(244, 239, 226, 0.13);
+    border-left: 4px solid #f7b74a;
+    border-radius: 8px;
   }
 
-  .chrome-control {
+  .settings-panel .section-heading > span {
+    max-width: 48ch;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  .settings-grid {
     display: grid;
-    gap: 6px;
-    max-width: 260px;
-    color: #d8d0bf;
-    font-size: 0.78rem;
-    font-weight: 700;
+    grid-template-columns: repeat(4, minmax(170px, 1fr));
+    gap: 10px;
   }
 
-  .chrome-control > span {
-    color: #d8d0bf;
+  .settings-card {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    min-height: 176px;
+    padding: 12px;
+    background: #20201d;
+    border: 1px solid rgba(244, 239, 226, 0.13);
+    border-left: 4px solid #46d6c8;
+    border-radius: 8px;
   }
 
-  .chrome-control strong {
+  .settings-card[data-mode="prompt"],
+  .settings-card[data-mode="setup"],
+  .settings-card[data-mode="preview"] {
+    border-left-color: #f7b74a;
+  }
+
+  .settings-card[data-mode="blocked"],
+  .settings-card[data-mode="failed"] {
+    border-left-color: #eb532f;
+  }
+
+  .settings-card > div:first-child,
+  .settings-card label {
+    display: grid;
+    gap: 5px;
+  }
+
+  .settings-card span {
+    color: #46d6c8;
+    font-size: 0.74rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .settings-card strong {
     color: #f4efe2;
-    font-size: 0.82rem;
+    font-size: 0.95rem;
   }
 
-  .chrome-control small {
+  .settings-card small {
+    overflow-wrap: anywhere;
     line-height: 1.35;
+  }
+
+  .settings-card button {
+    min-height: 36px;
+    padding: 0 12px;
+    color: #f4efe2;
+    font-weight: 800;
+    background: #24211c;
+    border: 1px solid rgba(244, 239, 226, 0.16);
+    border-radius: 6px;
+  }
+
+  .settings-card button.armed {
+    color: #101113;
+    background: #f7b74a;
+    border-color: #f7b74a;
+  }
+
+  .settings-card .segmented-control {
+    width: 100%;
   }
 
   .segmented-control {
@@ -2917,22 +3030,6 @@
     color: #f4efe2;
     background: #24211c;
     border: 1px solid rgba(244, 239, 226, 0.16);
-  }
-
-  .host-apply-control button {
-    min-height: 36px;
-    padding: 0 12px;
-    color: #f4efe2;
-    font-weight: 800;
-    background: #24211c;
-    border: 1px solid rgba(244, 239, 226, 0.16);
-    border-radius: 6px;
-  }
-
-  .host-apply-control button.armed {
-    color: #101113;
-    background: #f7b74a;
-    border-color: #f7b74a;
   }
 
   input,
@@ -3890,14 +3987,20 @@
       flex-direction: column;
     }
 
-    .backend-choice-panel .section-heading {
+    .backend-choice-panel .section-heading,
+    .settings-panel .section-heading {
       align-items: flex-start;
       flex-direction: column;
     }
 
-    .backend-choice-panel .section-heading > span {
+    .backend-choice-panel .section-heading > span,
+    .settings-panel .section-heading > span {
       max-width: none;
       text-align: left;
+    }
+
+    .settings-grid {
+      grid-template-columns: 1fr;
     }
 
     .backend-choice-callout {

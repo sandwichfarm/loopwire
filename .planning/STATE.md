@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T17:53:57+02:00"
-last_activity: 2026-07-05 - Desktop chrome defaults to auto system/fallback selection
+last_updated: "2026-07-05T18:14:35+02:00"
+last_activity: 2026-07-05 - Desktop settings groups audio backend, chrome, host apply, and restore controls
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - desktop chrome now defaults to Auto, resolving to desktop/window-manager chrome in the
-Tauri shell and Loopwire fallback controls where decoration control is unavailable. Phase 12 remains gated on public
-GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - desktop Settings now groups audio backend selection, host-apply arming, window chrome, and
+restore-on-boot controls in one operational panel. Phase 12 remains gated on public GitHub Release install, Bunny
+deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,15 @@ GitHub Release install, Bunny deployment proof, final proof workflow success, an
 
 ## Verification Log
 
+- 2026-07-05 Desktop Settings panel: persistent operational controls moved out of the routing toolbar into a Settings
+  panel that groups audio backend selection, host-apply arming, window chrome, and restore-on-boot controls while the
+  routing toolbar stays focused on graph actions. Focused validation passed: `pnpm --filter @loopwire/desktop
+  typecheck`, `pnpm --filter @loopwire/desktop test`, `pnpm verify:docs`, `pnpm --filter @loopwire/desktop build`,
+  and `git diff --check`. Browser-rendered proof passed with Chromium DevTools Protocol: desktop screenshot
+  `/tmp/loopwire-settings-panel.png` was written with 253195 bytes after expanding Settings, rendered four
+  `.settings-card` entries, the settings audio backend select, the chrome mode group, and a restore button; mobile
+  screenshot `/tmp/loopwire-settings-panel-mobile.png` was written with 224696 bytes at 390px width, rendered four
+  cards in one column, and reported no horizontal overflow. Full validation passed: `pnpm check`.
 - 2026-07-05 Desktop auto chrome policy: desktop chrome now defaults to Auto, preserving explicit Native/Fallback
   choices while resolving automatic mode to native decorations in the desktop shell and Loopwire fallback controls in
   browser/no-decoration environments. Focused validation passed with the desktop `chrome-mode-summary` test filter,

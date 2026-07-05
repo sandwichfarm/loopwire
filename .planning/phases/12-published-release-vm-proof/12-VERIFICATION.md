@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Desktop Settings now groups audio backend selection, host-apply arming, window chrome, and restore-on-boot controls
+  in one operational panel, leaving the routing toolbar focused on graph actions.
+- Focused validation passed: `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop test`,
+  `pnpm verify:docs`, `pnpm --filter @loopwire/desktop build`, and `git diff --check`. Browser-rendered proof passed:
+  desktop screenshot `/tmp/loopwire-settings-panel.png` was written with 253195 bytes after expanding Settings and
+  rendered four `.settings-card` entries, the settings audio backend select, the chrome mode group, and a restore
+  button; mobile screenshot `/tmp/loopwire-settings-panel-mobile.png` was written with 224696 bytes at 390px width,
+  rendered four cards in one column, and reported no horizontal overflow. Full validation passed: `pnpm check`.
 - Desktop chrome now defaults to Auto: automatic mode resolves to desktop/window-manager decorations in the Tauri shell
   and Loopwire fallback controls where decoration control is unavailable, without removing explicit Native/Fallback
   choices.
