@@ -7,7 +7,8 @@ The docs home page uses `apps/docs/docs/public/product-screenshot.svg`.
 - The screenshot must show the current Loopwire desktop shell, not generic marketing art.
 - The image must include configurations, backend status, routes, outputs, and monitors.
 - Text must fit within the rendered image at desktop and mobile docs breakpoints.
-- Alt text on the home page must describe the visible product state.
+- Alt text on the home page must describe the visible product state; do not hide the product screenshot from assistive
+  technology.
 - If the desktop UI changes meaningfully, refresh the screenshot in the same release.
 
 ## Refresh Procedure

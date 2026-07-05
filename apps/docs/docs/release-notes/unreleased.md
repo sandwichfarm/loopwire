@@ -99,6 +99,8 @@ These notes describe source-tree progress. They are not a public release announc
   only the first blocker plus a count.
 - Refused live configuration switches now copy every preflight blocker into the runtime activity ledger as failed
   verification evidence, so the failed switch remains actionable after the click.
+- The docs home page product screenshot now has descriptive alt text instead of being hidden as decoration, keeping the
+  above-the-fold product preview available to assistive technology.
 - Native-backend live-apply preflight now names routes blocked by non-100% gain and provides a `Reset gains` action
   that restores affected routes to 100% without touching host audio.
 - Native-backend non-100% gain blockers now explain both repair paths: reset affected route gains to 100%, or switch

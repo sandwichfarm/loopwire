@@ -3248,3 +3248,14 @@ install, Bunny deployment proof, final proof workflow success, and operator-run 
   live-apply-preflight.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, `git diff --check`,
   and full `pnpm check` passed. No backend support was promoted, and no VM launch, public release, Bunny deployment,
   secret write, tag push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-05 docs hero screenshot accessibility: the VitePress home page no longer hides the above-the-fold product
+  screenshot as decoration. The hero image now has descriptive alt text naming the saved configurations, backend prompt,
+  route controls, outputs, and monitors shown in the product preview. The screenshot contract now explicitly forbids
+  hiding the product screenshot from assistive technology, and the docs verifier guards the homepage markup plus release
+  note.
+- 2026-07-05 docs hero screenshot validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready and graph-augmented search located the docs home page, screenshot asset, and
+  verifier surfaces before implementation. `pnpm verify:docs`, `pnpm build:docs`, and `git diff --check` passed.
+  Rendered `apps/docs/docs/.vitepress/dist/index.html` contains the descriptive `product-screenshot.svg` alt text and
+  no `aria-hidden` on the hero figure. No public release, Bunny deployment, secret write, VM launch, tag push, host
+  audio mutation, or support-matrix promotion was performed.

@@ -3,8 +3,11 @@ layout: page
 ---
 
 <section class="lw-hero">
-  <figure class="lw-hero-media" aria-hidden="true">
-    <img src="/product-screenshot.svg" alt="" />
+  <figure class="lw-hero-media">
+    <img
+      src="/product-screenshot.svg"
+      alt="Loopwire desktop shell with saved configurations, backend prompt, route controls, outputs, and monitors."
+    />
   </figure>
   <div class="lw-hero-copy">
     <p class="lw-kicker">Linux virtual audio routing</p>
