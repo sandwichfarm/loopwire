@@ -400,6 +400,8 @@ These notes describe source-tree progress. They are not a public release announc
   desktop/session, or architecture do not match the selected target row.
 - Host-side SSH VM evidence collection can run the guest collector, copy target evidence back, and verify the bundle
   without changing support-matrix rows prematurely.
+- Direct SSH VM evidence collection now rejects unsafe custom local output paths before dry-run or execute mode,
+  including parent traversal and paths that omit the target id as a path segment.
 - Host-side matrix VM evidence collection can expand a TSV guest plan into target-scoped SSH collectors for several
   reachable systems while staying dry-run-first.
 - Matrix VM evidence collection now rejects unsafe local output paths, including parent traversal and paths that do not

@@ -24,6 +24,8 @@ bundle plus a desktop launch smoke so maintainers can inspect backend diagnostic
 pass/fail status. It also includes `environment.json`, which must match the target distro, desktop/session, audio
 stack, and architecture before a row can be promoted. The matching `detect-audio.json` must also report the target
 audio backend as available, so a JACK or PulseAudio row cannot be promoted with only generic Linux evidence.
+Direct SSH collection keeps copied-back output target-scoped: custom `--local-output-dir` values must include the target
+id as a path segment and cannot contain parent traversal.
 After evidence verifies, promote the row with `pnpm vm:promote-evidence -- --target <target>`. Use `--dry-run` first
 to preview the docs change without editing the matrix. For final release support claims, pass
 `--require-published-release --release-tag <tag>` so promotion also proves the guest installed and ran the signed

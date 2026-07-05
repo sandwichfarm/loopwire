@@ -86,6 +86,7 @@ assert_contains "apps/docs/docs/guide/support-matrix.md" "environment.json"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "audio backend as available"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "packaged user-scoped systemd restore paths are verified locally"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "pnpm vm:promote-evidence -- --target"
+assert_contains "apps/docs/docs/guide/support-matrix.md" "Direct SSH collection keeps copied-back output target-scoped"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "--require-published-release"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "pnpm vm:render-ssh-plan"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "Virtual sinks, routes, mute, monitor links"
@@ -312,6 +313,7 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" 'Use `--ssh-port`'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'collect-vm-evidence-ssh.sh --port'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" 'Launch inputs fail before QEMU planning'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" '`--image-format` is not `qcow2` or `raw`'
+assert_contains "apps/docs/docs/developer/vm-matrix.md" 'Custom `--local-output-dir` paths'
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "forwards the published-release smoke options"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "valid TCP ports from 1 to 65535"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "validates the port range"
@@ -561,6 +563,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "requires a clean g
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release evidence collection can now include"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-live-docs"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Host-side matrix VM evidence collection"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Direct SSH VM evidence collection now rejects unsafe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "rejects unsafe local output paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-all-targets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret helper now rejects Bunny storage zones"

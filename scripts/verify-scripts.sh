@@ -3204,6 +3204,20 @@ if bash scripts/collect-vm-evidence-ssh.sh --target arch-hyprland-pipewire --hos
   echo "verify-scripts: SSH VM evidence collector accepted an invalid SSH port" >&2
   exit 1
 fi
+if bash scripts/collect-vm-evidence-ssh.sh \
+  --target arch-hyprland-pipewire \
+  --host 127.0.0.1 \
+  --local-output-dir ../arch-hyprland-pipewire >/dev/null 2>&1; then
+  echo "verify-scripts: SSH VM evidence collector accepted parent traversal in local output" >&2
+  exit 1
+fi
+if bash scripts/collect-vm-evidence-ssh.sh \
+  --target arch-hyprland-pipewire \
+  --host 127.0.0.1 \
+  --local-output-dir "$tmp_dir/shared-vm-evidence" >/dev/null 2>&1; then
+  echo "verify-scripts: SSH VM evidence collector accepted a non-target-scoped local output" >&2
+  exit 1
+fi
 bad_matrix_plan="$tmp_dir/bad-vm-ssh-plan.tsv"
 printf '%s\t%s\t%s\n' "arch-hyprland-pipewire" "127.0.0.1" "nope" >"$bad_matrix_plan"
 if bash scripts/collect-vm-matrix-evidence.sh --plan "$bad_matrix_plan" >/dev/null 2>&1; then
@@ -6289,7 +6303,7 @@ if [ -e "$tmp_dir/strict-matrix-ssh.log" ]; then
   exit 1
 fi
 
-copied_evidence_dir="$tmp_dir/copied-vm-evidence"
+copied_evidence_dir="$tmp_dir/copied-vm-evidence/arch-hyprland-pipewire"
 PATH="$fake_bin:$PATH" \
 FAKE_VM_SSH_LOG="$tmp_dir/fake-ssh.log" \
 FAKE_VM_EVIDENCE_SOURCE="$evidence_dir" \
