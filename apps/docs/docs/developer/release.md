@@ -156,6 +156,9 @@ mode when you need a durable handoff artifact for release review or CI logs. Pla
 handoff also prints the `pnpm vm:prepare-release-evidence` command plan, including the VM evidence archive packaging
 step, signed `SHA256SUMS` refresh, signed-checksum verification, and matching `gh release upload --clobber` command,
 so the operator can attach `loopwire-vm-evidence-<tag>.tar.gz` before running the manual final proof workflow.
+When `--release-dir` is used for local signed-release rehearsal, the final-proof wrapper rejects traversal,
+root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and file paths before using that directory as the
+release surface.
 
 The manual final release proof workflow defaults to `loopwire-release-evidence-<tag>.tar.gz` and
 `loopwire-vm-evidence-<tag>.tar.gz`. If custom asset inputs are supplied, they are validated with

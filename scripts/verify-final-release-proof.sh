@@ -40,6 +40,8 @@ Checks:
   - docs contract still passes after support-matrix promotion.
 
 Use --release-dir DIR for local signed release-directory proof instead of downloading from GitHub.
+Custom --release-dir values may be absolute or relative, but they must not contain parent traversal, URL syntax, glob
+metacharacters, symlinks, root/home expansion, or file paths.
 Use --dry-run to print the exact command plan without touching network, release assets, docs URLs, or VM evidence.
 Use --plan-output FILE with --dry-run to also write that command plan to a handoff artifact.
 USAGE
@@ -109,6 +111,33 @@ reject_unsafe_value() {
       fail "$label must be a single safe value"
       ;;
   esac
+}
+
+validate_local_release_dir_path() {
+  local value="$1"
+  local normalized
+
+  [ -n "$value" ] || return 0
+  reject_unsafe_value "$value" "release directory"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "release directory must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "release directory must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "release directory must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "release directory must not be a symlink"
+  if [ -e "$value" ] && [ ! -d "$value" ]; then
+    fail "release directory must be a directory when it exists"
+  fi
 }
 
 validate_docs_remote_prefix() {
@@ -244,6 +273,7 @@ done
 validate_repo "$repo"
 validate_release_tag "$tag"
 validate_git_head "$git_head"
+validate_local_release_dir_path "$release_dir"
 reject_unsafe_value "$public_key" "public key path"
 reject_unsafe_value "$release_evidence_dir" "release evidence directory"
 reject_unsafe_value "$docs_deployment_manifest" "docs deployment manifest path"

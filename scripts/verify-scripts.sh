@@ -760,6 +760,65 @@ if bash scripts/verify-final-release-proof.sh \
   echo "verify-scripts: final release verifier accepted traversal in plan output" >&2
   exit 1
 fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-dir ../release \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted traversal in release-dir" >&2
+  exit 1
+fi
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-dir '~/release' \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted home expansion in release-dir" >&2
+  exit 1
+fi
+final_release_symlink_root="$(mktemp -d)"
+final_release_symlink="$final_release_symlink_root/final-release-dir-symlink"
+ln -s "$final_release_symlink_root" "$final_release_symlink"
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-dir "$final_release_symlink" \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a symlink release-dir" >&2
+  rm -rf "$final_release_symlink_root"
+  exit 1
+fi
+printf '%s\n' "not a directory" >"$final_release_symlink_root/not-a-dir"
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-dir "$final_release_symlink_root/not-a-dir" \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --docs-base-url https://docs.example.test \
+  --dry-run >/dev/null 2>&1; then
+  echo "verify-scripts: final release verifier accepted a file release-dir" >&2
+  rm -rf "$final_release_symlink_root"
+  exit 1
+fi
+rm -rf "$final_release_symlink_root"
 bash scripts/validate-release-asset-name.sh \
   --kind release-evidence \
   --tag v0.1.0 \

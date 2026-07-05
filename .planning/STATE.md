@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T05:44:43+02:00"
-last_activity: 2026-07-05 - VM evidence asset release directory fails closed
+last_updated: "2026-07-05T06:03:14+02:00"
+last_activity: 2026-07-05 - Final proof local release directory fails closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - VM evidence release asset preparation now rejects unsafe custom release directories before
-dry-run or execution can package evidence, regenerate signed checksums, or print upload commands. Phase 12 remains gated
-on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - final release proof now rejects unsafe local signed-release directories before dry-run or
+execution can use them as the release surface. Phase 12 remains gated on configuring Bunny secrets, public GitHub
+Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,15 @@ on configuring Bunny secrets, public GitHub Release install, Bunny deployment pr
 
 ## Verification Log
 
+- 2026-07-05 Final proof local release-dir hardening: `scripts/verify-final-release-proof.sh` now validates optional
+  `--release-dir` values before dry-run or execution. Absolute and relative local release directories remain valid for
+  signed-release rehearsal, but root/home-expanded paths, parent traversal, URL syntax, glob metacharacters, symlinks,
+  and existing file paths fail closed before the wrapper can render or run the final proof plan. `scripts/verify-scripts.sh`
+  now rejects traversal, quoted tilde, symlink, and file-path release directories. Release docs, unreleased notes, and
+  `scripts/verify-docs.sh` document and assert the final-proof release-dir contract. Focused validation passed:
+  direct `scripts/verify-final-release-proof.sh --release-dir` positive/negative smokes, `bash -n
+  scripts/verify-final-release-proof.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `git diff --check`,
+  `pnpm verify:scripts`, and `bash scripts/verify-docs.sh`. Full local validation passed: `pnpm check`.
 - 2026-07-05 VM evidence asset release-dir hardening: `scripts/prepare-vm-evidence-release-asset.sh` now validates
   custom `--release-dir` values before dry-run or execution. Absolute and relative release directories remain valid, but
   root/home-expanded paths, parent traversal, URL syntax, glob metacharacters, symlinks, and existing file paths fail
