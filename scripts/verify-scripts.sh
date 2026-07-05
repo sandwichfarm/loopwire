@@ -937,12 +937,38 @@ printf '%s\n' "$verify_final_release_help" | grep -F -- "--plan-output FILE" >/d
   echo "verify-scripts: final release verifier help is missing dry-run plan output support" >&2
   exit 1
 }
+printf '%s\n' "$verify_final_release_help" | grep -F -- "--allow-head-mismatch" >/dev/null || {
+  echo "verify-scripts: final release verifier help is missing fixture head-mismatch override" >&2
+  exit 1
+}
+final_release_head_mismatch_log="$(mktemp)"
+if bash scripts/verify-final-release-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key packaging/release-signing-public.pem \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-dir .release-evidence/v0.1.0-published \
+  --docs-hostname docs.example.test \
+  --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --dry-run >"$final_release_head_mismatch_log" 2>&1; then
+  echo "verify-scripts: final release verifier accepted a checkout/git-head mismatch" >&2
+  rm -f "$final_release_head_mismatch_log"
+  exit 1
+fi
+grep -F "does not match --git-head" "$final_release_head_mismatch_log" >/dev/null || {
+  echo "verify-scripts: final release verifier mismatch error was not explicit" >&2
+  cat "$final_release_head_mismatch_log" >&2
+  rm -f "$final_release_head_mismatch_log"
+  exit 1
+}
+rm -f "$final_release_head_mismatch_log"
 final_release_dry_run="$(
   bash scripts/verify-final-release-proof.sh \
     --repo sandwichfarm/loopwire \
     --tag v0.1.0 \
     --public-key packaging/release-signing-public.pem \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-head-mismatch \
     --release-evidence-dir .release-evidence/v0.1.0-published \
     --docs-hostname docs.example.test \
     --docs-remote-prefix preview \
@@ -958,6 +984,7 @@ bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-hostname docs.example.test \
   --docs-remote-prefix preview \
@@ -1104,6 +1131,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --vm-evidence-root .vm/evidence \
@@ -1116,6 +1144,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-base-url https://docs.example.test \
   --dry-run >/dev/null 2>&1; then
@@ -1127,6 +1156,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -1151,6 +1181,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -1163,6 +1194,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -1189,6 +1221,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-dir ../release \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
@@ -1202,6 +1235,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-dir '~/release' \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
@@ -1218,6 +1252,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-dir "$final_release_symlink" \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
@@ -1233,6 +1268,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-dir "$final_release_symlink_root/not-a-dir" \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
@@ -1259,6 +1295,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key "$final_release_public_key_symlink" \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -1272,6 +1309,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir "$final_release_release_evidence_file" \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -1285,6 +1323,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest "$final_release_docs_manifest_dir" \
   --docs-base-url https://docs.example.test \
@@ -1298,6 +1337,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -1312,6 +1352,7 @@ if bash scripts/verify-final-release-proof.sh \
   --tag v0.1.0 \
   --public-key packaging/release-signing-public.pem \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --release-evidence-dir .release-evidence/v0.1.0-published \
   --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --docs-base-url https://docs.example.test \
@@ -5645,6 +5686,7 @@ if LOOPWIRE_FAKE_GH_TAG_MODE=wrong-commit \
     --tag v0.1.0 \
     --public-key packaging/release-signing-public.pem \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-head-mismatch \
     --release-evidence-dir "$final_release_wrong_tag_ref_root/release-evidence" \
     --docs-base-url https://docs.example.test \
     --docs-deployment-manifest "$final_release_wrong_tag_ref_root/deployment-manifest.json" \

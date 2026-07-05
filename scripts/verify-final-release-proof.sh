@@ -15,6 +15,7 @@ vm_evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
 support_matrix="${LOOPWIRE_SUPPORT_MATRIX:-apps/docs/docs/guide/support-matrix.md}"
 dry_run="false"
 plan_output=""
+allow_head_mismatch="false"
 
 usage() {
   cat <<'USAGE'
@@ -40,11 +41,15 @@ Checks:
   - support matrix rows match target metadata and verified VM evidence,
   - docs contract still passes after support-matrix promotion.
 
+By default this script requires the current checkout HEAD to equal --git-head, so local docs, matrix, and evidence
+checks run against the same source commit that the published release claims. Use --allow-head-mismatch only for offline
+fixture rehearsal.
 Use --release-dir DIR for local signed release-directory proof instead of downloading from GitHub.
 Custom --release-dir values may be absolute or relative, but they must not contain parent traversal, URL syntax, glob
 metacharacters, symlinks, root/home expansion, or file paths.
 Use --dry-run to print the exact command plan without touching network, release assets, docs URLs, or VM evidence.
 Use --plan-output FILE with --dry-run to also write that command plan to a handoff artifact.
+Use --allow-head-mismatch only when rehearsing with fixture SHAs.
 USAGE
 }
 
@@ -101,6 +106,16 @@ validate_git_head() {
   local value="$1"
 
   [[ "$value" =~ ^[0-9a-fA-F]{40}$ ]] || fail "git head must be a 40-character commit SHA: $value"
+}
+
+validate_current_checkout_head() {
+  local current_head
+
+  current_head="$(git rev-parse HEAD 2>/dev/null || true)"
+  [ -n "$current_head" ] || fail "unable to resolve current git HEAD"
+  if [ "$current_head" != "$git_head" ]; then
+    fail "current checkout HEAD $current_head does not match --git-head $git_head; checkout the target commit or pass --allow-head-mismatch for fixture rehearsal"
+  fi
 }
 
 reject_unsafe_value() {
@@ -296,6 +311,10 @@ while [ "$#" -gt 0 ]; do
       plan_output="${2:?missing value for --plan-output}"
       shift 2
       ;;
+    --allow-head-mismatch)
+      allow_head_mismatch="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -315,6 +334,7 @@ done
 validate_repo "$repo"
 validate_release_tag "$tag"
 validate_git_head "$git_head"
+[ "$allow_head_mismatch" = "true" ] || validate_current_checkout_head
 validate_local_release_dir_path "$release_dir"
 if [ "$dry_run" = "true" ]; then
   validate_local_artifact_path "$public_key" "public key path" "file" "false"

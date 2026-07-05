@@ -152,7 +152,10 @@ pnpm verify:final-release -- \
   --support-matrix apps/docs/docs/guide/support-matrix.md
 ```
 
-This wrapper runs the published-release verifier with the public evidence archive gate, the live docs smoke, strict
+This wrapper requires the current checkout `HEAD` to equal `--git-head` before it builds docs or reads local evidence, so
+final proof cannot mix published release assets for one commit with local docs, VM evidence, or support-matrix checks from
+another checkout. Use `--allow-head-mismatch` only for offline fixture rehearsal.
+It runs the published-release verifier with the public evidence archive gate, the live docs smoke, strict
 final release-evidence verification, every target-specific VM evidence verifier with installed-release smoke,
 support-matrix verification with installed-release smoke required for `Verified` rows, read-only DSP provider plan
 evidence, and the docs contract. Use `--dry-run` first to print the exact command plan without touching network,

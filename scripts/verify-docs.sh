@@ -368,6 +368,8 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:release-evide
 assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:final-release"
 assert_contains "apps/docs/docs/developer/release.md" "--public-key packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" '--git-head "$(git rev-parse HEAD)"'
+assert_contains "apps/docs/docs/developer/release.md" 'current checkout `HEAD` to equal `--git-head`'
+assert_contains "apps/docs/docs/developer/release.md" "--allow-head-mismatch"
 assert_contains "apps/docs/docs/developer/release.md" "--support-matrix apps/docs/docs/guide/support-matrix.md"
 assert_contains "apps/docs/docs/developer/release.md" 'installed-release smoke required for `Verified` rows'
 assert_contains "apps/docs/docs/developer/release.md" "--require-all-vm-targets"

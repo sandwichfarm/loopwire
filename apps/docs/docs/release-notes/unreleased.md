@@ -577,6 +577,8 @@ These notes describe source-tree progress. They are not a public release announc
   final proof tied to downloaded GitHub Release assets instead of local staging directories.
 - Release readiness and workflow contract checks now require `scripts/verify-final-release-proof.sh` to invoke the
   shared release tag-ref verifier, so final proof cannot silently drift away from the live tag binding gate.
+- `pnpm verify:final-release` now requires the current checkout `HEAD` to match `--git-head` by default; offline fixture
+  rehearsals must opt in with `--allow-head-mismatch`.
 - The final release handoff now prints an exact-commit `pnpm release:agent-ready -- --require-hosted-checks` preflight
   before secret checks, tagging, workflow dispatch, VM evidence, or final proof steps.
 - The final release handoff now ends with `pnpm release:status`, so operators finish publication with the same

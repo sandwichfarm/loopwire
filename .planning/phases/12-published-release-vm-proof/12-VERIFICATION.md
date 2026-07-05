@@ -5,6 +5,18 @@
 
 ## Evidence Passed
 
+- Final release proof now requires the current checkout `HEAD` to equal `--git-head` before it builds docs or reads
+  local evidence, unless fixture rehearsal explicitly opts into `--allow-head-mismatch`. This prevents public release
+  assets for one commit from being combined with local docs, VM evidence, or support-matrix checks from another checkout.
+- Focused validation passed: `bash -n scripts/verify-final-release-proof.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, mismatch probe `bash scripts/verify-final-release-proof.sh --repo sandwichfarm/loopwire
+  --tag v0.1.0 --public-key packaging/release-signing-public.pem --git-head
+  0123456789abcdef0123456789abcdef01234567 --release-evidence-dir .release-evidence/v0.1.0-published
+  --docs-hostname docs.example.test --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json
+  --dry-run`, which failed as expected with `current checkout HEAD ... does not match --git-head`, current-HEAD
+  final-proof dry-run with `--git-head $(git rev-parse HEAD)`, `pnpm verify:scripts`, and `pnpm verify:docs`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch,
+  VM launch, host audio mutation, or support-matrix promotion was performed.
 - Agent-ready release proof now requires the current checkout `HEAD` to equal `--git-head` before rendering the
   operator handoff, unless fixture rehearsal explicitly opts into `--allow-head-mismatch`. This prevents a clean local
   checkout for one commit from being used as source proof for a different pushed commit.
