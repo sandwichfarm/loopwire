@@ -591,6 +591,7 @@ run_vm_evidence_gate \
 run_gate \
   "support matrix published-release claims" \
   node scripts/verify-support-matrix.mjs --matrix "$support_matrix" \
+    --evidence-root "$vm_evidence_root" \
     --require-published-release --release-tag "$tag" || failed=1
 
 handoff_plan=(bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \

@@ -378,6 +378,8 @@ These notes describe source-tree progress. They are not a public release announc
   the docs proof fetch and final proof dispatch commands no longer fall back to a placeholder after a successful docs run.
 - `pnpm release:status` can now audit a pinned Deploy Docs run with `--docs-deployment-run-id`, keeping final proof
   rehearsals tied to the operator-selected docs deployment instead of only the latest workflow run.
+- `pnpm release:status --vm-evidence-root` now passes the selected evidence root into support-matrix verification, so
+  promoted support rows are checked against the same copied-back VM evidence bundle path as the matrix status gate.
 - Pinned Deploy Docs release-status audits now label the evidence as the selected run, avoiding latest-run wording when
   an operator intentionally audits a specific workflow run id.
 - `scripts/setup-github-secrets.sh` now accepts `--env-file` for local uncommitted Bunny.net values and release key

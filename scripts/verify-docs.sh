@@ -594,6 +594,7 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
 assert_contains "apps/docs/docs/developer/release.md" 'If the docs deployment manifest is missing'
+assert_contains "apps/docs/docs/developer/release.md" "uses that same root"
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"
 assert_contains "apps/docs/docs/developer/release.md" "docs deployment manifest"
 assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, Deploy Docs, and Final Release Proof"
@@ -697,6 +698,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence collec
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'VM doctor now treats `cloud-localds` as a required'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM doctor now supports"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence promotion now has a guarded"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:status --vm-evidence-root`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM cloud-init rendering can now generate guest bootstrap assets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Debian and Ubuntu VM cloud-init commands"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Non-Nix VM cloud-init commands now install Rust"

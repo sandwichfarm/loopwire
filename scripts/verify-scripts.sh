@@ -5803,6 +5803,47 @@ bash scripts/verify-vm-evidence.sh \
   --require-published-release \
   --release-tag v0.1.0 \
   --require-github-release-source >/dev/null
+release_status_custom_vm_root="$tmp_dir/release-status-custom-vm-root"
+release_status_custom_matrix="$tmp_dir/release-status-custom-support-matrix.md"
+release_status_custom_root_log="$tmp_dir/release-status-custom-vm-root.log"
+mkdir -p "$release_status_custom_vm_root"
+cp -R "$evidence_dir" "$release_status_custom_vm_root/arch-hyprland-pipewire"
+cp apps/docs/docs/guide/support-matrix.md "$release_status_custom_matrix"
+node - "$release_status_custom_matrix" <<'NODE'
+const fs = require("node:fs");
+const path = process.argv[2];
+const before = "| `arch-hyprland-pipewire` | Hyprland on Wayland | PipeWire/WirePlumber | Manual VM |";
+const after = "| `arch-hyprland-pipewire` | Hyprland on Wayland | PipeWire/WirePlumber | Verified |";
+const content = fs.readFileSync(path, "utf8");
+if (!content.includes(before)) process.exit(1);
+fs.writeFileSync(path, content.replace(before, after));
+NODE
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --public-key "$release_status_public_key" \
+  --secret-list-file "$secret_list_all_final" \
+  --docs-deployment-manifest "$release_status_docs_manifest" \
+  --docs-dist "$release_status_docs_dist" \
+  --vm-evidence-root "$release_status_custom_vm_root" \
+  --support-matrix "$release_status_custom_matrix" \
+  --skip-gh >"$release_status_custom_root_log" 2>&1; then
+  echo "verify-scripts: release status accepted incomplete custom VM evidence root" >&2
+  exit 1
+fi
+grep -F "blocked: published-release-bound VM evidence" "$release_status_custom_root_log" >/dev/null || {
+  echo "verify-scripts: release status did not block incomplete custom VM evidence root" >&2
+  exit 1
+}
+grep -F "ok: support matrix published-release claims" "$release_status_custom_root_log" >/dev/null || {
+  echo "verify-scripts: release status did not pass the custom-root support matrix gate" >&2
+  exit 1
+}
+if grep -F "blocked: support matrix published-release claims" "$release_status_custom_root_log" >/dev/null; then
+  echo "verify-scripts: release status support matrix gate ignored the custom VM evidence root" >&2
+  exit 1
+fi
 if bash scripts/verify-vm-evidence.sh \
   --target arch-hyprland-pipewire \
   --evidence-dir "$evidence_dir" \

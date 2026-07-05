@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T03:57:46+02:00"
-last_activity: 2026-07-05 - Corrupt boot restore state explains recovery
+last_updated: "2026-07-05T04:13:29+02:00"
+last_activity: 2026-07-05 - Release status aligns support matrix evidence root
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - background restore now gives actionable recovery guidance when the persisted state file is
-missing, unreadable, corrupt, or incompatible, telling users to open Loopwire, choose the configuration to restore at
-login, and enable Restore on boot again. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
-install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - release status now passes the selected VM evidence root into the support-matrix promotion
+audit, so final status checks promoted rows against the same copied-back evidence path used by the VM evidence status
+gate. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,13 @@ install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release status support-matrix evidence-root alignment: `scripts/audit-final-release-state.sh` now passes
+  `--vm-evidence-root` through to `scripts/verify-support-matrix.mjs` when auditing final published-release claims. The
+  script verifier now builds a temporary custom evidence root plus promoted support-matrix row and proves `release:status`
+  still blocks incomplete all-target VM evidence while the support-matrix gate succeeds against the selected custom root.
+  Release docs and unreleased notes describe the shared evidence-root behavior. Focused validation passed: `bash -n
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `bash scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, and `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 Corrupt boot restore state guidance: `scripts/restore-background.mjs` now wraps invalid persisted-state
   restore failures with the state path plus the same recovery action used for unreadable files: open Loopwire once,
   choose the desired configuration, and enable Restore on boot again. `scripts/verify-scripts.sh` now writes a corrupt

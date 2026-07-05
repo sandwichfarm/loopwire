@@ -231,6 +231,9 @@ and final proof dispatch. The embedded handoff treats `--public-key` as an overr
 received that flag explicitly; with `--env-file` alone, the VM evidence asset-prep command keeps the env-file route
 instead of expanding the default public-key path. If the docs deployment manifest is missing, `release:status` prints
 the matching `pnpm release:fetch-docs-proof` command for the expected commit and preserves `--env-file` when supplied.
+When `--vm-evidence-root` points at copied-back VM evidence outside `.vm/evidence`, `release:status` uses that same root
+for both the matrix evidence-status audit and the support-matrix promotion audit, so a promoted row is checked against
+the operator-selected evidence bundle path.
 
 Parse an existing release-readiness log without rerunning release checks:
 
