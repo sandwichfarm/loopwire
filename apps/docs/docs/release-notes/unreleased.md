@@ -209,8 +209,9 @@ These notes describe source-tree progress. They are not a public release announc
   `pnpm release:status` consumes it.
 - `pnpm release:fetch-docs-proof` now accepts `--env-file` for missing-deployment-artifact recovery hints, preserving
   the same local secret-file setup path without reading or printing secret values.
-- `pnpm release:fetch-docs-proof` now rejects absolute or parent-traversal output paths before it rewrites the docs dist
-  and deployment manifest locations.
+- `pnpm release:fetch-docs-proof` now rejects unsafe docs dist, deployment manifest, and env-file paths before it
+  rewrites local proof outputs or renders Bunny secret recovery commands, including traversal, URL syntax, glob syntax,
+  symlinks, and existing paths with the wrong artifact type.
 - `pnpm release:handoff` now rejects absolute or parent-traversal VM handoff output paths before rendering VM SSH plan
   and runbook commands.
 - VM evidence asset preparation now rejects unsafe custom `--release-dir` values before dry-run or execution, including

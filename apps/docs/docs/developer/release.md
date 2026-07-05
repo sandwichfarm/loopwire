@@ -215,7 +215,10 @@ The helper downloads `loopwire-docs` and `loopwire-docs-deployment`, verifies th
 non-dry-run proof for the same commit, and writes the default paths consumed by `pnpm release:status`. If the deployment
 artifact is missing because Bunny.net secrets were absent, `--env-file` is preserved in the recovery command without
 reading or printing secret values. Custom `--docs-dist` and `--manifest` outputs must stay repo-relative because the
-helper rewrites those paths while normalizing downloaded artifacts.
+helper rewrites those paths while normalizing downloaded artifacts. Those outputs also reject URL syntax, glob
+metacharacters, symlinks, and existing paths with the wrong file or directory type before downloads begin. Custom
+`--env-file` recovery paths may be absolute or relative local files, but they reject traversal, URL syntax, glob
+metacharacters, symlinks, and existing non-file paths before the helper renders the secret setup command.
 
 To audit the current final-release state from one read-only command:
 

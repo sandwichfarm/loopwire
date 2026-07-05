@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T11:20:42+02:00"
-last_activity: 2026-07-05 - Final release proof paths fail closed
+last_updated: "2026-07-05T11:34:57+02:00"
+last_activity: 2026-07-05 - Docs deployment proof fetch paths fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Final release proof now rejects unsafe custom public-key, release-evidence,
-docs-deployment-manifest, VM evidence-root, and support-matrix paths before dry-run rendering or proof execution.
-Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - Docs deployment proof fetching now rejects unsafe custom docs-dist, manifest, and
+env-file paths before rewriting local proof outputs or rendering Bunny secret recovery commands. Phase 12 remains gated
+on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +83,17 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Docs deployment proof fetch path hardening: `scripts/fetch-docs-deployment-proof.sh` now validates
+  `--docs-dist`, `--manifest`, and optional `--env-file` before creating, removing, rewriting, or rendering docs
+  deployment proof paths. Docs dist and manifest outputs stay repo-relative, while env-file handoff paths may be
+  absolute or relative local files. Root/home-expanded paths, parent/current traversal, URL syntax, glob metacharacters,
+  symlinks, and existing paths with the wrong file/directory type fail closed before artifact downloads or Bunny secret
+  recovery hints. `scripts/verify-scripts.sh` now rejects symlinked docs dist paths, directory-valued manifests, and
+  symlinked env-file paths. Release docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the fetch
+  proof path boundary. Focused validation passed: `bash -n scripts/fetch-docs-deployment-proof.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`; direct symlink docs-dist and directory manifest negative probes;
+  `bash scripts/verify-docs.sh`; `pnpm verify:scripts`; and `git diff --check`. Full local validation passed:
+  `pnpm check`.
 - 2026-07-05 Final release proof local proof-path hardening: `scripts/verify-final-release-proof.sh` now validates
   `--public-key`, `--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`, and `--support-matrix`
   before dry-run plan rendering or proof execution. Absolute and relative local proof artifacts remain valid, but

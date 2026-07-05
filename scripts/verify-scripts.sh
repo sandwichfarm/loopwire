@@ -4513,6 +4513,45 @@ if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
   echo "verify-scripts: docs deployment proof helper accepted a parent-traversal manifest path" >&2
   exit 1
 fi
+fetch_docs_path_guard_root="dist/verify-scripts/fetch-docs-proof-path-guard"
+fetch_docs_dist_symlink="$fetch_docs_path_guard_root/docs-dist-symlink"
+fetch_docs_manifest_dir="$fetch_docs_path_guard_root/manifest-dir"
+fetch_docs_guard_env_file="$fetch_docs_path_guard_root/env-file"
+fetch_docs_env_file_symlink="$fetch_docs_path_guard_root/env-file-symlink"
+rm -rf "$fetch_docs_path_guard_root"
+mkdir -p "$fetch_docs_path_guard_root"
+ln -s "$fetch_docs_path_guard_root" "$fetch_docs_dist_symlink"
+mkdir -p "$fetch_docs_manifest_dir"
+printf '%s\n' "BUNNY_STORAGE_ZONE=loopwire-docs" >"$fetch_docs_guard_env_file"
+ln -s "$fetch_docs_guard_env_file" "$fetch_docs_env_file_symlink"
+if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --run-id 123456 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --docs-dist "$fetch_docs_dist_symlink" >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted a symlink docs dist path" >&2
+  rm -rf "$fetch_docs_path_guard_root"
+  exit 1
+fi
+if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --run-id 123456 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --manifest "$fetch_docs_manifest_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted a directory manifest path" >&2
+  rm -rf "$fetch_docs_path_guard_root"
+  exit 1
+fi
+if PATH="$fake_gh_dir:$PATH" bash scripts/fetch-docs-deployment-proof.sh \
+  --repo sandwichfarm/loopwire \
+  --run-id 123456 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --env-file "$fetch_docs_env_file_symlink" >/dev/null 2>&1; then
+  echo "verify-scripts: docs deployment proof helper accepted a symlink env-file path" >&2
+  rm -rf "$fetch_docs_path_guard_root"
+  exit 1
+fi
+rm -rf "$fetch_docs_path_guard_root"
 fetch_docs_missing_root="dist/verify-scripts/fetch-docs-proof-missing-artifact"
 fetch_docs_missing_dist="$fetch_docs_missing_root/docs-dist"
 fetch_docs_missing_manifest="$fetch_docs_missing_root/docs-deployment/deployment-manifest.json"

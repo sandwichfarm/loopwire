@@ -577,7 +577,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-doc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'names-only `--secret-list-file` artifact'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:handoff`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
-assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects absolute'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects unsafe docs dist'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact type"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:status`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence asset preparation now rejects unsafe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "redirect checksum regeneration"
@@ -621,6 +622,8 @@ assert_contains "apps/docs/docs/developer/release.md" "Other local final-proof i
 assert_contains "apps/docs/docs/developer/release.md" '`--release-evidence-dir`, `--docs-deployment-manifest`, `--vm-evidence-root`'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
+assert_contains "apps/docs/docs/developer/release.md" "symlinks, and existing paths with the wrong file or directory type"
+assert_contains "apps/docs/docs/developer/release.md" '`--env-file` recovery paths may be absolute'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
 assert_contains "apps/docs/docs/developer/release.md" 'If the docs deployment manifest is missing'
 assert_contains "apps/docs/docs/developer/release.md" 'Custom local path inputs for `release:status`'

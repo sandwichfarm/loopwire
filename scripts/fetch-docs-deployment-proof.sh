@@ -26,6 +26,10 @@ Options:
 
 The command downloads artifacts into the local checkout and verifies that the deployment manifest is non-dry-run proof
 for the expected commit and downloaded docs bytes. It does not deploy docs or mutate GitHub.
+Custom --docs-dist and --manifest outputs must be repo-relative, non-symlink local artifacts without . or .. segments,
+URL syntax, home expansion, or glob metacharacters. Existing output paths must match the expected file/directory type
+before the helper removes or rewrites proof locations. Custom --env-file paths may be absolute or relative local files,
+but they reject the same traversal, URL, glob, symlink, and wrong-type cases before recovery commands are rendered.
 USAGE
 }
 
@@ -61,15 +65,63 @@ validate_git_head() {
 validate_output_path() {
   local value="$1"
   local label="$2"
+  local expected_type="$3"
   local normalized
 
   [ -n "$value" ] || fail "$label must not be empty"
+  reject_unsafe_value "$value" "$label"
   normalized="${value#./}"
   case "$normalized" in
-    /* | ~* | *://* | "" | . | .. | ../* | */../* | */.. | */./* | */.)
-      fail "$label must be a repo-relative output path without . or .. segments: $value"
+    /* | ~* | *://* | "" | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must be a repo-relative local path without home expansion, URL syntax, or glob metacharacters: $value"
       ;;
   esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments: $value"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink: $value"
+  if [ "$expected_type" = "file" ]; then
+    if [ -e "$value" ] && [ ! -f "$value" ]; then
+      fail "$label must be a file when it exists: $value"
+    fi
+  elif [ "$expected_type" = "directory" ]; then
+    if [ -e "$value" ] && [ ! -d "$value" ]; then
+      fail "$label must be a directory when it exists: $value"
+    fi
+  else
+    fail "unknown expected type for $label: $expected_type"
+  fi
+}
+
+validate_local_file_path() {
+  local value="$1"
+  local label="$2"
+  local normalized
+
+  [ -n "$value" ] || fail "$label must not be empty"
+  reject_unsafe_value "$value" "$label"
+  normalized="${value#./}"
+
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | "" | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must not be root, home-expanded, URL-like, empty, or contain glob metacharacters: $value"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments: $value"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink: $value"
+  if [ -e "$value" ] && [ ! -f "$value" ]; then
+    fail "$label must be a file when it exists: $value"
+  fi
 }
 
 indent() {
@@ -208,9 +260,11 @@ reject_unsafe_value "$docs_artifact" "docs artifact"
 reject_unsafe_value "$manifest_artifact" "manifest artifact"
 reject_unsafe_value "$docs_dist" "docs dist"
 reject_unsafe_value "$manifest_path" "manifest path"
-reject_unsafe_value "$env_file" "env file"
-validate_output_path "$docs_dist" "docs dist"
-validate_output_path "$manifest_path" "manifest path"
+validate_output_path "$docs_dist" "docs dist" "directory"
+validate_output_path "$manifest_path" "manifest path" "file"
+if [ -n "$env_file" ]; then
+  validate_local_file_path "$env_file" "env file"
+fi
 
 command -v gh >/dev/null 2>&1 || fail "gh is required to download workflow artifacts"
 command -v node >/dev/null 2>&1 || fail "node is required to verify deployment manifests"
