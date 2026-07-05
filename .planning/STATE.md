@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T03:27:18+02:00"
-last_activity: 2026-07-05 - Background restore backend failures point to Settings
+last_updated: "2026-07-05T03:42:02+02:00"
+last_activity: 2026-07-05 - Missing boot restore state explains recovery
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - background restore now gives actionable Settings > Audio backend recovery guidance when
-boot restore finds multiple candidate backends or the saved backend is unavailable. Phase 12 remains gated on
-configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - background restore now gives actionable recovery guidance when the persisted state file is
+missing or unreadable, telling users to open Loopwire, choose the configuration to restore at login, and enable Restore
+on boot again. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment
+proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +84,14 @@ configuring Bunny secrets, public GitHub Release install, Bunny deployment proof
 
 ## Verification Log
 
+- 2026-07-05 Missing boot restore state guidance: `scripts/restore-background.mjs` now wraps unreadable state-file
+  failures with the state path plus a concrete recovery action: open Loopwire once, choose the desired configuration,
+  and enable Restore on boot again. `scripts/verify-scripts.sh` now runs the missing-state path directly and asserts
+  the actionable error. Requirements and docs checks also cover the guidance, and start-on-boot docs plus unreleased
+  notes explain the behavior. Focused validation passed: `node --check scripts/restore-background.mjs`, `bash -n
+  scripts/verify-requirements.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:requirements`,
+  `bash scripts/verify-docs.sh`, `git diff --check`, and `pnpm verify:scripts`. Full local validation passed:
+  `pnpm check`.
 - 2026-07-05 Background restore backend guidance: `scripts/restore-background.mjs` now tells users to open Loopwire
   Settings > Audio backend and save a verified backend when boot restore cannot safely choose between multiple
   available backends or when the saved backend is unavailable. The ambiguity error now names detected backend

@@ -199,6 +199,18 @@ function defaultStateFile() {
   return join(configHome, "loopwire", "state.json");
 }
 
+async function readPersistedStateFile(stateFile) {
+  try {
+    return await readFile(stateFile, "utf8");
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Could not read persisted Loopwire state at ${stateFile}: ${detail}. ` +
+        "Open Loopwire once, choose a configuration, and enable Restore on boot again."
+    );
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const [{ getActiveConfiguration, restoreState, selectBackend, verifyStartupConfiguration }, audioHost] = await Promise.all([
@@ -206,7 +218,7 @@ async function main() {
     import("../packages/audio-host/dist/index.js")
   ]);
 
-  const rawState = await readFile(args.stateFile, "utf8");
+  const rawState = await readPersistedStateFile(args.stateFile);
   const restored = restoreState(rawState);
 
   if (!restored.ok) {

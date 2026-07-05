@@ -209,6 +209,8 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "Open on boot"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "Restore on boot"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "The restore card names the active configuration and saved backend"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "loopwire --background"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "If that file is missing or unreadable"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "choose the configuration you want restored at login"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "The curl installer reports that dependency"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" 'install the distro `nodejs` package'
 assert_contains "apps/docs/docs/guide/start-on-boot.md" 'preflights `loopwire --background --help`'
@@ -494,6 +496,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "configuration-swit
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Editing the active configuration now disarms live apply"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "re-arm before verifying the edited"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Background restore now tells users to open Settings > Audio backend"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "persisted state file is missing or unreadable"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Changing the selected backend now runs a backend-change transaction"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "commits the backend as the saved startup-restore choice"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "only after the active configuration verifies"

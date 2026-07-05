@@ -1186,6 +1186,27 @@ grep -F "Multiple backends are available (" scripts/restore-background.mjs >/dev
   echo "verify-scripts: restore background backend ambiguity error does not name candidates" >&2
   exit 1
 }
+restore_missing_tmp="$(mktemp -d)"
+missing_restore_state_file="$restore_missing_tmp/missing-loopwire-state.json"
+missing_restore_state_log="$restore_missing_tmp/restore-missing-state.log"
+if node scripts/restore-background.mjs --state-file "$missing_restore_state_file" >"$missing_restore_state_log" 2>&1; then
+  echo "verify-scripts: restore background accepted a missing persisted state file" >&2
+  rm -rf "$restore_missing_tmp"
+  exit 1
+fi
+grep -F "Could not read persisted Loopwire state at $missing_restore_state_file" \
+  "$missing_restore_state_log" >/dev/null || {
+    echo "verify-scripts: restore background missing-state error did not name the state file" >&2
+    rm -rf "$restore_missing_tmp"
+    exit 1
+  }
+grep -F "Open Loopwire once, choose a configuration, and enable Restore on boot again." \
+  "$missing_restore_state_log" >/dev/null || {
+    echo "verify-scripts: restore background missing-state error is not actionable" >&2
+    rm -rf "$restore_missing_tmp"
+    exit 1
+  }
+rm -rf "$restore_missing_tmp"
 if node scripts/restore-background.mjs --mode preview --retry-pending-ms 1 >/dev/null 2>&1; then
   echo "verify-scripts: restore background accepted pending retries outside live mode" >&2
   exit 1
