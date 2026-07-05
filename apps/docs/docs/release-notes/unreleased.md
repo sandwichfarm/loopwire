@@ -33,6 +33,8 @@ These notes describe source-tree progress. They are not a public release announc
   the runtime and desktop preflight boundary.
 - Support bundles can now include read-only DSP provider plan summaries with `--include-dsp-provider-plan`, writing
   `dsp-provider-plan.json` and `support-bundle.json` `dspProvider` metadata without running provider execute mode.
+- VM evidence verification now checks the nested support-bundle command ledger, so failed `detect-audio`,
+  `ct-host-check`, or `autostart-status` diagnostics cannot pass as VM support proof.
 - PulseAudio compatibility verification now fails when a configured route has no matching live stream, instead of
   reporting fake success for an absent app stream.
 - PulseAudio startup and background restore now keep absent matching streams pending until those apps launch, without

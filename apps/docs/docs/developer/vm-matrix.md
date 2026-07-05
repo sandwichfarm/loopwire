@@ -521,6 +521,8 @@ targets require PipeWire, compatibility targets require PipeWire and PulseAudio,
 and JACK targets require JACK. When `--require-published-release` is used, the ledger must also include a successful
 `published-release-smoke` row. When `--release-tag` is used, `published-release.json` must match that exact tag. Final
 release support checks also require `published-release.json` to record GitHub release source.
+The nested `support-bundle/command-results.tsv` must also show successful quick-profile diagnostics for `detect-audio`,
+`ct-host-check`, and `autostart-status`, with each row pointing to a non-empty log inside `support-bundle/`.
 
 ## CI Boundary
 

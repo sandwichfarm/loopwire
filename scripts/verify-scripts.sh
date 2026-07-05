@@ -6373,6 +6373,9 @@ printf '%s\n' "autostart passed" >"$evidence_dir/autostart.log"
 printf '%s\n' "Support bundle written to support-bundle" >"$evidence_dir/support-bundle.log"
 printf '%s\n' "# VM Evidence" >"$evidence_dir/notes.md"
 mkdir -p "$evidence_dir/support-bundle"
+cp "$evidence_dir/detect-audio.json" "$evidence_dir/support-bundle/detect-audio.json"
+printf '%s\n' "ct host check passed" >"$evidence_dir/support-bundle/ct-host-check.log"
+printf '%s\n' "autostart status passed" >"$evidence_dir/support-bundle/autostart-status.log"
 write_test_png() {
   node - "$1" "$2" "$3" <<'NODE'
 const fs = require("node:fs");
@@ -6456,9 +6459,14 @@ const manifest = {
   },
   commands: [{ name: "detect-audio", exitCode: 0 }]
 };
+manifest.commands.push({ name: "ct-host-check", exitCode: 0 });
+manifest.commands.push({ name: "autostart-status", exitCode: 0 });
 fs.writeFileSync(output, `${JSON.stringify(manifest, null, 2)}\n`);
 NODE
 printf '%s\n' 'name	exitCode	startedAt	finishedAt	log' \
+  'detect-audio	0	2026-07-03T00:00:02+00:00	2026-07-03T00:00:03+00:00	detect-audio.json' \
+  'ct-host-check	0	2026-07-03T00:00:03+00:00	2026-07-03T00:00:04+00:00	ct-host-check.log' \
+  'autostart-status	0	2026-07-03T00:00:04+00:00	2026-07-03T00:00:05+00:00	autostart-status.log' \
   >"$evidence_dir/support-bundle/command-results.tsv"
 printf '%s\n' "# Loopwire Support Bundle" >"$evidence_dir/support-bundle/notes.md"
 write_test_png "$evidence_dir/screenshot.png" 1280 720
@@ -7174,6 +7182,28 @@ fs.writeFileSync(path, rows.join("\n"));
 ' "$failed_evidence_dir/command-results.tsv"
 if bash scripts/verify-vm-evidence.sh --target arch-hyprland-pipewire --evidence-dir "$failed_evidence_dir" >/dev/null 2>&1; then
   echo "verify-scripts: verify-vm-evidence accepted a failed detect-audio command" >&2
+  exit 1
+fi
+failed_support_bundle_dir="$tmp_dir/vm-evidence-failed-support-bundle"
+cp -R "$evidence_dir" "$failed_support_bundle_dir"
+node -e '
+const fs = require("node:fs");
+const path = process.argv[1];
+const rows = fs.readFileSync(path, "utf8").split(/\r?\n/).map((line) => {
+  if (!line.startsWith("ct-host-check\t")) {
+    return line;
+  }
+
+  const cells = line.split("\t");
+  cells[1] = "1";
+  return cells.join("\t");
+});
+fs.writeFileSync(path, rows.join("\n"));
+' "$failed_support_bundle_dir/support-bundle/command-results.tsv"
+if bash scripts/verify-vm-evidence.sh \
+  --target arch-hyprland-pipewire \
+  --evidence-dir "$failed_support_bundle_dir" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-vm-evidence accepted a failed nested support-bundle command" >&2
   exit 1
 fi
 failed_matrix_copy="$tmp_dir/support-matrix-failed.md"

@@ -35,9 +35,10 @@ Required files:
 
 The target must exist in vm/targets.tsv. This verifier checks that the evidence bundle has the expected files and that
 the backend detection JSON contains the target platform and reports array. It also checks command-results.tsv to prove
-the required guest commands, including desktop launch smoke, completed successfully. The environment manifest must
-match the selected VM target's distro, desktop/session, audio stack, and architecture. With --require-published-release,
-the bundle must also prove an installed release smoke through scripts/verify-published-release.sh.
+the required guest commands, including desktop launch smoke, completed successfully. The nested support bundle ledger
+must also prove its quick-profile diagnostics completed and wrote non-empty logs. The environment manifest must match
+the selected VM target's distro, desktop/session, audio stack, and architecture. With --require-published-release, the
+bundle must also prove an installed release smoke through scripts/verify-published-release.sh.
 With --release-tag, the bundle must include structured published-release metadata for that exact tag.
 Use --require-github-release-source with --require-published-release --release-tag for final support claims that must
 prove the VM installed from the GitHub Release surface instead of a guest-visible local release directory.
@@ -284,6 +285,60 @@ for (const backend of data.audio.backends) {
   }
 }
 ' "$evidence_dir/support-bundle/support-bundle.json"
+
+node -e '
+const fs = require("node:fs");
+const path = require("node:path");
+const resultsPath = process.argv[1];
+const supportDir = process.argv[2];
+const required = new Map([
+  ["detect-audio", "detect-audio.json"],
+  ["ct-host-check", "ct-host-check.log"],
+  ["autostart-status", "autostart-status.log"]
+]);
+
+const lines = fs.readFileSync(resultsPath, "utf8")
+  .split(/\r?\n/)
+  .filter(Boolean);
+const header = lines.shift();
+if (header !== "name\texitCode\tstartedAt\tfinishedAt\tlog") {
+  throw new Error("support-bundle/command-results.tsv has an unexpected header");
+}
+
+const rows = lines.map((line, index) => {
+  const cells = line.split("\t");
+  if (cells.length !== 5) {
+    throw new Error(`support-bundle/command-results.tsv row ${index + 2} must have 5 tab-separated columns`);
+  }
+
+  const [name, exitCode, startedAt, finishedAt, log] = cells;
+  return { name, exitCode, startedAt, finishedAt, log };
+});
+
+for (const [name, expectedLog] of required) {
+  const row = rows.find((candidate) => candidate.name === name);
+  if (!row) {
+    throw new Error(`support-bundle/command-results.tsv missing required command: ${name}`);
+  }
+  if (row.exitCode !== "0") {
+    throw new Error(`${name} exited ${row.exitCode}; inspect support-bundle/${row.log}`);
+  }
+  if (row.log !== expectedLog) {
+    throw new Error(`${name} expected log ${expectedLog}, found ${row.log}`);
+  }
+  if (!row.startedAt || !row.finishedAt) {
+    throw new Error(`${name} is missing start or finish timestamp`);
+  }
+  if (row.log.includes("/") || row.log.includes("\\\\") || row.log === "." || row.log === "..") {
+    throw new Error(`${name} support-bundle log must be a basename: ${row.log}`);
+  }
+
+  const logPath = path.join(supportDir, row.log);
+  if (!fs.statSync(logPath).isFile() || fs.statSync(logPath).size === 0) {
+    throw new Error(`${name} support-bundle log is missing or empty: ${row.log}`);
+  }
+}
+' "$evidence_dir/support-bundle/command-results.tsv" "$evidence_dir/support-bundle"
 
 node -e '
 const fs = require("node:fs");
