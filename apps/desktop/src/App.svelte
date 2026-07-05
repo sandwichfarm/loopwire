@@ -309,9 +309,13 @@
   $: backendDecision = selectBackend(backendCandidates, state.selectedBackend);
   $: selectedBackend = state.selectedBackend ?? "";
   $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
+  $: selectedBackendAvailableForRestore = state.selectedBackend
+    ? backendCandidates.some((candidate) => candidate.kind === state.selectedBackend && candidate.availability === "available")
+    : false;
   $: startupRestoreSummary = describeStartupRestoreSummary({
     configuration: activeConfiguration,
     selectedBackendName,
+    selectedBackendAvailable: selectedBackendAvailableForRestore,
     enabled: backgroundStartupEnabled,
     available: backgroundStartupAvailable
   });
@@ -342,7 +346,9 @@
   $: desktopRuntimeAvailable = hasTauriRuntime();
   $: startupActionDisabled = startupBusy || !desktopRuntimeAvailable || (!startupAvailable && !startupEnabled);
   $: backgroundStartupActionDisabled =
-    backgroundStartupBusy || !desktopRuntimeAvailable || (!backgroundStartupAvailable && !backgroundStartupEnabled);
+    backgroundStartupBusy ||
+    !desktopRuntimeAvailable ||
+    ((!backgroundStartupAvailable || !selectedBackendAvailableForRestore) && !backgroundStartupEnabled);
   $: sourcePickerCandidates = detectedSourceCandidates.length > 0 ? detectedSourceCandidates : staticSourceCandidates;
   $: outputPickerCandidates = nativeBackendUsesHostTargets(state.selectedBackend)
     ? [...monitorTargetDevices.map(toHostOutputCandidate), ...appOutputCandidates]
@@ -1893,13 +1899,13 @@
 
       <div
         class="boot-card"
-        class:blocked={!backgroundStartupAvailable}
+        class:blocked={startupRestoreSummary.tone === "blocked"}
         data-restore-summary={startupRestoreSummary.tone}
         aria-label="Restore on boot"
       >
         <div>
           <span>Restore on boot</span>
-          <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable)}</strong>
+          <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable && selectedBackendAvailableForRestore)}</strong>
         </div>
         <small>{backgroundStartupNote}</small>
         <div class="restore-summary">
@@ -2084,7 +2090,7 @@
             <article class="settings-card" data-mode={startupRestoreSummary.tone}>
               <div>
                 <span>Restore on boot</span>
-                <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable)}</strong>
+                <strong>{startupBadge(backgroundStartupEnabled, backgroundStartupAvailable && selectedBackendAvailableForRestore)}</strong>
               </div>
               <small>{startupRestoreSummary.message}</small>
               <button

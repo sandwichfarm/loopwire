@@ -21,8 +21,9 @@ In the desktop shell, use the sidebar startup cards:
   against the persisted state file.
 
 The restore card names the active configuration and saved backend before enablement. If the packaged background
-launcher is unavailable or no backend is selected, the card keeps the saved configuration visible and blocks the unsafe
-enable path instead of writing a unit that cannot restore audio.
+launcher is unavailable, no backend is selected, or the saved backend is no longer detected, the card keeps the saved
+configuration visible and blocks the unsafe enable path instead of writing a unit that cannot restore audio. Existing
+restore units can still be disabled from that blocked state.
 
 Browser preview does not write startup files. It shows the paths and asks you to use the desktop shell.
 Source-checkout Tauri runs do not install a background-capable GUI binary; use the source checkout CLI path below until

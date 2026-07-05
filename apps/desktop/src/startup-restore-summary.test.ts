@@ -9,6 +9,7 @@ describe("describeStartupRestoreSummary", () => {
       describeStartupRestoreSummary({
         configuration,
         selectedBackendName: "PipeWire",
+        selectedBackendAvailable: true,
         enabled: true,
         available: true
       })
@@ -24,6 +25,7 @@ describe("describeStartupRestoreSummary", () => {
       describeStartupRestoreSummary({
         configuration,
         selectedBackendName: "JACK",
+        selectedBackendAvailable: true,
         enabled: false,
         available: true
       })
@@ -39,6 +41,7 @@ describe("describeStartupRestoreSummary", () => {
       describeStartupRestoreSummary({
         configuration,
         selectedBackendName: "None selected",
+        selectedBackendAvailable: false,
         enabled: false,
         available: true
       })
@@ -54,6 +57,7 @@ describe("describeStartupRestoreSummary", () => {
       describeStartupRestoreSummary({
         configuration,
         selectedBackendName: "PipeWire",
+        selectedBackendAvailable: true,
         enabled: false,
         available: false
       })
@@ -62,6 +66,23 @@ describe("describeStartupRestoreSummary", () => {
       title: "Restore helper unavailable",
       message:
         "Podcast mix is still saved, but Loopwire cannot enable boot restore until the background launcher is available."
+    });
+  });
+
+  it("blocks enabling restore when the saved backend is no longer detected", () => {
+    expect(
+      describeStartupRestoreSummary({
+        configuration,
+        selectedBackendName: "JACK",
+        selectedBackendAvailable: false,
+        enabled: false,
+        available: true
+      })
+    ).toEqual({
+      tone: "blocked",
+      title: "JACK is not detected",
+      message:
+        "Podcast mix is still saved, but Loopwire will not enable boot restore until JACK is detected again or you choose an available backend."
     });
   });
 });

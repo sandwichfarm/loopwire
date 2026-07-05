@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T21:15:28+02:00"
-last_activity: 2026-07-05 - Final-proof secret-list rehearsal now has a value-free committed fixture
+last_updated: "2026-07-05T21:29:11+02:00"
+last_activity: 2026-07-05 - Restore on boot now blocks unsafe enablement when the saved backend disappears
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - final-proof secret-list rehearsal now has a committed names-only fixture that
-`verify:scripts` runs through `setup-github-secrets.sh --check --scope final`, proving the offline operator handoff
-path without live GitHub API access or secret values. Phase 12 remains gated on public GitHub Release install, Bunny
+Last activity: 2026-07-05 - the desktop Restore on boot card now checks whether the saved backend is currently detected
+before allowing new enablement, while keeping the selected configuration visible and preserving the ability to disable
+an existing restore unit from the blocked state. Phase 12 remains gated on public GitHub Release install, Bunny
 deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -84,6 +84,11 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Restore-on-boot backend availability guard: the startup restore summary now distinguishes a saved backend
+  name from a currently detected backend, and the desktop Restore on boot card blocks new enablement when the saved
+  backend has disappeared while still allowing an existing restore unit to be disabled. Focused validation passed:
+  `pnpm --filter @loopwire/desktop test -- startup-restore-summary`; `pnpm --filter @loopwire/desktop typecheck`;
+  `pnpm verify:docs`; `pnpm --filter @loopwire/desktop build`; and `git diff --check`.
 - 2026-07-05 Final-proof secret-list rehearsal: added `scripts/fixtures/github-secret-list-final.tsv`, a names-only
   GitHub secret-list fixture for offline final-proof handoff rehearsal. `verify:scripts` now enforces the fixture has
   one uppercase secret name per line, includes the required final-proof secret names, and passes

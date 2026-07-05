@@ -5,6 +5,7 @@ export type StartupRestoreSummaryTone = "ready" | "setup" | "blocked";
 export interface StartupRestoreSummaryInput {
   readonly configuration: Pick<LoopwireConfiguration, "name">;
   readonly selectedBackendName: string;
+  readonly selectedBackendAvailable: boolean;
   readonly enabled: boolean;
   readonly available: boolean;
 }
@@ -32,6 +33,14 @@ export function describeStartupRestoreSummary(input: StartupRestoreSummaryInput)
       tone: "setup",
       title: `${configurationName} is saved`,
       message: "Select an audio backend before enabling live restore on boot."
+    };
+  }
+
+  if (!input.selectedBackendAvailable) {
+    return {
+      tone: "blocked",
+      title: `${backendName} is not detected`,
+      message: `${configurationName} is still saved, but Loopwire will not enable boot restore until ${backendName} is detected again or you choose an available backend.`
     };
   }
 

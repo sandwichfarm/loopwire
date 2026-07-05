@@ -78,6 +78,8 @@ These notes describe source-tree progress. They are not a public release announc
   routes, endpoints, host bindings, or metadata on the host.
 - Background restore now tells users to open Settings > Audio backend and save a verified backend when boot restore
   finds multiple backends or a saved backend is unavailable, instead of failing with a terse backend name.
+- The desktop Restore on boot card now blocks new enablement when the saved backend is no longer detected, while keeping
+  the selected configuration visible and still allowing an existing restore unit to be disabled.
 - Background restore now explains how to recover when the persisted state file is missing, unreadable, corrupt, or
   incompatible: open Loopwire, choose the desired configuration, and enable Restore on boot again.
 - Configuration switching and startup restore now show a runtime activity ledger with unload, apply, verify, and
