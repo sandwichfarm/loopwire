@@ -550,8 +550,9 @@ When required secrets are missing, `--check` prints next-step commands with plac
 only Bunny.net storage or live-docs secrets are missing, it prints only the Bunny setup command; if only
 `LOOPWIRE_RELEASE_PRIVATE_KEY` is missing, it prints only the release signing command. `BUNNY_PULL_ZONE_HOSTNAME` is
 required for final proof because the docs deployment must run post-upload live smoke against the served pull-zone URL.
-The Bunny next-step output includes both direct flags and the safer `--env-file <secret-env-file>` route, so operators
-can keep values out of shell history.
+The Bunny next-step output includes direct flags plus
+`bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>` and the safer
+`--env-file <secret-env-file>` route, so operators can keep values out of shell history and avoid unsafe redirection.
 If storage credentials are already configured and only the hostname is missing, set it without re-entering storage
 credentials:
 

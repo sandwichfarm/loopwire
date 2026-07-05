@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T12:02:45+02:00"
-last_activity: 2026-07-05 - GitHub secret helper writes env-file template safely
+last_updated: "2026-07-05T12:17:29+02:00"
+last_activity: 2026-07-05 - Missing-secret recovery prints env-template setup
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `scripts/setup-github-secrets.sh --write-env-template` now creates the no-value
-release-secret env-file template with `0600` permissions while refusing existing files, symlinks, and unsafe paths.
-Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - Missing-secret recovery output from `scripts/setup-github-secrets.sh --check` and
+`scripts/verify-release-readiness.sh` now prints the `--write-env-template <secret-env-file>` setup step before the
+`--env-file <secret-env-file>` load step. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
+install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,16 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Missing-secret env-template recovery: `scripts/setup-github-secrets.sh --check` and
+  `scripts/verify-release-readiness.sh` now include `--write-env-template <secret-env-file>` in Bunny storage,
+  live-docs hostname, and release-key recovery output before the existing `--env-file <secret-env-file>` load command.
+  This makes the safe local secret env-file ceremony visible at the exact blocker, not just in docs. `scripts/verify-scripts.sh`
+  covers direct secret-helper Bunny, deploy-scope, live-docs, release-key-only, and release-readiness Bunny/live-docs
+  recovery logs. Release docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the recovery wording.
+  Focused validation passed: `bash -n scripts/setup-github-secrets.sh scripts/verify-release-readiness.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`; direct saved-secret-list probes for missing Bunny, missing
+  live-docs hostname, and missing release key recovery output; `bash scripts/verify-docs.sh`; `pnpm verify:scripts`;
+  and `git diff --check`. Full local validation passed: `pnpm check`.
 - 2026-07-05 GitHub secret env template write mode: `scripts/setup-github-secrets.sh --write-env-template` now writes
   the same no-value release-secret env-file template accepted by `--env-file`, refuses existing files and symlinks, and
   applies `0600` permissions. This makes the Bunny storage, live-docs hostname, and release signing key-file ceremony

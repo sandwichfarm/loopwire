@@ -442,7 +442,8 @@ print_missing_secret_next_steps() {
 next: set Bunny.net deployment secrets without printing values:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --storage-zone <zone> --access-key <key>
-  # Or load them from a local uncommitted env file:
+  # Or create, fill, and load a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
   bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
     else
@@ -450,7 +451,8 @@ EOF
 next: set Bunny.net deployment secrets without printing values:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
-  # Or load Bunny values and release key file paths from a local uncommitted env file:
+  # Or create, fill, and load Bunny values and release key file paths from a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
   bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
     fi
@@ -459,7 +461,8 @@ EOF
     cat >&2 <<EOF
 next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
   bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
-  # Or load it from a local uncommitted env file:
+  # Or create, fill, and load it from a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
   bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
   fi
@@ -469,6 +472,9 @@ next: set release signing secret from a local private key:
   bash scripts/setup-github-secrets.sh --repo ${repo} \\
     --release-private-key-file <private-key> \\
     --release-public-key-file packaging/release-signing-public.pem
+  # Or create, fill, and load LOOPWIRE_RELEASE_PRIVATE_KEY_FILE from a local uncommitted env file:
+  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
+  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
 EOF
   fi
 }

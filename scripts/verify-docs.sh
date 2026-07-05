@@ -575,6 +575,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints no-value next steps"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "will skip live-docs smoke"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'names-only `--secret-list-file` artifact'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--write-env-template <secret-env-file>`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:handoff`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects unsafe docs dist'
@@ -589,6 +590,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" '`0600` permissions
 assert_contains "apps/docs/docs/developer/release.md" "--write-env-template /secure/loopwire-release-secrets.env"
 assert_contains "apps/docs/docs/developer/release.md" 'no-value template with `0600`'
 assert_contains "apps/docs/docs/developer/release.md" "prints the same template to stdout"
+assert_contains "apps/docs/docs/developer/release.md" "--write-env-template <secret-env-file>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof now validates local public-key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact types before reading proof claims"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "root/home-expanded paths"

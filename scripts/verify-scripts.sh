@@ -5194,6 +5194,10 @@ grep -F -- "--env-file <secret-env-file>" "$secret_missing_required_log" >/dev/n
   echo "verify-scripts: GitHub secret check did not print env-file Bunny next step" >&2
   exit 1
 }
+grep -F -- "--write-env-template <secret-env-file>" "$secret_missing_required_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not print env-template write step for Bunny secrets" >&2
+  exit 1
+}
 if grep -F "next: set release signing secret from a local private key" "$secret_missing_required_log" >/dev/null; then
   echo "verify-scripts: GitHub secret check printed release key next step when only Bunny secrets were missing" >&2
   exit 1
@@ -5211,6 +5215,10 @@ grep -F -- "--storage-zone <zone> --access-key <key>" "$secret_deploy_missing_re
 }
 grep -F -- "--env-file <secret-env-file>" "$secret_deploy_missing_required_log" >/dev/null || {
   echo "verify-scripts: GitHub deploy-scope check did not print env-file Bunny setup" >&2
+  exit 1
+}
+grep -F -- "--write-env-template <secret-env-file>" "$secret_deploy_missing_required_log" >/dev/null || {
+  echo "verify-scripts: GitHub deploy-scope check did not print env-template write setup" >&2
   exit 1
 }
 if grep -F -- "--pull-zone-hostname <host>" "$secret_deploy_missing_required_log" >/dev/null; then
@@ -5235,6 +5243,10 @@ grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke a
   }
 grep -F -- "--env-file <secret-env-file>" "$secret_missing_live_docs_log" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not print env-file pull-zone hostname next step" >&2
+  exit 1
+}
+grep -F -- "--write-env-template <secret-env-file>" "$secret_missing_live_docs_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not print env-template write step for pull-zone hostname" >&2
   exit 1
 }
 if grep -F "next: set Bunny.net deployment secrets without printing values" \
@@ -5272,6 +5284,10 @@ grep -F "missing: GitHub secret: LOOPWIRE_RELEASE_PRIVATE_KEY" "$secret_missing_
 }
 grep -F "next: set release signing secret from a local private key" "$secret_missing_release_log" >/dev/null || {
   echo "verify-scripts: GitHub secret check did not print release key next step" >&2
+  exit 1
+}
+grep -F -- "--write-env-template <secret-env-file>" "$secret_missing_release_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret check did not print env-template write step for release key" >&2
   exit 1
 }
 if grep -F "next: set Bunny.net deployment secrets without printing values" \
@@ -5430,6 +5446,14 @@ grep -F -- "--pull-zone-hostname <host>" "$release_readiness_next_steps_log" >/d
   echo "verify-scripts: release readiness Bunny next step is missing pull-zone hostname" >&2
   exit 1
 }
+grep -F -- "--write-env-template <secret-env-file>" "$release_readiness_next_steps_log" >/dev/null || {
+  echo "verify-scripts: release readiness Bunny next step is missing env-template write command" >&2
+  exit 1
+}
+grep -F -- "--env-file <secret-env-file>" "$release_readiness_next_steps_log" >/dev/null || {
+  echo "verify-scripts: release readiness Bunny next step is missing env-file load command" >&2
+  exit 1
+}
 grep -F "next: after required secrets are configured and readiness passes, create and push the release tag" \
   "$release_readiness_next_steps_log" >/dev/null || {
     echo "verify-scripts: release readiness did not print release tag next step" >&2
@@ -5460,6 +5484,14 @@ grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke a
     echo "verify-scripts: release readiness did not print pull-zone hostname next step" >&2
     exit 1
   }
+grep -F -- "--write-env-template <secret-env-file>" "$release_readiness_live_docs_log" >/dev/null || {
+  echo "verify-scripts: release readiness live-docs next step is missing env-template write command" >&2
+  exit 1
+}
+grep -F -- "--env-file <secret-env-file>" "$release_readiness_live_docs_log" >/dev/null || {
+  echo "verify-scripts: release readiness live-docs next step is missing env-file load command" >&2
+  exit 1
+}
 
 refresh_published_release_manifest() {
   local release_dir="$1"
