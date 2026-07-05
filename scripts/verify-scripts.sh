@@ -127,6 +127,10 @@ node scripts/verify-support-matrix.mjs --help | grep -F -- "--require-published-
   echo "verify-scripts: support matrix verifier help is missing published release strictness support" >&2
   exit 1
 }
+node scripts/verify-support-matrix.mjs --help | grep -F -- "local, non-symlink artifacts" >/dev/null || {
+  echo "verify-scripts: support matrix verifier help is missing path boundary guidance" >&2
+  exit 1
+}
 bash scripts/verify-vm-evidence.sh --help | grep -F -- "--release-tag vX.Y.Z" >/dev/null || {
   echo "verify-scripts: VM evidence verifier help is missing release tag support" >&2
   exit 1
@@ -6429,6 +6433,28 @@ node scripts/verify-support-matrix.mjs \
   --matrix "$matrix_copy" \
   --evidence-root "$matrix_strict_root" \
   --require-published-release >/dev/null
+support_matrix_link="$tmp_dir/support-matrix-link.md"
+ln -s "$matrix_copy" "$support_matrix_link"
+if node scripts/verify-support-matrix.mjs \
+  --matrix "$support_matrix_link" \
+  --evidence-root "$matrix_strict_root" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-support-matrix accepted a symlinked matrix path" >&2
+  exit 1
+fi
+support_matrix_bad_root="$tmp_dir/support-matrix-root-file"
+printf 'not a directory\n' >"$support_matrix_bad_root"
+if node scripts/verify-support-matrix.mjs \
+  --matrix "$matrix_copy" \
+  --evidence-root "$support_matrix_bad_root" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-support-matrix accepted a file-valued evidence root" >&2
+  exit 1
+fi
+if node scripts/verify-support-matrix.mjs \
+  --matrix ../support-matrix.md \
+  --evidence-root "$matrix_strict_root" >/dev/null 2>&1; then
+  echo "verify-scripts: verify-support-matrix accepted parent traversal in matrix path" >&2
+  exit 1
+fi
 matrix_all_copy="$tmp_dir/support-matrix-all.md"
 matrix_all_root="$tmp_dir/support-matrix-all-root"
 cp apps/docs/docs/guide/support-matrix.md "$matrix_all_copy"

@@ -88,6 +88,8 @@ assert_contains "apps/docs/docs/guide/support-matrix.md" "packaged user-scoped s
 assert_contains "apps/docs/docs/guide/support-matrix.md" "pnpm vm:promote-evidence -- --target"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "Direct SSH collection keeps guest and copied-back output target-scoped"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "--require-published-release"
+assert_contains "apps/docs/docs/guide/support-matrix.md" 'Custom verifier `--evidence-root` and `--matrix` paths'
+assert_contains "apps/docs/docs/guide/support-matrix.md" "before reading the matrix or scanning copied-back VM evidence"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "pnpm vm:render-ssh-plan"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "Virtual sinks, routes, mute, monitor links"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "one output per source"
@@ -695,6 +697,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'specific signing p
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'resolved release tag commit with `--git-head`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm verify:final-release`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "support-matrix verifier can now require installed-release smoke"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'validates custom `--matrix` and `--evidence-root` paths'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'stricter mode for `Verified` rows'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>.tar.gz"

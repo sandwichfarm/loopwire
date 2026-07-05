@@ -291,6 +291,9 @@ These notes describe source-tree progress. They are not a public release announc
   final release evidence, every VM target bundle, support-matrix promotion, and docs verification.
 - The support-matrix verifier can now require installed-release smoke with `--require-published-release`, and the final
   release proof wrapper uses that stricter mode for `Verified` rows.
+- The support-matrix verifier now validates custom `--matrix` and `--evidence-root` paths before reading promotion
+  claims, rejecting symlinks, traversal, URL-like values, glob metacharacters, root/home placeholders, and wrong
+  existing file/directory types.
 - Release evidence collection can now require verified VM evidence with `--require-vm-evidence`, including guest
   installed-release smoke when `--require-published-release` is also enabled.
 - Release evidence collection now records a read-only `dsp-provider-plan` row in the full profile, and final release

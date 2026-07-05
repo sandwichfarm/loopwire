@@ -30,6 +30,9 @@ After evidence verifies, promote the row with `pnpm vm:promote-evidence -- --tar
 to preview the docs change without editing the matrix. For final release support claims, pass
 `--require-published-release --release-tag <tag>` so promotion also proves the guest installed and ran the signed
 published artifact for the exact release.
+Custom verifier `--evidence-root` and `--matrix` paths are local artifacts only: the support-matrix verifier rejects
+root/home placeholders, parent/current-directory traversal, URL syntax, glob metacharacters, symlinks, and existing
+paths with the wrong file or directory type before reading the matrix or scanning copied-back VM evidence.
 Run `pnpm vm:host-plan` for cross-distro host setup hints and target-specific image, cloud-init, launch, and evidence
 handoff commands.
 Run `pnpm vm:render-ssh-plan -- --all --output .vm/ssh-targets.tsv` to generate the multi-guest TSV consumed by

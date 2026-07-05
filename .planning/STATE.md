@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T10:48:16+02:00"
-last_activity: 2026-07-05 - Release evidence collection paths fail closed
+last_updated: "2026-07-05T11:02:23+02:00"
+last_activity: 2026-07-05 - Support matrix proof paths fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Release evidence collection now rejects unsafe output directories and readiness-log paths
-before writing command logs or reading summarized release preflight artifacts. Phase 12 remains gated on configuring
-Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - Support-matrix verification now rejects unsafe custom matrix and evidence-root paths
+before reading promotion claims or scanning copied-back VM evidence. Phase 12 remains gated on configuring Bunny
+secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,17 @@ Bunny secrets, public GitHub Release install, Bunny deployment proof, and operat
 
 ## Verification Log
 
+- 2026-07-05 Support matrix proof path hardening: `scripts/verify-support-matrix.mjs` now validates custom
+  `--matrix` and `--evidence-root` paths before reading support claims or scanning copied-back VM evidence. Matrix
+  paths must exist as regular files; evidence roots may be absent but must be directories when present. Root/home
+  placeholders, parent/current traversal, URL syntax, glob metacharacters, symlinks, and existing paths with the wrong
+  file/directory type fail closed. `scripts/verify-scripts.sh` now rejects symlinked matrix paths, file-valued evidence
+  roots, and parent-traversing matrix paths. The support matrix guide, unreleased notes, and `scripts/verify-docs.sh`
+  document and assert the verifier path boundary. Focused validation passed: `node --check
+  scripts/verify-support-matrix.mjs`; `bash -n scripts/verify-scripts.sh scripts/verify-docs.sh`; normal
+  support-matrix verification; symlink matrix, file evidence-root, and traversal matrix negative probes with expected
+  errors; `git diff --check`; `pnpm verify:scripts`; and `bash scripts/verify-docs.sh`. Full local validation passed:
+  `pnpm check`.
 - 2026-07-05 Release evidence collector path hardening: `scripts/collect-release-evidence.mjs` now validates
   `--output-dir` before creating directories or writing command logs, and validates
   `--summarize-release-readiness-log` before reading a saved release preflight log. Absolute temp directories and

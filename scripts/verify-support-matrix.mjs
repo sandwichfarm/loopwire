@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -88,6 +88,7 @@ Usage:
 Rows marked Verified require a passing target evidence bundle. Rows with passing evidence must be marked Verified.
 Use --require-published-release with --release-tag for final release support claims that must prove installed-release
 smoke for the exact release.
+Custom --evidence-root and --matrix paths must be local, non-symlink artifacts without traversal, URL, or glob syntax.
 `);
 }
 
@@ -130,6 +131,58 @@ function validateArgs() {
       console.error(`verify-support-matrix: release tag must be v-prefixed semver without path separators: ${releaseTag}`);
       process.exit(2);
     }
+  }
+
+  validateLocalPath(evidenceRoot, "evidence root", "dir", false);
+  validateLocalPath(matrixPath, "support matrix", "file", true);
+}
+
+function validateLocalPath(value, label, expectedType, requireExisting) {
+  if (typeof value !== "string" || value.length === 0 || value.includes("\0") || /[\r\n]/.test(value)) {
+    console.error(`verify-support-matrix: ${label} must be a single non-empty path`);
+    process.exit(2);
+  }
+
+  const normalized = value.replace(/^[.][\\/]/, "");
+  if (
+    normalized.length === 0 ||
+    normalized === "/" ||
+    normalized === "~" ||
+    normalized.startsWith("~/") ||
+    normalized.includes("://") ||
+    /[*?[\]]/.test(normalized)
+  ) {
+    console.error(
+      `verify-support-matrix: ${label} must not be root, home-expanded, URL-like, or contain glob metacharacters`
+    );
+    process.exit(2);
+  }
+
+  if (normalized.split(/[\\/]+/).some((part) => part === "." || part === "..")) {
+    console.error(`verify-support-matrix: ${label} must not contain . or .. path segments`);
+    process.exit(2);
+  }
+
+  if (!existsSync(value)) {
+    if (requireExisting) {
+      console.error(`verify-support-matrix: ${label} must be a ${expectedType}`);
+      process.exit(2);
+    }
+    return;
+  }
+
+  const stat = lstatSync(value);
+  if (stat.isSymbolicLink()) {
+    console.error(`verify-support-matrix: ${label} must not be a symlink`);
+    process.exit(2);
+  }
+  if (expectedType === "file" && !stat.isFile()) {
+    console.error(`verify-support-matrix: ${label} must be a file when it exists`);
+    process.exit(2);
+  }
+  if (expectedType === "dir" && !stat.isDirectory()) {
+    console.error(`verify-support-matrix: ${label} must be a directory when it exists`);
+    process.exit(2);
   }
 }
 
