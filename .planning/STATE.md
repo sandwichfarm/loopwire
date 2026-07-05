@@ -3239,3 +3239,12 @@ install, Bunny deployment proof, final proof workflow success, and operator-run 
   28720204030`, `-f docs_deployment_run_id=28720204030`, and `Final release status: blocked`. `pnpm verify:scripts`,
   `pnpm verify:docs`, and full `pnpm check` passed. No VM launch, public release, Bunny deployment, secret write, tag
   push, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-05 blocked live-switch ledger UX: refused live configuration switches now copy every preflight blocker into
+  the runtime activity ledger as failed verification evidence instead of leaving the switch attempt with only the
+  aggregate status line. The pure preflight helper creates the runtime log, `App.svelte` preserves it on the guarded
+  blocked switch path, and docs now state the ledger behavior.
+- 2026-07-05 blocked live-switch ledger validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready before implementation. `pnpm --filter @loopwire/desktop test --
+  live-apply-preflight.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, `git diff --check`,
+  and full `pnpm check` passed. No backend support was promoted, and no VM launch, public release, Bunny deployment,
+  secret write, tag push, host audio mutation, or support-matrix promotion was performed.

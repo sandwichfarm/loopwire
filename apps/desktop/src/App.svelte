@@ -7,6 +7,7 @@
   import { groupMonitorsByVisibility, restoreHiddenMonitors } from "./monitor-visibility";
   import { describeStartupRestoreSummary } from "./startup-restore-summary";
   import {
+    createLiveApplyPreflightLog,
     describeConfigurationSwitchPreflight,
     describeLiveApplyPreflight,
     getNativeGainBlockerRoutes,
@@ -671,9 +672,13 @@
     );
 
     if (hostApplyMode === "live" && !preflight.ok) {
+      const blockerLog = createLiveApplyPreflightLog(configurationId, preflight);
+
       if (isCurrentConfigurationSwitch(switchToken)) {
         runtimeStatus = "failed";
         runtimeNote = preflight.message;
+        runtimeActivity = blockerLog;
+        runtimeActivityReason = "switch";
         configurationSwitchBusy = false;
       }
 
@@ -682,7 +687,7 @@
         status: "failed",
         state: sourceState,
         plan: createConfigurationSwitchPlan(sourceState, configurationId, new Date().toISOString()),
-        log: [],
+        log: blockerLog,
         reason: preflight.message
       };
     }

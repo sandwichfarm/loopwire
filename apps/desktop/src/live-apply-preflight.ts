@@ -3,7 +3,8 @@ import type {
   AudioEndpoint,
   AudioRoute,
   BackendAvailability,
-  LoopwireConfiguration
+  LoopwireConfiguration,
+  RuntimeLogEntry
 } from "@loopwire/core";
 import { describeJackPortRequirements, type JackPortRequirement } from "@loopwire/audio-host/runtime";
 
@@ -95,6 +96,22 @@ export function describeConfigurationSwitchPreflight(
     displayBackendName,
     capabilities.find((capability) => capability.kind === backend)
   );
+}
+
+export function createLiveApplyPreflightLog(
+  configurationId: string,
+  preflight: LiveApplyPreflight
+): readonly RuntimeLogEntry[] {
+  if (preflight.ok) {
+    return [];
+  }
+
+  return preflight.blockers.map((blocker) => ({
+    operation: "verify",
+    configurationId,
+    ok: false,
+    message: blocker
+  }));
 }
 
 export function getNativeGainBlockerRoutes(

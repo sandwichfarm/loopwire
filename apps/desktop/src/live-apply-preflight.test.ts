@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LoopwireConfiguration } from "@loopwire/core";
 import type { LiveApplyBackendCapability } from "./live-apply-preflight";
 import {
+  createLiveApplyPreflightLog,
   describeConfigurationSwitchPreflight,
   describeLiveApplyPreflight,
   getNativeGainBlockerRoutes
@@ -351,5 +352,46 @@ describe("describeConfigurationSwitchPreflight", () => {
       message: "PulseAudio is unavailable for live apply: PulseAudio service is not reachable.",
       blockers: ["PulseAudio is unavailable for live apply: PulseAudio service is not reachable."]
     });
+  });
+});
+
+describe("createLiveApplyPreflightLog", () => {
+  it("records every blocked switch preflight reason as runtime verification evidence", () => {
+    const preflight = describeConfigurationSwitchPreflight(
+      baseConfiguration,
+      "pipewire",
+      [],
+      (kind) => (kind === "pipewire" ? "PipeWire" : kind)
+    );
+
+    expect(createLiveApplyPreflightLog("studio", preflight)).toEqual([
+      {
+        operation: "verify",
+        configurationId: "studio",
+        ok: false,
+        message:
+          "PipeWire live apply needs 100% route gain for Call Audio -> Stream. Use Reset gains, or switch to a " +
+          "graph-edge/DSP-capable backend when one is available."
+      },
+      {
+        operation: "verify",
+        configurationId: "studio",
+        ok: false,
+        message: "PipeWire live apply needs host source ports for Call Audio."
+      }
+    ]);
+  });
+
+  it("does not create runtime log noise when preflight is ready", () => {
+    const preflight = describeLiveApplyPreflight(
+      {
+        ...baseConfiguration,
+        inputs: baseConfiguration.inputs.map((input) => ({ ...input, deviceName: input.deviceName ?? "call_audio" })),
+        routes: baseConfiguration.routes.map((route) => ({ ...route, gain: 1 }))
+      },
+      "pipewire"
+    );
+
+    expect(createLiveApplyPreflightLog("studio", preflight)).toEqual([]);
   });
 });

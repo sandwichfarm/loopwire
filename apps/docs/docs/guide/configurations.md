@@ -83,7 +83,8 @@ Automatic single-backend selection uses the same transaction path during startup
 is not persisted until the active configuration verifies against it.
 After startup restore, a backend change, or a configuration click, the desktop shows a runtime activity ledger with the
 exact operations that ran, including the exact unload, apply, verify, and rollback operations when the transaction
-includes them, so switch behavior is inspectable instead of being reduced to a single status line.
+includes them. If an armed live configuration switch is refused by preflight, the same ledger records each blocker as
+failed verification evidence, so switch behavior is inspectable instead of being reduced to a single status line.
 
 Before live mode can be armed, the desktop runs a static preflight against the selected backend and configuration. It
 blocks known-failing live applies such as no selected backend, a selected backend that current detection reports as

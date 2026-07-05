@@ -165,6 +165,7 @@ assert_contains "apps/docs/docs/guide/configurations.md" "one edge per"
 assert_contains "apps/docs/docs/guide/configurations.md" "runtime activity ledger"
 assert_contains "apps/docs/docs/guide/configurations.md" "the exact unload"
 assert_contains "apps/docs/docs/guide/configurations.md" "apply, verify, and rollback operations"
+assert_contains "apps/docs/docs/guide/configurations.md" "failed verification evidence"
 assert_contains "apps/docs/docs/guide/configurations.md" '`Reset gains` action'
 assert_contains "apps/docs/docs/guide/configurations.md" "without touching host audio"
 assert_contains "apps/docs/docs/guide/configurations.md" "route gain sliders become read-only"
@@ -540,6 +541,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "stale backend veri
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Automatic single-backend selection now uses the same backend-change transaction path"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "first-run callout"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "runtime activity ledger"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "failed switch remains actionable"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "names routes blocked by non-100% gain"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`Reset gains` action'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "route gain sliders now lock"
