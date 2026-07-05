@@ -213,6 +213,11 @@ bash scripts/plan-final-release-handoff.sh -- --help >/dev/null || {
   echo "verify-scripts: release handoff does not accept the package-script argument separator" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" |
+  grep -F -- "Require commit-scoped CI and Deploy Docs workflow runs" >/dev/null || {
+    echo "verify-scripts: agent-ready release help is missing commit-scoped hosted-check wording" >&2
+    exit 1
+  }
 printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--run-id ID" >/dev/null || {
   echo "verify-scripts: docs deployment proof helper help is missing run id support" >&2
   exit 1

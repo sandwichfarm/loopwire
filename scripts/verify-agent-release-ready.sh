@@ -25,7 +25,7 @@ Options:
   --dsp-frame-count N    Source frame count for read-only DSP provider planning, default 16
   --skip-local-gates     Only verify offline release readiness and handoff rendering
   --require-hosted-checks
-                         Require latest CI and Deploy Docs workflow runs to be successful for --git-head
+                         Require commit-scoped CI and Deploy Docs workflow runs to be successful for --git-head
 
 This command is read-only. It does not set secrets, create tags, dispatch workflows, upload assets, launch VMs, or
 mutate host audio. Passing means the repository-side automation is ready for the operator-deferred release ceremony;

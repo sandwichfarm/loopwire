@@ -2574,9 +2574,9 @@
   `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
   reports_packaged_background_launcher_preflight_success -- --nocapture`; `cargo fmt --manifest-path
   apps/desktop/src-tauri/Cargo.toml --check`; and `pnpm check`.
-- `scripts/verify-agent-release-ready.sh` now accepts `--require-hosted-checks`, which verifies the latest hosted
-  `ci.yml` and `deploy-docs.yml` runs are completed, successful, and tied to the exact `--git-head` before continuing
-  the operator-deferred release ceremony. The default remains offline/local, and `scripts/verify-scripts.sh` covers the
+- `scripts/verify-agent-release-ready.sh` now accepts `--require-hosted-checks`, which verifies hosted `ci.yml` and
+  `deploy-docs.yml` runs scoped to the exact `--git-head` are completed and successful before continuing the
+  operator-deferred release ceremony. The default remains offline/local, and `scripts/verify-scripts.sh` covers the
   hosted path with a fake `gh` fixture. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh
   scripts/verify-scripts.sh`; `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
   $(git rev-parse HEAD) --require-hosted-checks --skip-local-gates`, which verified CI run `28740130399` and Deploy
@@ -2657,6 +2657,18 @@
   --skip-gh`, and `pnpm check` passed or failed only on expected operator-deferred final release gates. No secret
   write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was
   performed.
+- Agent-ready hosted-check help now matches the enforced commit-scoped workflow behavior:
+  `scripts/verify-agent-release-ready.sh --help` describes `--require-hosted-checks` as requiring commit-scoped CI and
+  Deploy Docs workflow runs, and `scripts/verify-scripts.sh` asserts that wording so future help output cannot drift
+  back to "latest run" language.
+- Focused validation passed for agent-ready help wording: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located `run_hosted_workflow_probe` and final release proof
+  surfaces before implementation. `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:docs`, `pnpm verify:scripts`, and live read-only `pnpm release:agent-ready --
+  --repo sandwichfarm/loopwire --tag v0.1.0 --git-head b4f979de5987dffe5ae11f6a0aa22c250005d8f2
+  --require-hosted-checks --skip-local-gates` passed, verifying CI run `28749558979` and Deploy Docs run
+  `28749558985` for commit `b4f979de5987dffe5ae11f6a0aa22c250005d8f2`. No secret write, release tag, public
+  release, Bunny deployment, VM launch, host audio mutation, or support-matrix promotion was performed.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

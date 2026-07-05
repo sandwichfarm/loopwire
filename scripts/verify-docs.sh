@@ -716,6 +716,7 @@ assert_contains "apps/docs/docs/developer/release.md" "contains the project rele
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "now contains the project release public key"
 assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "hosted checks as commit-scoped"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "filters CI, Deploy Docs, and Final Release Proof workflow lookups"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "same hosted proof surfaces"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "fallback missing-manifest docs proof run-id hint scoped"

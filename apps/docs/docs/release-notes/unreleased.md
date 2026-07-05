@@ -231,6 +231,8 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm release:agent-ready -- --require-hosted-checks` now filters hosted CI and Deploy Docs workflow lookups by the
   exact release commit before the operator-deferred ceremony continues, so newer unrelated runs cannot mask the target
   SHA's proof state.
+- `pnpm release:agent-ready --help` now describes hosted checks as commit-scoped, matching the enforced
+  `--require-hosted-checks` behavior.
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.

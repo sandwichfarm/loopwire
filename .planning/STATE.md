@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T19:46:55+02:00"
-last_activity: 2026-07-05 - Final release docs proof recovery hints are filtered by exact release commit
+last_updated: "2026-07-05T20:00:42+02:00"
+last_activity: 2026-07-05 - Agent-ready hosted-check help now matches commit-scoped behavior
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `release:status` now keeps missing-docs-manifest recovery run-id hints scoped to the exact
-`--git-head` when it has not already cached a verified Deploy Docs run id. Phase 12 remains gated on public GitHub
-Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `release:agent-ready --help` now describes hosted checks as commit-scoped, matching the
+enforced `--require-hosted-checks` behavior and its fake-GitHub contract coverage. Phase 12 remains gated on public
+GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
