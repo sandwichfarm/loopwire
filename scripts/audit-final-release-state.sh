@@ -555,8 +555,8 @@ validate_repo
 validate_tag
 reject_unsafe_value "$public_key" "public key"
 reject_unsafe_value "$expected_git_head" "git head"
-reject_unsafe_value "$env_file" "env file"
-reject_unsafe_value "$secret_list_file" "secret-list file"
+[ -z "$env_file" ] || validate_local_path "$env_file" "env file" file
+[ -z "$secret_list_file" ] || validate_local_path "$secret_list_file" "secret-list file" file
 reject_unsafe_value "$docs_deployment_run_id" "docs deployment run id"
 validate_local_path "$docs_deployment_manifest" "docs deployment manifest" file
 validate_local_path "$docs_dist" "docs dist" dir

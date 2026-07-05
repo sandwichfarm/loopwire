@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T06:18:13+02:00"
-last_activity: 2026-07-05 - Release status local proof paths fail closed
+last_updated: "2026-07-05T06:36:06+02:00"
+last_activity: 2026-07-05 - Release status local env and secret artifacts fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - release status now rejects unsafe local docs, VM evidence, and support-matrix paths before
-auditing final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install,
-Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - release status now rejects unsafe local env-file, secret-list, docs, VM evidence, and
+support-matrix paths before auditing final proof surfaces. Phase 12 remains gated on configuring Bunny secrets, public
+GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,17 @@ Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release status env/secret artifact path hardening: `scripts/audit-final-release-state.sh` now validates
+  optional `--env-file` and `--secret-list-file` as local file paths before running final release status gates. Absolute
+  and relative operator files remain valid, but root/home-expanded paths, parent traversal, URL syntax, glob
+  metacharacters, symlinks, and existing non-file paths fail closed before GitHub, release, docs, or VM proof probes
+  run. `scripts/verify-scripts.sh` now rejects symlinked env-file paths and directory-valued secret-list paths. Release
+  docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the expanded status path contract. Focused
+  validation passed: regular-file `scripts/audit-final-release-state.sh --env-file --secret-list-file --skip-gh`
+  smoke reached the audit phase, symlink env-file and directory secret-list negative probes failed with the expected
+  errors, `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `git diff --check`, `pnpm verify:scripts`, and `bash scripts/verify-docs.sh`. Full local validation passed:
+  `pnpm check`.
 - 2026-07-05 Release status local proof-path hardening: `scripts/audit-final-release-state.sh` now validates custom
   local docs deployment manifest, docs dist, VM evidence root, and support-matrix paths before running the final release
   status audit. Absolute and relative local paths remain valid for operator-collected proof, but root/home-expanded

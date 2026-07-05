@@ -581,7 +581,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence asset 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "redirect checksum regeneration"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final release proof dry-runs now reject unsafe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "root/home-expanded paths"
-assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:status` now rejects unsafe local'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:status` now rejects unsafe local env-file'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong existing"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "parseable release signing public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "non-dry-run docs deployment manifest proof"
@@ -615,6 +615,7 @@ assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
 assert_contains "apps/docs/docs/developer/release.md" 'If the docs deployment manifest is missing'
 assert_contains "apps/docs/docs/developer/release.md" 'Custom local path inputs for `release:status`'
+assert_contains "apps/docs/docs/developer/release.md" 'including `--env-file`, `--secret-list-file`'
 assert_contains "apps/docs/docs/developer/release.md" "wrong file or directory type"
 assert_contains "apps/docs/docs/developer/release.md" "uses that same root"
 assert_contains "apps/docs/docs/developer/release.md" "release signing public key"

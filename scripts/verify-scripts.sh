@@ -470,10 +470,32 @@ if bash scripts/audit-final-release-state.sh \
   exit 1
 fi
 release_status_path_guard_root="$(mktemp -d)"
+release_status_env_file_symlink="$release_status_path_guard_root/env-file-symlink"
+release_status_secret_list_dir="$release_status_path_guard_root/secret-list-dir"
 release_status_docs_dist_symlink="$release_status_path_guard_root/docs-dist-symlink"
 release_status_support_matrix_dir="$release_status_path_guard_root/support-matrix-dir"
+ln -s "$release_status_path_guard_root" "$release_status_env_file_symlink"
 ln -s "$release_status_path_guard_root" "$release_status_docs_dist_symlink"
+mkdir -p "$release_status_secret_list_dir"
 mkdir -p "$release_status_support_matrix_dir"
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --env-file "$release_status_env_file_symlink" \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted a symlink env file" >&2
+  rm -rf "$release_status_path_guard_root"
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --secret-list-file "$release_status_secret_list_dir" \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted a directory secret-list file" >&2
+  rm -rf "$release_status_path_guard_root"
+  exit 1
+fi
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
