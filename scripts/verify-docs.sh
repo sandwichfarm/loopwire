@@ -592,6 +592,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:prepa
 assert_contains "apps/docs/docs/developer/release.md" "--release-public-key-file packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" "--secret-list-file release-secret-names.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
+assert_contains "apps/docs/docs/developer/release.md" 'Custom `--vm-ssh-plan` and `--vm-runbook` outputs'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-proof"
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:status"
@@ -612,6 +613,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'matching `LOOPWIRE_RELEAS
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "latest CI workflow run for the expected commit"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'same hosted `pnpm check` gate'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "rejects absolute or parent-traversal VM handoff output paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "no longer gets release-key reset guidance"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now prints no-value next steps"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'

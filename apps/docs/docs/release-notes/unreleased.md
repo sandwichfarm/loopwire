@@ -211,6 +211,8 @@ These notes describe source-tree progress. They are not a public release announc
   the same local secret-file setup path without reading or printing secret values.
 - `pnpm release:fetch-docs-proof` now rejects absolute or parent-traversal output paths before it rewrites the docs dist
   and deployment manifest locations.
+- `pnpm release:handoff` now rejects absolute or parent-traversal VM handoff output paths before rendering VM SSH plan
+  and runbook commands.
 - `pnpm release:status` now preserves `--env-file` in its generated `pnpm release:fetch-docs-proof` recovery command
   when the docs deployment manifest is missing.
 - `pnpm release:status --env-file` now keeps the default release public-key path implicit in its embedded VM evidence

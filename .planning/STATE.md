@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T04:32:24+02:00"
-last_activity: 2026-07-05 - Docs proof fetch keeps output paths repo-relative
+last_updated: "2026-07-05T04:47:20+02:00"
+last_activity: 2026-07-05 - Release handoff keeps VM output paths repo-relative
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - docs deployment proof fetching now rejects absolute or parent-traversal output paths before
-rewriting the docs dist and deployment manifest locations. Phase 12 remains gated on configuring Bunny secrets, public
+Last activity: 2026-07-05 - release handoff rendering now rejects absolute or parent-traversal VM SSH plan and runbook
+output paths before printing release-operator commands. Phase 12 remains gated on configuring Bunny secrets, public
 GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
@@ -83,6 +83,14 @@ GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release handoff output-path hardening: `scripts/plan-final-release-handoff.sh` now requires custom
+  `--vm-ssh-plan` and `--vm-runbook` outputs to be repo-relative paths without `.`, `..`, absolute paths, home-directory
+  expansion, or URL syntax before rendering commands that create reviewable VM handoff artifacts. `scripts/verify-scripts.sh`
+  now rejects absolute VM SSH plan paths and parent-traversing VM runbook paths. Release docs and unreleased notes
+  document the path boundary, and `scripts/verify-docs.sh` asserts the docs text. Focused validation passed:
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, `bash scripts/verify-docs.sh`, and `git diff --check`. Full local validation passed:
+  `pnpm check`.
 - 2026-07-05 Docs deployment proof output-path hardening: `scripts/fetch-docs-deployment-proof.sh` now requires
   `--docs-dist` and `--manifest` outputs to be repo-relative paths without `.` or `..` path segments before it removes or
   rewrites those locations. `scripts/verify-scripts.sh` moved the fake-GitHub proof smoke into a repo-local

@@ -365,6 +365,22 @@ if bash scripts/plan-final-release-handoff.sh \
   echo "verify-scripts: release handoff accepted an unsafe VM evidence asset name" >&2
   exit 1
 fi
+if bash scripts/plan-final-release-handoff.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --vm-ssh-plan /tmp/loopwire-vm-ssh-plan.tsv >/dev/null 2>&1; then
+  echo "verify-scripts: release handoff accepted an absolute VM SSH plan path" >&2
+  exit 1
+fi
+if bash scripts/plan-final-release-handoff.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --vm-runbook ../loopwire-vm-runbook.md >/dev/null 2>&1; then
+  echo "verify-scripts: release handoff accepted a parent-traversing VM runbook path" >&2
+  exit 1
+fi
 release_status_help="$(bash scripts/audit-final-release-state.sh --help)"
 bash scripts/audit-final-release-state.sh -- --help >/dev/null || {
   echo "verify-scripts: release status does not accept the package-script argument separator" >&2

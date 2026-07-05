@@ -99,6 +99,19 @@ validate_port() {
   fi
 }
 
+validate_repo_relative_output_path() {
+  local value="$1"
+  local label="$2"
+  local normalized
+
+  normalized="${value#./}"
+  case "$normalized" in
+    /* | ~* | *://* | "" | . | .. | ../* | */../* | */.. | */./* | */.)
+      fail "$label must be a repo-relative output path without . or .. segments: $value"
+      ;;
+  esac
+}
+
 validate_optional_asset() {
   local kind="$1"
   local asset="$2"
@@ -317,6 +330,8 @@ validate_tag
 validate_git_head
 validate_docs_run_id
 validate_port
+validate_repo_relative_output_path "$vm_ssh_plan" "VM SSH plan"
+validate_repo_relative_output_path "$vm_runbook" "VM runbook"
 validate_optional_asset "release-evidence" "$release_evidence_asset"
 validate_optional_asset "vm-evidence" "$vm_evidence_asset"
 

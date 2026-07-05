@@ -183,7 +183,9 @@ local file used by `scripts/setup-github-secrets.sh`, but the handoff consumes o
 are ignored by the handoff so access keys never appear in rendered release commands. When `--env-file` is present, the
 rendered secret-check, docs proof fetch, and VM evidence asset-prep commands keep using that env file instead of
 expanding env-derived release key paths. Explicit CLI key flags still override the env file and are rendered only when
-supplied directly.
+supplied directly. Custom `--vm-ssh-plan` and `--vm-runbook` outputs must stay repo-relative and cannot contain `.`,
+`..`, absolute paths, home-directory expansion, or URL syntax, because the rendered handoff is meant to write reviewable
+release artifacts inside the checkout.
 
 After Deploy Docs succeeds, download and verify its proof artifacts before running final status or final proof:
 
