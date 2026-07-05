@@ -29,7 +29,8 @@ callout names the candidates, keeps live apply in preview, and requires the user
 saved for live apply and startup restore. If only one backend is available, the callout explains the automatic
 selection; if none are available, it stays in a blocked diagnostics state. Manual backend changes run as a
 `backend-change` runtime transaction: Loopwire applies and verifies the active configuration against the newly selected
-backend before committing that backend as the saved startup-restore choice.
+backend before committing that backend as the saved startup-restore choice. While that verification is running, backend
+and configuration switching controls stay disabled so a later click cannot race an earlier backend result.
 
 ## Current Detection Surface
 

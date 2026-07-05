@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T02:10:37+02:00"
-last_activity: 2026-07-05 - Backend changes verify before becoming persisted startup choices
+last_updated: "2026-07-05T02:24:27+02:00"
+last_activity: 2026-07-05 - Backend changes are serialized while verification is in flight
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - manual desktop backend changes now run through a core `backend-change` runtime transaction
-that applies and verifies the active configuration before committing the backend as the persisted startup-restore
-choice. Live apply is still disarmed before the change, and the runtime ledger now names backend-change transactions.
-Phase 12 remains gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and
-operator-run VM evidence.
+Last activity: 2026-07-05 - desktop backend-change transactions now use a busy/token guard so backend, host-apply, and
+configuration-switch controls stay disabled while verification is in flight, and stale backend verification results are
+ignored when a newer selection starts first. Phase 12 remains gated on configuring Bunny secrets, public GitHub Release
+install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,11 @@ operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Serialized backend-change UX: desktop backend changes now set `backendSelectionBusy`, use a
+  `backendSelectionToken` to ignore stale transaction results, disable backend selection, host-apply arming, and
+  configuration switching while verification is in flight, and show busy copy in the backend chooser summary. Focused
+  validation passed: `pnpm --filter @loopwire/desktop typecheck`. Backend/configuration docs, unreleased notes, and
+  docs verification now cover disabled controls and stale-result suppression for backend-change transactions.
 - 2026-07-05 Backend-change transaction: `@loopwire/core` now exposes `createBackendSelectionPlan` and
   `applyBackendSelection`, using a `backend-change` runtime reason with apply/verify operations against the active
   configuration. Failed backend-change apply/verify keeps the previous selected backend instead of persisting a choice

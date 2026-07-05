@@ -262,6 +262,8 @@
   let runtimeActivityReason: RuntimeTransactionReason | undefined;
   let configurationSwitchBusy = false;
   let configurationSwitchToken = 0;
+  let backendSelectionBusy = false;
+  let backendSelectionToken = 0;
   let backendCandidates: readonly BackendCandidate[] = fallbackBackendCandidates;
   let backendCapabilityReports: readonly RouteControlBackendCapability[] = [];
   let backendDetectionNote = "Browser preview uses packaged backend candidates.";
@@ -353,6 +355,7 @@
     (route) => route.from === routeSourceId && route.to === routeOutputId
   );
   $: canAddSelectedRoute = Boolean(routeSourceId && routeOutputId && !selectedRouteExists);
+  $: routingTransactionBusy = configurationSwitchBusy || backendSelectionBusy;
 
   async function bootApplication(): Promise<void> {
     await restorePersistedState();
@@ -701,7 +704,13 @@
     return switchToken === configurationSwitchToken;
   }
 
+  function isCurrentBackendSelection(selectionToken: number): boolean {
+    return selectionToken === backendSelectionToken;
+  }
+
   async function chooseBackend(kind: AudioBackendKind): Promise<void> {
+    const selectionToken = ++backendSelectionToken;
+    backendSelectionBusy = true;
     const previousMode = hostApplyMode;
 
     if (previousMode === "live") {
@@ -718,9 +727,17 @@
       new Date().toISOString()
     );
 
+    if (!isCurrentBackendSelection(selectionToken)) {
+      return;
+    }
+
     if (result.ok) {
       applyState(result.state);
       await Promise.all([refreshMonitorTargetDevices(kind), refreshSourceCandidates(kind)]);
+
+      if (!isCurrentBackendSelection(selectionToken)) {
+        return;
+      }
     }
 
     updateRuntimeStatus(result);
@@ -730,6 +747,8 @@
       runtimeStatus = result.ok ? "ready" : "failed";
       runtimeNote = result.ok ? `${disarmNote} ${describeRuntimeSuccess(result)}` : `${disarmNote} ${result.reason}`;
     }
+
+    backendSelectionBusy = false;
   }
 
   function handleBackendChange(event: Event): void {
@@ -1526,6 +1545,10 @@
   }
 
   function describeBackendSelectionSummary(): string {
+    if (backendSelectionBusy) {
+      return "Verifying this backend with the active configuration before saving it.";
+    }
+
     if (backendDecision.mode === "none") {
       return "Live apply is locked until a backend probe succeeds.";
     }
@@ -1784,7 +1807,7 @@
           <button
             type="button"
             class:active={configuration.id === state.activeConfigurationId}
-            disabled={configurationSwitchBusy}
+            disabled={routingTransactionBusy}
             on:click={() => void chooseConfiguration(configuration.id)}
           >
             <span>{configuration.name}</span>
@@ -1797,11 +1820,11 @@
       </div>
 
       <div class="configuration-actions" aria-label="Configuration actions">
-        <button type="button" disabled={configurationSwitchBusy} on:click={() => void createNewConfiguration()}>New</button>
-        <button type="button" disabled={configurationSwitchBusy} on:click={() => void duplicateActiveConfiguration()}>Duplicate</button>
+        <button type="button" disabled={routingTransactionBusy} on:click={() => void createNewConfiguration()}>New</button>
+        <button type="button" disabled={routingTransactionBusy} on:click={() => void duplicateActiveConfiguration()}>Duplicate</button>
         <button
           type="button"
-          disabled={configurationSwitchBusy || state.configurations.length <= 1}
+          disabled={routingTransactionBusy || state.configurations.length <= 1}
           on:click={() => void deleteActiveConfiguration()}
         >
           Delete
@@ -1927,7 +1950,12 @@
 
           <label>
             <span>Backend</span>
-            <select value={selectedBackend} aria-label="Audio backend" on:change={handleBackendChange}>
+            <select
+              value={selectedBackend}
+              aria-label="Audio backend"
+              disabled={backendSelectionBusy}
+              on:change={handleBackendChange}
+            >
               <option value="" disabled>Choose backend</option>
               {#each backendCandidates as candidate}
                 <option value={candidate.kind} disabled={candidate.availability !== "available"}>
@@ -1943,7 +1971,7 @@
               type="button"
               class:armed={hostApplyMode === "live"}
               aria-pressed={hostApplyMode === "live"}
-              disabled={hostApplyMode === "preview" && !liveApplyPreflight.ok}
+              disabled={routingTransactionBusy || (hostApplyMode === "preview" && !liveApplyPreflight.ok)}
               title={liveApplyPreflight.message}
               on:click={toggleHostApplyMode}
             >
@@ -1977,7 +2005,12 @@
         </div>
       </header>
 
-      <section class="backend-choice-panel" data-mode={backendDecision.mode} aria-label="Audio backend selection">
+      <section
+        class="backend-choice-panel"
+        data-mode={backendDecision.mode}
+        aria-busy={backendSelectionBusy}
+        aria-label="Audio backend selection"
+      >
         <div class="section-heading compact">
           <div>
             <p class="eyebrow">Audio Backend</p>
@@ -2000,7 +2033,7 @@
               type="button"
               class:selected={candidate.kind === state.selectedBackend}
               class:available={candidate.availability === "available"}
-              disabled={candidate.availability !== "available"}
+              disabled={backendSelectionBusy || candidate.availability !== "available"}
               aria-pressed={candidate.kind === state.selectedBackend}
               on:click={() => void chooseBackend(candidate.kind)}
             >
@@ -2920,6 +2953,10 @@
     border-left-color: #eb532f;
   }
 
+  .backend-choice-panel[aria-busy="true"] {
+    border-left-color: #f7b74a;
+  }
+
   .backend-choice-panel .section-heading > span {
     max-width: 52ch;
     font-size: 0.86rem;
@@ -3003,6 +3040,11 @@
     color: #101113;
     background: #c9f05a;
     border-color: #c9f05a;
+  }
+
+  .backend-choice-grid button:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
   }
 
   .backend-choice-grid strong,

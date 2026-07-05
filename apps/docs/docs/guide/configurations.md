@@ -73,7 +73,9 @@ The desktop exposes a `Host apply` control. `Preview` mode runs selected backend
 `pw-cli`, `pw-link`, `jack_lsp`, `jack_connect`, and `jack_disconnect` without invoking a shell.
 Changing the selected backend runs a backend-change transaction in preview mode and disarms any previous live-apply
 session, so backend changes cannot silently carry a live mutation state across audio systems. Loopwire commits the new
-backend as the saved startup-restore choice only after the active configuration verifies against it.
+backend as the saved startup-restore choice only after the active configuration verifies against it. Backend selection,
+host-apply arming, and configuration switching controls stay disabled while a backend-change transaction is in flight,
+and stale backend results are ignored if a newer selection starts first.
 After startup restore, a backend change, or a configuration click, the desktop shows a runtime activity ledger with the
 exact operations that ran, including the exact unload, apply, verify, and rollback operations when the transaction
 includes them, so switch behavior is inspectable instead of being reduced to a single status line.
