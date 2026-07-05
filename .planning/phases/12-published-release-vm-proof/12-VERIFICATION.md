@@ -5,6 +5,12 @@
 
 ## Evidence Passed
 
+- `scripts/audit-final-release-state.sh` now verifies the live downloadable
+  `loopwire-vm-evidence-<tag>.tar.gz` asset during non-`--skip-gh` status audits: it downloads the archive plus
+  `SHA256SUMS` and `SHA256SUMS.sig`, verifies the signed checksum entry, safe-extracts the archive, and checks the
+  VM evidence archive manifest against `vm/targets.tsv` with published-release strictness.
+- `pnpm verify:scripts` passed with a fake GitHub fixture proving release status blocks a missing downloadable VM
+  evidence archive asset and accepts a signed archive whose manifest binds all nine VM targets to `v0.1.0`.
 - `node scripts/collect-release-evidence.mjs --output-dir "$tmp_dir" --profile quick` passed and produced
   `release-evidence.json`, `verify-scripts.log`, `verify-vm.log`, `verify-docs.log`, `audio-detect.json`, and
   `tauri-verify.log`.

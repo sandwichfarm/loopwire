@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T14:54:49+02:00"
-last_activity: 2026-07-05 - Final DSP release evidence requires clear-output proof
+last_updated: "2026-07-05T15:58:18+02:00"
+last_activity: 2026-07-05 - Release status verifies signed VM evidence archive manifests
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - Final release DSP provider evidence now requires `clear-output` rows for configured
-outputs, matching the live DSP restore contract that requires provider `capabilities.operations` to include
-`read-source`, `write-output`, `verify-output`, and `clear-output`. Phase 12 remains gated on public GitHub Release
-install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:status` now verifies the downloadable
+`loopwire-vm-evidence-<tag>.tar.gz` release asset with the signed `SHA256SUMS` manifest, safe extraction, and
+`vm-evidence/manifest.json` target/tag strictness before it treats the GitHub Release VM archive as usable final proof.
+Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,13 @@ install, Bunny deployment proof, final proof workflow success, and operator-run 
 
 ## Verification Log
 
+- 2026-07-05 Release status VM archive proof: `scripts/audit-final-release-state.sh` now downloads the published
+  VM evidence release asset during live status audits, verifies it is covered by signed `SHA256SUMS`, safe-extracts it,
+  and validates the root VM evidence archive manifest against `vm/targets.tsv` with published-release strictness. The
+  fake GitHub fixture in `scripts/verify-scripts.sh` now covers missing downloadable archive assets and a signed archive
+  manifest success path. Focused validation passed: `bash -n scripts/audit-final-release-state.sh
+  scripts/verify-scripts.sh`; `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  $(git rev-parse HEAD) --skip-gh`; and `pnpm verify:scripts`.
 - 2026-07-05 Final DSP evidence clear-output proof: `scripts/describe-dsp-provider.mjs` now emits `clear-output`
   plan rows for configured outputs, and `scripts/verify-release-evidence.mjs` now requires and binds those rows when
   `--require-dsp-provider-plan` is used. This keeps final public release evidence aligned with the live DSP

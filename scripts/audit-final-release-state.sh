@@ -368,6 +368,69 @@ NODE
   echo
 }
 
+check_published_vm_evidence_archive() {
+  local asset="loopwire-vm-evidence-${tag}.tar.gz"
+  local tmp_dir
+  local vm_evidence_root
+
+  if [ "$skip_gh" = "true" ]; then
+    echo "skipped: live GitHub lookup disabled"
+    return 0
+  fi
+
+  command -v gh >/dev/null 2>&1 || {
+    echo "missing: gh is required to download the VM evidence release asset" >&2
+    return 1
+  }
+
+  tmp_dir="$(mktemp -d)"
+  cleanup_vm_archive() {
+    rm -rf "$tmp_dir"
+  }
+  trap cleanup_vm_archive RETURN
+
+  gh release download "$tag" \
+    --repo "$repo" \
+    --dir "$tmp_dir" \
+    --pattern SHA256SUMS \
+    --clobber >/dev/null
+  gh release download "$tag" \
+    --repo "$repo" \
+    --dir "$tmp_dir" \
+    --pattern SHA256SUMS.sig \
+    --clobber >/dev/null
+  gh release download "$tag" \
+    --repo "$repo" \
+    --dir "$tmp_dir" \
+    --pattern "$asset" \
+    --clobber >/dev/null
+
+  bash scripts/verify-release-asset-checksum.sh \
+    --release-dir "$tmp_dir" \
+    --asset "$asset" \
+    --public-key "$public_key" \
+    --label "VM evidence archive"
+
+  bash scripts/extract-safe-tar.sh \
+    --archive "$tmp_dir/$asset" \
+    --output-dir "$tmp_dir/extracted" \
+    --label "VM evidence archive" >/dev/null
+
+  vm_evidence_root="$tmp_dir/extracted"
+  if [ -d "$vm_evidence_root/.vm/evidence" ]; then
+    vm_evidence_root="$vm_evidence_root/.vm/evidence"
+  elif [ -d "$vm_evidence_root/vm-evidence" ]; then
+    vm_evidence_root="$vm_evidence_root/vm-evidence"
+  fi
+
+  node scripts/verify-vm-evidence-archive-manifest.mjs \
+    --manifest "$vm_evidence_root/manifest.json" \
+    --tag "$tag" \
+    --targets-file vm/targets.tsv \
+    --require-all-targets \
+    --require-published-release
+}
+
 run_workflow_probe() {
   local label="$1"
   local expected_head="$2"
@@ -592,6 +655,10 @@ run_release_probe \
   "$tag" \
   gh release view "$tag" --repo "$repo" \
     --json tagName,url,targetCommitish,isDraft,isPrerelease,assets || failed=1
+
+run_gate \
+  "published VM evidence archive asset" \
+  check_published_vm_evidence_archive || failed=1
 
 run_workflow_probe \
   "latest CI workflow run" \
