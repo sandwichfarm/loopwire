@@ -142,6 +142,44 @@ describe("describeLiveApplyPreflight", () => {
     });
   });
 
+  it("allows PulseAudio when saved fan-out routes are muted behind one active route", () => {
+    const result = describeLiveApplyPreflight(
+      {
+        ...baseConfiguration,
+        routes: [
+          ...baseConfiguration.routes,
+          { id: "mic-stream-muted", from: "mic", to: "stream", gain: 0.8, muted: true }
+        ]
+      },
+      "pulseaudio"
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      mode: "ready",
+      badge: "Ready",
+      message: "PulseAudio live apply is ready for Studio.",
+      blockers: []
+    });
+  });
+
+  it("still blocks PulseAudio when one source has only multiple muted output routes", () => {
+    const result = describeLiveApplyPreflight(
+      {
+        ...baseConfiguration,
+        routes: [
+          { id: "mic-program-muted", from: "mic", to: "program", gain: 1, muted: true },
+          { id: "mic-stream-muted", from: "mic", to: "stream", gain: 0.8, muted: true }
+        ]
+      },
+      "pulseaudio"
+    );
+
+    expect(result.blockers).toEqual([
+      "PulseAudio compatibility can route each source to only one output; adjust Studio Mic -> Program and Studio Mic -> Stream."
+    ]);
+  });
+
   it("blocks ALSA because it is diagnostics-only", () => {
     expect(describeLiveApplyPreflight(baseConfiguration, "alsa").blockers).toEqual([
       "ALSA live apply is not implemented; use PipeWire, PulseAudio, or JACK."

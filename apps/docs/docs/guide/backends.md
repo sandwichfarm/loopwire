@@ -141,6 +141,7 @@ layer. It can:
 - move matching PulseAudio sink inputs into those Loopwire sinks,
 - apply route gain and mute as PulseAudio sink-input volume/mute controls for matching streams,
 - reject configurations that route one source to multiple outputs before moving any stream,
+- ignore muted saved fan-out routes when an active route for the same source exists,
 - verify that expected Loopwire sinks exist,
 - verify that expected monitor loopbacks exist,
 - verify that currently present matching streams are routed to the expected Loopwire sink,
@@ -156,8 +157,9 @@ layer. It can:
 Stream matching currently uses the input endpoint id and label as case-insensitive tokens against `pactl list
 sink-inputs` metadata, such as `application.name` or `application.process.binary`. This is stream-level control, not
 true per-edge matrix mixing: one source routed to multiple outputs still needs a proper graph backend, so the PulseAudio
-adapter fails closed before host mutation when it sees source fan-out. Monitor routing uses Loopwire-owned monitor sinks
-by default, or a configured monitor `deviceName` as the target physical sink.
+adapter fails closed before host mutation when it sees active source fan-out. Muted saved fan-out routes are preserved
+in the configuration but ignored by PulseAudio stream routing when another route for that source is active. Monitor
+routing uses Loopwire-owned monitor sinks by default, or a configured monitor `deviceName` as the target physical sink.
 Its route-control semantics are reported as stream-level, and detection/support bundles expose `one output per source`
 as a known PulseAudio gap.
 

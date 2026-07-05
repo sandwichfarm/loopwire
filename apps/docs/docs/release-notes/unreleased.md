@@ -29,6 +29,8 @@ These notes describe source-tree progress. They are not a public release announc
   volume/mute controls.
 - PulseAudio compatibility now rejects one-source-to-many-output routes before any host mutation, matching its
   stream-level control boundary instead of letting the final stream move silently win.
+- PulseAudio compatibility now ignores muted saved fan-out routes when an active route for the same source exists, so
+  inactive routing ideas can stay in a configuration without blocking the active stream route.
 - PulseAudio backend detection and support-bundle summaries now expose `one output per source` as a known gap, matching
   the runtime and desktop preflight boundary.
 - Support bundles can now include read-only DSP provider plan summaries with `--include-dsp-provider-plan`, writing

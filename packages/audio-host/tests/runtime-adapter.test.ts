@@ -284,6 +284,75 @@ describe("createPactlVirtualSinkRuntimeAdapter", () => {
     expect(calls).toEqual([]);
   });
 
+  it("ignores muted PulseAudio fan-out when an active route for the source exists", async () => {
+    const mutedFanOutConfiguration: HostRuntimeConfiguration = {
+      ...routedConfiguration,
+      outputs: [
+        ...(routedConfiguration.outputs ?? []),
+        { id: "Monitor", label: "Monitor", channels: 2 }
+      ],
+      routes: [
+        { id: "firefox-program", from: "firefox", to: "Program", gain: 0.42, muted: false },
+        { id: "firefox-monitor", from: "firefox", to: "Monitor", gain: 0.8, muted: true }
+      ]
+    };
+    const programLoad = expectedPactlLoad("routed_mix", "program", "program");
+    const monitorLoad = expectedPactlLoad("routed_mix", "monitor", "monitor");
+    const { runner, calls } = createRecordingRunner({
+      "pactl list short modules": { stdout: "" },
+      [programLoad]: { stdout: "42\n" },
+      [monitorLoad]: { stdout: "43\n" },
+      "pactl list sink-inputs": {
+        stdout: sinkInputBlock("77", "old_sink", { "application.name": "Firefox" })
+      },
+      "pactl move-sink-input 77 loopwire_routed_mix_program": { stdout: "" },
+      "pactl set-sink-input-volume 77 42%": { stdout: "" },
+      "pactl set-sink-input-mute 77 0": { stdout: "" }
+    });
+    const adapter = createPactlVirtualSinkRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(mutedFanOutConfiguration);
+
+    expect(result).toEqual({
+      ok: true,
+      message: "Created 2 virtual sink(s); Applied 1 matching sink input route(s)"
+    });
+    expect(calls).toEqual([
+      "pactl list short modules",
+      programLoad,
+      monitorLoad,
+      "pactl list sink-inputs",
+      "pactl move-sink-input 77 loopwire_routed_mix_program",
+      "pactl set-sink-input-volume 77 42%",
+      "pactl set-sink-input-mute 77 0"
+    ]);
+  });
+
+  it("still rejects PulseAudio when one source has only multiple muted output routes", async () => {
+    const mutedOnlyFanOutConfiguration: HostRuntimeConfiguration = {
+      ...routedConfiguration,
+      outputs: [
+        ...(routedConfiguration.outputs ?? []),
+        { id: "Monitor", label: "Monitor", channels: 2 }
+      ],
+      routes: [
+        { id: "firefox-program", from: "firefox", to: "Program", gain: 0.42, muted: true },
+        { id: "firefox-monitor", from: "firefox", to: "Monitor", gain: 0.8, muted: true }
+      ]
+    };
+    const { runner, calls } = createRecordingRunner({});
+    const adapter = createPactlVirtualSinkRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(mutedOnlyFanOutConfiguration);
+
+    expect(result).toEqual({
+      ok: false,
+      message:
+        "PulseAudio compatibility cannot route one source to multiple outputs: Firefox uses routes firefox-program, firefox-monitor"
+    });
+    expect(calls).toEqual([]);
+  });
+
   it("creates monitor sinks and loopbacks for configured monitors", async () => {
     const outputLoad = expectedPactlLoadWithName("monitored_mix", "program", "program", "monitored_mix");
     const headphonesLoad = expectedMonitorLoad("monitored_mix", "headphones", "headphones");

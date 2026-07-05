@@ -598,7 +598,7 @@ function createSinkInputRoutePlans(
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
 
-  return (configuration.routes ?? [])
+  return effectivePactlStreamRoutes(configuration.routes ?? [])
     .flatMap((route) => {
       const input = inputs.get(route.from);
       const output = outputs.get(route.to);
@@ -623,7 +623,7 @@ function validatePactlStreamRouteShape(configuration: HostRuntimeConfiguration):
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const routesBySource = new Map<string, HostRuntimeRoute[]>();
 
-  for (const route of configuration.routes ?? []) {
+  for (const route of effectivePactlStreamRoutes(configuration.routes ?? [])) {
     routesBySource.set(route.from, [...(routesBySource.get(route.from) ?? []), route]);
   }
 
@@ -642,6 +642,19 @@ function validatePactlStreamRouteShape(configuration: HostRuntimeConfiguration):
     ok: false,
     message: `PulseAudio compatibility cannot route one source to multiple outputs: ${details.join("; ")}`
   };
+}
+
+function effectivePactlStreamRoutes(routes: readonly HostRuntimeRoute[]): readonly HostRuntimeRoute[] {
+  const routesBySource = new Map<string, HostRuntimeRoute[]>();
+
+  for (const route of routes) {
+    routesBySource.set(route.from, [...(routesBySource.get(route.from) ?? []), route]);
+  }
+
+  return [...routesBySource.values()].flatMap((sourceRoutes) => {
+    const activeRoutes = sourceRoutes.filter((route) => !route.muted);
+    return activeRoutes.length > 0 ? activeRoutes : sourceRoutes;
+  });
 }
 
 function routeSourceTokens(input: HostRuntimeEndpoint): readonly string[] {

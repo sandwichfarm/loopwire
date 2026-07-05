@@ -252,11 +252,24 @@ function isLoopwireOwnedJackRequirement(requirement: JackPortRequirement): boole
 function getPulseAudioFanOutRoutes(configuration: LoopwireConfiguration): readonly (readonly AudioRoute[])[] {
   const routesBySource = new Map<string, AudioRoute[]>();
 
-  for (const route of configuration.routes) {
+  for (const route of effectivePulseAudioStreamRoutes(configuration.routes)) {
     routesBySource.set(route.from, [...(routesBySource.get(route.from) ?? []), route]);
   }
 
   return [...routesBySource.values()].filter((routes) => routes.length > 1);
+}
+
+function effectivePulseAudioStreamRoutes(routes: readonly AudioRoute[]): readonly AudioRoute[] {
+  const routesBySource = new Map<string, AudioRoute[]>();
+
+  for (const route of routes) {
+    routesBySource.set(route.from, [...(routesBySource.get(route.from) ?? []), route]);
+  }
+
+  return [...routesBySource.values()].flatMap((sourceRoutes) => {
+    const activeRoutes = sourceRoutes.filter((route) => !route.muted);
+    return activeRoutes.length > 0 ? activeRoutes : sourceRoutes;
+  });
 }
 
 function findEndpoint(configuration: LoopwireConfiguration, endpointId: string): AudioEndpoint | undefined {

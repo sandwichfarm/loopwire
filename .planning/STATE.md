@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T20:18:05+02:00"
-last_activity: 2026-07-05 - Muted native routes can retain saved non-unity gain while PipeWire/JACK apply disconnects
-  links instead of applying gain
+last_updated: "2026-07-05T20:31:36+02:00"
+last_activity: 2026-07-05 - PulseAudio compatibility now ignores muted saved fan-out routes behind an active stream
+  route while still rejecting active fan-out
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,9 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - muted native PipeWire/JACK routes may retain saved non-100% gain values while live apply
-disconnects those links/connections instead of applying gain. Phase 12 remains gated on public GitHub Release install,
-Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - PulseAudio compatibility now ignores muted saved fan-out routes when an active route for
+the same source exists, so inactive routing ideas do not block the active stream route. Active PulseAudio fan-out still
+fails closed. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow
+success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +85,13 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
 
 ## Verification Log
 
+- 2026-07-05 PulseAudio muted fan-out preservation: desktop live-apply preflight and the PulseAudio compatibility
+  adapter now select effective stream routes per source, using active routes when present and otherwise retaining the
+  existing muted-route behavior. This lets users keep a muted saved fan-out route without blocking or double-moving the
+  active stream route, while multiple active routes still fail closed. Focused validation passed:
+  `pnpm --filter @loopwire/audio-host test -- runtime-adapter`, `pnpm --filter @loopwire/desktop test --
+  live-apply-preflight`, `pnpm --filter @loopwire/audio-host typecheck`, `pnpm --filter @loopwire/desktop typecheck`,
+  `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`.
 - 2026-07-05 Muted native-route gain preservation: desktop live-apply preflight and native PipeWire/JACK runtime
   validation now ignore non-unity gain on muted routes while keeping endpoint/port requirements strict, because native
   apply disconnects muted links/connections instead of applying route gain. Focused validation passed:
