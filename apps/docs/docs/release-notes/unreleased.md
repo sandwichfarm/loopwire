@@ -520,6 +520,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Release evidence collection now validates `--output-dir` and summarized readiness-log paths before reading or writing
   artifacts, rejecting symlinks, traversal, URL-like values, glob metacharacters, root/home placeholders, and wrong
   existing file/directory types.
+- Final release handoffs now print the reviewed annotated tag creation command and exact `refs/tags/<tag>` push before
+  workflow dispatch, so the operator ceremony has no implicit tag step.
 
 ## Known Limitations
 

@@ -201,12 +201,13 @@ matrix/cloud-init metadata, packaging metadata, and local release artifact smoke
 fast script-contract rehearsal; strict final proof still requires published GitHub Release assets, Bunny deployment
 proof, a successful final-proof workflow, and VM evidence from operator-controlled hosts.
 
-The handoff prints the required secret check, strict release readiness command, Release workflow dispatch, Deploy Docs
-workflow dispatch, docs deployment proof download, VM SSH plan/runbook/evidence commands, VM evidence asset preparation
-command, final proof workflow dispatch, and local final-proof dry-run. It does not set secrets, create tags, dispatch
-workflows, upload VM evidence, or mutate host audio. It starts with an `Operator-deferred after agent delivery` section
-that names secret filling, protected workflow dispatch, VM guest execution, and signed evidence upload as operator-only
-activities. It also prints the safe no-value template command:
+The handoff prints the required secret check, strict release readiness command, reviewed annotated tag command,
+exact tag push ref, Release workflow dispatch, Deploy Docs workflow dispatch, docs deployment proof download, VM SSH
+plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local
+final-proof dry-run. It does not set secrets, create tags, dispatch workflows, upload VM evidence, or mutate host
+audio. It starts with an `Operator-deferred after agent delivery` section that names secret filling, protected workflow
+dispatch, VM guest execution, and signed evidence upload as operator-only activities. It also prints the safe no-value
+template command:
 
 ```bash
 bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env

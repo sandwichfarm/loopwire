@@ -2485,6 +2485,12 @@
   --skip-local-gates`. Full validation passed: `pnpm verify:docs`, `pnpm verify:scripts`, default
   `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD)`,
   `git diff --check`, added-line length scan, and `pnpm check`.
+- `scripts/plan-final-release-handoff.sh` now renders the reviewed annotated tag creation command and exact
+  `refs/tags/<tag>` push as an explicit handoff step before release/docs/final-proof workflow dispatch.
+- Focused validation passed for the explicit tag ceremony handoff update: `bash -n
+  scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; and
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD) --public-key
+  packaging/release-signing-public.pem`.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

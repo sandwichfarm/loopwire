@@ -307,6 +307,16 @@ printf '%s\n' "$release_handoff_plan" | grep -F "protected GitHub surfaces" >/de
   echo "verify-scripts: release handoff plan is missing protected workflow dispatch wording" >&2
   exit 1
 }
+release_handoff_tag_command="git tag -a v0.1.0 0123456789abcdef0123456789abcdef"
+release_handoff_tag_command+="01234567"
+printf '%s\n' "$release_handoff_plan" | grep -F "$release_handoff_tag_command" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing reviewed tag creation" >&2
+  exit 1
+}
+printf '%s\n' "$release_handoff_plan" | grep -F "git push origin refs/tags/v0.1.0" >/dev/null || {
+  echo "verify-scripts: release handoff plan is missing tag push" >&2
+  exit 1
+}
 printf '%s\n' "$release_handoff_env_plan" | grep -F "bash scripts/setup-github-secrets.sh" |
   grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
     echo "verify-scripts: release handoff env-file plan did not preserve the secret setup env-file" >&2
@@ -388,8 +398,10 @@ release_handoff_placeholder_plan="$(
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567
 )"
+release_handoff_docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
+release_handoff_docs_run_reminder+="Deploy Docs workflow run id before steps 6 and 8."
 printf '%s\n' "$release_handoff_placeholder_plan" |
-  grep -F "operator-deferred: replace <docs-deployment-run-id>" >/dev/null || {
+  grep -F "$release_handoff_docs_run_reminder" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2
     exit 1
   }

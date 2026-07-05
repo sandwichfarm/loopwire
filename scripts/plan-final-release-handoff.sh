@@ -380,20 +380,24 @@ if [ -n "$secret_list_file" ]; then
 fi
 print_command "${readiness[@]}"
 echo
-echo "3. Dispatch the GitHub Release workflow after the tag exists:"
+echo "3. Create or push the reviewed release tag after readiness passes:"
+print_command git tag -a "$tag" "$git_head" -m "Loopwire ${tag}"
+print_command git push origin "refs/tags/${tag}"
+echo
+echo "4. Dispatch the GitHub Release workflow after the tag exists:"
 print_command gh workflow run release.yml --repo "$repo" --ref "$tag" -f "tag=${tag}"
 echo
-echo "4. Dispatch docs deployment for the same release ref:"
+echo "5. Dispatch docs deployment for the same release ref:"
 print_command gh workflow run deploy-docs.yml --repo "$repo" --ref "$tag"
 echo
-echo "5. Download and verify docs deployment proof artifacts:"
+echo "6. Download and verify docs deployment proof artifacts:"
 fetch_docs_proof=(pnpm release:fetch-docs-proof -- --repo "$repo" --run-id "$docs_run_id" --git-head "$git_head")
 if [ -n "$env_file" ]; then
   fetch_docs_proof+=(--env-file "$env_file")
 fi
 print_command "${fetch_docs_proof[@]}"
 echo
-echo "6. Render the operator VM evidence handoff:"
+echo "7. Render the operator VM evidence handoff:"
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
 print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --start-port "$vm_start_port" --output "$vm_runbook"
 print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-release-repo "$repo" \
@@ -413,7 +417,7 @@ else
 fi
 print_command "${vm_prepare[@]}"
 echo
-echo "7. Dispatch final release proof after docs and VM evidence assets exist:"
+echo "8. Dispatch final release proof after docs and VM evidence assets exist:"
 final_proof=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
   -f "tag=${tag}" \
   -f "git_head=${git_head}" \
@@ -428,7 +432,7 @@ else
 fi
 print_command "${final_proof[@]}"
 echo
-echo "8. Local dry-run of the final proof command plan:"
+echo "9. Local dry-run of the final proof command plan:"
 local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
   --git-head "$git_head" \
   --release-evidence-dir ".release-evidence/${tag}-published" \
@@ -446,8 +450,10 @@ fi
 print_command "${local_final[@]}"
 
 if [ -z "$docs_deployment_run_id" ]; then
+  docs_run_reminder="operator-deferred: replace <docs-deployment-run-id> with the successful "
+  docs_run_reminder+="Deploy Docs workflow run id before steps 6 and 8."
   echo
-  echo "operator-deferred: replace <docs-deployment-run-id> with the successful Deploy Docs workflow run id before steps 5 and 7."
+  echo "$docs_run_reminder"
 fi
 if [ "$release_private_key_file" = "<release-private-key-file>" ]; then
   echo "operator-deferred: pass --release-private-key-file or --env-file before preparing signed VM evidence release assets."

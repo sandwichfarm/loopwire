@@ -644,6 +644,8 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm release:agent-ready"
 assert_contains "apps/docs/docs/developer/release.md" 'Use `--skip-local-gates` only for'
 assert_contains "apps/docs/docs/developer/release.md" "strict final proof still requires published GitHub Release assets"
 assert_contains "apps/docs/docs/developer/release.md" "Operator-deferred after agent delivery"
+assert_contains "apps/docs/docs/developer/release.md" "reviewed annotated tag command"
+assert_contains "apps/docs/docs/developer/release.md" "exact tag push ref"
 assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
 assert_contains "apps/docs/docs/developer/release.md" 'print an `operator-deferred` reminder'
 assert_contains "apps/docs/docs/developer/release.md" 'Custom `--vm-ssh-plan` and `--vm-runbook` outputs'
@@ -652,6 +654,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'regenerate `SHA256SUMS` o
 assert_contains "apps/docs/docs/developer/release.md" 'validates `--env-file`, `--private-key`, `--public-key`, and `--evidence-root`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe env-file, private-key, public-key, and evidence-root paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "signed VM evidence handoff"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "no implicit tag step"
 assert_contains "apps/docs/docs/developer/release.md" 'When `--release-dir` is used for local signed-release rehearsal'
 assert_contains "apps/docs/docs/developer/release.md" "release surface"
 assert_contains "apps/docs/docs/developer/release.md" "Other local final-proof inputs are checked"

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T13:33:11+02:00"
-last_activity: 2026-07-05 - Release evidence collection now rejects candidate release-note copy
+last_updated: "2026-07-05T13:47:49+02:00"
+last_activity: 2026-07-05 - Final release handoff now renders explicit tag creation and push commands
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - release evidence collection now records `release-readiness-offline` without
-`--allow-candidate-notes`, so both agent-ready handoff and evidence bundles require publication-ready versioned
-release-note copy. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow
-success, and operator-run VM evidence.
+Last activity: 2026-07-05 - the final release handoff now renders the reviewed annotated tag creation command and the
+exact `refs/tags/<tag>` push before workflow dispatch, so the operator-deferred release ceremony has no implicit tag
+step. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success, and
+operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,14 @@ success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release handoff explicit tag ceremony: `scripts/plan-final-release-handoff.sh` now prints
+  `git tag -a <tag> <git-head> -m "Loopwire <tag>"` and `git push origin refs/tags/<tag>` as step 3, before release,
+  docs, VM, and final-proof workflow dispatch. Step references were renumbered so the docs deployment run id reminder
+  points at the proof fetch and final proof dispatch steps. `scripts/verify-scripts.sh`, `scripts/verify-docs.sh`, the
+  release guide, and unreleased notes now assert/document the explicit tag ceremony. Focused validation passed:
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; and
+  `pnpm release:handoff -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse HEAD) --public-key
+  packaging/release-signing-public.pem`.
 - 2026-07-05 Release evidence publishable-note readiness: `scripts/collect-release-evidence.mjs` now records
   `release-readiness-offline.log` instead of `release-readiness-candidate.log`, keeps the GitHub/tag/public-key and
   clean-checkout checks skipped for attachable rehearsal evidence, and no longer passes `--allow-candidate-notes`.
