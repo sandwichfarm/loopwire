@@ -292,6 +292,10 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--allow-dirty" >/dev/nul
   echo "verify-scripts: agent-ready release help is missing allow-dirty rehearsal support" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--allow-head-mismatch" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing allow-head-mismatch rehearsal support" >&2
+  exit 1
+}
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "--dsp-configuration FILE" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing DSP configuration support" >&2
   exit 1
@@ -306,6 +310,10 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "operator-deferred releas
 }
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "requires a clean checkout" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing clean-checkout wording" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "exactly --git-head" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing exact git-head wording" >&2
   exit 1
 }
 printf '%s\n' "$release_handoff_help" | grep -F -- "Operator-only activities" >/dev/null || {
@@ -533,6 +541,7 @@ agent_release_ready_plan="$(
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
     --allow-dirty \
+    --allow-head-mismatch \
     --skip-local-gates
 )"
 printf '%s\n' "$agent_release_ready_plan" |
@@ -551,18 +560,28 @@ printf '%s\n' "$agent_release_ready_plan" |
     exit 1
   }
 agent_ready_dirty_probe=".verify-agent-release-ready-dirty-probe"
+agent_ready_current_head="$(git rev-parse HEAD)"
 rm -f "$agent_ready_dirty_probe"
 printf '%s\n' "dirty probe" >"$agent_ready_dirty_probe"
 if bash scripts/verify-agent-release-ready.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
-  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --git-head "$agent_ready_current_head" \
   --skip-local-gates >/dev/null 2>&1; then
   rm -f "$agent_ready_dirty_probe"
   echo "verify-scripts: agent-ready release accepted a dirty checkout without --allow-dirty" >&2
   exit 1
 fi
 rm -f "$agent_ready_dirty_probe"
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-dirty \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted a mismatched git head without --allow-head-mismatch" >&2
+  exit 1
+fi
 printf '%s\n' "$agent_release_ready_plan" |
   grep -F "Re-run strict final proof from published GitHub Release and Bunny.net surfaces." >/dev/null || {
     echo "verify-scripts: agent-ready release smoke is missing strict final-proof reminder" >&2
@@ -620,6 +639,7 @@ agent_release_ready_hosted_plan="$(
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
     --allow-dirty \
+    --allow-head-mismatch \
     --require-hosted-checks \
     --skip-local-gates
 )"
@@ -661,6 +681,7 @@ if bash scripts/verify-agent-release-ready.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --dsp-configuration ../unsafe.json \
   --skip-local-gates >/dev/null 2>&1; then
   echo "verify-scripts: agent-ready release accepted unsafe DSP configuration path" >&2
@@ -670,6 +691,7 @@ if bash scripts/verify-agent-release-ready.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
   --dsp-frame-count nope \
   --skip-local-gates >/dev/null 2>&1; then
   echo "verify-scripts: agent-ready release accepted invalid DSP frame count" >&2

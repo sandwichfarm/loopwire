@@ -631,6 +631,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "repo-side release readiness"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "requires a clean checkout by default"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--allow-dirty`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current checkout `HEAD` to equal `--git-head`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--allow-head-mismatch`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:fetch-docs-proof`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:fetch-docs-proof` now rejects unsafe docs dist'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "wrong artifact type"
@@ -684,8 +686,10 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "scripts/fixtures/g
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:handoff"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm release:agent-ready"
 assert_contains "apps/docs/docs/developer/release.md" 'Use `--skip-local-gates` only for'
-assert_contains "apps/docs/docs/developer/release.md" "requires a clean checkout so the rendered handoff matches"
-assert_contains "apps/docs/docs/developer/release.md" 'use `--allow-dirty` only for'
+assert_contains "apps/docs/docs/developer/release.md" "requires a clean checkout whose current"
+assert_contains "apps/docs/docs/developer/release.md" 'Use `--allow-dirty` and `--allow-head-mismatch` only for'
+assert_contains "apps/docs/docs/developer/release.md" 'current `HEAD` exactly matches `--git-head`'
+assert_contains "apps/docs/docs/developer/release.md" '`--allow-head-mismatch` only for'
 assert_contains "apps/docs/docs/developer/release.md" "read-only DSP provider graph-edge plan"
 assert_contains "apps/docs/docs/developer/release.md" '`--dsp-configuration` and `--dsp-frame-count`'
 assert_contains "apps/docs/docs/developer/release.md" "strict final proof still requires published GitHub Release assets"

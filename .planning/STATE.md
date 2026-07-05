@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T00:40:04+02:00"
-last_activity: 2026-07-06 - Agent-ready release proof now requires a clean checkout unless local rehearsal explicitly opts into allow-dirty
+last_updated: "2026-07-06T00:54:50+02:00"
+last_activity: 2026-07-06 - Agent-ready release proof now requires the current checkout HEAD to match the selected git head
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now keeps the clean-tree release-readiness gate
-enabled by default, so the rendered operator handoff must match the selected `--git-head`; dirty local rehearsals must
-pass `--allow-dirty` explicitly. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final
-proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now requires the current checkout `HEAD` to match
+the selected `--git-head` by default, so the rendered operator handoff must come from the exact commit being proven.
+Synthetic-SHA rehearsals must pass `--allow-head-mismatch` explicitly. Phase 12 remains gated on public GitHub Release
+install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,17 @@ proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-06 Agent-ready exact-HEAD proof: `scripts/verify-agent-release-ready.sh` now verifies the current checkout
+  `HEAD` equals `--git-head` before rendering the operator handoff, unless fixture rehearsal explicitly passes
+  `--allow-head-mismatch`. This complements the clean-tree gate and prevents source proof for one checkout from being
+  reused as proof for another commit. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`; mismatch probe
+  `bash scripts/verify-agent-release-ready.sh --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  0123456789abcdef0123456789abcdef01234567 --allow-dirty --skip-local-gates`, which failed as expected with
+  `current checkout HEAD ... does not match --git-head`; fixture rehearsal with `--allow-dirty
+  --allow-head-mismatch --skip-local-gates`; `pnpm verify:scripts`; `pnpm verify:docs`; and `git diff --check`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
+  dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-06 Agent-ready clean-tree proof: `scripts/verify-agent-release-ready.sh` now requires the underlying
   release-readiness clean checkout check by default and exposes `--allow-dirty` only for local development rehearsal.
   This prevents a dirty local checkout from rendering operator handoff commands as if they were proven for the selected

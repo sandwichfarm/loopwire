@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- Agent-ready release proof now requires the current checkout `HEAD` to equal `--git-head` before rendering the
+  operator handoff, unless fixture rehearsal explicitly opts into `--allow-head-mismatch`. This prevents a clean local
+  checkout for one commit from being used as source proof for a different pushed commit.
+- Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, mismatch probe `bash scripts/verify-agent-release-ready.sh --repo sandwichfarm/loopwire
+  --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --allow-dirty --skip-local-gates`, which failed
+  as expected with `current checkout HEAD ... does not match --git-head`, fixture rehearsal with `--allow-dirty
+  --allow-head-mismatch --skip-local-gates`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
+  dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - Agent-ready release proof now keeps the release-readiness clean-checkout gate enabled by default, so a dirty local
   checkout cannot claim the rendered operator handoff is proven for the selected pushed `--git-head`. Local development
   rehearsals must opt into `--allow-dirty`.

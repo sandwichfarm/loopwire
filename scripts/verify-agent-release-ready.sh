@@ -8,6 +8,7 @@ public_key="packaging/release-signing-public.pem"
 skip_local_gates="false"
 require_hosted_checks="false"
 allow_dirty="false"
+allow_head_mismatch="false"
 dsp_configuration="scripts/fixtures/dsp-provider-configuration.json"
 dsp_frame_count="16"
 
@@ -28,12 +29,13 @@ Options:
   --require-hosted-checks
                          Require commit-scoped CI and Deploy Docs workflow runs to be successful for --git-head
   --allow-dirty          Permit a dirty checkout for local rehearsal; strict handoff checks require a clean tree
+  --allow-head-mismatch  Permit current checkout HEAD to differ from --git-head for offline fixture rehearsal
 
 This command is read-only. It does not set secrets, create tags, dispatch workflows, upload assets, launch VMs, or
 mutate host audio. Passing means the repository-side automation is ready for the operator-deferred release ceremony.
-By default it requires a clean checkout so the rendered handoff matches --git-head. Strict final proof still requires
-published artifacts, Bunny deployment proof, final proof workflow success, and VM evidence captured from
-operator-controlled hosts. Hosted checks are optional because they require GitHub API access.
+By default it requires a clean checkout at exactly --git-head so the rendered handoff matches the pushed commit.
+Strict final proof still requires published artifacts, Bunny deployment proof, final proof workflow success, and VM
+evidence captured from operator-controlled hosts. Hosted checks are optional because they require GitHub API access.
 USAGE
 }
 
@@ -55,6 +57,16 @@ validate_tag() {
 validate_git_head() {
   local pattern='^[0-9a-fA-F]{40}$'
   [[ "$git_head" =~ $pattern ]] || fail "git head must be a 40-character SHA: $git_head"
+}
+
+validate_current_checkout_head() {
+  local current_head
+
+  current_head="$(git rev-parse HEAD 2>/dev/null || true)"
+  [ -n "$current_head" ] || fail "unable to resolve current git HEAD"
+  if [ "$current_head" != "$git_head" ]; then
+    fail "current checkout HEAD $current_head does not match --git-head $git_head; checkout the target commit or pass --allow-head-mismatch for fixture rehearsal"
+  fi
 }
 
 validate_positive_integer() {
@@ -241,6 +253,10 @@ while [ "$#" -gt 0 ]; do
       allow_dirty="true"
       shift
       ;;
+    --allow-head-mismatch)
+      allow_head_mismatch="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -260,6 +276,9 @@ fi
 validate_repo
 validate_tag
 validate_git_head
+if [ "$allow_head_mismatch" != "true" ]; then
+  validate_current_checkout_head
+fi
 reject_unsafe_value "$public_key" "public key"
 validate_relative_path "$dsp_configuration" "DSP configuration"
 validate_positive_integer "$dsp_frame_count" "DSP frame count"
