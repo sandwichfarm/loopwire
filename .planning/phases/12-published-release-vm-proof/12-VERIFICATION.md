@@ -5,6 +5,13 @@
 
 ## Evidence Passed
 
+- The docs homepage product screenshot now depicts the current desktop Settings panel with audio backend, host apply,
+  window chrome, and restore-on-boot cards, and the hero stacking keeps that screenshot visible above the fold.
+- Focused validation passed: `pnpm verify:docs`, `pnpm --filter @loopwire/docs docs:build`, and `git diff --check`.
+  Browser-rendered proof passed: desktop Chromium screenshot `/tmp/loopwire-docs-settings-screenshot-framed.png` was
+  written with 269612 bytes and visibly shows the current Settings screenshot above the fold; mobile Chromium/CDP proof
+  at 390px width wrote `/tmp/loopwire-docs-settings-mobile-framed.png` with 253904 bytes, loaded the hero image,
+  rendered a visible media box, and reported no horizontal overflow. Full validation passed: `pnpm check`.
 - Desktop Settings now groups audio backend selection, host-apply arming, window chrome, and restore-on-boot controls
   in one operational panel, leaving the routing toolbar focused on graph actions.
 - Focused validation passed: `pnpm --filter @loopwire/desktop typecheck`, `pnpm --filter @loopwire/desktop test`,

@@ -168,6 +168,8 @@ These notes describe source-tree progress. They are not a public release announc
   shows fallback controls when decoration control is unavailable.
 - Desktop settings now groups audio backend selection, host-apply arming, window chrome, and restore-on-boot controls
   in one operational panel instead of scattering persistent preferences across the routing toolbar.
+- The public docs product screenshot now reflects the Settings panel, so the homepage preview matches the current
+  desktop shell instead of the older topbar-only backend/chrome controls.
 - Desktop sidebar start-on-boot control for XDG autostart status, enable, and disable, plus CLI helper fallback.
 - Desktop sidebar restore-on-boot control for a user-scoped systemd unit that runs packaged background restore without
   opening the GUI.

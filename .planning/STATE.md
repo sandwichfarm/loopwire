@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T18:14:35+02:00"
-last_activity: 2026-07-05 - Desktop settings groups audio backend, chrome, host apply, and restore controls
+last_updated: "2026-07-05T18:29:19+02:00"
+last_activity: 2026-07-05 - Docs hero screenshot reflects current Settings UI above the fold
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - desktop Settings now groups audio backend selection, host-apply arming, window chrome, and
-restore-on-boot controls in one operational panel. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - docs homepage screenshot and hero stacking now show the current Settings UI above the
+fold instead of the older topbar-only backend/chrome controls. Phase 12 remains gated on public GitHub Release install,
+Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,14 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Docs hero screenshot refresh: `product-screenshot.svg` now depicts the current desktop Settings panel
+  with audio backend, host apply, window chrome, and restore-on-boot cards, and the VitePress hero stacking now keeps
+  that media visible above the fold instead of burying it behind the page background. Focused validation passed:
+  `pnpm verify:docs`, `pnpm --filter @loopwire/docs docs:build`, and `git diff --check`. Browser-rendered proof
+  passed: desktop Chromium screenshot `/tmp/loopwire-docs-settings-screenshot-framed.png` was written with 269612
+  bytes and visibly shows the current Settings screenshot above the fold; mobile Chromium/CDP proof at 390px width
+  wrote `/tmp/loopwire-docs-settings-mobile-framed.png` with 253904 bytes, loaded the hero image, rendered a visible
+  media box, and reported no horizontal overflow. Full validation passed: `pnpm check`.
 - 2026-07-05 Desktop Settings panel: persistent operational controls moved out of the routing toolbar into a Settings
   panel that groups audio backend selection, host-apply arming, window chrome, and restore-on-boot controls while the
   routing toolbar stays focused on graph actions. Focused validation passed: `pnpm --filter @loopwire/desktop

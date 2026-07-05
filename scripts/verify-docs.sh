@@ -542,6 +542,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "native-first"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "minimize, maximize/restore, and close controls"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop chrome now defaults to Auto"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop settings now groups audio backend selection"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "product screenshot now reflects the Settings panel"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Native PipeWire monitor routing"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "native JACK adapter"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Source-checkout background restore runner"
@@ -832,6 +833,9 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu tar
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `screenshot.png` placeholders'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
+assert_contains "apps/docs/docs/public/product-screenshot.svg" "Settings"
+assert_contains "apps/docs/docs/public/product-screenshot.svg" "Audio and startup behavior"
+assert_contains "apps/docs/docs/public/product-screenshot.svg" "RESTORE ON BOOT"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "Nix flake"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" "real hashes plus Nix build proof"
 
