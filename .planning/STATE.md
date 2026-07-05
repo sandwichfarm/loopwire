@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T00:22:22+02:00"
-last_activity: 2026-07-06 - Final-scope GitHub secret setup now requires the complete deploy, live-docs, and signing input set before any secret write
+last_updated: "2026-07-06T00:40:04+02:00"
+last_activity: 2026-07-06 - Agent-ready release proof now requires a clean checkout unless local rehearsal explicitly opts into allow-dirty
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - `scripts/setup-github-secrets.sh --scope final` now validates the complete final-proof
-input set before dry-run output or any `gh secret set` call, while `--scope deploy` remains limited to Bunny upload
-credentials. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow
-success, and operator-run VM evidence.
+Last activity: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now keeps the clean-tree release-readiness gate
+enabled by default, so the rendered operator handoff must match the selected `--git-head`; dirty local rehearsals must
+pass `--allow-dirty` explicitly. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final
+proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -84,6 +84,17 @@ success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-06 Agent-ready clean-tree proof: `scripts/verify-agent-release-ready.sh` now requires the underlying
+  release-readiness clean checkout check by default and exposes `--allow-dirty` only for local development rehearsal.
+  This prevents a dirty local checkout from rendering operator handoff commands as if they were proven for the selected
+  pushed `--git-head`. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`; dirty default probe
+  `bash scripts/verify-agent-release-ready.sh --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse
+  HEAD) --skip-local-gates`, which failed as expected with `invalid: git status is not clean`; allow-dirty rehearsal
+  `bash scripts/verify-agent-release-ready.sh --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse
+  HEAD) --allow-dirty --skip-local-gates`; `pnpm verify:scripts`; `pnpm verify:docs`; and `git diff --check`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
+  dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-06 Final-scope secret setup hardening: `scripts/setup-github-secrets.sh` now requires
   `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`, `BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and
   `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE` before final-scope set or dry-run output, preventing partial secret writes before

@@ -288,6 +288,10 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--require-hosted-checks"
   echo "verify-scripts: agent-ready release help is missing hosted-check support" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--allow-dirty" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing allow-dirty rehearsal support" >&2
+  exit 1
+}
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "--dsp-configuration FILE" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing DSP configuration support" >&2
   exit 1
@@ -298,6 +302,10 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--dsp-frame-count N" >/d
 }
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "operator-deferred release ceremony" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing operator-deferred wording" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "requires a clean checkout" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing clean-checkout wording" >&2
   exit 1
 }
 printf '%s\n' "$release_handoff_help" | grep -F -- "Operator-only activities" >/dev/null || {
@@ -524,6 +532,7 @@ agent_release_ready_plan="$(
     --repo sandwichfarm/loopwire \
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-dirty \
     --skip-local-gates
 )"
 printf '%s\n' "$agent_release_ready_plan" |
@@ -541,6 +550,19 @@ printf '%s\n' "$agent_release_ready_plan" |
     echo "verify-scripts: agent-ready release smoke did not report skipped hosted checks" >&2
     exit 1
   }
+agent_ready_dirty_probe=".verify-agent-release-ready-dirty-probe"
+rm -f "$agent_ready_dirty_probe"
+printf '%s\n' "dirty probe" >"$agent_ready_dirty_probe"
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --skip-local-gates >/dev/null 2>&1; then
+  rm -f "$agent_ready_dirty_probe"
+  echo "verify-scripts: agent-ready release accepted a dirty checkout without --allow-dirty" >&2
+  exit 1
+fi
+rm -f "$agent_ready_dirty_probe"
 printf '%s\n' "$agent_release_ready_plan" |
   grep -F "Re-run strict final proof from published GitHub Release and Bunny.net surfaces." >/dev/null || {
     echo "verify-scripts: agent-ready release smoke is missing strict final-proof reminder" >&2
@@ -597,6 +619,7 @@ agent_release_ready_hosted_plan="$(
     --repo sandwichfarm/loopwire \
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-dirty \
     --require-hosted-checks \
     --skip-local-gates
 )"

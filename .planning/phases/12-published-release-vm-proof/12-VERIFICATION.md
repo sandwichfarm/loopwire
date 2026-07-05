@@ -5,6 +5,17 @@
 
 ## Evidence Passed
 
+- Agent-ready release proof now keeps the release-readiness clean-checkout gate enabled by default, so a dirty local
+  checkout cannot claim the rendered operator handoff is proven for the selected pushed `--git-head`. Local development
+  rehearsals must opt into `--allow-dirty`.
+- Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, dirty default probe `bash scripts/verify-agent-release-ready.sh --repo sandwichfarm/loopwire
+  --tag v0.1.0 --git-head $(git rev-parse HEAD) --skip-local-gates`, which failed as expected with `invalid: git
+  status is not clean`, allow-dirty rehearsal `bash scripts/verify-agent-release-ready.sh --repo sandwichfarm/loopwire
+  --tag v0.1.0 --git-head $(git rev-parse HEAD) --allow-dirty --skip-local-gates`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion
+  was performed.
 - Final-scope GitHub secret setup now fails before dry-run output or any `gh secret set` call unless the operator
   supplies the complete final-proof input set: Bunny storage zone, Bunny access key, Bunny pull-zone hostname, release
   private-key file, and release public-key file. Deploy scope remains narrower and accepts only the Bunny upload pair.

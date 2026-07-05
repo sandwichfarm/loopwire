@@ -7,6 +7,7 @@ git_head=""
 public_key="packaging/release-signing-public.pem"
 skip_local_gates="false"
 require_hosted_checks="false"
+allow_dirty="false"
 dsp_configuration="scripts/fixtures/dsp-provider-configuration.json"
 dsp_frame_count="16"
 
@@ -26,11 +27,13 @@ Options:
   --skip-local-gates     Only verify offline release readiness and handoff rendering
   --require-hosted-checks
                          Require commit-scoped CI and Deploy Docs workflow runs to be successful for --git-head
+  --allow-dirty          Permit a dirty checkout for local rehearsal; strict handoff checks require a clean tree
 
 This command is read-only. It does not set secrets, create tags, dispatch workflows, upload assets, launch VMs, or
-mutate host audio. Passing means the repository-side automation is ready for the operator-deferred release ceremony;
-strict final proof still requires published artifacts, Bunny deployment proof, final proof workflow success, and VM
-evidence captured from operator-controlled hosts. Hosted checks are optional because they require GitHub API access.
+mutate host audio. Passing means the repository-side automation is ready for the operator-deferred release ceremony.
+By default it requires a clean checkout so the rendered handoff matches --git-head. Strict final proof still requires
+published artifacts, Bunny deployment proof, final proof workflow success, and VM evidence captured from
+operator-controlled hosts. Hosted checks are optional because they require GitHub API access.
 USAGE
 }
 
@@ -234,6 +237,10 @@ while [ "$#" -gt 0 ]; do
       require_hosted_checks="true"
       shift
       ;;
+    --allow-dirty)
+      allow_dirty="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -261,10 +268,20 @@ echo "Agent-ready release check for ${repo}@${tag}"
 echo "Expected release commit: ${git_head}"
 echo
 
+release_readiness_args=(
+  --repo "$repo"
+  --tag "$tag"
+  --public-key "$public_key"
+  --skip-gh
+  --skip-tag
+)
+if [ "$allow_dirty" = "true" ]; then
+  release_readiness_args+=(--skip-clean-git)
+fi
+
 run_gate \
   "offline release readiness" \
-  bash scripts/verify-release-readiness.sh --repo "$repo" --tag "$tag" \
-    --public-key "$public_key" --skip-gh --skip-tag --skip-clean-git
+  bash scripts/verify-release-readiness.sh "${release_readiness_args[@]}"
 
 echo "==> final release handoff rendering"
 handoff="$(
