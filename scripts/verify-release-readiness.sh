@@ -49,6 +49,46 @@ fail() {
   exit 1
 }
 
+reject_unsafe_value() {
+  value="$1"
+  label="$2"
+
+  case "$value" in
+    *$'\n'* | *$'\r'*)
+      fail "$label must not contain newlines"
+      ;;
+  esac
+}
+
+validate_local_file_path() {
+  value="$1"
+  label="$2"
+  require_existing="$3"
+  normalized="${value#./}"
+
+  reject_unsafe_value "$value" "$label"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *'*'* | *'?'* | *'['* | *']'*)
+      fail "$label must not be root, home-expanded, URL-like, or contain glob metacharacters"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink"
+  if [ -e "$value" ]; then
+    [ -f "$value" ] || fail "$label must be a file when it exists"
+  elif [ "$require_existing" = "true" ]; then
+    fail "$label must be a file"
+  fi
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --)
@@ -114,6 +154,12 @@ fi
 [ "$require_gh" = "false" ] || [ -n "$repo" ] || fail "missing --repo OWNER/REPO"
 if [ -n "$secret_list_file" ] && [ "$require_gh" != "true" ]; then
   fail "--secret-list-file cannot be combined with --skip-gh"
+fi
+if [ "$require_public_key" = "true" ]; then
+  validate_local_file_path "$public_key" "release public key" "false"
+fi
+if [ -n "$secret_list_file" ]; then
+  validate_local_file_path "$secret_list_file" "secret-list file" "true"
 fi
 if [ -n "$repo" ]; then
   repo_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'

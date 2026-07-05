@@ -5355,6 +5355,44 @@ if bash scripts/verify-release-readiness.sh -- \
   echo "verify-scripts: release readiness accepted a path-like release tag" >&2
   exit 1
 fi
+bad_readiness_public_key="$tmp_dir/release-readiness-public-key-link.pem"
+ln -s "$public_key_file" "$bad_readiness_public_key"
+release_readiness_public_key_log="$tmp_dir/release-readiness-public-key-path.log"
+if bash scripts/verify-release-readiness.sh -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --public-key "$bad_readiness_public_key" \
+  --skip-gh \
+  --skip-tag \
+  --skip-clean-git \
+  --allow-candidate-notes >"$release_readiness_public_key_log" 2>&1; then
+  echo "verify-scripts: release readiness accepted a symlinked public key" >&2
+  exit 1
+fi
+grep -F "verify-release-readiness: release public key must not be a symlink" \
+  "$release_readiness_public_key_log" >/dev/null || {
+    echo "verify-scripts: release readiness did not reject symlinked public key" >&2
+    exit 1
+  }
+bad_readiness_secret_list="$tmp_dir/release-readiness-secret-list-dir"
+mkdir -p "$bad_readiness_secret_list"
+release_readiness_secret_list_log="$tmp_dir/release-readiness-secret-list-path.log"
+if bash scripts/verify-release-readiness.sh -- \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --secret-list-file "$bad_readiness_secret_list" \
+  --skip-tag \
+  --skip-public-key \
+  --skip-clean-git \
+  --allow-candidate-notes >"$release_readiness_secret_list_log" 2>&1; then
+  echo "verify-scripts: release readiness accepted a directory secret-list file" >&2
+  exit 1
+fi
+grep -F "verify-release-readiness: secret-list file must be a file when it exists" \
+  "$release_readiness_secret_list_log" >/dev/null || {
+    echo "verify-scripts: release readiness did not reject directory secret-list file" >&2
+    exit 1
+  }
 bash scripts/verify-release-readiness.sh -- \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \

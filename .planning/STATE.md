@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T10:20:31+02:00"
-last_activity: 2026-07-05 - VM evidence asset local artifacts fail closed
+last_updated: "2026-07-05T10:34:07+02:00"
+last_activity: 2026-07-05 - Release readiness local artifacts fail closed
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - VM evidence asset preparation now rejects unsafe local env-file, signing-key, and evidence
-root paths before reading or signing release artifacts. Phase 12 remains gated on configuring Bunny secrets, public
-GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - Release readiness now rejects unsafe custom public-key and saved secret-list file paths
+before parsing signing material or replaying saved GitHub secret names. Phase 12 remains gated on configuring Bunny
+secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,17 @@ GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release readiness local artifact path hardening: `scripts/verify-release-readiness.sh` now validates
+  optional `--public-key` and `--secret-list-file` paths before parsing signing material or replaying saved GitHub
+  secret names. Absolute and relative local files remain valid, missing public keys still report through the existing
+  readiness failure summary, and provided secret-list artifacts must exist as regular files. Root/home placeholders,
+  parent/current traversal, URL syntax, glob metacharacters, symlinks, and existing non-file paths fail closed.
+  `scripts/verify-scripts.sh` now rejects symlinked public-key paths and directory-valued secret-list paths. Release
+  docs, unreleased notes, and `scripts/verify-docs.sh` document and assert the release-readiness file boundary.
+  Focused validation passed: `bash -n scripts/verify-release-readiness.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`; offline release readiness positive smoke; symlink public-key and directory secret-list
+  negative probes with expected errors; `git diff --check`; `pnpm verify:scripts`; and `bash scripts/verify-docs.sh`.
+  Full local validation passed: `pnpm check`.
 - 2026-07-05 VM evidence asset local artifact path hardening: `scripts/prepare-vm-evidence-release-asset.sh` now
   validates `--env-file`, `--private-key`, `--public-key`, and `--evidence-root` before reading local release artifacts,
   signing `SHA256SUMS`, or rendering the signed VM evidence handoff. Absolute and relative operator paths remain valid

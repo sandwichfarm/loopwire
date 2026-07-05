@@ -739,6 +739,10 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "fake hashes"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VitePress public installer asset"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe absolute or parent-traversing archive paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now fails if the public docs installer drifts"
+assert_contains "apps/docs/docs/developer/release.md" 'Custom `--public-key` and `--secret-list-file` values'
+assert_contains "apps/docs/docs/developer/release.md" "before parsing a key or replaying saved secret names"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now validates custom public-key"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "existing non-file paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "opensuse-kde-pipewire"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu target"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `screenshot.png` placeholders'

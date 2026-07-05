@@ -492,6 +492,8 @@ These notes describe source-tree progress. They are not a public release announc
   extraction.
 - Release readiness now fails if the public docs installer drifts from `scripts/install.sh`, and the Bunny deploy
   dry-run contract proves `install.sh` would be uploaded.
+- Release readiness now validates custom public-key and saved secret-list artifacts before reads, rejecting symlinks,
+  traversal, URL-like values, glob metacharacters, root/home placeholders, and existing non-file paths.
 
 ## Known Limitations
 

@@ -384,6 +384,10 @@ to the current checkout commit, verifies repository access, and confirms require
 Bunny.net docs deployment. Candidate evidence collection passes `--skip-clean-git` because it is allowed to record
 in-progress source state without claiming final release readiness.
 
+Custom `--public-key` and `--secret-list-file` values are local file artifacts only. They may be absolute or relative,
+but release readiness rejects root or home-expansion placeholders, parent/current-directory traversal, URL syntax, glob
+metacharacters, symlinks, and existing non-file paths before parsing a key or replaying saved secret names.
+
 ## Workflow Contract
 
 ```bash
