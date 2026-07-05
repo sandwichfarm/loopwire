@@ -49,8 +49,8 @@ Options:
   --execute                         Run SSH/SCP and verify local evidence. Default is dry-run.
 
 Dry-run prints the exact SSH, SCP, and verifier commands without writing files or touching the guest.
-Local output directories may be absolute or relative, but must contain the target id as a path segment and must not
-contain parent traversal.
+Remote and local output directories may be absolute or relative, but must contain the target id as a path segment and
+must not contain parent traversal.
 USAGE
 }
 
@@ -91,6 +91,26 @@ validate_local_output_dir() {
 
   if ! path_contains_segment "$path" "$expected_target"; then
     fail "local output dir must include the target id as a path segment: $expected_target"
+  fi
+}
+
+validate_remote_output_dir() {
+  local path="$1"
+  local expected_target="$2"
+
+  [ -n "$path" ] || fail "remote output dir must not be empty"
+
+  case "$path" in
+    *$'\n'* | *$'\r'*)
+      fail "remote output dir must be a single path"
+      ;;
+    .. | ../* | */.. | */../*)
+      fail "remote output dir must not contain parent traversal"
+      ;;
+  esac
+
+  if ! path_contains_segment "$path" "$expected_target"; then
+    fail "remote output dir must include the target id as a path segment: $expected_target"
   fi
 }
 
@@ -264,6 +284,7 @@ fi
 
 remote_output_dir="${remote_output_dir:-.vm/evidence/$target}"
 local_output_dir="${local_output_dir:-.vm/evidence/$target}"
+validate_remote_output_dir "$remote_output_dir" "$target"
 validate_local_output_dir "$local_output_dir" "$target"
 
 ssh_args=(-p "$port" -o BatchMode=yes -o StrictHostKeyChecking=accept-new)

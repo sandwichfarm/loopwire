@@ -3218,6 +3218,20 @@ if bash scripts/collect-vm-evidence-ssh.sh \
   echo "verify-scripts: SSH VM evidence collector accepted a non-target-scoped local output" >&2
   exit 1
 fi
+if bash scripts/collect-vm-evidence-ssh.sh \
+  --target arch-hyprland-pipewire \
+  --host 127.0.0.1 \
+  --remote-output-dir ../arch-hyprland-pipewire >/dev/null 2>&1; then
+  echo "verify-scripts: SSH VM evidence collector accepted parent traversal in remote output" >&2
+  exit 1
+fi
+if bash scripts/collect-vm-evidence-ssh.sh \
+  --target arch-hyprland-pipewire \
+  --host 127.0.0.1 \
+  --remote-output-dir /tmp/shared-vm-evidence >/dev/null 2>&1; then
+  echo "verify-scripts: SSH VM evidence collector accepted a non-target-scoped remote output" >&2
+  exit 1
+fi
 bad_matrix_plan="$tmp_dir/bad-vm-ssh-plan.tsv"
 printf '%s\t%s\t%s\n' "arch-hyprland-pipewire" "127.0.0.1" "nope" >"$bad_matrix_plan"
 if bash scripts/collect-vm-matrix-evidence.sh --plan "$bad_matrix_plan" >/dev/null 2>&1; then

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T05:16:49+02:00"
-last_activity: 2026-07-05 - Direct SSH VM evidence output stays target-scoped
+last_updated: "2026-07-05T05:31:17+02:00"
+last_activity: 2026-07-05 - Direct SSH VM evidence remote output stays target-scoped
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Release proof remains gated on real release, secrets, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - direct SSH VM evidence collection now rejects copied-back local output paths that omit the
-target id or contain parent traversal before dry-run or execute mode. Phase 12 remains gated on configuring Bunny
-secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
+Last activity: 2026-07-05 - direct SSH VM evidence collection now rejects guest remote output paths and copied-back
+local output paths that omit the target id or contain parent traversal before dry-run or execute mode. Phase 12 remains
+gated on configuring Bunny secrets, public GitHub Release install, Bunny deployment proof, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,14 @@ secrets, public GitHub Release install, Bunny deployment proof, and operator-run
 
 ## Verification Log
 
+- 2026-07-05 Direct SSH VM evidence remote-output scoping: `scripts/collect-vm-evidence-ssh.sh` now validates custom
+  `--remote-output-dir` values before rendering dry-run commands or executing SSH/SCP, matching its existing local
+  output target-scoping rule. Absolute and relative guest paths remain valid, but they must include the VM target id as
+  a path segment and must not contain parent traversal. `scripts/verify-scripts.sh` now rejects direct SSH remote-output
+  traversal and shared remote-output paths. VM matrix docs, the support matrix, unreleased notes, and
+  `scripts/verify-docs.sh` document and assert the remote+local SSH path boundary. Focused validation passed:
+  `bash -n scripts/collect-vm-evidence-ssh.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, and `bash scripts/verify-docs.sh`.
 - 2026-07-05 Direct SSH VM evidence output scoping: `scripts/collect-vm-evidence-ssh.sh` now validates custom
   `--local-output-dir` values before rendering dry-run commands or executing SSH/SCP. Absolute and relative paths remain
   valid, but they must include the VM target id as a path segment and must not contain parent traversal, matching the

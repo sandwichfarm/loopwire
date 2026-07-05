@@ -342,8 +342,9 @@ This command runs `scripts/collect-vm-evidence.sh` inside the guest checkout, co
 `.vm/evidence/<target>`, then verifies it locally with `scripts/verify-vm-evidence.sh`.
 The SSH port and guest desktop smoke port must be valid TCP ports from 1 to 65535; invalid values fail before SSH,
 Vite, or evidence collection starts.
-Custom `--local-output-dir` paths may be absolute or relative, but they must include the target id as a path segment
-and must not contain parent traversal, so direct SSH collection cannot mix evidence from multiple VM targets.
+Custom `--remote-output-dir` and `--local-output-dir` paths may be absolute or relative, but they must include the
+target id as a path segment and must not contain parent traversal, so direct SSH collection cannot mix evidence from
+multiple VM targets.
 The SSH collector also forwards the published-release smoke options, so final proof can be collected without manually
 retyping the in-guest command.
 
