@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 const validBackends = new Set(["pipewire", "pulseaudio", "jack", "dsp"]);
 const validModes = new Set(["preview", "live"]);
+const requiredDspLiveOperations = ["read-source", "write-output", "verify-output", "clear-output"];
 
 function usage() {
   console.log(`Restore the persisted Loopwire configuration without opening the UI.
@@ -372,12 +373,28 @@ async function verifyDspProviderCapability(runner, backend, args) {
     );
   }
 
+  const missingOperations = missingDspLiveOperations(payload);
+  if (missingOperations.length > 0) {
+    throw new Error(
+      `DSP live restore provider is missing required operation(s): ${missingOperations.join(", ")}. ` +
+        "Live providers must declare the read, write, verify, and clear operations Loopwire calls."
+    );
+  }
+
   return payload;
 }
 
 function providerCapabilityFailure(result, reason) {
   const detail = result.stderr.trim() || result.stdout.trim();
   return `DSP live restore provider ${reason}: ${result.command} capabilities${detail ? `: ${detail}` : ""}`;
+}
+
+function missingDspLiveOperations(payload) {
+  const operations = Array.isArray(payload.operations)
+    ? new Set(payload.operations.filter((operation) => typeof operation === "string"))
+    : new Set();
+
+  return requiredDspLiveOperations.filter((operation) => !operations.has(operation));
 }
 
 function createRuntimeAdapter(audioHost, runner, backend, mode, options) {

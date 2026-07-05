@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const defaultFrameCount = 480;
+const requiredDspLiveOperations = ["read-source", "write-output", "verify-output", "clear-output"];
 
 function usage() {
   console.log(`Describe or verify a command-backed Loopwire DSP provider.
@@ -158,7 +159,7 @@ async function main() {
   const execution = args.execute
     ? await executeProvider(audioHost, args, configuration)
     : undefined;
-  const capabilityOk = providerCapability ? providerCapability.supportsLiveGraph === true : true;
+  const capabilityOk = providerCapability ? providerCapability.ok === true : true;
   const payload = {
     ok: capabilityOk && (execution ? execution.ok : true),
     mode: args.execute ? "execute" : "plan",
@@ -235,14 +236,19 @@ async function probeProviderCapability(audioHost, args) {
   try {
     const payload = JSON.parse(raw);
     const supportsLiveGraph = Boolean(payload?.supportsLiveGraph === true);
+    const missingOperations = missingDspLiveOperations(payload);
+    const ok = supportsLiveGraph && missingOperations.length === 0;
+    const message = !supportsLiveGraph
+      ? "DSP provider does not declare supportsLiveGraph=true."
+      : missingOperations.length > 0
+        ? `DSP provider is missing required operation(s): ${missingOperations.join(", ")}`
+        : undefined;
 
     return {
       ...payload,
-      ok: supportsLiveGraph,
+      ok,
       supportsLiveGraph,
-      ...(!supportsLiveGraph
-        ? { message: "DSP provider does not declare supportsLiveGraph=true." }
-        : {})
+      ...(message ? { message } : {})
     };
   } catch {
     return {
@@ -256,6 +262,14 @@ async function probeProviderCapability(audioHost, args) {
 function providerCapabilityMessage(result, reason) {
   const detail = result.stderr.trim() || result.stdout.trim();
   return `DSP provider ${reason}${detail ? `: ${detail}` : ""}`;
+}
+
+function missingDspLiveOperations(payload) {
+  const operations = Array.isArray(payload?.operations)
+    ? new Set(payload.operations.filter((operation) => typeof operation === "string"))
+    : new Set();
+
+  return requiredDspLiveOperations.filter((operation) => !operations.has(operation));
 }
 
 async function executeProvider(audioHost, args, configuration) {

@@ -171,7 +171,9 @@ set -euo pipefail
 printf '%s\n' "\$*" >>"$dsp_provider_log"
 case "\$1" in
   capabilities)
-    printf '{"ok":true,"providerKind":"verify-live","supportsLiveGraph":true}\n'
+    capabilities='{"ok":true,"providerKind":"verify-live","supportsLiveGraph":true'
+    capabilities+=',"operations":["read-source","write-output","verify-output","clear-output"]}'
+    printf '%s\n' "\$capabilities"
     ;;
   read-source)
     printf '{"channels":[[1,1],[1,1]]}\n'
@@ -206,6 +208,35 @@ assert_contains "$dsp_provider_log" "capabilities"
 assert_contains "$dsp_provider_log" "read-source --source-id mic --channels 2 --frames 2"
 assert_contains "$dsp_provider_log" "write-output --output-id program --channels 2 --frames 2 --peak 1"
 assert_contains "$dsp_provider_log" "verify-output --output-id program --channels 2 --frames 2 --peak 1"
+
+cat >"$dsp_provider" <<SH
+#!/usr/bin/env bash
+set -euo pipefail
+case "\$1" in
+  capabilities)
+    capabilities='{"ok":true,"providerKind":"incomplete-live","supportsLiveGraph":true'
+    capabilities+=',"operations":["read-source","write-output","verify-output"]}'
+    printf '%s\n' "\$capabilities"
+    ;;
+  *)
+    echo "unexpected operation: \$1" >&2
+    exit 2
+    ;;
+esac
+SH
+chmod +x "$dsp_provider"
+if pnpm restore:background -- \
+  --state-file "$state_file" \
+  --backend dsp \
+  --mode live \
+  --dsp-provider-command "$dsp_provider" \
+  --dsp-provider-mode live \
+  --dsp-frame-count 2 \
+  --pretty >"$dsp_reject_output" 2>&1; then
+  echo "restore background accepted a live DSP provider without clear-output." >&2
+  exit 1
+fi
+assert_contains "$dsp_reject_output" "missing required operation(s): clear-output"
 
 cat >"$dsp_provider" <<SH
 #!/usr/bin/env bash

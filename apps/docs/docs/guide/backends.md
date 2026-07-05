@@ -205,4 +205,5 @@ will need for a configuration. `pnpm dsp:verify` is explicit execute mode: it ca
 output buffers, verifies them, and exits nonzero if provider apply or verification fails. The bundled provider returns
 `{"missing":true}` for unseeded sources, so seed or connect source buffers before expecting execute mode to pass.
 For a live provider, add `--require-live-capability` to make the preflight call the provider `capabilities` operation
-and fail unless it declares `supportsLiveGraph:true`.
+and fail unless it declares `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and
+`clear-output` in its `operations` list.

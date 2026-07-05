@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T14:18:37+02:00"
-last_activity: 2026-07-05 - Agent-ready release can require hosted CI and Deploy Docs proof
+last_updated: "2026-07-05T14:34:49+02:00"
+last_activity: 2026-07-05 - Live DSP providers must declare complete operation support
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:agent-ready -- --require-hosted-checks` now ties the
-operator-deferred release handoff to successful hosted CI and Deploy Docs workflow runs for the exact release commit.
-The new gate verified current live runs `28740130399` (CI) and `28740130393` (Deploy Docs) for commit
-`ea7792c56eb9bc5c5f7dcf67478b266dca86d851`. Phase 12 remains gated on public GitHub Release install,
-Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - Live DSP restore now requires provider `capabilities.operations` to include
+`read-source`, `write-output`, `verify-output`, and `clear-output`, not only `supportsLiveGraph:true`. The same
+operation-set requirement is enforced in `pnpm dsp:verify -- --require-live-capability`, so operators can catch an
+incomplete provider before installing boot restore. Phase 12 remains gated on public GitHub Release install, Bunny
+deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +85,14 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
 
 ## Verification Log
 
+- 2026-07-05 Live DSP provider operation contract: `scripts/restore-background.mjs` now rejects live DSP providers
+  whose `capabilities` payload omits any operation Loopwire needs for apply, verify, and rollback:
+  `read-source`, `write-output`, `verify-output`, and `clear-output`. `scripts/describe-dsp-provider.mjs` now uses the
+  same operation-set check for `--require-live-capability`, and docs now state the operation list alongside
+  `supportsLiveGraph:true`. Focused validation passed: `node --check scripts/restore-background.mjs
+  scripts/describe-dsp-provider.mjs`; `pnpm verify:autostart`;
+  audio-host DSP tests with `pnpm --filter @loopwire/audio-host test -- --runInBand ...`;
+  `bash scripts/verify-docs.sh`; and `bash scripts/verify-scripts.sh`.
 - 2026-07-05 Hosted release-agent readiness gate: `scripts/verify-agent-release-ready.sh` now accepts
   `--require-hosted-checks` to verify the latest hosted `ci.yml` and `deploy-docs.yml` runs are completed, successful,
   and for the exact `--git-head` before continuing the operator-deferred release ceremony. The default remains local

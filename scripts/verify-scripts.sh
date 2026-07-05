@@ -2339,7 +2339,11 @@ function value(name) {
 if (args[0] === "capabilities") {
   const supportsLiveGraph = process.env.LOOPWIRE_DSP_PROVIDER_SUPPORTS_LIVE !== "false";
   const providerKind = supportsLiveGraph ? "verify-live" : "file-backed";
-  process.stdout.write(`${JSON.stringify({ ok: true, providerKind, supportsLiveGraph })}\n`);
+  const operations = ["read-source", "write-output", "verify-output"];
+  if (process.env.LOOPWIRE_DSP_PROVIDER_OMIT_CLEAR !== "true") {
+    operations.push("clear-output");
+  }
+  process.stdout.write(`${JSON.stringify({ ok: true, providerKind, supportsLiveGraph, operations })}\n`);
 } else if (args[0] === "read-source") {
   const channels = Number(value("--channels"));
   const frames = Number(value("--frames"));
@@ -2429,6 +2433,15 @@ if LOOPWIRE_DSP_PROVIDER_SUPPORTS_LIVE=false \
     --require-live-capability \
     --frame-count 2 >/dev/null 2>&1; then
   echo "verify-scripts: DSP provider live capability check accepted a file-backed provider" >&2
+  exit 1
+fi
+if LOOPWIRE_DSP_PROVIDER_OMIT_CLEAR=true \
+  node scripts/describe-dsp-provider.mjs \
+    --configuration "$jack_configuration" \
+    --provider-command "$dsp_provider" \
+    --require-live-capability \
+    --frame-count 2 >/dev/null 2>&1; then
+  echo "verify-scripts: DSP provider live capability check accepted a provider without clear-output" >&2
   exit 1
 fi
 if LOOPWIRE_DSP_PROVIDER_FAIL_VERIFY=true \

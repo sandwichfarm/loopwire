@@ -2505,6 +2505,12 @@
   $(git rev-parse HEAD) --require-hosted-checks --skip-local-gates`, which verified CI run `28740130399` and Deploy
   Docs run `28740130393` for commit `ea7792c56eb9bc5c5f7dcf67478b266dca86d851`; `bash scripts/verify-scripts.sh`;
   `pnpm verify:docs`; `git diff --check`; added-line length scan; and `pnpm check`.
+- Live DSP restore now rejects providers whose `capabilities` payload declares `supportsLiveGraph:true` but omits any
+  operation Loopwire calls for apply, verify, and rollback: `read-source`, `write-output`, `verify-output`, and
+  `clear-output`. The read-only `pnpm dsp:verify -- --require-live-capability` preflight now enforces the same
+  operation set before operators install boot restore. Focused validation passed: `node --check
+  scripts/restore-background.mjs scripts/describe-dsp-provider.mjs`; `pnpm verify:autostart`; audio-host DSP tests;
+  `bash scripts/verify-docs.sh`; and `bash scripts/verify-scripts.sh`.
 
 - No public GitHub Release was created.
 - A real release signing public key exists at `packaging/release-signing-public.pem`, and the matching private key is

@@ -199,8 +199,9 @@ provider for contract smoke and local restore preflight. It stores seeded source
 buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
 provider. `--mode live --backend dsp` now requires `--dsp-provider-mode live` and a provider `capabilities` result
-with `supportsLiveGraph:true`; the bundled file-backed provider declares `supportsLiveGraph:false` and is rejected for
-live restore. Use live mode only with a real provider that captures from and writes to the host audio graph.
+with `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and `clear-output` in its
+`operations` list; the bundled file-backed provider declares `supportsLiveGraph:false` and is rejected for live
+restore. Use live mode only with a real provider that captures from and writes to the host audio graph.
 
 Seed every source your configuration routes before running execute-mode preflight:
 
