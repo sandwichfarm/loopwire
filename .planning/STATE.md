@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T17:37:22+02:00"
-last_activity: 2026-07-05 - Readiness guards final proof tag-ref wiring
+last_updated: "2026-07-05T17:53:57+02:00"
+last_activity: 2026-07-05 - Desktop chrome defaults to auto system/fallback selection
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - release readiness and workflow-contract checks now fail if
-`scripts/verify-final-release-proof.sh` stops invoking the shared release tag-ref verifier. Phase 12 remains gated on
-public GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-05 - desktop chrome now defaults to Auto, resolving to desktop/window-manager chrome in the
+Tauri shell and Loopwire fallback controls where decoration control is unavailable. Phase 12 remains gated on public
+GitHub Release install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -83,6 +83,13 @@ public GitHub Release install, Bunny deployment proof, final proof workflow succ
 
 ## Verification Log
 
+- 2026-07-05 Desktop auto chrome policy: desktop chrome now defaults to Auto, preserving explicit Native/Fallback
+  choices while resolving automatic mode to native decorations in the desktop shell and Loopwire fallback controls in
+  browser/no-decoration environments. Focused validation passed with the desktop `chrome-mode-summary` test filter,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, and `pnpm --filter @loopwire/desktop build`.
+  Browser-rendered proof passed with Chromium headless: `/tmp/loopwire-auto-chrome.png` was written with 249073 bytes,
+  rendered `main.shell[data-chrome="custom"]`, rendered `.custom-chrome`, and exposed the Auto/Native/Fallback
+  segmented control with Auto active. Full validation passed: `pnpm check` and `git diff --check`.
 - 2026-07-05 Final proof tag-ref contract guard: `scripts/verify-release-readiness.sh` now treats
   `scripts/verify-release-tag-ref.sh` as a required final-proof helper, includes it in final proof syntax checks, and
   fails readiness if the composed final proof script stops invoking it. `scripts/verify-github-workflows.sh` now also

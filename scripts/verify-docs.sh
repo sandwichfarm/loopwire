@@ -540,6 +540,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "compact recovery t
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "custom chrome now persists"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "native-first"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "minimize, maximize/restore, and close controls"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop chrome now defaults to Auto"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Native PipeWire monitor routing"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "native JACK adapter"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Source-checkout background restore runner"

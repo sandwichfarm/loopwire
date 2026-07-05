@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Desktop chrome now defaults to Auto: automatic mode resolves to desktop/window-manager decorations in the Tauri shell
+  and Loopwire fallback controls where decoration control is unavailable, without removing explicit Native/Fallback
+  choices.
+- Focused validation passed: `pnpm --filter @loopwire/desktop test -- chrome-mode-summary`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, and `pnpm --filter @loopwire/desktop build`.
+  Browser-rendered proof passed with Chromium headless: `/tmp/loopwire-auto-chrome.png` was written with 249073 bytes,
+  rendered `main.shell[data-chrome="custom"]`, rendered `.custom-chrome`, and exposed Auto/Native/Fallback with Auto
+  active. Full validation passed: `pnpm check` and `git diff --check`.
 - Release readiness and workflow contract checks now guard final proof tag-ref wiring: readiness requires
   `scripts/verify-release-tag-ref.sh`, includes it in final proof syntax checks, and fails if
   `scripts/verify-final-release-proof.sh` no longer invokes it.

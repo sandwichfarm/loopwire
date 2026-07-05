@@ -1,7 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { describeChromeModeSummary } from "./chrome-mode-summary";
+import { describeChromeModeSummary, resolveChromeMode } from "./chrome-mode-summary";
+
+describe("resolveChromeMode", () => {
+  it("prefers system chrome in the desktop shell when mode is automatic", () => {
+    expect(resolveChromeMode("auto", true)).toBe("native");
+  });
+
+  it("falls back to Loopwire controls when decoration control is unavailable", () => {
+    expect(resolveChromeMode("auto", false)).toBe("custom");
+  });
+
+  it("honors explicit chrome choices", () => {
+    expect(resolveChromeMode("native", false)).toBe("native");
+    expect(resolveChromeMode("custom", true)).toBe("custom");
+  });
+});
 
 describe("describeChromeModeSummary", () => {
+  it("describes automatic chrome selection in the desktop shell", () => {
+    expect(describeChromeModeSummary({ mode: "auto", desktopRuntimeAvailable: true })).toEqual({
+      tone: "native",
+      title: "Auto system chrome",
+      message: "Loopwire uses desktop or window-manager decorations when decoration control is available."
+    });
+  });
+
+  it("describes automatic fallback controls when decoration control is unavailable", () => {
+    expect(describeChromeModeSummary({ mode: "auto", desktopRuntimeAvailable: false })).toEqual({
+      tone: "preview",
+      title: "Auto fallback controls",
+      message: "Loopwire shows fallback controls when system window decorations cannot be managed."
+    });
+  });
+
   it("describes the native-first chrome policy in the desktop shell", () => {
     expect(describeChromeModeSummary({ mode: "native", desktopRuntimeAvailable: true })).toEqual({
       tone: "native",

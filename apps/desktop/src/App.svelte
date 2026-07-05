@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { describeBackendChoiceCallout } from "./backend-choice";
-  import { describeChromeModeSummary, type ChromeMode } from "./chrome-mode-summary";
+  import { describeChromeModeSummary, resolveChromeMode, type ChromeMode } from "./chrome-mode-summary";
   import { groupMonitorsByVisibility } from "./monitor-visibility";
   import { describeStartupRestoreSummary } from "./startup-restore-summary";
   import {
@@ -253,7 +253,7 @@
   };
 
   let state: LoopwireState = createDefaultState();
-  let chromeMode: ChromeMode = "native";
+  let chromeMode: ChromeMode = "auto";
   let hostApplyMode: HostApplyMode = "preview";
   let restoreNote = "";
   let runtimeStatus: RuntimeBadge = "ready";
@@ -314,6 +314,7 @@
     enabled: backgroundStartupEnabled,
     available: backgroundStartupAvailable
   });
+  $: resolvedChromeMode = resolveChromeMode(chromeMode, desktopRuntimeAvailable);
   $: chromeModeSummary = describeChromeModeSummary({ mode: chromeMode, desktopRuntimeAvailable });
   $: backendSelectionSummary = describeBackendSelectionSummary();
   $: backendChoiceCallout = describeBackendChoiceCallout(backendDecision, selectedBackendName);
@@ -368,7 +369,7 @@
   }
 
   function parseChromeMode(value: string | null): ChromeMode {
-    return value === "custom" ? "custom" : "native";
+    return value === "native" || value === "custom" ? value : "auto";
   }
 
   async function setChromeMode(nextMode: ChromeMode): Promise<void> {
@@ -379,7 +380,9 @@
 
   async function applyWindowChrome(mode: ChromeMode, options: { readonly quiet?: boolean } = {}): Promise<void> {
     if (!hasTauriRuntime()) {
-      if (!options.quiet && mode === "custom") {
+      const resolved = resolveChromeMode(mode, false);
+
+      if (!options.quiet && resolved === "custom") {
         runtimeStatus = "verified";
         runtimeNote = "Custom chrome is shown in browser preview; decoration switching runs in the desktop shell.";
       }
@@ -388,11 +391,12 @@
     }
 
     try {
-      await getCurrentWindow().setDecorations(mode === "native");
+      const resolved = resolveChromeMode(mode, true);
+      await getCurrentWindow().setDecorations(resolved === "native");
 
       if (!options.quiet) {
         runtimeStatus = "verified";
-        runtimeNote = mode === "custom"
+        runtimeNote = resolved === "custom"
           ? "Custom chrome is controlling the undecorated desktop window."
           : "Native window chrome restored.";
       }
@@ -1792,8 +1796,8 @@
   <title>Loopwire</title>
 </svelte:head>
 
-<main class="shell" data-chrome={chromeMode}>
-  {#if chromeMode === "custom"}
+<main class="shell" data-chrome={resolvedChromeMode}>
+  {#if resolvedChromeMode === "custom"}
     <div class="custom-chrome" data-tauri-drag-region>
       <span>Loopwire</span>
       <div class="chrome-buttons" aria-label="Window controls">
@@ -1996,6 +2000,14 @@
           <div class="chrome-control" data-mode={chromeModeSummary.tone} aria-label="Window chrome mode">
             <span>Chrome</span>
             <div class="segmented-control" role="group" aria-label="Choose window chrome mode">
+              <button
+                type="button"
+                class:active={chromeMode === "auto"}
+                aria-pressed={chromeMode === "auto"}
+                on:click={() => void setChromeMode("auto")}
+              >
+                Auto
+              </button>
               <button
                 type="button"
                 class:active={chromeMode === "native"}
@@ -2868,7 +2880,7 @@
 
   .segmented-control {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     min-height: 36px;
     padding: 3px;
     background: #171817;
@@ -2877,7 +2889,7 @@
   }
 
   .segmented-control button {
-    min-width: 78px;
+    min-width: 0;
     color: #d8d0bf;
     font-weight: 800;
     background: transparent;
