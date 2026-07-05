@@ -4484,6 +4484,9 @@ NODE
     if [ "$workflow_name" = "ci.yml" ] && [ -n "${LOOPWIRE_FAKE_GH_CI_RUN_MODE:-}" ]; then
       run_mode="$LOOPWIRE_FAKE_GH_CI_RUN_MODE"
     fi
+    if [ -n "${LOOPWIRE_FAKE_GH_TRACE:-}" ]; then
+      printf '%s\t%s\n' "run list" "$workflow_name" >>"$LOOPWIRE_FAKE_GH_TRACE"
+    fi
     case "$run_mode" in
       empty)
         printf '%s\n' '[]'
@@ -5009,9 +5012,11 @@ if grep -F "env-access-key-that-must-not-print" "$release_status_env_default_pub
   exit 1
 fi
 release_status_missing_docs_manifest_artifacts_log="$tmp_dir/release-status-missing-docs-manifest-artifacts.log"
+release_status_docs_run_trace="$tmp_dir/release-status-docs-run-trace.tsv"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \
   LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
+  LOOPWIRE_FAKE_GH_TRACE="$release_status_docs_run_trace" \
   PATH="$fake_gh_dir:$PATH" \
   bash scripts/audit-final-release-state.sh \
     --repo sandwichfarm/loopwire \
@@ -5023,6 +5028,14 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
     --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
     --docs-dist "$release_status_docs_dist" >"$release_status_missing_docs_manifest_artifacts_log" 2>&1; then
   echo "verify-scripts: release status accepted a missing docs deployment manifest with only docs artifact present" >&2
+  exit 1
+fi
+docs_run_list_count="$(
+  awk -F '\t' '$1 == "run list" && $2 == "deploy-docs.yml" { count++ } END { print count + 0 }' \
+    "$release_status_docs_run_trace"
+)"
+if [ "$docs_run_list_count" != "1" ]; then
+  echo "verify-scripts: release status re-queried Deploy Docs instead of reusing verified run id" >&2
   exit 1
 fi
 grep -F "Deploy Docs artifacts visible:" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {

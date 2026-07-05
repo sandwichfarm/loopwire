@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- `scripts/audit-final-release-state.sh` now reuses the already verified Deploy Docs workflow run id for missing
+  docs-manifest recovery commands, avoiding a second unverified `gh run list` lookup before rendering
+  `pnpm release:fetch-docs-proof`.
+- `pnpm verify:scripts` passed with a fake GitHub trace proving release status uses a single Deploy Docs run-list call
+  before printing the missing-manifest docs proof fetch command.
+- `pnpm verify:docs`, `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head $(git rev-parse
+  HEAD) --skip-gh`, and `pnpm check` passed after the Deploy Docs run-id reuse update. `release:status` still blocks
+  on the expected operator-deferred Bunny secrets, docs deployment manifest, and published VM evidence.
 - `scripts/audit-final-release-state.sh` now verifies the live downloadable
   `loopwire-release-evidence-<tag>.tar.gz` asset during non-`--skip-gh` status audits: it downloads the archive plus
   `SHA256SUMS` and `SHA256SUMS.sig`, verifies the signed checksum entry, safe-extracts the archive, and checks

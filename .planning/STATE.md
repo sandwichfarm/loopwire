@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-05T16:33:42+02:00"
-last_activity: 2026-07-05 - Release status verifies signed release evidence archives
+last_updated: "2026-07-05T16:49:54+02:00"
+last_activity: 2026-07-05 - Release status reuses verified Deploy Docs run ids
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-05 - `pnpm release:status` now verifies the downloadable
-`loopwire-release-evidence-<tag>.tar.gz` release asset with the signed `SHA256SUMS` manifest, safe extraction, and
-`release-evidence.json` tag/repo/commit strictness before it treats the GitHub Release evidence archive as usable final
-proof. Phase 12 remains gated on public GitHub Release install, Bunny deployment proof, final proof workflow success,
-and operator-run VM evidence.
+Last activity: 2026-07-05 - `pnpm release:status` now reuses the already verified Deploy Docs workflow run id when
+printing missing-manifest docs proof recovery commands, so the docs proof fetch path and final proof handoff are bound
+to the same successful run instead of a second unverified lookup. Phase 12 remains gated on public GitHub Release
+install, Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -85,6 +84,14 @@ and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-05 Release status Deploy Docs run-id reuse: `scripts/audit-final-release-state.sh` now returns the already
+  verified `latest_docs_deployment_run_id` from `docs_deployment_run_id_hint` before it falls back to another live
+  `gh run list` lookup. The fake GitHub fixture in `scripts/verify-scripts.sh` now traces Deploy Docs run-list calls
+  and proves missing-manifest recovery uses one verified Deploy Docs run id for the docs proof fetch command. Focused
+  validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`;
+  `pnpm verify:docs`; `pnpm verify:scripts`; and `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0
+  --git-head $(git rev-parse HEAD) --skip-gh` with expected operator-gated blockers. Full validation passed:
+  `pnpm check`.
 - 2026-07-05 Release status release-evidence archive proof: `scripts/audit-final-release-state.sh` now downloads the
   published release evidence asset during live status audits, verifies it is covered by signed `SHA256SUMS`,
   safe-extracts it, and validates the extracted `release-evidence.json` against the expected tag, repository, commit,

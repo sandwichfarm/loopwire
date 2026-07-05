@@ -422,6 +422,8 @@ These notes describe source-tree progress. They are not a public release announc
   `--vm-start-port` when an operator chooses a different forwarded-port range.
 - `pnpm release:status` now threads the verified latest Deploy Docs workflow run id into the final release handoff, so
   the docs proof fetch and final proof dispatch commands no longer fall back to a placeholder after a successful docs run.
+- `pnpm release:status` now reuses the already verified Deploy Docs run id when printing missing-manifest recovery,
+  avoiding a second unverified run lookup for the docs proof fetch command.
 - `pnpm release:status` can now audit a pinned Deploy Docs run with `--docs-deployment-run-id`, keeping final proof
   rehearsals tied to the operator-selected docs deployment instead of only the latest workflow run.
 - `pnpm release:status --vm-evidence-root` now passes the selected evidence root into support-matrix verification, so

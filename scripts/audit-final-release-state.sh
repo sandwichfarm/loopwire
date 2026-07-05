@@ -184,6 +184,11 @@ docs_deployment_run_id_hint() {
     return
   fi
 
+  if [ -n "$latest_docs_deployment_run_id" ]; then
+    echo "$latest_docs_deployment_run_id"
+    return
+  fi
+
   if [ "$skip_gh" = "true" ]; then
     echo "<docs-deployment-run-id>"
     return

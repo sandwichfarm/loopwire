@@ -279,8 +279,9 @@ only want local evidence checks. Use `--env-file` to let the embedded local hand
 path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. The embedded
 handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
 to copy release key paths into separate command flags. It also keeps `--env-file` on the rendered docs proof fetch
-command. When a Deploy Docs workflow run is verified, the local handoff plan reuses that run id for docs proof fetching
-and final proof dispatch. The embedded handoff treats `--public-key` as an override only when the status command
+command. When a Deploy Docs workflow run is verified, `release:status` reuses that same verified run id for missing
+docs manifest recovery and final proof dispatch instead of re-querying a fresh run hint. The embedded handoff treats
+`--public-key` as an override only when the status command
 received that flag explicitly; with `--env-file` alone, the VM evidence asset-prep command keeps the env-file route
 instead of expanding the default public-key path. If the docs deployment manifest is missing, `release:status` prints
 the matching `pnpm release:fetch-docs-proof` command for the expected commit and preserves `--env-file` when supplied.
