@@ -899,6 +899,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'VM doctor now trea
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM doctor now supports"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM evidence promotion now has a guarded"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:status --vm-evidence-root`'
+assert_contains "apps/docs/docs/developer/release.md" "silently fall back to default archive names"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "cannot print default-archive follow-up commands"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VM cloud-init rendering can now generate guest bootstrap assets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Debian and Ubuntu VM cloud-init commands"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Non-Nix VM cloud-init commands now install Rust"

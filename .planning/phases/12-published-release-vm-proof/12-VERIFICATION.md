@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Release status recovery handoffs now keep custom evidence archive names consistent. `scripts/audit-final-release-state.sh`
+  forwards the selected `--release-evidence-asset`, `--vm-evidence-asset`, and `--support-matrix` values into its
+  embedded `scripts/plan-final-release-handoff.sh` plan, so a blocked status audit cannot print default-archive
+  follow-up commands after auditing custom release assets. `scripts/verify-scripts.sh` covers this with a fake-GitHub
+  status probe that checks the recovery handoff's final-proof dispatch and VM evidence prep command. Focused
+  validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  custom-asset `scripts/audit-final-release-state.sh --skip-gh` probe, `pnpm verify:scripts`, `pnpm verify:docs`, and
+  `git diff --check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch,
+  host audio mutation, provider execution, or support-matrix promotion was performed.
 - The final release handoff now prepares VM evidence archives under the same selected asset name used by upload, final
   proof, and status audits. `scripts/plan-final-release-handoff.sh` passes `--vm-evidence-asset NAME` through to
   `pnpm vm:prepare-release-evidence -- --asset-name NAME`; `scripts/verify-agent-release-ready.sh` rejects handoffs

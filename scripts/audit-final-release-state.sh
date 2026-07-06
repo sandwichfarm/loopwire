@@ -971,7 +971,10 @@ run_gate \
 
 handoff_plan=(bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
   --git-head "$expected_git_head" \
-  --vm-start-port "$vm_start_port")
+  --vm-start-port "$vm_start_port" \
+  --support-matrix "$support_matrix" \
+  --release-evidence-asset "$release_evidence_asset" \
+  --vm-evidence-asset "$vm_evidence_asset")
 if [ -z "$env_file" ] || [ "$public_key_explicit" = "true" ]; then
   handoff_plan+=(--public-key "$public_key")
 fi

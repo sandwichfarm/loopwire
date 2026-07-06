@@ -1268,6 +1268,23 @@ grep -F "loopwire-vm-evidence-v0.1.0-operator.tar.gz" "$release_status_fake_log"
   rm -f "$release_status_fake_log"
   exit 1
 }
+grep -F "gh workflow run final-release-proof.yml" "$release_status_fake_log" |
+  grep -F -- "-f release_evidence_asset=loopwire-release-evidence-v0.1.0-operator.tar.gz" |
+  grep -F -- "-f vm_evidence_asset=loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: release status recovery handoff lost custom final-proof evidence asset names" >&2
+    cat "$release_status_fake_log" >&2
+    rm -rf "$release_status_fake_bin"
+    rm -f "$release_status_fake_log"
+    exit 1
+  }
+grep -F "pnpm vm:prepare-release-evidence" "$release_status_fake_log" |
+  grep -F -- "--asset-name loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: release status recovery handoff lost custom VM evidence prep asset name" >&2
+    cat "$release_status_fake_log" >&2
+    rm -rf "$release_status_fake_bin"
+    rm -f "$release_status_fake_log"
+    exit 1
+  }
 grep -F "ok: verified Deploy Docs artifact run selection" "$release_status_fake_log" >/dev/null || {
   echo "verify-scripts: release status did not run artifact-aware docs selection" >&2
   cat "$release_status_fake_log" >&2

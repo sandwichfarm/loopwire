@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T09:56:41+02:00"
-last_activity: 2026-07-06 - Final handoff keeps VM evidence asset names consistent
+last_updated: "2026-07-06T10:11:49+02:00"
+last_activity: 2026-07-06 - Release status recovery handoff keeps evidence asset names consistent
 progress:
   total_phases: 5
   completed_phases: 4
@@ -100,6 +100,10 @@ Latest VM evidence asset-name hardening: 2026-07-06 - `scripts/plan-final-releas
 and release-status commands. `scripts/verify-agent-release-ready.sh` and `scripts/verify-scripts.sh` now reject handoff
 plans where a custom VM evidence archive name would be prepared under one filename and uploaded or audited under
 another.
+Latest release-status recovery hardening: 2026-07-06 - `scripts/audit-final-release-state.sh` now forwards the selected
+release evidence archive name, VM evidence archive name, and support matrix path into its embedded
+`scripts/plan-final-release-handoff.sh` recovery plan. A blocked `pnpm release:status` run that audits custom
+tag-bound asset names can no longer print default-archive follow-up commands.
 
 ## Blockers / Concerns
 
@@ -160,6 +164,15 @@ another.
 
 ## Verification Log
 
+- 2026-07-06 release status recovery asset-name hardening: `scripts/audit-final-release-state.sh` now passes selected
+  `--release-evidence-asset`, `--vm-evidence-asset`, and `--support-matrix` values into the embedded local final
+  release handoff plan. `scripts/verify-scripts.sh` now checks that a fake-GitHub `pnpm release:status` run with
+  custom archive names prints matching final-proof and VM evidence preparation commands in the recovery handoff.
+  Focused validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, custom-asset `scripts/audit-final-release-state.sh --skip-gh` probe,
+  `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. No secret write, release tag, public release,
+  Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix
+  promotion was performed.
 - 2026-07-06 VM evidence asset-name handoff hardening: `scripts/plan-final-release-handoff.sh` now passes the selected
   VM evidence archive name into `pnpm vm:prepare-release-evidence -- --asset-name ...`; the same selected name already
   flows through VM evidence upload, final proof dispatch, and both release-status audits. `scripts/verify-agent-release-ready.sh`

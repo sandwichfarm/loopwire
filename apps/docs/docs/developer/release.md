@@ -354,8 +354,9 @@ commands instead of passing an artifact-incomplete run into final proof. Use `--
 path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. The embedded
 handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
 to copy release key paths into separate command flags. It also keeps `--env-file` on the rendered docs proof fetch
-command. The handoff also forwards the selected release and VM evidence asset names into its final `release:status`
-command, so the dispatch and final audit do not silently diverge when an operator uses tag-bound override names. When a
+command. The embedded handoff also forwards the selected release and VM evidence asset names through agent-ready,
+VM evidence preparation, final-proof dispatch, and the final `release:status` audit, so recovery commands do not
+silently fall back to default archive names after an operator audits tag-bound override names. When a
 Deploy Docs workflow run is verified, `release:status` reuses that same verified run id for missing
 docs manifest recovery and final proof dispatch instead of re-querying a fresh run hint. Without
 `--docs-deployment-run-id`, `release:status` runs the same artifact-aware docs deployment run selection used by the
