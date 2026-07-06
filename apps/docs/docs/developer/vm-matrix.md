@@ -427,6 +427,11 @@ collector from the desktop session or set
 The desktop launch smoke starts the Loopwire desktop shell through Vite on `127.0.0.1:5181`, checks that the shell
 responds, records `desktop-launch.log`, and then shuts the server down. If that port is already in use, pass a different
 one. The collector validates the port range before launching the desktop smoke.
+Packaged Tauri launch smoke should also run the built `loopwire` binary on Wayland targets before promotion. The Linux
+desktop entry disables WebKitGTK's DMABUF renderer by default with `WEBKIT_DISABLE_DMABUF_RENDERER=1` before Tauri
+starts, while preserving any operator-provided value. This avoids the known Hyprland/WebKitGTK failure that reports
+`wp_linux_drm_syncobj_surface_v1 ... Missing acquire timeline` followed by `Gdk-Message: Error 71 (Protocol error)`
+without forcing the app onto X11.
 
 ```bash
 bash scripts/collect-vm-evidence.sh \

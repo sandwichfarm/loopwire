@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Linux packaged desktop launch now avoids the observed Hyprland/WebKitGTK Wayland crash. A local reproduction without
+  the workaround failed with `wp_linux_drm_syncobj_surface_v1 ... Missing acquire timeline` followed by
+  `Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display`; launching the same binary with
+  `WEBKIT_DISABLE_DMABUF_RENDERER=1` stayed alive until timeout. `apps/desktop/src-tauri/src/main.rs` now applies that
+  WebKitGTK fallback before Tauri starts on Linux unless an operator-provided value already exists. Rust unit coverage
+  locks the default/no-override decision, and VM evidence docs plus `scripts/verify-docs.sh` require the launch-smoke
+  guidance to keep this Wayland surface visible. No host audio mutation, persistent desktop change, release tag, public
+  release, Bunny deployment, final proof dispatch, VM launch, provider execution, or support-matrix promotion was
+  performed.
 - Agent-ready release proof now carries custom Deploy Docs proof artifact names into the post-Bunny readiness gate.
   `scripts/verify-agent-release-ready.sh` accepts `--docs-artifact` and `--manifest-artifact`, validates them, and
   passes them to `scripts/select-docs-deployment-run.sh` whenever `--require-docs-deployment-artifacts` is active.

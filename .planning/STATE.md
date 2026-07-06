@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T11:21:16+02:00"
-last_activity: 2026-07-06 - Agent-ready carries custom docs proof artifact names
+last_updated: "2026-07-06T11:38:40+02:00"
+last_activity: 2026-07-06 - Linux desktop launch avoids WebKitGTK DMABUF crash
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,6 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
+Latest launch hardening: 2026-07-06 - The Linux Tauri entry point now sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` before
+WebKitGTK starts unless the operator already supplied that environment variable. This keeps Hyprland/Wayland packaged
+binary launch smoke on the native Wayland path while avoiding the observed `wp_linux_drm_syncobj_surface_v1 ... Missing
+acquire timeline` / `Gdk-Message: Error 71 (Protocol error)` crash. Rust regression coverage locks the default and
+operator-override behavior, and VM evidence docs now require packaged binary launch smoke to account for this surface.
 Last activity: 2026-07-06 - `pnpm verify:vm` now validates VM target metadata, rendered cloud-init assets, launch TSV,
 SSH TSV, and the operator runbook without launching guests. The new `verify-handoffs` path checks every target for its
 QEMU launch command, evidence pull command, SSH port allocation, evidence directory, and runbook verification steps.

@@ -1122,7 +1122,36 @@ fn escape_json(value: &str) -> String {
         .collect()
 }
 
+#[cfg(target_os = "linux")]
+const WEBKIT_DMABUF_RENDERER_ENV: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
+#[cfg(target_os = "linux")]
+const WEBKIT_DMABUF_RENDERER_DISABLED: &str = "1";
+
+#[cfg(target_os = "linux")]
+fn linux_webkit_dmabuf_assignment(already_set: bool) -> Option<(&'static str, &'static str)> {
+    if already_set {
+        None
+    } else {
+        Some((WEBKIT_DMABUF_RENDERER_ENV, WEBKIT_DMABUF_RENDERER_DISABLED))
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn prepare_linux_webkit_runtime() {
+    if let Some((key, value)) =
+        linux_webkit_dmabuf_assignment(env::var_os(WEBKIT_DMABUF_RENDERER_ENV).is_some())
+    {
+        // WebKitGTK reads this during startup; set it before Tauri creates any app threads.
+        unsafe { env::set_var(key, value) };
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn prepare_linux_webkit_runtime() {}
+
 fn main() {
+    prepare_linux_webkit_runtime();
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             run_audio_command,
@@ -1136,6 +1165,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "linux")]
+    use super::linux_webkit_dmabuf_assignment;
     use super::{
         BackgroundRestoreOptions, background_binary_status, background_startup_status_json,
         install_background_startup_entry, install_startup_entry, is_allowed_audio_command,
@@ -1151,6 +1182,16 @@ mod tests {
     };
 
     static TEMP_DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn defaults_webkitgtk_dmabuf_renderer_off_without_overriding_operator_env() {
+        assert_eq!(
+            linux_webkit_dmabuf_assignment(false),
+            Some(("WEBKIT_DISABLE_DMABUF_RENDERER", "1"))
+        );
+        assert_eq!(linux_webkit_dmabuf_assignment(true), None);
+    }
 
     #[test]
     fn allows_expected_audio_probe_commands() {

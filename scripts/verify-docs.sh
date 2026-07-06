@@ -291,6 +291,8 @@ assert_contains "apps/docs/docs/developer/vm-matrix.md" 'backend availability fr
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "JACK targets require JACK"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "LOOPWIRE_EVIDENCE_SESSION"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "--desktop-port 5199"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "WEBKIT_DISABLE_DMABUF_RENDERER=1"
+assert_contains "apps/docs/docs/developer/vm-matrix.md" "Missing acquire timeline"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "support-bundle/support-bundle.json"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "support-bundle/command-results.tsv"
 assert_contains "apps/docs/docs/developer/vm-matrix.md" "autostart-status"
@@ -798,6 +800,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "fallback missing-m
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "rejects absolute or parent-traversal VM handoff output paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "no longer gets release-key reset guidance"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now prints no-value next steps"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Missing acquire timeline"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret'
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'Bunny.net docs deployment requires `BUNNY_STORAGE_ZONE`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Desktop JACK live-apply preflight"
