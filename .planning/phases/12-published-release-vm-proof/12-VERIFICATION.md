@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- The final release handoff now makes VM evidence publication an explicit ceremony step. After rendering
+  `pnpm vm:prepare-release-evidence`, `scripts/plan-final-release-handoff.sh` prints the exact
+  `gh release upload --clobber` command for `loopwire-vm-evidence-<tag>.tar.gz`, `SHA256SUMS`, and
+  `SHA256SUMS.sig`, then prints a post-upload `pnpm release:status` audit before Final Release Proof dispatch.
+  `scripts/verify-scripts.sh` asserts the upload command and audit guidance, and release docs now clarify that VM
+  evidence preparation is not published release-asset proof until the printed upload step has run. Focused validation
+  passed: `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, rendered
+  `pnpm release:handoff`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, provider execution, or support-matrix promotion was performed.
 - Agent-ready release proof now accepts the same evidence archive overrides as the final handoff. The read-only
   `scripts/verify-agent-release-ready.sh` validates optional `--release-evidence-asset` and `--vm-evidence-asset`
   names against the selected tag, renders `scripts/plan-final-release-handoff.sh` with those names, and asserts that

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T09:20:23+02:00"
-last_activity: 2026-07-06 - Agent-ready preflights accept evidence asset overrides
+last_updated: "2026-07-06T09:39:57+02:00"
+last_activity: 2026-07-06 - Final handoff makes VM evidence upload explicit
 progress:
   total_phases: 5
   completed_phases: 4
@@ -91,6 +91,10 @@ handoffs that drop the tag-bound release or VM evidence archive names from final
 Latest agent-ready override hardening: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now accepts validated
 `--release-evidence-asset` and `--vm-evidence-asset` overrides, and `scripts/plan-final-release-handoff.sh` forwards
 the selected archive names into both initial and post-deploy agent-ready preflights.
+Latest VM evidence publication hardening: 2026-07-06 - `scripts/plan-final-release-handoff.sh` now prints the exact
+`gh release upload --clobber` command for the signed VM evidence archive plus refreshed `SHA256SUMS` files, followed by
+a post-upload `pnpm release:status` audit before Final Release Proof dispatch. This keeps VM evidence packaging,
+publication, and final proof as separate visible steps.
 
 ## Blockers / Concerns
 
@@ -174,6 +178,16 @@ the selected archive names into both initial and post-deploy agent-ready preflig
   `scripts/plan-final-release-handoff.sh` also forwards the same names into the initial and post-deploy
   `pnpm release:agent-ready` preflights. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh
   scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
+  support-matrix promotion was performed.
+- 2026-07-06 final handoff VM evidence upload proof: `scripts/plan-final-release-handoff.sh` now renders an explicit
+  `gh release upload v0.1.0 dist/release/loopwire-vm-evidence-v0.1.0.tar.gz dist/release/SHA256SUMS
+  dist/release/SHA256SUMS.sig --repo sandwichfarm/loopwire --clobber` command after VM evidence preparation, followed
+  by a post-upload `pnpm release:status` audit before Final Release Proof dispatch. `scripts/verify-scripts.sh` asserts
+  the upload command and audit guidance are present, and release docs now distinguish packaging from published
+  release-asset proof. Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, rendered `pnpm release:handoff`, `pnpm verify:scripts`,
   `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
   public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
   support-matrix promotion was performed.

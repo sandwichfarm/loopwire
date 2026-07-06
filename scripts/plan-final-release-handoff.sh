@@ -452,47 +452,9 @@ else
 fi
 print_command "${vm_prepare[@]}"
 echo
-echo "10. Dispatch final release proof after docs and VM evidence assets exist:"
-final_proof_prefix=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
-  -f "tag=${tag}" \
-  -f "git_head=${git_head}")
-final_proof_suffix=(\
-  -f "release_evidence_asset=${release_evidence_asset}" \
-  -f "vm_evidence_asset=${vm_evidence_asset}")
-if [ -n "$docs_base_url" ]; then
-  final_proof_suffix+=(-f "docs_base_url=${docs_base_url}")
-else
-  [ -z "$docs_hostname" ] || final_proof_suffix+=(-f "docs_hostname=${docs_hostname}")
-  [ -z "$docs_remote_prefix" ] || final_proof_suffix+=(-f "docs_remote_prefix=${docs_remote_prefix}")
-fi
-if [ -z "$docs_deployment_run_id" ]; then
-  final_proof_prefix_rendered="$(shell_join "${final_proof_prefix[@]}")"
-  final_proof_suffix_rendered="$(shell_join "${final_proof_suffix[@]}")"
-  print_raw_command "${final_proof_prefix_rendered} -f \"docs_deployment_run_id=\$docs_deployment_run_id\" ${final_proof_suffix_rendered}"
-else
-  final_proof=("${final_proof_prefix[@]}" -f "docs_deployment_run_id=${docs_run_id}" "${final_proof_suffix[@]}")
-  print_command "${final_proof[@]}"
-fi
-echo "  expected GitHub Actions run name: Final Release Proof ${tag} @ ${git_head}"
-echo
-echo "11. Local dry-run of the final proof command plan:"
-local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
-  --git-head "$git_head" \
-  --release-evidence-dir ".release-evidence/${tag}-published" \
-  --docs-deployment-manifest "dist/docs-deployment/deployment-manifest.json" \
-  --vm-evidence-root ".vm/evidence" \
-  --support-matrix "$support_matrix" \
-  --dry-run \
-  --plan-output "dist/release/final-release-proof-plan.txt")
-if [ -n "$docs_base_url" ]; then
-  local_final+=(--docs-base-url "$docs_base_url")
-else
-  local_final+=(--docs-hostname "${docs_hostname:-<bunny-pull-zone-hostname>}")
-  [ -z "$docs_remote_prefix" ] || local_final+=(--docs-remote-prefix "$docs_remote_prefix")
-fi
-print_command "${local_final[@]}"
-echo
-echo "12. Audit final release status after final proof completes:"
+echo "10. Upload signed VM evidence release assets and re-audit the release surface:"
+print_command gh release upload "$tag" "dist/release/${vm_evidence_asset}" \
+  "dist/release/SHA256SUMS" "dist/release/SHA256SUMS.sig" --repo "$repo" --clobber
 release_status_prefix=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-head "$git_head" \
   --public-key "$public_key")
 release_status_suffix=(
@@ -515,10 +477,61 @@ else
   release_status=("${release_status_prefix[@]}" --docs-deployment-run-id "$docs_run_id" "${release_status_suffix[@]}")
   print_command "${release_status[@]}"
 fi
+echo "  # This audit should prove the uploaded release and VM evidence assets, then remain blocked until final proof runs."
+echo
+echo "11. Dispatch final release proof after docs and VM evidence assets exist:"
+final_proof_prefix=(gh workflow run final-release-proof.yml --repo "$repo" --ref "$tag" \
+  -f "tag=${tag}" \
+  -f "git_head=${git_head}")
+final_proof_suffix=(\
+  -f "release_evidence_asset=${release_evidence_asset}" \
+  -f "vm_evidence_asset=${vm_evidence_asset}")
+if [ -n "$docs_base_url" ]; then
+  final_proof_suffix+=(-f "docs_base_url=${docs_base_url}")
+else
+  [ -z "$docs_hostname" ] || final_proof_suffix+=(-f "docs_hostname=${docs_hostname}")
+  [ -z "$docs_remote_prefix" ] || final_proof_suffix+=(-f "docs_remote_prefix=${docs_remote_prefix}")
+fi
+if [ -z "$docs_deployment_run_id" ]; then
+  final_proof_prefix_rendered="$(shell_join "${final_proof_prefix[@]}")"
+  final_proof_suffix_rendered="$(shell_join "${final_proof_suffix[@]}")"
+  print_raw_command "${final_proof_prefix_rendered} -f \"docs_deployment_run_id=\$docs_deployment_run_id\" ${final_proof_suffix_rendered}"
+else
+  final_proof=("${final_proof_prefix[@]}" -f "docs_deployment_run_id=${docs_run_id}" "${final_proof_suffix[@]}")
+  print_command "${final_proof[@]}"
+fi
+echo "  expected GitHub Actions run name: Final Release Proof ${tag} @ ${git_head}"
+echo
+echo "12. Local dry-run of the final proof command plan:"
+local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
+  --git-head "$git_head" \
+  --release-evidence-dir ".release-evidence/${tag}-published" \
+  --docs-deployment-manifest "dist/docs-deployment/deployment-manifest.json" \
+  --vm-evidence-root ".vm/evidence" \
+  --support-matrix "$support_matrix" \
+  --dry-run \
+  --plan-output "dist/release/final-release-proof-plan.txt")
+if [ -n "$docs_base_url" ]; then
+  local_final+=(--docs-base-url "$docs_base_url")
+else
+  local_final+=(--docs-hostname "${docs_hostname:-<bunny-pull-zone-hostname>}")
+  [ -z "$docs_remote_prefix" ] || local_final+=(--docs-remote-prefix "$docs_remote_prefix")
+fi
+print_command "${local_final[@]}"
+echo
+echo "13. Audit final release status after final proof completes:"
+if [ -z "$docs_deployment_run_id" ]; then
+  release_status_prefix_rendered="$(shell_join "${release_status_prefix[@]}")"
+  release_status_suffix_rendered="$(shell_join "${release_status_suffix[@]}")"
+  print_raw_command "${release_status_prefix_rendered} --docs-deployment-run-id \"\$docs_deployment_run_id\" ${release_status_suffix_rendered}"
+else
+  release_status=("${release_status_prefix[@]}" --docs-deployment-run-id "$docs_run_id" "${release_status_suffix[@]}")
+  print_command "${release_status[@]}"
+fi
 
 if [ -z "$docs_deployment_run_id" ]; then
   docs_run_reminder="operator-deferred: run the docs_deployment_run_id selection command after Deploy Docs completes; "
-  docs_run_reminder+="steps 8, 10, and 12 reuse that verified run id."
+  docs_run_reminder+="steps 8, 10, 11, and 13 reuse that verified run id."
   echo
   echo "$docs_run_reminder"
 fi

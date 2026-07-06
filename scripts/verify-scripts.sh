@@ -544,6 +544,19 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidenc
   echo "verify-scripts: release handoff plan is missing signed VM evidence preparation" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" |
+  grep -F "gh release upload v0.1.0 dist/release/loopwire-vm-evidence-v0.1.0-operator.tar.gz" |
+  grep -F "dist/release/SHA256SUMS" |
+  grep -F "dist/release/SHA256SUMS.sig" |
+  grep -F -- "--repo sandwichfarm/loopwire --clobber" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing VM evidence release asset upload" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_plan" |
+  grep -F "This audit should prove the uploaded release and VM evidence assets" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing post-upload audit guidance" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "gh workflow run final-release-proof.yml" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing final proof workflow dispatch" >&2
   exit 1
@@ -614,7 +627,7 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
     exit 1
   }
 release_handoff_docs_run_reminder="operator-deferred: run the docs_deployment_run_id selection command after "
-release_handoff_docs_run_reminder+="Deploy Docs completes; steps 8, 10, and 12 reuse that verified run id."
+release_handoff_docs_run_reminder+="Deploy Docs completes; steps 8, 10, 11, and 13 reuse that verified run id."
 printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "$release_handoff_docs_run_reminder" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing docs-run operator-deferred reminder" >&2
