@@ -69,6 +69,15 @@ export interface DeleteConfigurationResult {
   readonly removedConfiguration: LoopwireConfiguration;
 }
 
+export function createEmptyState(now = demoTimestamp): LoopwireState {
+  return {
+    version: schemaVersion,
+    configurations: [],
+    hiddenMonitorIds: [],
+    appliedAt: now
+  };
+}
+
 export function createDefaultState(now = demoTimestamp): LoopwireState {
   const configurations = createDefaultConfigurations(now);
   const activeConfigurationId = configurations[0]?.id ?? "";
@@ -336,7 +345,7 @@ export function removeOutputBusFromConfiguration(
     configurationId,
     {
       outputs: configuration.outputs.filter((candidate) => candidate.id !== output.id),
-      routes: configuration.routes.filter((route) => route.to !== output.id)
+      routes: configuration.routes.filter((route) => route.to !== output.id && route.from !== output.id)
     },
     updatedAt
   );
@@ -359,7 +368,8 @@ export function removeMonitorFromConfiguration(
     state,
     configurationId,
     {
-      monitors: configuration.monitors.filter((candidate) => candidate.id !== monitor.id)
+      monitors: configuration.monitors.filter((candidate) => candidate.id !== monitor.id),
+      routes: configuration.routes.filter((route) => route.to !== monitor.id)
     },
     updatedAt
   );
@@ -377,15 +387,22 @@ export function addRouteToConfiguration(
   updatedAt: string
 ): ConfigurationMutationResult {
   const configuration = getConfigurationById(state, configurationId);
-  const source = configuration.inputs.find((candidate) => candidate.id === input.from);
-  const output = configuration.outputs.find((candidate) => candidate.id === input.to);
+  const source =
+    configuration.inputs.find((candidate) => candidate.id === input.from) ??
+    configuration.outputs.find((candidate) => candidate.id === input.from);
+  const output =
+    source?.role === "output"
+      ? configuration.monitors.find((candidate) => candidate.id === input.to)
+      : configuration.outputs.find((candidate) => candidate.id === input.to);
 
   if (!source) {
     throw new Error(`Unknown Loopwire input: ${input.from}`);
   }
 
   if (!output) {
-    throw new Error(`Unknown Loopwire output: ${input.to}`);
+    throw new Error(
+      source.role === "output" ? `Unknown Loopwire monitor: ${input.to}` : `Unknown Loopwire output: ${input.to}`
+    );
   }
 
   if (configuration.routes.some((route) => route.from === source.id && route.to === output.id)) {
@@ -451,6 +468,28 @@ export function duplicateConfiguration(
   };
 
   return insertConfiguration(state, configuration, updatedAt);
+}
+
+/**
+ * Removes a configuration and permits an empty device list (unlike
+ * {@link deleteConfiguration}, which protects the legacy at-least-one invariant).
+ */
+export function removeConfiguration(state: LoopwireState, configurationId: string, appliedAt: string): DeleteConfigurationResult {
+  const removedConfiguration = getConfigurationById(state, configurationId);
+  const configurations = state.configurations.filter((configuration) => configuration.id !== configurationId);
+  const activeConfigurationId =
+    state.activeConfigurationId === configurationId ? configurations[0]?.id : state.activeConfigurationId;
+  const { activeConfigurationId: _previousActiveId, ...rest } = state;
+
+  return {
+    state: {
+      ...rest,
+      configurations,
+      ...(activeConfigurationId ? { activeConfigurationId } : {}),
+      ...(state.activeConfigurationId === configurationId ? { appliedAt } : {})
+    },
+    removedConfiguration
+  };
 }
 
 export function deleteConfiguration(state: LoopwireState, configurationId: string, appliedAt: string): DeleteConfigurationResult {
@@ -612,6 +651,102 @@ export function setMonitorHidden(
   };
 }
 
+export function setConfigurationEnabled(
+  state: LoopwireState,
+  configurationId: string,
+  enabled: boolean,
+  updatedAt: string
+): ConfigurationMutationResult {
+  return patchConfigurationControls(state, configurationId, { enabled }, updatedAt);
+}
+
+export function setConfigurationMuted(
+  state: LoopwireState,
+  configurationId: string,
+  muted: boolean,
+  updatedAt: string
+): ConfigurationMutationResult {
+  return patchConfigurationControls(state, configurationId, { muted }, updatedAt);
+}
+
+export function setConfigurationVolume(
+  state: LoopwireState,
+  configurationId: string,
+  volume: number,
+  updatedAt: string
+): ConfigurationMutationResult {
+  if (!isValidRouteGain(volume)) {
+    throw new Error("Device volume must be between 0 and 1.");
+  }
+
+  return patchConfigurationControls(state, configurationId, { volume }, updatedAt);
+}
+
+export function setEndpointEnabled(
+  state: LoopwireState,
+  configurationId: string,
+  endpointId: string,
+  enabled: boolean,
+  updatedAt: string
+): ConfigurationMutationResult {
+  return patchEndpoint(state, configurationId, endpointId, { enabled }, updatedAt);
+}
+
+export function setEndpointVolume(
+  state: LoopwireState,
+  configurationId: string,
+  endpointId: string,
+  volume: number,
+  updatedAt: string
+): ConfigurationMutationResult {
+  if (!isValidRouteGain(volume)) {
+    throw new Error("Endpoint volume must be between 0 and 1.");
+  }
+
+  return patchEndpoint(state, configurationId, endpointId, { volume }, updatedAt);
+}
+
+export function setEndpointMuteWhenCapturing(
+  state: LoopwireState,
+  configurationId: string,
+  endpointId: string,
+  muteWhenCapturing: boolean,
+  updatedAt: string
+): ConfigurationMutationResult {
+  const configuration = getConfigurationById(state, configurationId);
+
+  if (!configuration.inputs.some((candidate) => candidate.id === endpointId)) {
+    throw new Error(`Mute-when-capturing only applies to input sources: ${endpointId}`);
+  }
+
+  return patchEndpoint(state, configurationId, endpointId, { muteWhenCapturing }, updatedAt);
+}
+
+export function isConfigurationEnabled(configuration: LoopwireConfiguration): boolean {
+  return configuration.enabled !== false;
+}
+
+export function isConfigurationMuted(configuration: LoopwireConfiguration): boolean {
+  return configuration.muted === true;
+}
+
+export function configurationVolume(configuration: LoopwireConfiguration): number {
+  return configuration.volume ?? 1;
+}
+
+export function isEndpointEnabled(endpoint: AudioEndpoint): boolean {
+  return endpoint.enabled !== false;
+}
+
+export function endpointVolume(endpoint: AudioEndpoint): number {
+  return endpoint.volume ?? 1;
+}
+
+export function findActiveConfiguration(state: LoopwireState): LoopwireConfiguration | undefined {
+  const activeId = state.activeConfigurationId ?? state.configurations[0]?.id;
+  return state.configurations.find((candidate) => candidate.id === activeId);
+}
+
 export function getActiveConfiguration(state: LoopwireState): LoopwireConfiguration {
   const activeId = state.activeConfigurationId ?? state.configurations[0]?.id;
   const configuration = state.configurations.find((candidate) => candidate.id === activeId);
@@ -680,11 +815,15 @@ export function validateConfigurationGraph(configuration: LoopwireConfiguration)
 
   const inputIds = new Set(configuration.inputs.map((endpoint) => endpoint.id));
   const outputIds = new Set(configuration.outputs.map((endpoint) => endpoint.id));
+  const monitorIds = new Set(configuration.monitors.map((endpoint) => endpoint.id));
   const routeIds = new Set<string>();
   const routePairs = new Set<string>();
 
   for (const route of configuration.routes) {
-    if (!route.id.trim() || !inputIds.has(route.from) || !outputIds.has(route.to)) {
+    const inputToOutput = inputIds.has(route.from) && outputIds.has(route.to);
+    const outputToMonitor = outputIds.has(route.from) && monitorIds.has(route.to);
+
+    if (!route.id.trim() || (!inputToOutput && !outputToMonitor)) {
       throw new Error(`Invalid route in configuration: ${route.id}`);
     }
 
@@ -717,6 +856,55 @@ function monitorVisibilityId(configurationId: string, monitorId: string): string
 
 function createDefaultOutput(): AudioEndpoint {
   return { id: "output", label: "Main Output", role: "output", channels: 2 };
+}
+
+function patchConfigurationControls(
+  state: LoopwireState,
+  configurationId: string,
+  patch: Pick<Partial<LoopwireConfiguration>, "enabled" | "muted" | "volume">,
+  updatedAt: string
+): ConfigurationMutationResult {
+  const existing = getConfigurationById(state, configurationId);
+  const configuration: LoopwireConfiguration = { ...existing, ...patch, updatedAt };
+
+  return {
+    state: {
+      ...state,
+      configurations: state.configurations.map((candidate) => (candidate.id === configurationId ? configuration : candidate))
+    },
+    configuration
+  };
+}
+
+function patchEndpoint(
+  state: LoopwireState,
+  configurationId: string,
+  endpointId: string,
+  patch: Pick<Partial<AudioEndpoint>, "enabled" | "volume" | "muteWhenCapturing">,
+  updatedAt: string
+): ConfigurationMutationResult {
+  const configuration = getConfigurationById(state, configurationId);
+  const endpoint = [...configuration.inputs, ...configuration.outputs, ...configuration.monitors].find(
+    (candidate) => candidate.id === endpointId
+  );
+
+  if (!endpoint) {
+    throw new Error(`Unknown Loopwire endpoint: ${endpointId}`);
+  }
+
+  const applyPatch = (candidate: AudioEndpoint): AudioEndpoint =>
+    candidate.id === endpointId ? { ...candidate, ...patch } : candidate;
+
+  return updateConfiguration(
+    state,
+    configurationId,
+    {
+      inputs: configuration.inputs.map(applyPatch),
+      outputs: configuration.outputs.map(applyPatch),
+      monitors: configuration.monitors.map(applyPatch)
+    },
+    updatedAt
+  );
 }
 
 function updateRoute(

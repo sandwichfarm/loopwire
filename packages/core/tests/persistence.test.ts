@@ -114,7 +114,7 @@ describe("persistence", () => {
     const restored = restoreState(JSON.stringify(legacy));
 
     expect(restored.ok).toBe(true);
-    expect(restored.state.version).toBe(1);
+    expect(restored.state.version).toBe(2);
     expect(restored.state.activeConfigurationId).toBe("call");
     expect(restored.state.hiddenMonitorIds).toEqual(["headphones"]);
     expect(restored.state.appliedAt).toBe("2026-07-03T12:20:00.000Z");
