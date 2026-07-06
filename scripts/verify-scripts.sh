@@ -3829,6 +3829,9 @@ bash scripts/vm-matrix.sh render-runbook \
   --target arch-hyprland-pipewire \
   --image-root /operator/images \
   --output "$vm_runbook_file" >/dev/null
+vm_handoffs_output="$(bash scripts/vm-matrix.sh verify-handoffs)"
+target_handoffs_dir="$tmp_dir/target-vm-handoffs"
+bash scripts/vm-matrix.sh verify-handoffs --target fedora-kde-jack --output "$target_handoffs_dir" >/dev/null
 vm_arm_launch_root="$tmp_dir/vm-arm-launch-root"
 vm_arm_launch_output="$(
   LOOPWIRE_VM_ROOT="$vm_arm_launch_root" \
@@ -4516,6 +4519,39 @@ if bash scripts/vm-matrix.sh verify-cloud-init --all >/dev/null 2>&1; then
   echo "verify-scripts: verify-cloud-init accepted unnecessary --all flag" >&2
   exit 1
 fi
+printf '%s\n' "$vm_handoffs_output" \
+  | grep -F "Verified VM launch, SSH, and runbook handoffs for 9 target(s)." >/dev/null || {
+    echo "verify-scripts: verify-handoffs did not verify all targets" >&2
+    exit 1
+  }
+[ -s "$target_handoffs_dir/launch-targets.tsv" ] || {
+  echo "verify-scripts: verify-handoffs target output did not render launch TSV" >&2
+  exit 1
+}
+[ -s "$target_handoffs_dir/ssh-targets.tsv" ] || {
+  echo "verify-scripts: verify-handoffs target output did not render SSH TSV" >&2
+  exit 1
+}
+[ -s "$target_handoffs_dir/vm-runbook.md" ] || {
+  echo "verify-scripts: verify-handoffs target output did not render runbook" >&2
+  exit 1
+}
+grep -F "fedora-kde-jack" "$target_handoffs_dir/launch-targets.tsv" >/dev/null || {
+  echo "verify-scripts: verify-handoffs target output missing selected target" >&2
+  exit 1
+}
+if bash scripts/vm-matrix.sh verify-handoffs --all >/dev/null 2>&1; then
+  echo "verify-scripts: verify-handoffs accepted unnecessary --all flag" >&2
+  exit 1
+fi
+node -e '
+const fs = require("node:fs");
+const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+if (!pkg.scripts["verify:vm"]?.includes("verify-handoffs")) process.exit(1);
+' || {
+  echo "verify-scripts: verify:vm is not wired to verify VM handoffs" >&2
+  exit 1
+}
 
 tmp_secret_file="$tmp_dir/release-key.pem"
 tmp_secret_public_key="$tmp_dir/release-key-public.pem"

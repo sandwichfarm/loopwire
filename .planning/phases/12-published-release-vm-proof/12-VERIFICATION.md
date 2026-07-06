@@ -5,6 +5,13 @@
 
 ## Evidence Passed
 
+- `pnpm verify:vm` now verifies source-owned VM launch and runbook handoffs, not only target metadata and cloud-init.
+  The new `scripts/vm-matrix.sh verify-handoffs` command renders launch TSV, SSH TSV, and the operator runbook to a
+  temporary directory, then checks every target for its QEMU launch command, evidence pull command, SSH port allocation,
+  evidence directory, and runbook verification steps. The VM Matrix GitHub workflow now runs this verifier after
+  cloud-init validation. Focused validation passed so far: `pnpm verify:vm`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `pnpm verify:workflows`. No VM launch, secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, host audio mutation, or support-matrix promotion was performed.
 - Desktop Host apply can now use a live DSP provider after explicit settings and provider capability proof. The
   preflight still blocks DSP Provider until saved provider settings are live-ready, then the live switch guard verifies
   provider `capabilities` for `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and

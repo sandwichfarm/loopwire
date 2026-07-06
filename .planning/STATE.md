@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T04:42:29+02:00"
-last_activity: 2026-07-06 - Desktop DSP live apply can run a capability-verified provider
+last_updated: "2026-07-06T05:01:40+02:00"
+last_activity: 2026-07-06 - VM launch and runbook handoffs are verified without launching guests
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - desktop Host apply can now use the saved live DSP provider settings for provider-backed
-graph-edge apply, verify, and rollback. The desktop verifies provider `capabilities` for `supportsLiveGraph:true` plus
-the required `read-source`, `write-output`, `verify-output`, and `clear-output` operations before running provider IO,
-and the Tauri command bridge now passes rendered DSP buffers on stdin while allowlisting only the bounded provider
-protocol shapes. Bundled file-backed providers remain blocked for live host apply by the capability gate.
+Last activity: 2026-07-06 - `pnpm verify:vm` now validates VM target metadata, rendered cloud-init assets, launch TSV,
+SSH TSV, and the operator runbook without launching guests. The new `verify-handoffs` path checks every target for its
+QEMU launch command, evidence pull command, SSH port allocation, evidence directory, and runbook verification steps.
+This strengthens source-owned VM proof while keeping actual distro image selection, package installation, guest launch,
+and evidence capture operator-owned.
 
 ## Blockers / Concerns
 
@@ -74,7 +74,8 @@ protocol shapes. Bundled file-backed providers remain blocked for live host appl
 - Public release proof is gated on an explicit versioned release decision, real signing key material, tag push, and VM
   run evidence.
 - Support matrix rows must remain `Manual VM` until `scripts/collect-vm-evidence-ssh.sh --execute` or equivalent
-  operator-run guest evidence produces a passing `.vm/evidence/<target>` bundle.
+  operator-run guest evidence produces a passing `.vm/evidence/<target>` bundle. Source-side VM verification now covers
+  launch, SSH, and runbook handoffs, but it does not prove guest behavior.
 - The `fedora-kde-jack` target is metadata and plan coverage only until an operator-run guest evidence bundle passes.
 - The `v0.1.0` release-note page is now publication-ready copy. Do not reintroduce release-candidate/not-published
   wording into versioned notes; keep unpublished-artifact caveats in status, support-matrix, or unreleased docs instead.
@@ -89,6 +90,13 @@ protocol shapes. Bundled file-backed providers remain blocked for live host appl
 
 ## Verification Log
 
+- 2026-07-06 VM launch/runbook handoff verification: `scripts/vm-matrix.sh verify-handoffs` now renders the launch
+  TSV, SSH TSV, and VM runbook to a temporary directory and validates every target's QEMU launch command, evidence pull
+  command, SSH port allocation, evidence directory, and runbook verification steps. `pnpm verify:vm` and the VM Matrix
+  workflow now run this verifier after metadata and cloud-init checks. Focused validation passed so far:
+  `pnpm verify:vm`, `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm verify:workflows`. No VM launch, secret
+  write, release tag, public release, Bunny deployment, final proof dispatch, host audio mutation, or support-matrix
+  promotion was performed.
 - 2026-07-06 Desktop DSP live provider apply: desktop Host apply now unblocks DSP Provider only when saved provider
   settings are live-ready, verifies the provider `capabilities` result for `supportsLiveGraph:true` plus
   `read-source`, `write-output`, `verify-output`, and `clear-output`, and then uses the existing provider-backed DSP

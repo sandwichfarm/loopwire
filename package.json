@@ -57,7 +57,7 @@
     "verify:support-matrix": "node scripts/verify-support-matrix.mjs",
     "verify:tauri": "bash scripts/verify-tauri.sh",
     "verify:workflows": "bash scripts/verify-github-workflows.sh",
-    "verify:vm": "bash scripts/vm-matrix.sh validate && bash scripts/vm-matrix.sh verify-cloud-init",
+    "verify:vm": "bash scripts/vm-matrix.sh validate && bash scripts/vm-matrix.sh verify-cloud-init && bash scripts/vm-matrix.sh verify-handoffs",
     "verify:vm-evidence": "bash scripts/verify-vm-evidence.sh",
     "vm:promote-evidence": "node scripts/promote-vm-evidence.mjs",
     "vm:doctor": "bash scripts/vm-matrix.sh doctor",

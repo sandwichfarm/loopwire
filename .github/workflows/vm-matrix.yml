@@ -52,6 +52,9 @@ jobs:
       - name: Validate rendered cloud-init handoffs
         run: bash scripts/vm-matrix.sh verify-cloud-init
 
+      - name: Validate rendered launch and runbook handoffs
+        run: bash scripts/vm-matrix.sh verify-handoffs
+
       - name: Validate support matrix contract
         run: node scripts/verify-support-matrix.mjs
 

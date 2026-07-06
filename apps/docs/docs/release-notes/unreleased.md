@@ -37,6 +37,9 @@ These notes describe source-tree progress. They are not a public release announc
   `dsp-provider-plan.json` and `support-bundle.json` `dspProvider` metadata without running provider execute mode.
 - VM evidence verification now checks the nested support-bundle command ledger, so failed `detect-audio`,
   `ct-host-check`, or `autostart-status` diagnostics cannot pass as VM support proof.
+- `pnpm verify:vm` now validates rendered launch, SSH, and operator runbook handoffs in addition to target metadata
+  and cloud-init, so VM matrix changes must preserve QEMU launch commands, evidence pull commands, port allocation,
+  evidence directories, and runbook entries.
 - PulseAudio compatibility verification now fails when a configured route has no matching live stream, instead of
   reporting fake success for an absent app stream.
 - PulseAudio startup and background restore now keep absent matching streams pending until those apps launch, without

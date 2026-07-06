@@ -36,6 +36,10 @@ Validate metadata and rendered cloud-init handoffs:
 pnpm verify:vm
 ```
 
+`pnpm verify:vm` is still non-mutating. It validates the target matrix, renders cloud-init files, and renders the
+launch TSV, SSH TSV, and operator runbook to a temporary directory. The verifier fails if any target is missing its
+QEMU launch command, evidence pull command, port allocation, evidence directory, or runbook handoff.
+
 Check local VM prerequisites:
 
 ```bash
@@ -110,6 +114,12 @@ Validate rendered cloud-init and guest command handoffs without leaving files be
 
 ```bash
 bash scripts/vm-matrix.sh verify-cloud-init
+```
+
+Validate rendered launch, SSH, and runbook handoffs without leaving files behind:
+
+```bash
+bash scripts/vm-matrix.sh verify-handoffs
 ```
 
 Validate and keep the rendered files for one target:

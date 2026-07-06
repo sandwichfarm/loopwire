@@ -32,6 +32,7 @@ Usage:
                                [--evidence-root DIR] [--output FILE]
   vm-matrix.sh render-cloud-init --target TARGET|--all [--output DIR]
   vm-matrix.sh verify-cloud-init [--target TARGET] [--output DIR]
+  vm-matrix.sh verify-handoffs [--target TARGET] [--output DIR]
   vm-matrix.sh launch --target TARGET --image IMAGE.qcow2 [--image-format qcow2]
                    [--firmware QEMU_EFI.fd] [--memory 4096] [--cpus 4]
                    [--ssh-port 2222] [--execute]
@@ -49,6 +50,7 @@ Commands are non-mutating unless explicitly noted:
   render-runbook     Print or write a markdown operator runbook for matrix execution.
   render-cloud-init  Write user-data, meta-data, and guest-commands.sh under .vm/cloud-init/TARGET.
   verify-cloud-init  Render cloud-init assets to a temp dir and validate every target handoff.
+  verify-handoffs    Render launch, SSH, and runbook handoffs and validate every target row.
   launch             Print a qemu launch command. With --execute, create .vm/run/TARGET assets and start qemu.
 
 Actual distro image download and license/compliance decisions are intentionally operator-owned.
@@ -1439,6 +1441,126 @@ EOF
   fi
 }
 
+require_plan_field() {
+  local actual="$1"
+  local expected="$2"
+  local message="$3"
+
+  [ "$actual" = "$expected" ] || fail "$message: expected '$expected', got '$actual'"
+}
+
+require_contains() {
+  local haystack="$1"
+  local needle="$2"
+  local message="$3"
+
+  case "$haystack" in
+    *"$needle"*)
+      ;;
+    *)
+      fail "$message: missing '$needle'"
+      ;;
+  esac
+}
+
+plan_row_for_target() {
+  local file="$1"
+  local id="$2"
+
+  awk -F '\t' -v id="$id" '$1 == id { print; found = 1 } END { if (!found) exit 1 }' "$file"
+}
+
+verify_handoffs() {
+  local output_root="$1"
+  local created_temp="${2:-false}"
+  local launch_plan="$output_root/launch-targets.tsv"
+  local ssh_plan="$output_root/ssh-targets.tsv"
+  local runbook="$output_root/vm-runbook.md"
+  local target_count=0
+  local expected_port
+  local row
+  local ssh_row
+  local image_cell
+  local image_format_cell
+  local port_cell
+  local memory_cell
+  local cpus_cell
+  local launch_command
+  local evidence_command
+  local ssh_host
+  local ssh_user
+  local ssh_output
+
+  mkdir -p "$output_root"
+  render_launch_plan "$launch_plan" >/dev/null
+  render_ssh_plan "$ssh_plan" >/dev/null
+  render_runbook "$runbook" >/dev/null
+
+  [ -s "$launch_plan" ] || fail "missing rendered launch plan"
+  [ -s "$ssh_plan" ] || fail "missing rendered SSH plan"
+  [ -s "$runbook" ] || fail "missing rendered VM runbook"
+
+  grep -Fq "# target"$'\t'"image"$'\t'"image_format" "$launch_plan" || fail "launch plan header is invalid"
+  grep -Fq "# target"$'\t'"host"$'\t'"port" "$ssh_plan" || fail "SSH plan header is invalid"
+  grep -Fq "# Loopwire VM Evidence Runbook" "$runbook" || fail "runbook title is missing"
+
+  while IFS=$'\t' read -r id _distro _family _desktop _session _audio arch _tier _notes; do
+    expected_port=$((ssh_plan_start_port + (target_count * 10)))
+    row="$(plan_row_for_target "$launch_plan" "$id")" || fail "launch plan missing target $id"
+    ssh_row="$(plan_row_for_target "$ssh_plan" "$id")" || fail "SSH plan missing target $id"
+
+    image_cell="$(field "$row" 2)"
+    image_format_cell="$(field "$row" 3)"
+    port_cell="$(field "$row" 5)"
+    memory_cell="$(field "$row" 6)"
+    cpus_cell="$(field "$row" 7)"
+    launch_command="$(field "$row" 8)"
+    evidence_command="$(field "$row" 9)"
+    ssh_host="$(field "$ssh_row" 2)"
+    ssh_user="$(field "$ssh_row" 4)"
+    ssh_output="$(field "$ssh_row" 8)"
+
+    require_plan_field "$image_cell" "${image_root%/}/${id}.${image_format}" "$id launch image"
+    require_plan_field "$image_format_cell" "$image_format" "$id launch image format"
+    require_plan_field "$port_cell" "$expected_port" "$id launch SSH port"
+    require_plan_field "$memory_cell" "$memory" "$id launch memory"
+    require_plan_field "$cpus_cell" "$cpus" "$id launch CPU count"
+    require_plan_field "$ssh_host" "$ssh_plan_host" "$id SSH host"
+    require_plan_field "$ssh_user" "$ssh_plan_user" "$id SSH user"
+    require_plan_field "$ssh_output" ".vm/evidence/$id" "$id SSH evidence directory"
+
+    require_contains "$launch_command" "scripts/vm-matrix.sh launch --target $id" "$id launch command"
+    require_contains "$launch_command" "--image ${image_root%/}/${id}.${image_format}" "$id launch command"
+    require_contains "$launch_command" "--ssh-port $expected_port" "$id launch command"
+    require_contains "$evidence_command" "scripts/collect-vm-evidence-ssh.sh --target $id" "$id evidence command"
+    require_contains "$evidence_command" "--port $expected_port --execute" "$id evidence command"
+
+    grep -Fq "### $id" "$runbook" || fail "$id missing runbook section"
+    grep -Fq "$launch_command" "$runbook" || fail "$id runbook missing launch command"
+    grep -Fq "scripts/collect-vm-evidence-ssh.sh --target $id" "$runbook" ||
+      fail "$id runbook missing evidence collection command"
+    grep -Fq "scripts/verify-vm-evidence.sh --target $id" "$runbook" ||
+      fail "$id runbook missing evidence verification command"
+
+    if arch_requires_firmware "$arch" && [ -z "$firmware" ]; then
+      grep -Fq "Before adding \`--execute\` for this AArch64 target" "$runbook" ||
+        fail "$id runbook missing AArch64 firmware warning"
+    fi
+
+    target_count=$((target_count + 1))
+  done <<EOF
+$(each_target)
+EOF
+
+  [ "$target_count" -gt 0 ] || fail "no VM handoffs verified"
+
+  if [ "$created_temp" = "true" ]; then
+    echo "Verified VM launch, SSH, and runbook handoffs for $target_count target(s)."
+  else
+    echo "Verified VM launch, SSH, and runbook handoffs for $target_count target(s) under $output_root."
+  fi
+}
+
 launch_target() {
   target="$1"
   image="$2"
@@ -1747,6 +1869,21 @@ case "$command" in
       tmp_dir="$(mktemp -d)"
       trap 'rm -rf "$tmp_dir"' EXIT
       verify_cloud_init "$tmp_dir" true
+    fi
+    ;;
+  verify-handoffs)
+    [ "$all_targets" != "true" ] || fail "verify-handoffs verifies all targets by default; omit --all"
+    if [ -n "$target_filter" ]; then
+      get_target_row "$target_filter" >/dev/null
+    fi
+
+    if [ -n "$output_dir" ]; then
+      mkdir -p "$output_dir"
+      verify_handoffs "$output_dir" false
+    else
+      tmp_dir="$(mktemp -d)"
+      trap 'rm -rf "$tmp_dir"' EXIT
+      verify_handoffs "$tmp_dir" true
     fi
     ;;
   launch)

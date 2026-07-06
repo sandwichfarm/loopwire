@@ -233,6 +233,7 @@ assert_contains ".github/workflows/release.yml" "gh release create"
 
 assert_contains ".github/workflows/vm-matrix.yml" "scripts/vm-matrix.sh validate"
 assert_contains ".github/workflows/vm-matrix.yml" "scripts/vm-matrix.sh verify-cloud-init"
+assert_contains ".github/workflows/vm-matrix.yml" "scripts/vm-matrix.sh verify-handoffs"
 assert_contains ".github/workflows/vm-matrix.yml" "scripts/vm-matrix.sh plan"
 assert_contains ".github/workflows/vm-matrix.yml" "scripts/verify-support-matrix.mjs"
 assert_contains ".github/workflows/vm-matrix.yml" "node scripts/verify-support-matrix.mjs"
