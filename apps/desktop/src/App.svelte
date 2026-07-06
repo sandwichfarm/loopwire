@@ -32,6 +32,7 @@
     createDspConfigurationRuntimeAdapter,
     createDspRuntimeCommandPorts,
     createJackGraphRuntimeAdapter,
+    createJackVirtualPortCommandProvider,
     createPactlVirtualSinkRuntimeAdapter,
     createPipeWireGraphRuntimeAdapter,
     type CommandResult,
@@ -334,6 +335,7 @@
     jackProviderDelegateMode === "foreground" || nonNegativeIntegerText(jackProviderReadyDelayMs);
   $: jackRestoreProviderReady =
     !jackProviderCommandConfigured || (jackProviderTimeoutValid && jackProviderReadyDelayValid);
+  $: jackLiveProviderReady = jackProviderCommandConfigured && jackProviderTimeoutValid && jackProviderReadyDelayValid;
   $: backendCandidates = withDspProviderCandidate(detectedBackendCandidates, dspRestoreProviderReady);
   $: activeConfiguration = getActiveConfiguration(state);
   $: monitorVisibilityGroups = groupMonitorsByVisibility(state, activeConfiguration);
@@ -376,7 +378,7 @@
     state.selectedBackend,
     displayBackendName,
     selectedBackendCapability,
-    { dspProviderReady: dspRestoreProviderReady }
+    { dspProviderReady: dspRestoreProviderReady, jackProviderReady: jackLiveProviderReady }
   );
   $: nativeGainBlockerRoutes = getNativeGainBlockerRoutes(
     activeConfiguration,
@@ -1395,7 +1397,18 @@
     }
 
     if (backend === "jack") {
-      const adapter = createJackGraphRuntimeAdapter(runner, { mode: hostMode });
+      const adapter = createJackGraphRuntimeAdapter(runner, {
+        mode: hostMode,
+        ...(jackLiveProviderReady
+          ? {
+              virtualPortProvider: createJackVirtualPortCommandProvider(runner, {
+                command: jackProviderCommand.trim(),
+                timeoutMs: positiveIntegerNumber(jackProviderTimeoutMs, 5000),
+                args: jackVirtualPortProviderArgs()
+              })
+            }
+          : {})
+      });
       return hostAdapterFromOperations(adapter);
     }
 
@@ -2133,7 +2146,7 @@
 
   function jackProviderSettingsMessage(): string {
     if (!jackProviderCommandConfigured) {
-      return "Leave blank to use pre-existing JACK ports during Restore on boot.";
+      return "Leave blank to use pre-existing JACK ports during Restore on boot and live apply.";
     }
 
     if (!jackProviderTimeoutValid || !jackProviderReadyDelayValid) {
@@ -2141,10 +2154,23 @@
     }
 
     if (jackProviderDelegateMode === "detached") {
-      return "Restore on boot will keep the JACK provider delegate alive before verifying ports.";
+      return "Restore on boot and live apply will keep the JACK provider delegate alive before verifying ports.";
     }
 
-    return "Restore on boot will ask this provider to prepare Loopwire-owned JACK ports.";
+    return "Restore on boot and live apply will ask this provider to prepare Loopwire-owned JACK ports.";
+  }
+
+  function jackVirtualPortProviderArgs(): readonly string[] {
+    if (jackProviderDelegateMode !== "detached") {
+      return [];
+    }
+
+    return [
+      "--delegate-mode",
+      "detached",
+      "--ready-delay-ms",
+      String(nonNegativeIntegerNumber(jackProviderReadyDelayMs, 250))
+    ];
   }
 
   function monitorTargetKnown(deviceName: string): boolean {

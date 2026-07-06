@@ -93,11 +93,10 @@ gain, and missing host source ports for native PipeWire routes.
 The visible preflight strip and the actual configuration-switch guard both consume the same detected backend capability
 report, so a future graph-edge-capable backend report unlocks live switching without a mismatch between the UI and the
 runtime guard.
-JACK live apply also requires every routed source, routed output, monitor source, and monitor target to be bound to an
-existing JACK port before arming, because Loopwire does not create JACK client ports yet.
-For unbound JACK endpoints, the blocker includes the deterministic Loopwire-owned client name that the runtime adapter
-would probe, such as `loopwire_<configuration>_<endpoint>`, so the required external JACK client/port binding is
-visible before any host command runs.
+JACK live apply also requires every routed source, routed output, monitor source, and monitor target to resolve to a
+JACK port before arming. For unbound JACK endpoints, the blocker includes the deterministic Loopwire-owned client name
+that the runtime adapter would probe, such as `loopwire_<configuration>_<endpoint>`, so the required external JACK
+client/port binding or saved JACK provider setting is visible before any host command runs.
 The same list is available for automation with
 `pnpm jack:ports -- --configuration exported-loopwire-config.json --format tsv`.
 After creating the external JACK clients, run

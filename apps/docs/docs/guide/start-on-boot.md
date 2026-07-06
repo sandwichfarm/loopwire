@@ -183,9 +183,9 @@ append those wrapper options for packaged and source-checkout services; the back
 resulting ports with `jack_lsp` before connecting routes.
 
 The desktop Settings panel exposes the same optional JACK provider command, timeout, delegate mode, and readiness delay
-for Restore on boot. Leave the command blank when your saved configuration targets pre-existing JACK ports. Set it when
-boot restore must ask an operator-owned provider to prepare deterministic Loopwire-owned ports before the background
-service connects routes.
+for Restore on boot and session-local Host apply. Leave the command blank when your saved configuration targets
+pre-existing JACK ports. Set it when boot restore or live apply must ask an operator-owned provider to prepare
+deterministic Loopwire-owned ports before Loopwire connects routes.
 
 For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
 configuration transaction, per-edge gain/mute math, and verification sequence:

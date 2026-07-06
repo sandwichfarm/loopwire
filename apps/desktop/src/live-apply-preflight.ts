@@ -41,6 +41,7 @@ export interface LiveApplyPreflight {
 
 export interface LiveApplyPreflightOptions {
   readonly dspProviderReady?: boolean;
+  readonly jackProviderReady?: boolean;
 }
 
 type BackendDisplayName = (kind: AudioBackendKind) => string;
@@ -185,7 +186,7 @@ function liveApplyBlockers(
   const missingSourceRoutes = configuration.routes.filter((route) => !inputs.get(route.from)?.deviceName?.trim());
   const missingSources = uniqueEndpointsForRoutes(configuration.inputs, missingSourceRoutes, "from");
   const missingJackPorts =
-    backend === "jack" && !backendCreatesVirtualDevices(backend, capability)
+    backend === "jack" && !backendCreatesVirtualDevices(backend, capability) && !options.jackProviderReady
       ? missingJackPortEndpoints(configuration)
       : [];
   const blockers: string[] = [];
@@ -206,7 +207,8 @@ function liveApplyBlockers(
 
   if (missingJackPorts.length > 0) {
     blockers.push(
-      `JACK live apply needs host bindings to existing JACK ports for ${formatEndpointList(missingJackPorts)}.`
+      "JACK live apply needs existing JACK ports or saved provider settings for " +
+        `${formatEndpointList(missingJackPorts)}.`
     );
   }
 

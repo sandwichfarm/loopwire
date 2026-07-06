@@ -139,6 +139,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Background restore, source/package autostart rendering, and desktop Settings now carry JACK provider delegate mode
   and readiness delay, so Restore on boot can use detached `loopwire-jack-ports` delegates without hand-editing unit
   files.
+- Desktop Host apply now uses saved JACK provider settings for native JACK live apply, so Loopwire-owned deterministic
+  ports can be prepared in-session before the runtime re-probes `jack_lsp` and connects routes.
 - Background restore now accepts `--jack-provider-command`, which wraps that command as the injected JACK virtual port
   provider and passes stable `ensure --configuration-id ... --requirement ... --port ...` arguments.
 - The autostart helper now renders background systemd units with `--state-file`, `--mode`, retry options, and

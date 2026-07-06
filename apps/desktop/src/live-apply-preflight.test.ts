@@ -281,9 +281,30 @@ describe("describeLiveApplyPreflight", () => {
     expect(result.blockers).toEqual([
       "JACK live apply needs 100% route gain for Call Audio -> Stream. Use Reset gains, or switch to a " +
         "graph-edge/DSP-capable backend when one is available.",
-      "JACK live apply needs host bindings to existing JACK ports for " +
+      "JACK live apply needs existing JACK ports or saved provider settings for " +
         "Call Audio (loopwire_studio_input_call), Stream (loopwire_studio_stream), and 1 more endpoint."
     ]);
+  });
+
+  it("allows native JACK provider settings to cover Loopwire-owned virtual port gaps", () => {
+    const result = describeLiveApplyPreflight(
+      {
+        ...baseConfiguration,
+        routes: baseConfiguration.routes.map((route) => ({ ...route, gain: 1 }))
+      },
+      "jack",
+      undefined,
+      undefined,
+      { jackProviderReady: true }
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      mode: "ready",
+      badge: "Ready",
+      message: "JACK live apply is ready for Studio.",
+      blockers: []
+    });
   });
 
   it("allows JACK graph-edge DSP backends that create their own virtual ports", () => {

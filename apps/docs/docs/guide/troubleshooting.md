@@ -94,6 +94,10 @@ pw-link
 If the app is running as a browser dev preview, live apply fails without touching host audio. Use `Preview` mode for UI
 validation.
 
+For JACK, Host apply can use a saved JACK provider command to prepare Loopwire-owned deterministic ports before route
+connections. If that provider exits successfully but the expected ports are still missing, live apply still fails closed
+after the follow-up `jack_lsp` probe.
+
 ## Route Gain Or Mute Looks Wrong
 
 For matching PulseAudio sink inputs, Loopwire's adapter applies route gain as `set-sink-input-volume` and route mute as

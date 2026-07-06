@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T05:39:46+02:00"
-last_activity: 2026-07-06 - JACK detached delegate settings flow through restore and desktop startup
+last_updated: "2026-07-06T05:57:35+02:00"
+last_activity: 2026-07-06 - JACK provider settings now flow through desktop live apply
 progress:
   total_phases: 5
   completed_phases: 4
@@ -40,6 +40,11 @@ Latest activity: 2026-07-06 - JACK provider detached mode is now first-class acr
 rendering, and desktop Settings. The source/package systemd renderers carry `--jack-provider-delegate-mode detached`
 and optional `--jack-provider-ready-delay-ms`, Tauri validates and renders the same flags before writing user units,
 and the Svelte settings panel persists delegate mode plus readiness delay without requiring unit-file hand edits.
+Latest source-owned hardening: 2026-07-06 - Desktop Host apply now uses saved JACK provider settings for native JACK
+live apply. Preflight treats a valid provider command as covering only deterministic Loopwire-owned JACK port gaps,
+the live runtime injects `createJackVirtualPortCommandProvider` before re-probing `jack_lsp`, and the Tauri audio
+command bridge allowlists only bounded `ensure --configuration-id ... --requirement ... --port ...` provider shapes
+with optional detached readiness flags.
 
 ## Blockers / Concerns
 
@@ -60,11 +65,12 @@ and the Svelte settings panel persists delegate mode plus readiness delay withou
   stdin. A bundled file-backed `loopwire-dsp-provider` now exists for local restore-contract smoke and packaging proof.
   Native JACK now has an injected virtual-port provider hook, bundled `loopwire-jack-ports` wrapper for
   manifest/delegation proof, detached mode for long-running operator-supplied delegates, and desktop Restore-on-boot
-  settings that can render optional JACK provider command, timeout, delegate mode, and readiness-delay flags into the
-  user systemd unit, but live host DSP capture/injection still requires an operator-supplied live provider, and bundled
-  native JACK client creation plus native host graph-edge gain implementation remain planned. DSP live restore now
-  requires the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now
-  requires provider `capabilities` to declare `supportsLiveGraph:true`.
+  plus Host apply settings that can render optional JACK provider command, timeout, delegate mode, and readiness-delay
+  flags into startup or session-local live apply, but live host DSP capture/injection still requires an
+  operator-supplied live provider, and bundled native JACK client creation plus native host graph-edge gain
+  implementation remain planned. DSP live restore now requires the operator to declare a live provider explicitly with
+  `--dsp-provider-mode live`, and live DSP restore now requires provider `capabilities` to declare
+  `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -99,6 +105,16 @@ and the Svelte settings panel persists delegate mode plus readiness delay withou
 
 ## Verification Log
 
+- 2026-07-06 Desktop JACK provider live apply: desktop Host apply now uses saved JACK provider settings for native JACK
+  live apply, while preflight only unblocks deterministic Loopwire-owned JACK port gaps when those settings are valid.
+  The Tauri audio command bridge allowlists the bounded JACK provider `ensure --configuration-id ... --requirement ...
+  --port ...` protocol and rejects configured/external requirement shapes or detached readiness delay without detached
+  mode. Focused validation passed: `pnpm --filter @loopwire/desktop test -- live-apply-preflight`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, `pnpm verify:docs`, `pnpm verify:scripts`,
+  `pnpm --filter @loopwire/desktop build`, `pnpm verify:desktop-preview -- --screenshot-dir
+  /tmp/loopwire-jack-live-provider-preview`, and `git diff --check`. Full validation passed: `pnpm check`. No secret
+  write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - 2026-07-06 JACK detached provider restore settings: background restore now accepts
   `--jack-provider-delegate-mode foreground|detached` plus `--jack-provider-ready-delay-ms`, appends the matching
   `loopwire-jack-ports` wrapper flags after the generated `ensure ... --port ...` arguments, and reports the selected

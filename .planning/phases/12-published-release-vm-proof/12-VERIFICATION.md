@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- Desktop Host apply can now use saved JACK provider settings for native JACK live apply. Preflight only unblocks
+  deterministic Loopwire-owned JACK port gaps when those settings are valid, live apply injects the command-backed JACK
+  virtual-port provider before the runtime re-probes `jack_lsp`, and the Tauri audio bridge allowlists only the bounded
+  `ensure --configuration-id ... --requirement ... --port ...` provider protocol with optional detached readiness
+  flags. Focused validation passed so far: `pnpm --filter @loopwire/desktop test -- live-apply-preflight`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, `pnpm verify:docs`, `pnpm verify:scripts`,
+  `pnpm --filter @loopwire/desktop build`, `pnpm verify:desktop-preview -- --screenshot-dir
+  /tmp/loopwire-jack-live-provider-preview`, and `git diff --check`. Full validation passed: `pnpm check`. No secret
+  write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - JACK detached provider mode is now first-class in the restore/startup product path. `restore-background.mjs` accepts
   `--jack-provider-delegate-mode foreground|detached` plus `--jack-provider-ready-delay-ms`, appends those
   `loopwire-jack-ports` wrapper flags after the generated `ensure ... --port ...` arguments, and reports selected JACK

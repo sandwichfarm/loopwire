@@ -134,9 +134,10 @@ JACK ports to continue existing. The wrapper returns only after the detached pro
 and Loopwire still re-runs `jack_lsp` afterward, so an alive process without the expected ports remains a failed apply.
 Keep that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
 
-Desktop Restore on boot can persist the same JACK provider command and timeout that the CLI accepts. This only prepares
-the boot-restore service invocation; it does not turn the bundled wrapper into a native JACK client creator. When a
-provider needs detached mode, save that mode and readiness delay in the JACK provider settings or pass
+Desktop Restore on boot and Host apply can persist the same JACK provider command and timeout that the CLI accepts.
+This prepares deterministic Loopwire-owned JACK ports before the boot-restore service or session-local live apply
+connects routes; it does not turn the bundled wrapper into a native JACK client creator. When a provider needs detached
+mode, save that mode and readiness delay in the JACK provider settings or pass
 `--jack-provider-delegate-mode detached --jack-provider-ready-delay-ms 750` to the background restore helpers.
 
 The ALSA path is read-only diagnostics. It lists playback hardware with `aplay -l` and capture hardware with

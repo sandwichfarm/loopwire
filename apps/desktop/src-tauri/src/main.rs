@@ -364,12 +364,19 @@ fn is_allowed_audio_command(command: &str, args: &[String]) -> bool {
         "pw-cli" => is_allowed_pw_cli_args(args),
         "pw-link" => is_allowed_pw_link_args(args),
         "wpctl" => args_match(args, &["status"]),
-        _ => is_allowed_dsp_provider_command(command, args),
+        _ => {
+            is_allowed_dsp_provider_command(command, args)
+                || is_allowed_jack_provider_command(command, args)
+        }
     }
 }
 
 fn is_allowed_dsp_provider_command(command: &str, args: &[String]) -> bool {
     is_provider_command(command) && is_allowed_dsp_provider_args(args)
+}
+
+fn is_allowed_jack_provider_command(command: &str, args: &[String]) -> bool {
+    is_provider_command(command) && is_allowed_jack_provider_args(args)
 }
 
 fn is_provider_command(command: &str) -> bool {
@@ -420,6 +427,83 @@ fn is_allowed_dsp_clear_output_args(args: &[String]) -> bool {
         && is_name_arg(&args[2])
         && args[3] == "--output-id"
         && is_name_arg(&args[4])
+}
+
+fn is_allowed_jack_provider_args(args: &[String]) -> bool {
+    if args.len() < 8 || args.first().map(String::as_str) != Some("ensure") {
+        return false;
+    }
+
+    let mut index = 1;
+    let mut has_configuration_id = false;
+    let mut requirement_count = 0;
+    let mut port_count = 0;
+    let mut saw_delegate_mode = false;
+    let mut saw_ready_delay = false;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--configuration-id" => {
+                if has_configuration_id || index + 1 >= args.len() || !is_name_arg(&args[index + 1])
+                {
+                    return false;
+                }
+                has_configuration_id = true;
+                index += 2;
+            }
+            "--requirement" => {
+                if index + 1 >= args.len() || !is_jack_provider_requirement_arg(&args[index + 1]) {
+                    return false;
+                }
+                requirement_count += 1;
+                index += 2;
+            }
+            "--port" => {
+                if index + 1 >= args.len() || !is_port_name(&args[index + 1]) {
+                    return false;
+                }
+                port_count += 1;
+                index += 2;
+            }
+            "--delegate-mode" => {
+                if saw_delegate_mode || index + 1 >= args.len() || args[index + 1] != "detached" {
+                    return false;
+                }
+                saw_delegate_mode = true;
+                index += 2;
+            }
+            "--ready-delay-ms" => {
+                if saw_ready_delay
+                    || index + 1 >= args.len()
+                    || !is_non_negative_integer_arg(&args[index + 1])
+                {
+                    return false;
+                }
+                saw_ready_delay = true;
+                index += 2;
+            }
+            _ => return false,
+        }
+    }
+
+    has_configuration_id
+        && requirement_count > 0
+        && port_count > 0
+        && (!saw_ready_delay || saw_delegate_mode)
+}
+
+fn is_jack_provider_requirement_arg(value: &str) -> bool {
+    let parts = value.split(':').collect::<Vec<_>>();
+
+    parts.len() == 5
+        && matches!(
+            parts[0],
+            "route-source" | "route-target" | "monitor-source" | "monitor-target"
+        )
+        && parts[1] == "loopwire-owned"
+        && is_name_arg(parts[2])
+        && is_name_arg(parts[3])
+        && is_positive_integer_arg(parts[4])
 }
 
 fn is_allowed_pactl_args(args: &[String]) -> bool {
@@ -522,6 +606,12 @@ fn is_positive_integer_arg(value: &str) -> bool {
     !value.is_empty()
         && value.chars().all(|character| character.is_ascii_digit())
         && value.parse::<u64>().is_ok_and(|number| number > 0)
+}
+
+fn is_non_negative_integer_arg(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|character| character.is_ascii_digit())
+        && value.parse::<u64>().is_ok()
 }
 
 fn is_non_negative_number_arg(value: &str) -> bool {
@@ -1212,6 +1302,46 @@ mod tests {
     }
 
     #[test]
+    fn allows_expected_jack_provider_protocol_commands() {
+        for (command, args) in [
+            (
+                "loopwire-jack-ports",
+                vec![
+                    "ensure",
+                    "--configuration-id",
+                    "studio",
+                    "--requirement",
+                    "route-source:loopwire-owned:mic:loopwire_studio_input_mic:2",
+                    "--requirement",
+                    "route-target:loopwire-owned:program:loopwire_studio_program:2",
+                    "--port",
+                    "loopwire_studio_input_mic:capture_1",
+                    "--port",
+                    "loopwire_studio_program:playback_1",
+                ],
+            ),
+            (
+                "/usr/bin/loopwire-jack-ports",
+                vec![
+                    "ensure",
+                    "--configuration-id",
+                    "studio",
+                    "--requirement",
+                    "monitor-target:loopwire-owned:phones:loopwire_studio_monitor_phones:2",
+                    "--port",
+                    "loopwire_studio_monitor_phones:playback_1",
+                    "--delegate-mode",
+                    "detached",
+                    "--ready-delay-ms",
+                    "750",
+                ],
+            ),
+        ] {
+            assert!(allows(command, &args), "{command} {args:?}");
+        }
+    }
+
+    #[test]
     fn rejects_audio_command_argument_shapes_outside_loopwire_contract() {
         for (command, args) in [
             ("sh", vec!["-c", "pactl info"]),
@@ -1235,6 +1365,32 @@ mod tests {
             (
                 "loopwire-live-dsp-provider",
                 vec!["read-source", "--source-id", "mic", "--channels", "0"],
+            ),
+            (
+                "loopwire-jack-ports",
+                vec![
+                    "ensure",
+                    "--configuration-id",
+                    "studio",
+                    "--requirement",
+                    "route-source:configured:mic:system:capture:2",
+                    "--port",
+                    "system:capture_1",
+                ],
+            ),
+            (
+                "loopwire-jack-ports",
+                vec![
+                    "ensure",
+                    "--configuration-id",
+                    "studio",
+                    "--requirement",
+                    "route-source:loopwire-owned:mic:loopwire_studio_input_mic:2",
+                    "--port",
+                    "loopwire_studio_input_mic:capture_1",
+                    "--ready-delay-ms",
+                    "750",
+                ],
             ),
             (
                 "loopwire-live-dsp-provider",
