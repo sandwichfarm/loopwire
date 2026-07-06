@@ -13,6 +13,8 @@ docs_remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-}"
 vm_evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
 support_matrix="${LOOPWIRE_SUPPORT_MATRIX:-apps/docs/docs/guide/support-matrix.md}"
+release_evidence_asset="${LOOPWIRE_RELEASE_EVIDENCE_ASSET:-}"
+vm_evidence_asset="${LOOPWIRE_VM_EVIDENCE_ASSET:-}"
 dry_run="false"
 plan_output=""
 allow_head_mismatch="false"
@@ -24,10 +26,12 @@ Verify the full Loopwire final release proof surface.
 Usage:
   verify-final-release-proof.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE --git-head SHA \
     --release-evidence-dir DIR --docs-base-url URL --docs-deployment-manifest FILE \
+    [--release-evidence-asset NAME] [--vm-evidence-asset NAME] \
     [--vm-evidence-root DIR] [--support-matrix FILE] [--dry-run]
   verify-final-release-proof.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE --git-head SHA \
     --release-evidence-dir DIR --docs-hostname HOST --docs-deployment-manifest FILE \
-    [--docs-remote-prefix PATH] [--vm-evidence-root DIR] [--support-matrix FILE] [--dry-run]
+    [--docs-remote-prefix PATH] [--release-evidence-asset NAME] [--vm-evidence-asset NAME] \
+    [--vm-evidence-root DIR] [--support-matrix FILE] [--dry-run]
 
 Checks:
   - signed published release assets plus public release evidence archive,
@@ -45,6 +49,8 @@ By default this script requires the current checkout HEAD to equal --git-head, s
 checks run against the same source commit that the published release claims. Use --allow-head-mismatch only for offline
 fixture rehearsal.
 Use --release-dir DIR for local signed release-directory proof instead of downloading from GitHub.
+Use --release-evidence-asset NAME and --vm-evidence-asset NAME when final proof uses valid tag-bound non-default
+evidence archive names.
 Custom --release-dir values may be absolute or relative, but they must not contain parent traversal, URL syntax, glob
 metacharacters, symlinks, root/home expansion, or file paths.
 Use --dry-run to print the exact command plan without touching network, release assets, docs URLs, or VM evidence.
@@ -279,6 +285,14 @@ while [ "$#" -gt 0 ]; do
       release_evidence_dir="${2:?missing value for --release-evidence-dir}"
       shift 2
       ;;
+    --release-evidence-asset)
+      release_evidence_asset="${2:?missing value for --release-evidence-asset}"
+      shift 2
+      ;;
+    --vm-evidence-asset)
+      vm_evidence_asset="${2:?missing value for --vm-evidence-asset}"
+      shift 2
+      ;;
     --docs-base-url)
       docs_base_url="${2:?missing value for --docs-base-url}"
       shift 2
@@ -335,6 +349,22 @@ validate_repo "$repo"
 validate_release_tag "$tag"
 validate_git_head "$git_head"
 [ "$allow_head_mismatch" = "true" ] || validate_current_checkout_head
+if [ -n "$release_evidence_asset" ]; then
+  release_evidence_asset="$(
+    bash scripts/validate-release-asset-name.sh \
+      --kind release-evidence \
+      --tag "$tag" \
+      --asset "$release_evidence_asset"
+  )"
+fi
+if [ -n "$vm_evidence_asset" ]; then
+  vm_evidence_asset="$(
+    bash scripts/validate-release-asset-name.sh \
+      --kind vm-evidence \
+      --tag "$tag" \
+      --asset "$vm_evidence_asset"
+  )"
+fi
 validate_local_release_dir_path "$release_dir"
 if [ "$dry_run" = "true" ]; then
   validate_local_artifact_path "$public_key" "public key path" "file" "false"
@@ -395,6 +425,9 @@ published_release=(
   --require-release-evidence
   --require-github-release-source
 )
+if [ -n "$release_evidence_asset" ]; then
+  published_release+=(--release-evidence-asset "$release_evidence_asset")
+fi
 if [ -n "$release_dir" ]; then
   published_release=(
     bash scripts/verify-published-release.sh
@@ -405,6 +438,9 @@ if [ -n "$release_dir" ]; then
     --git-head "$git_head"
     --require-release-evidence
   )
+  if [ -n "$release_evidence_asset" ]; then
+    published_release+=(--release-evidence-asset "$release_evidence_asset")
+  fi
 fi
 run_step "published release" "${published_release[@]}"
 
@@ -452,15 +488,23 @@ if [ "$dry_run" = "true" ]; then
   while IFS= read -r line; do
     emit_line "$line"
   done < <(
-    bash scripts/prepare-vm-evidence-release-asset.sh \
-      --repo "$repo" \
-      --tag "$tag" \
-      --release-dir dist/release \
-      --private-key "\${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}" \
-      --public-key "$public_key" \
-      --evidence-root "$vm_evidence_root" \
-      --all \
+    vm_prepare=(
+      bash scripts/prepare-vm-evidence-release-asset.sh
+      --repo "$repo"
+      --tag "$tag"
+      --release-dir dist/release
+      --private-key "\${LOOPWIRE_RELEASE_PRIVATE_KEY_FILE}"
+      --public-key "$public_key"
+      --evidence-root "$vm_evidence_root"
+      --all
+    )
+    if [ -n "$vm_evidence_asset" ]; then
+      vm_prepare+=(--asset-name "$vm_evidence_asset")
+    fi
+    vm_prepare+=(
       --dry-run
+    )
+    "${vm_prepare[@]}"
   )
 fi
 

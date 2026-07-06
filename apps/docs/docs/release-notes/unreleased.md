@@ -451,6 +451,9 @@ These notes describe source-tree progress. They are not a public release announc
   retyping the pull-zone hostname on every manual dispatch.
 - The final release proof workflow now validates custom release and VM evidence asset names before download, rejecting
   path traversal, URL-like names, glob patterns, wrong evidence-kind prefixes, and tag mismatches.
+- The final release proof workflow and `pnpm verify:final-release` now pass validated custom evidence asset names into
+  published-release verification and VM evidence dry-run preparation, so final proof does not fall back to default
+  archive names after downloading custom assets.
 - Final release proof dry-runs can now write the exact command plan to a `--plan-output` file for release handoff
   review without touching GitHub, Bunny.net, release assets, docs URLs, or VM evidence.
 - Final release proof plan-output files must now stay under `dist/release/`, and the verifier rejects absolute paths

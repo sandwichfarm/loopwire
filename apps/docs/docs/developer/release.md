@@ -165,6 +165,8 @@ pnpm verify:final-release -- \
   --public-key packaging/release-signing-public.pem \
   --git-head "$(git rev-parse refs/tags/v0.1.0^{commit})" \
   --release-evidence-dir .release-evidence/v0.1.0-published \
+  --release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz \
+  --vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz \
   --docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
   --docs-remote-prefix "$BUNNY_REMOTE_PREFIX" \
   --vm-evidence-root .vm/evidence \
@@ -177,7 +179,10 @@ another checkout. Use `--allow-head-mismatch` only for offline fixture rehearsal
 It runs the published-release verifier with the public evidence archive gate, the live docs smoke, strict
 final release-evidence verification, every target-specific VM evidence verifier with installed-release smoke,
 support-matrix verification with installed-release smoke required for `Verified` rows, read-only DSP provider plan
-evidence, and the docs contract. Use `--dry-run` first to print the exact command plan without touching network,
+evidence, and the docs contract. If non-default tag-bound release or VM evidence archive names are used, pass
+`--release-evidence-asset NAME` and `--vm-evidence-asset NAME`; the wrapper passes the release evidence name to
+published-release verification and the VM evidence name to the dry-run VM evidence preparation handoff. Use `--dry-run`
+first to print the exact command plan without touching network,
 release assets, docs URLs, or VM evidence. Add `--plan-output dist/release/final-release-proof-plan.txt` to dry-run
 mode when you need a durable handoff artifact for release review or CI logs. Plan output paths must stay under
 `dist/release/`; the verifier rejects absolute paths and `.` or `..` traversal before writing the file. The dry-run
@@ -248,7 +253,8 @@ download, a post-deploy `pnpm release:agent-ready -- --require-docs-deployment-a
 the same evidence archive names, all-target VM host setup and doctor preflights, VM SSH plan/runbook/evidence commands,
 VM evidence asset preparation command with the selected `--asset-name`, explicit `gh release upload --clobber` for the
 VM evidence archive plus refreshed `SHA256SUMS` files, a post-upload `pnpm release:status` audit, final proof workflow
-dispatch, and local final-proof dry-run, followed by the final `pnpm release:status` audit of the published release
+dispatch, and local final-proof dry-run with the selected release and VM evidence asset names, followed by the final
+final `pnpm release:status` audit of the published release
 state. The post-upload status audit
 should prove the release and VM evidence archive assets are visible, then remain blocked until Final Release Proof
 runs. After the
@@ -552,7 +558,8 @@ downloads both archives from the GitHub Release, verifies each archive is listed
 `scripts/verify-release-asset-checksum.sh`, validates both downloaded tarballs with `scripts/extract-safe-tar.sh`
 before extraction, verifies the VM evidence archive manifest with `scripts/verify-vm-evidence-archive-manifest.mjs`,
 verifies every listed target bundle from the extracted archive with `scripts/verify-vm-evidence.sh`,
-verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, verifies the live GitHub release
+verifies live docs and `/install.sh`, passes the validated archive names into
+`scripts/verify-final-release-proof.sh`, verifies the live GitHub release
 tag ref resolves to the expected tag commit, requires every VM target bundle to include published-release smoke,
 verifies support-matrix promotion rules, and reruns `pnpm verify:docs`. The composed
 `scripts/verify-final-release-proof.sh` step must not pass `--release-dir`; by this stage all release proof comes from

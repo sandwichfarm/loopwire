@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T10:43:50+02:00"
-last_activity: 2026-07-06 - Release status checks custom evidence assets in GitHub Release object
+last_updated: "2026-07-06T11:03:35+02:00"
+last_activity: 2026-07-06 - Final proof carries custom evidence asset names end to end
 progress:
   total_phases: 5
   completed_phases: 4
@@ -113,6 +113,12 @@ Latest release-object asset hardening: 2026-07-06 - `scripts/audit-final-release
 `--release-evidence-asset` and `--vm-evidence-asset` names inside the GitHub Release object asset list. Custom
 tag-bound evidence archives therefore satisfy the same release-object gate used for default archive names, while still
 requiring signed archive downloads and final-proof handoffs to use those selected names.
+Latest final-proof asset hardening: 2026-07-06 - `scripts/verify-final-release-proof.sh` and
+`scripts/verify-published-release.sh` now accept validated `--release-evidence-asset` overrides, and the final proof
+wrapper carries `--vm-evidence-asset` into VM evidence dry-run preparation. The Final Release Proof workflow exports the
+canonical release and VM evidence archive names after download and passes them into the composed final proof script, so
+custom tag-bound archive names no longer fall back to defaults between workflow download, published-release proof, and
+local handoff planning.
 
 ## Blockers / Concerns
 

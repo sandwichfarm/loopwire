@@ -542,6 +542,8 @@ echo "12. Local dry-run of the final proof command plan:"
 local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-key "$public_key" \
   --git-head "$git_head" \
   --release-evidence-dir ".release-evidence/${tag}-published" \
+  --release-evidence-asset "$release_evidence_asset" \
+  --vm-evidence-asset "$vm_evidence_asset" \
   --docs-deployment-manifest "dist/docs-deployment/deployment-manifest.json" \
   --vm-evidence-root "$vm_evidence_root" \
   --support-matrix "$support_matrix" \

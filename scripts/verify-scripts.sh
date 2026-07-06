@@ -302,6 +302,18 @@ printf '%s\n' "$verify_release_tag_ref_help" | grep -F -- "--git-head SHA" >/dev
   echo "verify-scripts: release tag ref verifier help is missing git-head support" >&2
   exit 1
 }
+printf '%s\n' "$verify_published_release_help" | grep -F -- "--release-evidence-asset NAME" >/dev/null || {
+  echo "verify-scripts: published release verifier help is missing release evidence asset override support" >&2
+  exit 1
+}
+printf '%s\n' "$verify_final_release_help" | grep -F -- "--release-evidence-asset NAME" >/dev/null || {
+  echo "verify-scripts: final release verifier help is missing release evidence asset override support" >&2
+  exit 1
+}
+printf '%s\n' "$verify_final_release_help" | grep -F -- "--vm-evidence-asset NAME" >/dev/null || {
+  echo "verify-scripts: final release verifier help is missing VM evidence asset override support" >&2
+  exit 1
+}
 printf '%s\n' "$fetch_docs_proof_help" | grep -F -- "--docs-dist DIR" >/dev/null || {
   echo "verify-scripts: docs deployment proof helper help is missing docs dist support" >&2
   exit 1
@@ -594,6 +606,12 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | gr
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" |
   grep -F -- "--vm-evidence-root /operator/vm-evidence" >/dev/null || {
     echo "verify-scripts: release handoff plan is missing custom VM evidence root in local final proof" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" |
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz" |
+  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing selected evidence asset names in local final proof" >&2
     exit 1
   }
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:status" |
@@ -1548,6 +1566,33 @@ final_release_dry_run="$(
     --support-matrix apps/docs/docs/guide/support-matrix.md \
     --dry-run
 )"
+final_release_custom_asset_dry_run="$(
+  bash scripts/verify-final-release-proof.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --public-key packaging/release-signing-public.pem \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-head-mismatch \
+    --release-evidence-dir .release-evidence/v0.1.0-published \
+    --release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz \
+    --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz \
+    --docs-hostname docs.example.test \
+    --docs-remote-prefix preview \
+    --docs-deployment-manifest dist/docs-deployment/deployment-manifest.json \
+    --vm-evidence-root .vm/evidence \
+    --support-matrix apps/docs/docs/guide/support-matrix.md \
+    --dry-run
+)"
+printf '%s\n' "$final_release_custom_asset_dry_run" | grep -F "dry-run: published release:" |
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: final release dry-run did not pass custom release evidence asset to published-release proof" >&2
+    exit 1
+  }
+printf '%s\n' "$final_release_custom_asset_dry_run" | grep -F "dry-run: refresh signed release manifest:" |
+  grep -F -- "--asset-name loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: final release dry-run did not pass custom VM evidence asset to VM evidence preparation" >&2
+    exit 1
+  }
 final_release_plan_output="dist/release/final-release-proof-plan.verify-scripts.txt"
 rm -f "$final_release_plan_output"
 bash scripts/verify-final-release-proof.sh \
@@ -7968,6 +8013,18 @@ bash scripts/verify-published-release.sh \
   --public-key "$public_key_file" \
   --tag v0.1.0 \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --require-release-evidence >/dev/null
+custom_evidence_asset_release_dir="$tmp_dir/custom-evidence-asset-published-release"
+cp -R "$published_release_dir" "$custom_evidence_asset_release_dir"
+mv "$custom_evidence_asset_release_dir/loopwire-release-evidence-v0.1.0.tar.gz" \
+  "$custom_evidence_asset_release_dir/loopwire-release-evidence-v0.1.0-operator.tar.gz"
+refresh_published_release_manifest "$custom_evidence_asset_release_dir" "$private_key_file"
+bash scripts/verify-published-release.sh \
+  --release-dir "$custom_evidence_asset_release_dir" \
+  --public-key "$public_key_file" \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz \
   --require-release-evidence >/dev/null
 if bash scripts/verify-published-release.sh \
   --release-dir "$published_release_dir" \

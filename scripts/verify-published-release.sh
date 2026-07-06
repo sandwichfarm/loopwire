@@ -10,21 +10,23 @@ release_dir=""
 release_source="github"
 require_release_evidence="false"
 require_github_release_source="false"
+release_evidence_asset=""
 
 usage() {
   cat <<'USAGE'
 Verify a published Loopwire GitHub Release.
 
 Usage:
-  verify-published-release.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE [--prefix DIR] [--git-head SHA] [--require-release-evidence] [--require-github-release-source]
-  verify-published-release.sh --release-dir DIR --public-key FILE [--prefix DIR] [--tag vX.Y.Z] [--git-head SHA] [--require-release-evidence]
+  verify-published-release.sh --repo OWNER/REPO --tag vX.Y.Z --public-key FILE [--prefix DIR] [--git-head SHA] [--require-release-evidence] [--release-evidence-asset NAME] [--require-github-release-source]
+  verify-published-release.sh --release-dir DIR --public-key FILE [--prefix DIR] [--tag vX.Y.Z] [--git-head SHA] [--require-release-evidence] [--release-evidence-asset NAME]
 
 Downloads release assets with gh, verifies canonical assets are present in the signed SHA256SUMS manifest, installs the
 host tarball from the downloaded release directory, and runs the installed binary. Use --release-dir for CI smoke coverage
 of the same verification path without network or GitHub release access. Add --require-release-evidence to require, verify,
 checksum-bind, and final-proof-check the loopwire-release-evidence-<tag>.tar.gz release asset, including read-only DSP
 and JACK provider plan proof. Add --require-github-release-source to fail if a local --release-dir is supplied for final
-public proof.
+public proof. Use --release-evidence-asset NAME when final proof uses a valid tag-bound non-default release evidence
+archive name.
 USAGE
 }
 
@@ -66,6 +68,10 @@ while [ "$#" -gt 0 ]; do
       require_release_evidence="true"
       shift
       ;;
+    --release-evidence-asset)
+      release_evidence_asset="${2:-}"
+      shift 2
+      ;;
     --require-github-release-source)
       require_github_release_source="true"
       shift
@@ -95,6 +101,15 @@ fi
 if [ -n "$git_head" ] && [[ ! "$git_head" =~ ^[0-9a-fA-F]{40}$ ]]; then
   fail "git head must be a 40-character commit SHA: $git_head"
 fi
+if [ -n "$release_evidence_asset" ]; then
+  [ -n "$tag" ] || fail "--release-evidence-asset requires --tag"
+  release_evidence_asset="$(
+    bash scripts/validate-release-asset-name.sh \
+      --kind release-evidence \
+      --tag "$tag" \
+      --asset "$release_evidence_asset"
+  )"
+fi
 command -v openssl >/dev/null 2>&1 || fail "openssl is required"
 command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
 
@@ -123,6 +138,13 @@ require_checksum_entry() {
 resolve_release_evidence_archive() {
   local archive
   local matches
+
+  if [ -n "$release_evidence_asset" ]; then
+    archive="$release_dir/$release_evidence_asset"
+    [ -f "$archive" ] || fail "release directory is missing required evidence asset: $(basename "$archive")"
+    printf '%s\n' "$archive"
+    return
+  fi
 
   if [ -n "$tag" ]; then
     archive="$release_dir/loopwire-release-evidence-${tag}.tar.gz"

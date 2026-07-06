@@ -374,6 +374,9 @@ assert_contains "apps/docs/docs/developer/release.md" "--require-dsp-provider-pl
 assert_contains "apps/docs/docs/developer/release.md" '--docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME"'
 assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:release-evidence"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:final-release"
+assert_contains "apps/docs/docs/developer/release.md" "--release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz"
+assert_contains "apps/docs/docs/developer/release.md" "--vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz"
+assert_contains "apps/docs/docs/developer/release.md" "published-release verification and the VM evidence name"
 assert_contains "apps/docs/docs/developer/release.md" "--public-key packaging/release-signing-public.pem"
 assert_contains "apps/docs/docs/developer/release.md" '--git-head "$(git rev-parse HEAD)"'
 assert_contains "apps/docs/docs/developer/release.md" 'current checkout `HEAD` to equal `--git-head`'
@@ -849,6 +852,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'rows that include 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'specific signing public key with `--public-key`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'resolved release tag commit with `--git-head`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm verify:final-release`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "validated custom evidence asset names"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "does not fall back to default"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "support-matrix verifier can now require installed-release smoke"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'validates custom `--matrix` and `--evidence-root` paths'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'stricter mode for `Verified` rows'

@@ -81,10 +81,11 @@ assert_final_proof_vm_archive_step_verifies_bundles() {
     in_step && /--evidence-root "\$vm_evidence_root"/ { evidence_root = 1 }
     in_step && /--verify-bundles/ { verify_bundles = 1 }
     in_step && /--require-published-release/ { published_release = 1 }
+    in_step && /LOOPWIRE_FINAL_VM_EVIDENCE_ASSET=%s/ { exports_asset = 1 }
     in_step && /LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s/ { exports_root = 1 }
-    END { exit(verifier && all_targets && evidence_root && verify_bundles && published_release && exports_root ? 0 : 1) }
+    END { exit(verifier && all_targets && evidence_root && verify_bundles && published_release && exports_asset && exports_root ? 0 : 1) }
   ' "$root/$file"; then
-    fail "final release proof VM archive step must verify all published VM bundles and export LOOPWIRE_FINAL_VM_EVIDENCE_ROOT: $file"
+    fail "final release proof VM archive step must verify all published VM bundles and export VM evidence asset/root: $file"
   fi
 }
 
@@ -179,6 +180,10 @@ assert_contains ".github/workflows/final-release-proof.yml" '--label "release ev
 assert_contains ".github/workflows/final-release-proof.yml" '--label "VM evidence archive"'
 assert_contains ".github/workflows/final-release-proof.yml" "--kind release-evidence"
 assert_contains ".github/workflows/final-release-proof.yml" "--kind vm-evidence"
+assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_RELEASE_EVIDENCE_ASSET"
+assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_VM_EVIDENCE_ASSET"
+assert_contains ".github/workflows/final-release-proof.yml" '--release-evidence-asset "$LOOPWIRE_FINAL_RELEASE_EVIDENCE_ASSET"'
+assert_contains ".github/workflows/final-release-proof.yml" '--vm-evidence-asset "$LOOPWIRE_FINAL_VM_EVIDENCE_ASSET"'
 assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
 assert_contains ".github/workflows/final-release-proof.yml" 'loopwire-vm-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz'
 assert_contains ".github/workflows/final-release-proof.yml" "Release evidence archive must contain"

@@ -227,6 +227,7 @@ jobs:
             echo "Release evidence archive must contain ${LOOPWIRE_RELEASE_TAG}/release-evidence.json" >&2
             exit 1
           fi
+          printf 'LOOPWIRE_FINAL_RELEASE_EVIDENCE_ASSET=%s\n' "$archive" >>"$GITHUB_ENV"
           printf 'LOOPWIRE_FINAL_RELEASE_EVIDENCE_DIR=%s\n' "$release_evidence_dir" >>"$GITHUB_ENV"
 
       - name: Download VM evidence archive
@@ -273,6 +274,7 @@ jobs:
             --evidence-root "$vm_evidence_root" \
             --verify-bundles \
             --require-published-release
+          printf 'LOOPWIRE_FINAL_VM_EVIDENCE_ASSET=%s\n' "$archive" >>"$GITHUB_ENV"
           printf 'LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s\n' "$vm_evidence_root" >>"$GITHUB_ENV"
 
       - name: Verify final release proof
@@ -286,6 +288,8 @@ jobs:
             --public-key packaging/release-signing-public.pem
             --git-head "$LOOPWIRE_RELEASE_COMMIT"
             --release-evidence-dir "$LOOPWIRE_FINAL_RELEASE_EVIDENCE_DIR"
+            --release-evidence-asset "$LOOPWIRE_FINAL_RELEASE_EVIDENCE_ASSET"
+            --vm-evidence-asset "$LOOPWIRE_FINAL_VM_EVIDENCE_ASSET"
             --docs-deployment-manifest "$LOOPWIRE_FINAL_DOCS_DEPLOYMENT_MANIFEST"
             --vm-evidence-root "$LOOPWIRE_FINAL_VM_EVIDENCE_ROOT"
             --support-matrix apps/docs/docs/guide/support-matrix.md
