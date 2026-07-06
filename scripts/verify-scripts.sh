@@ -6820,15 +6820,19 @@ grep -F "Release evidence verified:" "$release_status_matching_workflow_log" >/d
   echo "verify-scripts: release status did not verify the release evidence archive contents" >&2
   exit 1
 }
-grep -F "ok: published VM evidence archive asset" "$release_status_matching_workflow_log" >/dev/null || {
-  echo "verify-scripts: release status did not verify the signed VM evidence archive asset" >&2
+grep -F "blocked: published VM evidence archive asset" "$release_status_matching_workflow_log" >/dev/null || {
+  echo "verify-scripts: release status did not block the invalid signed VM evidence archive asset" >&2
   exit 1
 }
-grep -F "VM evidence archive manifest verified: 9 target(s) for v0.1.0." \
+grep -F "VM evidence bundle failed verification for arch-hyprland-pipewire" \
   "$release_status_matching_workflow_log" >/dev/null || {
-    echo "verify-scripts: release status did not verify the VM archive manifest" >&2
+    echo "verify-scripts: release status did not reject a VM archive missing target bundles" >&2
     exit 1
   }
+grep -F "missing evidence directory:" "$release_status_matching_workflow_log" >/dev/null || {
+  echo "verify-scripts: release status VM archive bundle failure reason missing" >&2
+  exit 1
+}
 grep -F "==> commit-scoped CI workflow run" "$release_status_matching_workflow_log" >/dev/null || {
   echo "verify-scripts: release status did not audit the commit-scoped CI workflow run" >&2
   exit 1
@@ -8410,7 +8414,22 @@ node scripts/verify-vm-evidence-archive-manifest.mjs \
   --manifest "$tmp_dir/vm-evidence-archive-extract/vm-evidence/manifest.json" \
   --tag v0.1.0 \
   --target arch-hyprland-pipewire \
+  --evidence-root "$tmp_dir/vm-evidence-archive-extract/vm-evidence" \
+  --verify-bundles \
   --require-published-release >/dev/null
+missing_bundle_archive_extract="$tmp_dir/vm-evidence-archive-missing-bundle"
+cp -R "$tmp_dir/vm-evidence-archive-extract" "$missing_bundle_archive_extract"
+rm -rf "$missing_bundle_archive_extract/vm-evidence/arch-hyprland-pipewire"
+if node scripts/verify-vm-evidence-archive-manifest.mjs \
+  --manifest "$missing_bundle_archive_extract/vm-evidence/manifest.json" \
+  --tag v0.1.0 \
+  --target arch-hyprland-pipewire \
+  --evidence-root "$missing_bundle_archive_extract/vm-evidence" \
+  --verify-bundles \
+  --require-published-release >/dev/null 2>&1; then
+  echo "verify-scripts: VM evidence archive manifest verifier accepted a missing target bundle" >&2
+  exit 1
+fi
 node - "$tmp_dir/vm-evidence-archive-extract/vm-evidence/manifest.json" <<'NODE'
 const fs = require("node:fs");
 const path = process.argv[2];

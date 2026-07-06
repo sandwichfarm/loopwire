@@ -5,6 +5,18 @@
 
 ## Evidence Passed
 
+- VM evidence archives now verify extracted target bundles, not just the root manifest. The VM archive manifest verifier
+  accepts `--verify-bundles` and optional `--evidence-root`, then runs
+  `scripts/verify-vm-evidence.sh` for every manifest-listed target; with `--require-published-release`, it also passes
+  `--release-tag` and `--require-github-release-source`. `scripts/package-vm-evidence.sh`,
+  `.github/workflows/final-release-proof.yml`, and `scripts/audit-final-release-state.sh` now require that bundle gate.
+  `pnpm verify:scripts` includes regressions for missing target bundles in both the direct archive verifier and the
+  signed release-status VM archive path. Focused validation passed: `node --check
+  scripts/verify-vm-evidence-archive-manifest.mjs`, `bash -n scripts/package-vm-evidence.sh
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh
+  scripts/verify-github-workflows.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `pnpm verify:workflows`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch,
+  VM launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - Published release evidence archives now require the same read-only DSP/JACK provider proof as final release evidence.
   `scripts/verify-published-release.sh --require-release-evidence` and `scripts/audit-final-release-state.sh` both
   forward `--require-dsp-provider-plan --require-jack-provider-plan` when verifying

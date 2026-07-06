@@ -681,6 +681,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "smaller required-s
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "saved backend is no longer detected"
 assert_contains "apps/docs/docs/developer/release.md" "Final Release Proof"
 assert_contains "apps/docs/docs/developer/release.md" "loopwire-vm-evidence-<tag>.tar.gz"
+assert_contains "apps/docs/docs/developer/release.md" "verifies every listed target bundle"
 assert_contains "apps/docs/docs/developer/release.md" "workflow_dispatch"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:package-evidence"
 assert_contains "apps/docs/docs/developer/release.md" "pnpm vm:prepare-release-evidence"
@@ -850,6 +851,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'validates custom `
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'stricter mode for `Verified` rows'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>.tar.gz"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "--verify-bundles"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "missing or invalid VM target bundles"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "verifies its signed"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "tag/repo/commit or omit required DSP/JACK provider proof"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "omit required DSP/JACK provider proof"

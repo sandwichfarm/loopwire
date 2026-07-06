@@ -271,6 +271,8 @@ bash scripts/extract-safe-tar.sh \
 node scripts/verify-vm-evidence-archive-manifest.mjs \
   --manifest "$tmp_dir/archive-smoke/vm-evidence/manifest.json" \
   --tag "$tag" \
+  --evidence-root "$tmp_dir/archive-smoke/vm-evidence" \
+  --verify-bundles \
   "${manifest_flags[@]}" >/dev/null
 
 for target in "${targets[@]}"; do

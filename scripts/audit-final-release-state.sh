@@ -526,6 +526,8 @@ check_published_vm_evidence_archive() {
     --tag "$tag" \
     --targets-file vm/targets.tsv \
     --require-all-targets \
+    --evidence-root "$vm_evidence_root" \
+    --verify-bundles \
     --require-published-release
 }
 

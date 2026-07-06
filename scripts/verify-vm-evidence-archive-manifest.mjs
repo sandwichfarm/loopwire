@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 const args = process.argv.slice(2);
 
@@ -14,11 +16,17 @@ const targetsFile = readOption("--targets-file");
 const expectedTargets = readOptions("--target");
 const requirePublishedRelease = args.includes("--require-published-release");
 const requireAllTargets = args.includes("--require-all-targets");
+const verifyBundles = args.includes("--verify-bundles");
+const evidenceRootOption = readOption("--evidence-root");
 
 if (!manifestPath) fail("missing --manifest FILE");
 if (!releaseTag) fail("missing --tag vX.Y.Z");
 validateLocalFile(manifestPath, "manifest");
 validateTag(releaseTag);
+const evidenceRoot = evidenceRootOption ?? dirname(manifestPath);
+if (verifyBundles) {
+  validateLocalDirectory(evidenceRoot, "evidence root");
+}
 
 let targets = expectedTargets;
 if (targetsFile) {
@@ -66,6 +74,10 @@ if (!Array.isArray(manifest.targets)) {
       errors.push(`targets must contain non-empty strings, found ${stringifyValue(target)}`);
       continue;
     }
+    if (!isSafeTargetId(target)) {
+      errors.push(`targets must contain safe target ids, found ${stringifyValue(target)}`);
+      continue;
+    }
     if (seen.has(target)) {
       errors.push(`targets contains duplicate target: ${target}`);
     }
@@ -100,6 +112,12 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
+if (verifyBundles) {
+  for (const target of manifest.targets) {
+    verifyEvidenceBundle(target);
+  }
+}
+
 console.log(`VM evidence archive manifest verified: ${manifest.targets.length} target(s) for ${releaseTag}.`);
 
 function usage() {
@@ -108,10 +126,14 @@ function usage() {
 Usage:
   verify-vm-evidence-archive-manifest.mjs --manifest FILE --tag vX.Y.Z
     [--target TARGET ... | --targets-file FILE --require-all-targets]
-    [--require-published-release]
+    [--require-published-release] [--verify-bundles] [--evidence-root DIR]
 
 The manifest must identify the archive kind, release tag, deterministic vm-evidence/<target> layout, selected targets,
-and whether the archive was built with published-release evidence strictness.`);
+and whether the archive was built with published-release evidence strictness.
+
+With --verify-bundles, every listed vm-evidence/<target> directory is verified with scripts/verify-vm-evidence.sh.
+When --require-published-release is also present, bundle verification requires published-release smoke for the same tag
+and rejects local release-dir smoke as final GitHub release proof.`);
 }
 
 function readOption(name) {
@@ -148,6 +170,28 @@ function validateTag(value) {
 }
 
 function validateLocalFile(value, label) {
+  validateLocalPathShape(value, label);
+  if (!existsSync(value)) {
+    fail(`missing ${label}: ${value}`);
+  }
+  const stat = lstatSync(value);
+  if (stat.isSymbolicLink() || !stat.isFile()) {
+    fail(`${label} must be a regular file: ${value}`);
+  }
+}
+
+function validateLocalDirectory(value, label) {
+  validateLocalPathShape(value, label);
+  if (!existsSync(value)) {
+    fail(`missing ${label}: ${value}`);
+  }
+  const stat = lstatSync(value);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    fail(`${label} must be a directory: ${value}`);
+  }
+}
+
+function validateLocalPathShape(value, label) {
   if (value.includes("\n") || value.includes("\r")) {
     fail(`${label} path must be a single safe value`);
   }
@@ -166,13 +210,6 @@ function validateLocalFile(value, label) {
   const segments = value.split("/");
   if (segments.includes(".") || segments.includes("..")) {
     fail(`${label} path must not contain . or .. path segments`);
-  }
-  if (!existsSync(value)) {
-    fail(`missing ${label}: ${value}`);
-  }
-  const stat = lstatSync(value);
-  if (stat.isSymbolicLink() || !stat.isFile()) {
-    fail(`${label} must be a regular file: ${value}`);
   }
 }
 
@@ -197,4 +234,27 @@ function readTargetsFile(path) {
 
 function stringifyValue(value) {
   return JSON.stringify(value);
+}
+
+function isSafeTargetId(value) {
+  return /^[A-Za-z0-9_.-]+$/.test(value) && value !== "." && value !== "..";
+}
+
+function verifyEvidenceBundle(target) {
+  const verifierArgs = [
+    "scripts/verify-vm-evidence.sh",
+    "--target",
+    target,
+    "--evidence-dir",
+    join(evidenceRoot, target)
+  ];
+  if (requirePublishedRelease) {
+    verifierArgs.push("--require-published-release", "--release-tag", releaseTag, "--require-github-release-source");
+  }
+
+  const result = spawnSync("bash", verifierArgs, { encoding: "utf8" });
+  if (result.status !== 0) {
+    const detail = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
+    fail(`VM evidence bundle failed verification for ${target}${detail ? `: ${detail}` : ""}`);
+  }
 }

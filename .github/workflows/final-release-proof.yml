@@ -270,6 +270,8 @@ jobs:
             --tag "$LOOPWIRE_RELEASE_TAG" \
             --targets-file vm/targets.tsv \
             --require-all-targets \
+            --evidence-root "$vm_evidence_root" \
+            --verify-bundles \
             --require-published-release
           printf 'LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s\n' "$vm_evidence_root" >>"$GITHUB_ENV"
 

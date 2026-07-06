@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T06:48:45+02:00"
-last_activity: 2026-07-06 - Published release evidence archives require DSP/JACK provider proof
+last_updated: "2026-07-06T07:07:58+02:00"
+last_activity: 2026-07-06 - VM evidence archives verify extracted target bundles
 progress:
   total_phases: 5
   completed_phases: 4
@@ -59,6 +59,10 @@ threshold as final release evidence. `scripts/verify-published-release.sh --requ
 `scripts/audit-final-release-state.sh` pass `--require-dsp-provider-plan --require-jack-provider-plan` to
 `verify-release-evidence.mjs`, and `pnpm verify:scripts` rejects a signed staged release whose
 `loopwire-release-evidence-<tag>.tar.gz` omits `jack-provider-plan`.
+Latest VM evidence archive hardening: 2026-07-06 - `scripts/verify-vm-evidence-archive-manifest.mjs` now supports
+`--verify-bundles`, which verifies every manifest-listed `vm-evidence/<target>` directory with
+`scripts/verify-vm-evidence.sh`. The VM packager, final release proof workflow, and final release status audit now use
+that gate, so signed VM evidence archives cannot pass with a valid manifest but missing or invalid target bundles.
 
 ## Blockers / Concerns
 

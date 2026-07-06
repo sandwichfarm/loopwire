@@ -526,6 +526,7 @@ deterministic archive layout. The workflow checks out the exact tag commit, down
 downloads both archives from the GitHub Release, verifies each archive is listed in the signed checksum manifest with
 `scripts/verify-release-asset-checksum.sh`, validates both downloaded tarballs with `scripts/extract-safe-tar.sh`
 before extraction, verifies the VM evidence archive manifest with `scripts/verify-vm-evidence-archive-manifest.mjs`,
+verifies every listed target bundle from the extracted archive with `scripts/verify-vm-evidence.sh`,
 verifies live docs and `/install.sh`, runs `scripts/verify-final-release-proof.sh`, verifies the live GitHub release
 tag ref resolves to the expected tag commit, requires every VM target bundle to include published-release smoke,
 verifies support-matrix promotion rules, and reruns `pnpm verify:docs`. The composed
@@ -552,8 +553,9 @@ the archive. The final proof also runs
 public release proof. Each VM bundle must include `published-release.json` matching the release tag and GitHub release
 source, in addition to a successful `published-release-smoke` ledger row.
 After writing, it validates the archive with
-`scripts/extract-safe-tar.sh` and validates the extracted root manifest, so unsafe paths, link members, tag mismatches,
-or missing target declarations are caught before the tarball is attached to a release.
+`scripts/extract-safe-tar.sh`, validates the extracted root manifest, and verifies every listed target bundle from the
+extracted archive, so unsafe paths, link members, tag mismatches, missing target declarations, missing bundles, or
+invalid bundle contents are caught before the tarball is attached to a release.
 Custom `--output` paths may point at temp locations for local rehearsal, but the basename must still be a validated
 `loopwire-vm-evidence-<tag>*.tar.gz` release asset name and the path must not use traversal, URL syntax, glob
 metacharacters, symlinks, or a directory target.
