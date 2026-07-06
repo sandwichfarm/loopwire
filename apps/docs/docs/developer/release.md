@@ -223,7 +223,9 @@ pnpm release:agent-ready -- \
 matrix/cloud-init metadata, packaging metadata, a read-only DSP provider graph-edge plan, and local release artifact
 smoke. It also verifies that the rendered final-proof dispatch and closing `release:status` audit carry the tag-bound
 release and VM evidence archive names, so the repo-ready handoff cannot drop the archive proof contract. Use
-`--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof topology.
+`--release-evidence-asset NAME` and `--vm-evidence-asset NAME` when rehearsing a handoff with non-default tag-bound
+archive names. Use `--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof
+topology.
 By default it requires a clean checkout whose current `HEAD` exactly matches `--git-head`, so the rendered handoff
 matches the pushed commit. Use `--allow-dirty` and `--allow-head-mismatch` only for local development rehearsal before
 committing. Use `--skip-local-gates` only for fast script-contract rehearsal. Add `--require-hosted-checks` when the
@@ -239,10 +241,13 @@ When the published release or one of its evidence archives is absent, `release:s
 download failure and prints the missing asset plus the underlying `gh release download` detail, rather than cascading
 into checksum, extraction, or manifest errors for files that were never downloaded.
 
-The handoff prints the agent-ready release automation preflight for the exact commit, the required secret check, strict
-release readiness command, reviewed annotated tag command, exact tag push ref, Release workflow dispatch, Deploy Docs
-workflow dispatch, docs deployment run selection, docs deployment proof download, a post-deploy
-`pnpm release:agent-ready -- --require-docs-deployment-artifacts --skip-local-gates` check, all-target VM host setup and doctor preflights, VM SSH plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local final-proof dry-run, followed by a final `pnpm release:status` audit of the published release state. After the
+The handoff prints the agent-ready release automation preflight for the exact commit and selected evidence archive
+names, the required secret check, strict release readiness command, reviewed annotated tag command, exact tag push ref,
+Release workflow dispatch, Deploy Docs workflow dispatch, docs deployment run selection, docs deployment proof
+download, a post-deploy `pnpm release:agent-ready -- --require-docs-deployment-artifacts --skip-local-gates` check with
+the same evidence archive names, all-target VM host setup and doctor preflights, VM SSH plan/runbook/evidence commands,
+VM evidence asset preparation command, final proof workflow dispatch, and local final-proof dry-run, followed by the
+final `pnpm release:status` audit of the published release state. After the
 final-proof dispatch command, it prints the expected GitHub Actions run name that `release:status` will require:
 `Final Release Proof <tag> @ <git-head>`. It does not set secrets, create tags, dispatch workflows, upload VM evidence,
 or mutate host audio. It starts with an

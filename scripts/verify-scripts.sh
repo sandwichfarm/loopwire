@@ -390,6 +390,8 @@ release_handoff_plan="$(
     --docs-hostname docs.example.test \
     --docs-remote-prefix preview \
     --release-private-key-file /secure/loopwire-release-private.pem \
+    --release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz \
+    --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz \
     --vm-start-port 2700 \
     --secret-list-file release-secret-names.tsv
 )"
@@ -559,9 +561,15 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:status" |
   grep -F -- "--docs-deployment-run-id 123456" |
   grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" |
   grep -F -- "--vm-start-port 2700" |
-  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz" |
-  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null || {
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz" |
+  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
     echo "verify-scripts: release handoff plan is missing final release status audit" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:agent-ready" |
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz" |
+  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing evidence asset names in agent-ready preflight" >&2
     exit 1
   }
 release_handoff_placeholder_plan="$(
@@ -581,7 +589,7 @@ printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "pnpm release:fetch-
     exit 1
   }
 printf '%s\n' "$release_handoff_placeholder_plan" |
-  grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --require-hosted-checks --require-docs-deployment-artifacts --skip-local-gates" >/dev/null || {
+  grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz --vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz --require-hosted-checks --require-docs-deployment-artifacts --skip-local-gates" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing post-deploy agent-ready artifact command" >&2
     exit 1
   }
@@ -601,7 +609,7 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
     exit 1
   }
 printf '%s\n' "$release_handoff_placeholder_plan" |
-  grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --require-hosted-checks" >/dev/null || {
+  grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz --vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz --require-hosted-checks" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing commit-scoped hosted agent-ready command" >&2
     exit 1
   }
@@ -622,6 +630,17 @@ agent_release_ready_plan="$(
     --repo sandwichfarm/loopwire \
     --tag v0.1.0 \
     --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-dirty \
+    --allow-head-mismatch \
+    --skip-local-gates
+)"
+agent_release_ready_custom_asset_plan="$(
+  bash scripts/verify-agent-release-ready.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz \
+    --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz \
     --allow-dirty \
     --allow-head-mismatch \
     --skip-local-gates
@@ -656,6 +675,18 @@ printf '%s\n' "$agent_release_ready_plan" | grep -F "pnpm release:status" |
   grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz" |
   grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null || {
     echo "verify-scripts: agent-ready release smoke did not prove final-status evidence asset handoff" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_custom_asset_plan" | grep -F "gh workflow run final-release-proof.yml" |
+  grep -F -- "-f release_evidence_asset=loopwire-release-evidence-v0.1.0-operator.tar.gz" |
+  grep -F -- "-f vm_evidence_asset=loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not prove custom final-proof evidence asset handoff" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_custom_asset_plan" | grep -F "pnpm release:status" |
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz" |
+  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not prove custom final-status evidence asset handoff" >&2
     exit 1
   }
 agent_ready_dirty_probe=".verify-agent-release-ready-dirty-probe"
@@ -896,6 +927,26 @@ if bash scripts/verify-agent-release-ready.sh \
   --dsp-frame-count nope \
   --skip-local-gates >/dev/null 2>&1; then
   echo "verify-scripts: agent-ready release accepted invalid DSP frame count" >&2
+  exit 1
+fi
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
+  --release-evidence-asset ../loopwire-release-evidence-v0.1.0.tar.gz \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted an unsafe release evidence asset name" >&2
+  exit 1
+fi
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
+  --vm-evidence-asset ../loopwire-vm-evidence-v0.1.0.tar.gz \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted an unsafe VM evidence asset name" >&2
   exit 1
 fi
 if bash scripts/plan-final-release-handoff.sh \

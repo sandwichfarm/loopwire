@@ -12,6 +12,8 @@ allow_dirty="false"
 allow_head_mismatch="false"
 dsp_configuration="scripts/fixtures/dsp-provider-configuration.json"
 dsp_frame_count="16"
+release_evidence_asset=""
+vm_evidence_asset=""
 
 usage() {
   cat <<'USAGE'
@@ -26,6 +28,10 @@ Options:
   --dsp-configuration FILE
                          Release DSP proof topology, default scripts/fixtures/dsp-provider-configuration.json
   --dsp-frame-count N    Source frame count for read-only DSP provider planning, default 16
+  --release-evidence-asset NAME
+                         Expected release evidence archive asset, default loopwire-release-evidence-<tag>.tar.gz
+  --vm-evidence-asset NAME
+                         Expected VM evidence archive asset, default loopwire-vm-evidence-<tag>.tar.gz
   --skip-local-gates     Only verify offline release readiness and handoff rendering
   --require-hosted-checks
                          Require commit-scoped CI and Deploy Docs workflow runs to be successful for --git-head
@@ -79,6 +85,13 @@ validate_positive_integer() {
   local label="$2"
 
   [[ "$value" =~ ^[1-9][0-9]*$ ]] || fail "$label must be a positive integer"
+}
+
+validate_optional_asset() {
+  local kind="$1"
+  local asset="$2"
+
+  [ -z "$asset" ] || bash scripts/validate-release-asset-name.sh --kind "$kind" --tag "$tag" --asset "$asset" >/dev/null
 }
 
 validate_relative_path() {
@@ -246,6 +259,14 @@ while [ "$#" -gt 0 ]; do
       dsp_frame_count="${2:?missing value for --dsp-frame-count}"
       shift 2
       ;;
+    --release-evidence-asset)
+      release_evidence_asset="${2:?missing value for --release-evidence-asset}"
+      shift 2
+      ;;
+    --vm-evidence-asset)
+      vm_evidence_asset="${2:?missing value for --vm-evidence-asset}"
+      shift 2
+      ;;
     --skip-local-gates)
       skip_local_gates="true"
       shift
@@ -285,12 +306,16 @@ fi
 validate_repo
 validate_tag
 validate_git_head
+validate_optional_asset "release-evidence" "$release_evidence_asset"
+validate_optional_asset "vm-evidence" "$vm_evidence_asset"
 if [ "$allow_head_mismatch" != "true" ]; then
   validate_current_checkout_head
 fi
 reject_unsafe_value "$public_key" "public key"
 validate_relative_path "$dsp_configuration" "DSP configuration"
 validate_positive_integer "$dsp_frame_count" "DSP frame count"
+release_evidence_asset="${release_evidence_asset:-loopwire-release-evidence-${tag}.tar.gz}"
+vm_evidence_asset="${vm_evidence_asset:-loopwire-vm-evidence-${tag}.tar.gz}"
 
 echo "Agent-ready release check for ${repo}@${tag}"
 echo "Expected release commit: ${git_head}"
@@ -312,18 +337,20 @@ run_gate \
   bash scripts/verify-release-readiness.sh "${release_readiness_args[@]}"
 
 echo "==> final release handoff rendering"
+handoff_args=(--repo "$repo" --tag "$tag" --git-head "$git_head" --public-key "$public_key")
+handoff_args+=(--release-evidence-asset "$release_evidence_asset")
+handoff_args+=(--vm-evidence-asset "$vm_evidence_asset")
 handoff="$(
-  bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
-    --git-head "$git_head" --public-key "$public_key"
+  bash scripts/plan-final-release-handoff.sh "${handoff_args[@]}"
 )"
 assert_handoff_contains "$handoff" "Operator-deferred after agent delivery"
 assert_handoff_contains "$handoff" "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
 assert_handoff_contains "$handoff" "operator-deferred: run the docs_deployment_run_id selection command"
 assert_handoff_contains "$handoff" "operator-deferred: pass --release-private-key-file or --env-file"
-assert_handoff_contains "$handoff" "-f release_evidence_asset=loopwire-release-evidence-${tag}.tar.gz"
-assert_handoff_contains "$handoff" "-f vm_evidence_asset=loopwire-vm-evidence-${tag}.tar.gz"
-assert_handoff_contains "$handoff" "--release-evidence-asset loopwire-release-evidence-${tag}.tar.gz"
-assert_handoff_contains "$handoff" "--vm-evidence-asset loopwire-vm-evidence-${tag}.tar.gz"
+assert_handoff_contains "$handoff" "-f release_evidence_asset=${release_evidence_asset}"
+assert_handoff_contains "$handoff" "-f vm_evidence_asset=${vm_evidence_asset}"
+assert_handoff_contains "$handoff" "--release-evidence-asset ${release_evidence_asset}"
+assert_handoff_contains "$handoff" "--vm-evidence-asset ${vm_evidence_asset}"
 echo "ok: final release handoff rendering"
 printf '%s\n' "$handoff" | indent
 echo

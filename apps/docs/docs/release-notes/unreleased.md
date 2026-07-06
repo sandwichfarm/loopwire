@@ -485,6 +485,8 @@ These notes describe source-tree progress. They are not a public release announc
   forwards the same archive names from final-proof dispatch into the final status audit.
 - `pnpm release:agent-ready` now fails if the rendered final release handoff drops the tag-bound release or VM evidence
   archive names from either final-proof dispatch or the closing `release:status` audit.
+- `pnpm release:agent-ready` now accepts the same tag-bound release and VM evidence asset override names as the handoff,
+  and `pnpm release:handoff` forwards those names into both initial and post-deploy agent-ready preflights.
 - `pnpm release:status` now resolves the GitHub tag ref, including annotated tags, and rejects releases whose tag does
   not point at the expected `--git-head` commit.
 - Final release proof now runs the same live GitHub tag-ref check before published-release downloads, so the manual

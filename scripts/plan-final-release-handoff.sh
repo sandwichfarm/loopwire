@@ -370,7 +370,10 @@ print_command bash scripts/setup-github-secrets.sh --write-env-template /secure/
 echo
 echo "1. Verify agent-ready release automation for this exact commit:"
 print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
-  --git-head "$git_head" --public-key "$public_key" --require-hosted-checks
+  --git-head "$git_head" --public-key "$public_key" \
+  --release-evidence-asset "$release_evidence_asset" \
+  --vm-evidence-asset "$vm_evidence_asset" \
+  --require-hosted-checks
 echo
 echo "2. Set required GitHub release secrets from the filled local env file:"
 print_command bash scripts/setup-github-secrets.sh --repo "$repo" --scope final --env-file "$secret_env_file"
@@ -421,7 +424,10 @@ else
 fi
 echo "  # Re-run agent-ready in post-deploy mode after artifact-bearing Deploy Docs proof exists:"
 print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
-  --git-head "$git_head" --public-key "$public_key" --require-hosted-checks \
+  --git-head "$git_head" --public-key "$public_key" \
+  --release-evidence-asset "$release_evidence_asset" \
+  --vm-evidence-asset "$vm_evidence_asset" \
+  --require-hosted-checks \
   --require-docs-deployment-artifacts --skip-local-gates
 echo
 echo "9. Render the operator VM evidence handoff:"

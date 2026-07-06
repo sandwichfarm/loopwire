@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T09:03:59+02:00"
-last_activity: 2026-07-06 - Agent-ready release proof checks final evidence asset handoff
+last_updated: "2026-07-06T09:20:23+02:00"
+last_activity: 2026-07-06 - Agent-ready preflights accept evidence asset overrides
 progress:
   total_phases: 5
   completed_phases: 4
@@ -88,6 +88,9 @@ proves the fake GitHub download path uses those override names.
 Latest agent-ready hardening: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now rejects rendered final release
 handoffs that drop the tag-bound release or VM evidence archive names from final-proof dispatch or the closing
 `pnpm release:status` audit. `scripts/verify-scripts.sh` covers both rendered command paths in the agent-ready smoke.
+Latest agent-ready override hardening: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now accepts validated
+`--release-evidence-asset` and `--vm-evidence-asset` overrides, and `scripts/plan-final-release-handoff.sh` forwards
+the selected archive names into both initial and post-deploy agent-ready preflights.
 
 ## Blockers / Concerns
 
@@ -165,6 +168,15 @@ handoffs that drop the tag-bound release or VM evidence archive names from final
   `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
   deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was
   performed.
+- 2026-07-06 agent-ready evidence asset override hardening: `scripts/verify-agent-release-ready.sh` now accepts and
+  validates tag-bound release and VM evidence asset override names, then renders `scripts/plan-final-release-handoff.sh`
+  with those selected names before asserting final-proof dispatch and closing `pnpm release:status` handoff content.
+  `scripts/plan-final-release-handoff.sh` also forwards the same names into the initial and post-deploy
+  `pnpm release:agent-ready` preflights. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh
+  scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
+  support-matrix promotion was performed.
 - 2026-07-06 final proof VM archive workflow hardening: `scripts/verify-github-workflows.sh` now verifies that the
   `Download VM evidence archive` workflow step runs the VM archive manifest verifier with all-target, bundle-level,
   published-release checks and exports the verified evidence root for `verify-final-release-proof.sh`. Focused
