@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Desktop Restore on boot can now carry explicit DSP provider settings. The settings panel stores provider command,
+  mode, timeout, and frame-count fields, enables DSP Provider selection only for live provider settings, and passes
+  those values to the Tauri startup command when writing the background restore unit. The Tauri renderer writes the
+  matching `--backend dsp --dsp-provider-*` flags and fails before file writes for invalid or file-backed live-restore
+  provider settings. Focused validation passed so far: `pnpm --filter @loopwire/desktop test --
+  startup-restore-summary`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:desktop-preview --
+  --screenshot-dir /tmp/loopwire-dsp-provider-settings-preview`, and `git diff --check`. Desktop preview wrote
+  desktop/mobile screenshots and reported no horizontal overflow. Full validation passed: `pnpm check`.
 - Desktop DSP live apply now fails closed until the desktop has explicit provider command settings. The preflight
   blocks `selectedBackend: "dsp"` even when a graph-edge capability report is present, route-control copy points users
   to provider-backed background restore, and docs now avoid implying session-local DSP live apply is wired. Focused

@@ -193,10 +193,12 @@ an exit-0 command with empty stdout is treated as failed verification. Release a
 `loopwire-dsp-provider`, a bundled file-backed provider that can seed source buffers, persist rendered outputs, verify
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
 for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
-accepted for startup restore only when the restore command also supplies the explicit DSP provider command. This is
-still not native live host DSP: desktop live apply has no DSP provider command setting yet. The live backend DSP path
-still needs a host adapter that can capture source streams and inject the rendered outputs into PipeWire or JACK.
-The live backend DSP still needs host capture and injection proof before desktop live apply can use it.
+accepted for startup restore only when the restore command also supplies the explicit DSP provider command. The
+desktop settings panel can store that provider command for Restore on boot and renders it into the user-scoped systemd
+unit when DSP Provider is selected. This is still not native live host DSP: the desktop Host apply button does not run
+a DSP provider yet. The live backend DSP path still needs a host adapter that can capture source streams and inject
+the rendered outputs into PipeWire or JACK. The live backend DSP still needs host capture and injection proof before
+desktop live apply can use it.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 

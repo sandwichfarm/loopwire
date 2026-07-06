@@ -93,6 +93,9 @@ These notes describe source-tree progress. They are not a public release announc
 - Desktop live apply now keeps persisted DSP provider backends blocked until the desktop has an explicit provider
   command setting, preventing a graph-edge capability report from implying session-local DSP apply is wired when only
   provider-backed background restore is available.
+- Desktop settings now include DSP provider command, mode, timeout, and frame-count fields. Once a live provider
+  command is saved, DSP Provider can be selected for Restore on boot and the desktop writes the matching
+  `--backend dsp --dsp-provider-*` flags into the user-scoped systemd unit.
 - Desktop live-apply preflight and the configuration-switch guard now block the selected backend when current backend
   detection reports it unavailable, so persisted backend choices cannot arm live apply after that audio system
   disappears.

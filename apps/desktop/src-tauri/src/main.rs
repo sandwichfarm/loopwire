@@ -12,6 +12,60 @@ struct BackgroundBinaryStatus {
     note: Option<String>,
 }
 
+#[derive(Clone, Debug, Default)]
+struct BackgroundRestoreOptions {
+    dsp_provider_command: Option<String>,
+    dsp_provider_timeout_ms: Option<u64>,
+    dsp_provider_mode: Option<String>,
+    dsp_frame_count: Option<u64>,
+}
+
+impl BackgroundRestoreOptions {
+    fn validate_for_live_restore(&self) -> Result<(), String> {
+        let has_provider = clean_restore_arg(self.dsp_provider_command.as_deref()).is_some();
+
+        if let Some(timeout_ms) = self.dsp_provider_timeout_ms {
+            if timeout_ms == 0 {
+                return Err("DSP provider timeout must be greater than zero.".to_string());
+            }
+        }
+
+        if let Some(frame_count) = self.dsp_frame_count {
+            if frame_count == 0 {
+                return Err("DSP frame count must be greater than zero.".to_string());
+            }
+
+            if !has_provider {
+                return Err("DSP frame count requires a DSP provider command.".to_string());
+            }
+        }
+
+        if let Some(mode) = clean_restore_arg(self.dsp_provider_mode.as_deref()) {
+            if mode != "file-backed" && mode != "live" {
+                return Err("DSP provider mode must be file-backed or live.".to_string());
+            }
+
+            if mode != "file-backed" && !has_provider {
+                return Err("DSP provider mode requires a DSP provider command.".to_string());
+            }
+
+            if has_provider && mode != "live" {
+                return Err(
+                    "DSP provider background restore runs in live mode; choose live provider mode."
+                        .to_string(),
+                );
+            }
+        } else if has_provider {
+            return Err(
+                "DSP provider background restore runs in live mode; choose live provider mode."
+                    .to_string(),
+            );
+        }
+
+        Ok(())
+    }
+}
+
 #[tauri::command]
 fn run_audio_command(
     command: String,
@@ -84,11 +138,23 @@ fn run_audio_command(
 }
 
 #[tauri::command]
-fn manage_startup(action: String) -> Result<String, String> {
+fn manage_startup(
+    action: String,
+    dsp_provider_command: Option<String>,
+    dsp_provider_timeout_ms: Option<u64>,
+    dsp_provider_mode: Option<String>,
+    dsp_frame_count: Option<u64>,
+) -> Result<String, String> {
     let path = autostart_path()?;
     let background_path = background_startup_path()?;
     let binary = current_binary_path()?;
     let state = state_path()?;
+    let restore_options = BackgroundRestoreOptions {
+        dsp_provider_command,
+        dsp_provider_timeout_ms,
+        dsp_provider_mode,
+        dsp_frame_count,
+    };
 
     match action.as_str() {
         "status" => Ok(startup_status_json(
@@ -136,9 +202,15 @@ fn manage_startup(action: String) -> Result<String, String> {
                     status.note.as_deref(),
                 ));
             }
+            restore_options.validate_for_live_restore()?;
 
-            install_background_startup_entry(&background_path, &status.binary, &state)
-                .map_err(|error| error.to_string())?;
+            install_background_startup_entry(
+                &background_path,
+                &status.binary,
+                &state,
+                &restore_options,
+            )
+            .map_err(|error| error.to_string())?;
             Ok(background_startup_status_json(
                 &background_path,
                 &status.binary,
@@ -520,12 +592,13 @@ fn install_background_startup_entry(
     path: &Path,
     binary: &Path,
     state_path: &Path,
+    options: &BackgroundRestoreOptions,
 ) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
 
-    fs::write(path, render_background_service(binary, state_path))?;
+    fs::write(path, render_background_service(binary, state_path, options))?;
     set_readable_permissions(path)?;
     enable_background_startup_link(path)
 }
@@ -633,7 +706,13 @@ fn render_desktop_entry(binary: &Path) -> String {
     )
 }
 
-fn render_background_service(binary: &Path, state_path: &Path) -> String {
+fn render_background_service(
+    binary: &Path,
+    state_path: &Path,
+    options: &BackgroundRestoreOptions,
+) -> String {
+    let restore_args = render_background_restore_args(state_path, options);
+
     format!(
         "[Unit]\n\
         Description=Loopwire audio routing restore\n\
@@ -642,15 +721,62 @@ fn render_background_service(binary: &Path, state_path: &Path) -> String {
         \n\
         [Service]\n\
         Type=simple\n\
-        ExecStart=\"{}\" --background --state-file \"{}\" --mode live\n\
+        ExecStart=\"{}\" --background{}\n\
         Restart=on-failure\n\
         RestartSec=2\n\
         \n\
         [Install]\n\
         WantedBy=default.target\n",
         escape_desktop_exec(binary),
-        escape_desktop_exec(state_path)
+        restore_args
     )
+}
+
+fn render_background_restore_args(state_path: &Path, options: &BackgroundRestoreOptions) -> String {
+    let mut args = format!(
+        " --state-file \"{}\" --mode live",
+        escape_desktop_exec(state_path)
+    );
+
+    if let Some(command) = clean_restore_arg(options.dsp_provider_command.as_deref()) {
+        args.push_str(" --backend dsp --dsp-provider-command \"");
+        args.push_str(&escape_exec_arg(&command));
+        args.push('"');
+        args.push_str(" --dsp-provider-timeout-ms ");
+        args.push_str(&options.dsp_provider_timeout_ms.unwrap_or(5_000).to_string());
+        args.push_str(" --dsp-provider-mode ");
+        args.push_str(&escape_exec_arg(
+            options
+                .dsp_provider_mode
+                .as_deref()
+                .unwrap_or("file-backed"),
+        ));
+
+        if let Some(frame_count) = options.dsp_frame_count {
+            args.push_str(" --dsp-frame-count ");
+            args.push_str(&frame_count.to_string());
+        }
+    }
+
+    args
+}
+
+fn clean_restore_arg(value: Option<&str>) -> Option<String> {
+    let trimmed = value?.trim();
+
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    Some(trimmed.to_string())
+}
+
+fn escape_exec_arg(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "")
+        .replace('\r', "")
 }
 
 fn startup_status_json(path: &Path, binary: &Path, message: &str, available: bool) -> String {
@@ -759,10 +885,11 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::{
-        background_binary_status, background_startup_status_json, install_background_startup_entry,
-        install_startup_entry, is_allowed_audio_command, render_background_service,
-        render_desktop_entry, resolve_background_binary_path, startup_status_json,
-        uninstall_background_startup_entry, uninstall_startup_entry, write_state_file,
+        BackgroundRestoreOptions, background_binary_status, background_startup_status_json,
+        install_background_startup_entry, install_startup_entry, is_allowed_audio_command,
+        render_background_service, render_desktop_entry, resolve_background_binary_path,
+        startup_status_json, uninstall_background_startup_entry, uninstall_startup_entry,
+        write_state_file,
     };
     use std::{
         fs,
@@ -900,6 +1027,7 @@ mod tests {
         let unit = render_background_service(
             Path::new("/tmp/Loopwire App"),
             Path::new("/tmp/config/loopwire/state.json"),
+            &BackgroundRestoreOptions::default(),
         );
 
         assert!(unit.contains("Description=Loopwire audio routing restore"));
@@ -909,6 +1037,66 @@ mod tests {
             )
         );
         assert!(unit.contains("WantedBy=default.target"));
+    }
+
+    #[test]
+    fn renders_background_restore_dsp_provider_options() {
+        let unit = render_background_service(
+            Path::new("/tmp/Loopwire App"),
+            Path::new("/tmp/config/loopwire/state.json"),
+            &BackgroundRestoreOptions {
+                dsp_provider_command: Some("loopwire-live-dsp-provider".to_string()),
+                dsp_provider_timeout_ms: Some(7_000),
+                dsp_provider_mode: Some("live".to_string()),
+                dsp_frame_count: Some(480),
+            },
+        );
+
+        assert!(unit.contains("ExecStart=\"/tmp/Loopwire App\" --background"));
+        assert!(
+            unit.contains("--backend dsp --dsp-provider-command \"loopwire-live-dsp-provider\"")
+        );
+        assert!(unit.contains("--dsp-provider-timeout-ms 7000 --dsp-provider-mode live"));
+        assert!(unit.contains("--dsp-frame-count 480"));
+    }
+
+    #[test]
+    fn rejects_invalid_background_restore_dsp_provider_options() {
+        assert!(
+            BackgroundRestoreOptions {
+                dsp_provider_command: Some("loopwire-live-dsp-provider".to_string()),
+                dsp_provider_timeout_ms: Some(0),
+                dsp_provider_mode: Some("live".to_string()),
+                dsp_frame_count: None,
+            }
+            .validate_for_live_restore()
+            .expect_err("zero timeout should fail")
+            .contains("timeout")
+        );
+
+        assert!(
+            BackgroundRestoreOptions {
+                dsp_provider_command: Some("loopwire-live-dsp-provider".to_string()),
+                dsp_provider_timeout_ms: Some(5_000),
+                dsp_provider_mode: Some("file-backed".to_string()),
+                dsp_frame_count: None,
+            }
+            .validate_for_live_restore()
+            .expect_err("file-backed live restore should fail")
+            .contains("live provider mode")
+        );
+
+        assert!(
+            BackgroundRestoreOptions {
+                dsp_provider_command: None,
+                dsp_provider_timeout_ms: Some(5_000),
+                dsp_provider_mode: Some("live".to_string()),
+                dsp_frame_count: Some(480),
+            }
+            .validate_for_live_restore()
+            .expect_err("frame count without command should fail")
+            .contains("DSP frame count requires")
+        );
     }
 
     #[test]
@@ -1077,7 +1265,13 @@ mod tests {
         let binary = Path::new("/tmp/loopwire-test");
         let state = temp_dir.join("loopwire/state.json");
 
-        install_background_startup_entry(&path, binary, &state).expect("install background unit");
+        install_background_startup_entry(
+            &path,
+            binary,
+            &state,
+            &BackgroundRestoreOptions::default(),
+        )
+        .expect("install background unit");
         let installed = fs::read_to_string(&path).expect("read background unit");
         assert!(installed.contains("ExecStart=\"/tmp/loopwire-test\" --background"));
         assert!(installed.contains("--mode live"));

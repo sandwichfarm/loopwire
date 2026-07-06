@@ -201,13 +201,15 @@ clears those outputs so the provider cleanup path is tested before startup resto
 seeded source buffers and configuration-scoped rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
 provider. Persisted `selectedBackend: "dsp"` state is honored for startup restore, but it still requires an explicit
-`--dsp-provider-command` after the persisted backend is resolved. The desktop Host apply button does not yet accept a
-DSP provider command, so use Restore on boot provider settings for DSP restore or choose PipeWire, PulseAudio, or JACK
-for desktop live apply. `--mode live --backend dsp` or persisted DSP live restore requires `--dsp-provider-mode live`
-and a provider `capabilities` result with `supportsLiveGraph:true` plus `read-source`, `write-output`,
-`verify-output`, and `clear-output` in its `operations` list; the bundled file-backed provider declares
-`supportsLiveGraph:false` and is rejected for live restore. Use live mode only with a real provider that captures from
-and writes to the host audio graph.
+`--dsp-provider-command` after the persisted backend is resolved. The desktop settings panel can save a DSP provider
+command, timeout, frame count, and provider mode for Restore on boot; when DSP Provider is selected, enabling restore
+writes those flags into the user-scoped systemd service. The desktop Host apply button still does not run a DSP
+provider, so choose PipeWire, PulseAudio, or JACK for session-local desktop live apply. `--mode live --backend dsp` or
+persisted DSP live restore requires `--dsp-provider-mode live` and a provider `capabilities` result with
+`supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and `clear-output` in its `operations`
+list; the provider `capabilities.operations` field is the `operations` list checked by restore preflight. The bundled
+file-backed provider declares `supportsLiveGraph:false` and is rejected for live restore. Use live
+mode only with a real provider that captures from and writes to the host audio graph.
 
 Seed every source your configuration routes before running execute-mode preflight:
 

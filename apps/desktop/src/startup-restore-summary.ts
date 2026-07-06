@@ -6,6 +6,8 @@ export interface StartupRestoreSummaryInput {
   readonly configuration: Pick<LoopwireConfiguration, "name">;
   readonly selectedBackendName: string;
   readonly selectedBackendAvailable: boolean;
+  readonly requiresProviderSettings?: boolean;
+  readonly providerSettingsReady?: boolean;
   readonly enabled: boolean;
   readonly available: boolean;
 }
@@ -41,6 +43,16 @@ export function describeStartupRestoreSummary(input: StartupRestoreSummaryInput)
       tone: "blocked",
       title: `${backendName} is not detected`,
       message: `${configurationName} is still saved, but Loopwire will not enable boot restore until ${backendName} is detected again or you choose an available backend.`
+    };
+  }
+
+  if (input.requiresProviderSettings && !input.providerSettingsReady) {
+    return {
+      tone: "blocked",
+      title: `${backendName} settings needed`,
+      message:
+        `${configurationName} is still saved, but Restore on boot needs a live DSP provider command before ` +
+        "Loopwire can enable background restore."
     };
   }
 

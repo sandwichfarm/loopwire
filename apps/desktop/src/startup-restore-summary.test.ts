@@ -85,4 +85,24 @@ describe("describeStartupRestoreSummary", () => {
         "Podcast mix is still saved, but Loopwire will not enable boot restore until JACK is detected again or you choose an available backend."
     });
   });
+
+  it("blocks DSP restore until provider settings are ready", () => {
+    expect(
+      describeStartupRestoreSummary({
+        configuration,
+        selectedBackendName: "DSP Provider",
+        selectedBackendAvailable: true,
+        requiresProviderSettings: true,
+        providerSettingsReady: false,
+        enabled: false,
+        available: true
+      })
+    ).toEqual({
+      tone: "blocked",
+      title: "DSP Provider settings needed",
+      message:
+        "Podcast mix is still saved, but Restore on boot needs a live DSP provider command before " +
+        "Loopwire can enable background restore."
+    });
+  });
 });

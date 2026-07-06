@@ -125,8 +125,10 @@
     readonly mutedCount: number;
   };
   type BackendSelectionOrigin = "manual" | "auto";
+  type DspProviderMode = "file-backed" | "live";
   const storageKey = "loopwire.state.v1";
   const chromeStorageKey = "loopwire.chrome.v1";
+  const dspRestoreStorageKey = "loopwire.dsp-restore.v1";
   const routingBoardTop = 150;
   const routingBoardRowGap = 136;
   const routingBoardBottom = 80;
@@ -265,6 +267,7 @@
   let configurationSwitchToken = 0;
   let backendSelectionBusy = false;
   let backendSelectionToken = 0;
+  let detectedBackendCandidates: readonly BackendCandidate[] = fallbackBackendCandidates;
   let backendCandidates: readonly BackendCandidate[] = fallbackBackendCandidates;
   let backendCapabilityReports: readonly RouteControlBackendCapability[] = [];
   let backendDetectionNote = "Browser preview uses packaged backend candidates.";
@@ -294,14 +297,28 @@
   let backgroundStartupPath = "";
   let backgroundStartupBinary = "";
   let backgroundStartupNote = "Desktop shell can check user background restore status.";
+  let dspProviderCommand = "";
+  let dspProviderMode: DspProviderMode = "live";
+  let dspProviderTimeoutMs = "5000";
+  let dspFrameCount = "480";
   let transferText = "";
   let transferNote = "Export the active configuration or paste a Loopwire configuration JSON payload.";
 
   onMount(() => {
     restoreChromePreference();
+    restoreDspProviderSettings();
     void bootApplication();
   });
 
+  $: dspProviderCommandConfigured = dspProviderCommand.trim().length > 0;
+  $: dspProviderTimeoutValid = positiveIntegerText(dspProviderTimeoutMs);
+  $: dspFrameCountValid = dspFrameCount.trim() === "" || positiveIntegerText(dspFrameCount);
+  $: dspRestoreProviderReady =
+    dspProviderCommandConfigured &&
+    dspProviderMode === "live" &&
+    dspProviderTimeoutValid &&
+    dspFrameCountValid;
+  $: backendCandidates = withDspProviderCandidate(detectedBackendCandidates, dspRestoreProviderReady);
   $: activeConfiguration = getActiveConfiguration(state);
   $: monitorVisibilityGroups = groupMonitorsByVisibility(state, activeConfiguration);
   $: visibleMonitors = monitorVisibilityGroups.visible;
@@ -311,12 +328,15 @@
   $: selectedBackend = state.selectedBackend ?? "";
   $: selectedBackendName = state.selectedBackend ? displayBackendName(state.selectedBackend) : "None selected";
   $: selectedBackendAvailableForRestore = state.selectedBackend
-    ? backendCandidates.some((candidate) => candidate.kind === state.selectedBackend && candidate.availability === "available")
+    ? state.selectedBackend === "dsp" ||
+      backendCandidates.some((candidate) => candidate.kind === state.selectedBackend && candidate.availability === "available")
     : false;
   $: startupRestoreSummary = describeStartupRestoreSummary({
     configuration: activeConfiguration,
     selectedBackendName,
     selectedBackendAvailable: selectedBackendAvailableForRestore,
+    requiresProviderSettings: state.selectedBackend === "dsp",
+    providerSettingsReady: dspRestoreProviderReady,
     enabled: backgroundStartupEnabled,
     available: backgroundStartupAvailable
   });
@@ -353,6 +373,7 @@
   $: backgroundStartupActionDisabled =
     backgroundStartupBusy ||
     !desktopRuntimeAvailable ||
+    (!backgroundStartupEnabled && state.selectedBackend === "dsp" && !dspRestoreProviderReady) ||
     ((!backgroundStartupAvailable || !selectedBackendAvailableForRestore) && !backgroundStartupEnabled);
   $: sourcePickerCandidates = detectedSourceCandidates.length > 0 ? detectedSourceCandidates : staticSourceCandidates;
   $: outputPickerCandidates = nativeBackendUsesHostTargets(state.selectedBackend)
@@ -378,6 +399,72 @@
   function restoreChromePreference(): void {
     chromeMode = parseChromeMode(localStorage.getItem(chromeStorageKey));
     void applyWindowChrome(chromeMode, { quiet: true });
+  }
+
+  function restoreDspProviderSettings(): void {
+    const raw = localStorage.getItem(dspRestoreStorageKey);
+
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      if (!parsed || typeof parsed !== "object") {
+        return;
+      }
+
+      const settings = parsed as {
+        readonly command?: unknown;
+        readonly mode?: unknown;
+        readonly timeoutMs?: unknown;
+        readonly frameCount?: unknown;
+      };
+
+      dspProviderCommand = typeof settings.command === "string" ? settings.command : "";
+      dspProviderMode = settings.mode === "file-backed" ? "file-backed" : "live";
+      dspProviderTimeoutMs = positiveIntegerText(String(settings.timeoutMs ?? ""))
+        ? String(settings.timeoutMs)
+        : "5000";
+      dspFrameCount = settings.frameCount === "" || positiveIntegerText(String(settings.frameCount ?? ""))
+        ? String(settings.frameCount ?? "480")
+        : "480";
+    } catch {
+      localStorage.removeItem(dspRestoreStorageKey);
+    }
+  }
+
+  function persistDspProviderSettings(): void {
+    localStorage.setItem(
+      dspRestoreStorageKey,
+      JSON.stringify({
+        command: dspProviderCommand,
+        mode: dspProviderMode,
+        timeoutMs: dspProviderTimeoutMs,
+        frameCount: dspFrameCount
+      })
+    );
+  }
+
+  function setDspProviderCommand(value: string): void {
+    dspProviderCommand = value;
+    persistDspProviderSettings();
+  }
+
+  function setDspProviderMode(value: DspProviderMode): void {
+    dspProviderMode = value;
+    persistDspProviderSettings();
+  }
+
+  function setDspProviderTimeout(value: string): void {
+    dspProviderTimeoutMs = value;
+    persistDspProviderSettings();
+  }
+
+  function setDspFrameCount(value: string): void {
+    dspFrameCount = value;
+    persistDspProviderSettings();
   }
 
   function parseChromeMode(value: string | null): ChromeMode {
@@ -485,6 +572,7 @@
       backgroundStartupPath = "~/.config/systemd/user/loopwire.service";
       backgroundStartupBinary = "";
       backgroundStartupNote = "Run the desktop shell to manage user-scoped background restore.";
+      detectedBackendCandidates = fallbackBackendCandidates;
       return;
     }
 
@@ -494,7 +582,7 @@
 
   async function refreshBackendDetection(): Promise<void> {
     if (!hasTauriRuntime()) {
-      backendCandidates = fallbackBackendCandidates;
+      detectedBackendCandidates = fallbackBackendCandidates;
       backendCapabilityReports = [];
       backendDetectionNote = "Browser preview uses packaged backend candidates; run the desktop shell for host detection.";
       return;
@@ -504,12 +592,12 @@
 
     try {
       const report = await detectAudioBackends(createTauriCommandRunner(), new Date(), "linux");
-      backendCandidates = report.candidates;
+      detectedBackendCandidates = report.candidates;
       backendCapabilityReports = report.reports;
       backendDetectionNote = describeBackendDetection(report);
-      await selectOnlyAvailableBackend(report.candidates);
+      await selectOnlyAvailableBackend(withDspProviderCandidate(report.candidates, dspRestoreProviderReady));
     } catch (error) {
-      backendCandidates = fallbackBackendCandidates;
+      detectedBackendCandidates = fallbackBackendCandidates;
       backendCapabilityReports = [];
       backendDetectionNote = error instanceof Error ? `Backend detection failed: ${error.message}` : "Backend detection failed.";
     }
@@ -608,7 +696,10 @@
     backgroundStartupBusy = true;
 
     try {
-      const raw = await invoke<string>("manage_startup", { action });
+      const raw = await invoke<string>("manage_startup", {
+        action,
+        ...backgroundStartupInvokeOptions(action)
+      });
       const status = parseStartupStatus(raw);
       backgroundStartupEnabled = status.enabled;
       backgroundStartupAvailable = status.available;
@@ -625,6 +716,23 @@
     } finally {
       backgroundStartupBusy = false;
     }
+  }
+
+  function backgroundStartupInvokeOptions(
+    action: "background_status" | "background_install" | "background_uninstall"
+  ): Record<string, string | number> {
+    if (action !== "background_install" || state.selectedBackend !== "dsp" || !dspProviderCommandConfigured) {
+      return {};
+    }
+
+    return {
+      dspProviderCommand: dspProviderCommand.trim(),
+      dspProviderMode,
+      dspProviderTimeoutMs: positiveIntegerNumber(dspProviderTimeoutMs, 5000),
+      ...(dspFrameCount.trim()
+        ? { dspFrameCount: positiveIntegerNumber(dspFrameCount, 480) }
+        : {})
+    };
   }
 
   async function selectOnlyAvailableBackend(candidates: readonly BackendCandidate[]): Promise<void> {
@@ -1741,6 +1849,32 @@
     return backendCandidates.find((candidate) => candidate.kind === kind)?.displayName ?? fallbackLabels[kind];
   }
 
+  function withDspProviderCandidate(
+    candidates: readonly BackendCandidate[],
+    providerReady: boolean
+  ): readonly BackendCandidate[] {
+    const withoutDsp = candidates.filter((candidate) => candidate.kind !== "dsp");
+    const dspCandidate: BackendCandidate = {
+      kind: "dsp",
+      displayName: "DSP Provider",
+      availability: providerReady ? "available" : "unavailable",
+      priority: 35,
+      ...(providerReady
+        ? {}
+        : { reason: "Configure a live DSP provider command before selecting DSP restore." })
+    };
+
+    return [...withoutDsp, dspCandidate].sort((left, right) => left.priority - right.priority);
+  }
+
+  function positiveIntegerText(value: string): boolean {
+    return /^[1-9][0-9]*$/.test(value.trim());
+  }
+
+  function positiveIntegerNumber(value: string, fallback: number): number {
+    return positiveIntegerText(value) ? Number.parseInt(value.trim(), 10) : fallback;
+  }
+
   function backendCapabilityFor(kind: AudioBackendKind | undefined): RouteControlBackendCapability | undefined {
     return backendCapabilityReports.find((report) => report.kind === kind);
   }
@@ -1778,6 +1912,22 @@
     }
 
     return "off";
+  }
+
+  function dspProviderSettingsMessage(): string {
+    if (!dspProviderCommandConfigured) {
+      return "DSP Provider appears after a live provider command is saved.";
+    }
+
+    if (dspProviderMode !== "live") {
+      return "File smoke providers stay blocked for live Restore on boot.";
+    }
+
+    if (!dspProviderTimeoutValid || !dspFrameCountValid) {
+      return "Timeout and frame count must be positive numbers.";
+    }
+
+    return "DSP Provider can be selected for provider-backed Restore on boot.";
   }
 
   function monitorTargetKnown(deviceName: string): boolean {
@@ -2060,6 +2210,62 @@
                 {hostApplyMode === "live" ? "Return to preview" : "Arm live apply"}
               </button>
               <small>{liveApplyPreflight.message}</small>
+            </article>
+
+            <article class="settings-card provider-card" data-mode={dspRestoreProviderReady ? "ready" : "setup"}>
+              <div>
+                <span>DSP provider</span>
+                <strong>{dspRestoreProviderReady ? "Live restore ready" : "Restore setup"}</strong>
+              </div>
+              <label>
+                <span>Command</span>
+                <input
+                  value={dspProviderCommand}
+                  placeholder="loopwire-live-dsp-provider"
+                  on:input={(event) => setDspProviderCommand(event.currentTarget.value)}
+                />
+              </label>
+              <div class="settings-inline-fields">
+                <label>
+                  <span>Mode</span>
+                  <select
+                    value={dspProviderMode}
+                    aria-label="DSP provider trust mode"
+                    on:change={(event) => setDspProviderMode(event.currentTarget.value as DspProviderMode)}
+                  >
+                    <option value="live">Live</option>
+                    <option value="file-backed">File smoke</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Timeout</span>
+                  <input
+                    inputmode="numeric"
+                    value={dspProviderTimeoutMs}
+                    aria-invalid={!dspProviderTimeoutValid}
+                    on:input={(event) => setDspProviderTimeout(event.currentTarget.value)}
+                  />
+                </label>
+                <label>
+                  <span>Frames</span>
+                  <input
+                    inputmode="numeric"
+                    value={dspFrameCount}
+                    aria-invalid={!dspFrameCountValid}
+                    on:input={(event) => setDspFrameCount(event.currentTarget.value)}
+                  />
+                </label>
+              </div>
+              <small>{dspProviderSettingsMessage()}</small>
+              {#if backgroundStartupEnabled && state.selectedBackend === "dsp"}
+                <button
+                  type="button"
+                  disabled={backgroundStartupBusy || !dspRestoreProviderReady}
+                  on:click={() => void runBackgroundStartupAction("background_install")}
+                >
+                  Update restore
+                </button>
+              {/if}
             </article>
 
             <article class="settings-card" data-mode={chromeModeSummary.tone}>
@@ -3025,6 +3231,26 @@
     color: #101113;
     background: #f7b74a;
     border-color: #f7b74a;
+  }
+
+  .settings-card.provider-card {
+    grid-column: span 2;
+  }
+
+  .settings-inline-fields {
+    display: grid;
+    grid-template-columns: minmax(110px, 1fr) repeat(2, minmax(84px, 0.7fr));
+    gap: 8px;
+  }
+
+  .settings-inline-fields label {
+    min-width: 0;
+  }
+
+  .settings-inline-fields input,
+  .settings-inline-fields select {
+    min-width: 0;
+    width: 100%;
   }
 
   .settings-card .segmented-control {
@@ -4040,6 +4266,14 @@
     }
 
     .settings-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .settings-card.provider-card {
+      grid-column: auto;
+    }
+
+    .settings-inline-fields {
       grid-template-columns: 1fr;
     }
 

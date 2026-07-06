@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T03:44:00+02:00"
-last_activity: 2026-07-06 - Desktop DSP live apply now fails closed until provider settings exist
+last_updated: "2026-07-06T04:04:11+02:00"
+last_activity: 2026-07-06 - Desktop Restore on boot can render DSP provider settings
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,9 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - desktop live apply now blocks persisted DSP provider backends even when a graph-edge
-capability report is present, because the desktop shell does not yet expose DSP provider command settings. DSP provider
-restore remains the background restore path, with docs and release notes updated to keep that boundary explicit.
+Last activity: 2026-07-06 - desktop settings now store DSP provider command, mode, timeout, and frame-count fields for
+Restore on boot. When DSP Provider is selected, the Tauri background service renderer writes those settings into the
+user-scoped systemd unit with `--backend dsp --dsp-provider-*` flags and rejects file-backed/invalid live-restore
+options before writing the service. Desktop Host apply still blocks DSP provider live apply.
 
 ## Blockers / Concerns
 
@@ -43,13 +44,14 @@ restore remains the background restore path, with docs and release notes updated
   adapter now exist, DSP rollback now restores the rollback configuration through the core switch transaction contract,
   the DSP adapter now exposes an explicit core configuration runtime wrapper for startup/switch transactions, the
   audio-host DSP adapter now has a command-backed provider port helper, background restore can drive an explicit DSP
-  provider command, `pnpm dsp:plan`/`pnpm dsp:verify` can preflight that provider command, and desktop route-control UX
-  is driven by detected backend mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local
-  restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook and bundled
-  `loopwire-jack-ports` wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client
-  creation, native host graph-edge gain implementation, and desktop DSP provider command settings remain planned. DSP
-  live restore now requires the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and
-  live DSP restore now requires provider `capabilities` to declare `supportsLiveGraph:true`.
+  provider command, `pnpm dsp:plan`/`pnpm dsp:verify` can preflight that provider command, desktop settings can render
+  DSP provider flags into the Restore-on-boot systemd unit, and desktop route-control UX is driven by detected backend
+  mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local restore-contract smoke and
+  packaging proof. Native JACK now has an injected virtual-port provider hook and bundled `loopwire-jack-ports`
+  wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client creation, native host
+  graph-edge gain implementation, and desktop Host-apply DSP provider execution remain planned. DSP live restore now
+  requires the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now
+  requires provider `capabilities` to declare `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -61,9 +63,9 @@ restore remains the background restore path, with docs and release notes updated
 
 - Nix package metadata and final proof wiring are smoke-tested structurally, but non-skipped `nix build` proof still
   needs a Nix-enabled host or VM target.
-- Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, and published release proof
-  remain the major product gaps for a fully functional Loopback-class app. Desktop DSP provider settings are also
-  required before the GUI can arm session-local DSP live apply.
+- Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, desktop Host-apply DSP
+  provider execution, and published release proof remain the major product gaps for a fully functional Loopback-class
+  app.
 - Packaged background restore is now release-shaped through `loopwire --background`, but public release proof still
   requires signed published artifacts.
 - Public release proof is gated on an explicit versioned release decision, real signing key material, tag push, and VM
@@ -84,6 +86,18 @@ restore remains the background restore path, with docs and release notes updated
 
 ## Verification Log
 
+- 2026-07-06 Desktop DSP restore provider settings: desktop settings now persist DSP provider command, provider mode,
+  timeout, and frame count in local storage, expose DSP Provider as selectable once the settings describe a live
+  provider, and pass those settings to `manage_startup` when enabling Restore on boot. The Tauri service renderer now
+  writes `--backend dsp --dsp-provider-command ... --dsp-provider-timeout-ms ... --dsp-provider-mode live` plus
+  optional `--dsp-frame-count` into the user-scoped systemd unit, and rejects invalid/file-backed live restore options
+  before writing the file. Focused validation passed so far: `pnpm --filter @loopwire/desktop test --
+  startup-restore-summary`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:desktop-preview --
+  --screenshot-dir /tmp/loopwire-dsp-provider-settings-preview`, and `git diff --check`. Desktop preview wrote
+  desktop/mobile screenshots and reported no horizontal overflow. Full validation passed: `pnpm check`. No secret
+  write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - 2026-07-06 Desktop DSP live-apply boundary: `apps/desktop/src/live-apply-preflight.ts` now blocks persisted DSP
   provider backends even when a synthetic graph-edge capability report is present, because the desktop shell has no
   provider command setting or DSP runtime adapter path. `apps/desktop/src/route-control-semantics.ts` now describes DSP
