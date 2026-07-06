@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T02:15:09+02:00"
-last_activity: 2026-07-06 - Release status now selects artifact-bearing docs deployment runs before reuse
+last_updated: "2026-07-06T02:31:18+02:00"
+last_activity: 2026-07-06 - Release status now artifact-checks pinned docs deployment run IDs
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,12 +27,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - `pnpm release:status` now uses the same artifact-aware
-`pnpm release:select-docs-run` proof path as the final release handoff when no Deploy Docs run id is pinned. A
-commit-scoped Deploy Docs run must expose both `loopwire-docs` and `loopwire-docs-deployment` before status reuses that
-run id for workflow proof, missing-manifest recovery, or the embedded handoff. Artifact-incomplete runs are diagnosed
-but do not flow into docs proof fetch commands. Phase 12 remains gated on public GitHub Release install, Bunny
-deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-06 - `pnpm release:status --docs-deployment-run-id` now artifact-checks the pinned Deploy Docs
+run before using that id in missing-manifest recovery or the embedded final handoff. Explicit and auto-selected docs
+runs must expose both `loopwire-docs` and `loopwire-docs-deployment`; artifact-incomplete runs are diagnosed and left
+unresolved instead of being passed into final proof commands. Phase 12 remains gated on public GitHub Release install,
+Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Blockers / Concerns
 
@@ -86,6 +85,19 @@ deployment proof, final proof workflow success, and operator-run VM evidence.
 
 ## Verification Log
 
+- 2026-07-06 Pinned docs-run artifact proof: `pnpm release:status --docs-deployment-run-id` now verifies the pinned
+  Deploy Docs run exposes both `loopwire-docs` and `loopwire-docs-deployment` before reuse. If the pinned run lacks a
+  proof artifact, status reports `blocked: verified Deploy Docs proof artifacts`, leaves the recovery run id unresolved,
+  and avoids pinning the embedded handoff to that run. Live read-only probe against Deploy Docs run `28759926595`
+  blocked as expected because the run only exposes `loopwire-docs`. Focused validation passed: `bash -n
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`; `pnpm verify:scripts`;
+  `pnpm verify:docs`; `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`; live explicit
+  artifact probe with `pnpm release:status -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  e94b1fcea38f7db41017dd18d733e371861cb4b2 --docs-deployment-run-id 28759926595 --secret-list-file
+  scripts/fixtures/github-secret-list-final.tsv`; and `git diff --check`. Full validation passed: `pnpm check`. No
+  secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - 2026-07-06 Release-status docs-run selection proof: `pnpm release:status` now invokes the artifact-aware
   `scripts/select-docs-deployment-run.sh` path before auditing an unpinned Deploy Docs workflow run, and then verifies
   the selected run with `gh run view`. Missing deployment artifacts now print the visible artifact inventory and likely

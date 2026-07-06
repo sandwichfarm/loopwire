@@ -850,6 +850,10 @@ grep -F 'gh run view "$latest_docs_deployment_run_id"' scripts/audit-final-relea
   echo "verify-scripts: release status does not inspect the selected docs run" >&2
   exit 1
 }
+grep -F "verify_docs_deployment_run_artifacts" scripts/audit-final-release-state.sh >/dev/null || {
+  echo "verify-scripts: release status is missing explicit docs artifact verification" >&2
+  exit 1
+}
 release_status_fake_bin="$(mktemp -d)"
 release_status_fake_log="$(mktemp)"
 cat >"$release_status_fake_bin/gh" <<'EOF'
@@ -993,6 +997,20 @@ grep -F "ok: verified Deploy Docs artifact run selection" "$release_status_fake_
 }
 grep -F "selected Deploy Docs workflow run: 222" "$release_status_fake_log" >/dev/null || {
   echo "verify-scripts: release status did not select the expected docs run" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
+grep -F "ok: verified Deploy Docs proof artifacts" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not verify selected docs proof artifacts" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
+grep -F "Deploy Docs run 222 exposes required proof artifacts" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not report selected docs proof artifacts" >&2
   cat "$release_status_fake_log" >&2
   rm -rf "$release_status_fake_bin"
   rm -f "$release_status_fake_log"
@@ -5787,6 +5805,45 @@ if grep -F "env-access-key-that-must-not-print" "$release_status_missing_docs_ma
   echo "verify-scripts: release status artifact hint leaked the env-file Bunny access key" >&2
   exit 1
 fi
+release_status_pinned_missing_docs_artifacts_log="$tmp_dir/release-status-pinned-missing-docs-artifacts.log"
+if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+  LOOPWIRE_FAKE_GH_RUN_MODE=success \
+  LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment \
+  PATH="$fake_gh_dir:$PATH" \
+  bash scripts/audit-final-release-state.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --public-key "$release_status_public_key" \
+    --env-file "$release_status_env_file" \
+    --secret-list-file "$secret_list_all_final" \
+    --docs-deployment-run-id 123456 \
+    --docs-deployment-manifest "$tmp_dir/missing-docs-deployment-manifest.json" \
+    --docs-dist "$release_status_docs_dist" >"$release_status_pinned_missing_docs_artifacts_log" 2>&1; then
+  echo "verify-scripts: release status accepted an explicit docs run id without deployment proof artifact" >&2
+  exit 1
+fi
+grep -F "blocked: verified Deploy Docs proof artifacts" \
+  "$release_status_pinned_missing_docs_artifacts_log" >/dev/null || {
+    echo "verify-scripts: release status did not block an explicit artifact-incomplete docs run id" >&2
+    exit 1
+  }
+grep -F "missing workflow artifact: loopwire-docs-deployment" \
+  "$release_status_pinned_missing_docs_artifacts_log" >/dev/null || {
+    echo "verify-scripts: release status did not report the missing deployment artifact for explicit docs run id" >&2
+    exit 1
+  }
+if grep -F "pnpm release:fetch-docs-proof" "$release_status_pinned_missing_docs_artifacts_log" |
+  grep -F -- "--run-id 123456" >/dev/null; then
+    echo "verify-scripts: release status reused an explicit artifact-incomplete docs run id" >&2
+    exit 1
+fi
+grep -F "pnpm release:fetch-docs-proof" "$release_status_pinned_missing_docs_artifacts_log" |
+  grep -F -- "--run-id" |
+  grep -F -- "docs-deployment-run-id" >/dev/null || {
+    echo "verify-scripts: release status did not leave explicit artifact-incomplete docs run unresolved" >&2
+    exit 1
+  }
 release_status_log="$tmp_dir/release-status-blocked.log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \

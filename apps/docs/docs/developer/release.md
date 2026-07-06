@@ -315,7 +315,9 @@ manifest must be non-dry-run proof for the built docs dist; pass `--docs-deploym
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
 saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Deploy Docs run audited for final proof,
 `--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH plan, or `--skip-gh` when you
-only want local evidence checks. Use `--env-file` to let the embedded local handoff plan reuse the release private-key
+only want local evidence checks. Pinned Deploy Docs run ids still have to expose both `loopwire-docs` and
+`loopwire-docs-deployment`; if either artifact is missing, `release:status` leaves the run id unresolved in recovery
+commands instead of passing an artifact-incomplete run into final proof. Use `--env-file` to let the embedded local handoff plan reuse the release private-key
 path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. The embedded
 handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
 to copy release key paths into separate command flags. It also keeps `--env-file` on the rendered docs proof fetch

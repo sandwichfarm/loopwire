@@ -17,6 +17,7 @@ support_matrix="apps/docs/docs/guide/support-matrix.md"
 skip_gh="false"
 latest_docs_deployment_run_id=""
 docs_deployment_run_selection_failed="false"
+docs_deployment_artifact_verification_failed="false"
 
 usage() {
   cat <<'USAGE'
@@ -213,6 +214,11 @@ select_docs_deployment_run_id() {
 docs_deployment_run_id_hint() {
   local selected_run_id
 
+  if [ "$docs_deployment_artifact_verification_failed" = "true" ]; then
+    echo "<docs-deployment-run-id>"
+    return
+  fi
+
   if [ -n "$docs_deployment_run_id" ]; then
     echo "$docs_deployment_run_id"
     return
@@ -281,6 +287,48 @@ report_docs_deployment_artifact_hint() {
     echo "missing workflow artifact: loopwire-docs-deployment" >&2
     echo "likely cause: Deploy Docs skipped Bunny.net deployment because required Bunny secrets are absent." >&2
   fi
+}
+
+verify_docs_deployment_run_artifacts() {
+  local run_id="$1"
+  local artifacts
+  local missing=0
+
+  if [ "$skip_gh" = "true" ]; then
+    echo "skipped: live GitHub lookup disabled"
+    return 0
+  fi
+
+  [[ "$run_id" =~ ^[0-9]+$ ]] || {
+    echo "missing: no Deploy Docs run id available for artifact verification" >&2
+    return 1
+  }
+
+  if ! artifacts="$(gh api "repos/${repo}/actions/runs/${run_id}/artifacts" --jq '.artifacts[].name' 2>&1)"; then
+    echo "unable to inspect Deploy Docs artifacts for run ${run_id}: ${artifacts}" >&2
+    return 1
+  fi
+
+  if [ -z "$artifacts" ]; then
+    echo "Deploy Docs artifacts visible for run ${run_id}: none" >&2
+    return 1
+  fi
+
+  echo "Deploy Docs artifacts visible for run ${run_id}:"
+  printf '%s\n' "$artifacts" | indent
+
+  if ! printf '%s\n' "$artifacts" | grep -Fxq "loopwire-docs"; then
+    echo "missing workflow artifact: loopwire-docs" >&2
+    missing=1
+  fi
+  if ! printf '%s\n' "$artifacts" | grep -Fxq "loopwire-docs-deployment"; then
+    echo "missing workflow artifact: loopwire-docs-deployment" >&2
+    echo "likely cause: Deploy Docs skipped Bunny.net deployment because required Bunny secrets are absent." >&2
+    missing=1
+  fi
+
+  [ "$missing" -eq 0 ] || return 1
+  echo "Deploy Docs run ${run_id} exposes required proof artifacts"
 }
 
 check_docs_deployment_manifest() {
@@ -827,6 +875,31 @@ if [ -z "$docs_deployment_run_id" ]; then
   fi
 fi
 
+docs_artifact_run_id="$docs_deployment_run_id"
+if [ -z "$docs_artifact_run_id" ]; then
+  docs_artifact_run_id="$latest_docs_deployment_run_id"
+fi
+if [ -n "$docs_artifact_run_id" ]; then
+  echo "==> verified Deploy Docs proof artifacts"
+  if verify_docs_deployment_run_artifacts "$docs_artifact_run_id"; then
+    docs_deployment_artifact_verification_failed="false"
+    echo "ok: verified Deploy Docs proof artifacts"
+    echo
+  else
+    docs_deployment_artifact_verification_failed="true"
+    echo "blocked: verified Deploy Docs proof artifacts" >&2
+    echo >&2
+    failed=1
+  fi
+elif [ "$skip_gh" != "true" ]; then
+  echo "==> verified Deploy Docs proof artifacts"
+  echo "blocked: verified Deploy Docs proof artifacts" >&2
+  echo "missing: no artifact-bearing Deploy Docs run id selected" >&2
+  echo >&2
+  docs_deployment_artifact_verification_failed="true"
+  failed=1
+fi
+
 docs_workflow_label="commit-scoped Deploy Docs workflow run"
 docs_workflow_probe=(gh run list --repo "$repo" --workflow deploy-docs.yml --commit "$expected_git_head" --limit 1 \
   --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
@@ -877,7 +950,7 @@ fi
 if [ -n "$env_file" ]; then
   handoff_plan+=(--env-file "$env_file")
 fi
-if [ -n "$latest_docs_deployment_run_id" ]; then
+if [ -n "$latest_docs_deployment_run_id" ] && [ "$docs_deployment_artifact_verification_failed" != "true" ]; then
   handoff_plan+=(--docs-deployment-run-id "$latest_docs_deployment_run_id")
 fi
 run_gate \

@@ -5,6 +5,20 @@
 
 ## Evidence Passed
 
+- `pnpm release:status --docs-deployment-run-id` now verifies the pinned Deploy Docs run exposes both docs proof
+  artifacts before it reuses that run id. A pinned run that lacks `loopwire-docs-deployment` blocks with
+  `verified Deploy Docs proof artifacts`, leaves missing-manifest recovery unresolved, and does not pin the embedded
+  handoff to the artifact-incomplete run.
+- Live read-only proof against Deploy Docs run `28759926595` blocked as expected because the run exposes
+  `loopwire-docs` but not `loopwire-docs-deployment`; the recovery command did not reuse that run id.
+- Focused validation passed: `bash -n scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:release-readiness -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem --skip-gh --skip-tag
+  --skip-clean-git --allow-candidate-notes`, live explicit artifact probe with `pnpm release:status -- --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head e94b1fcea38f7db41017dd18d733e371861cb4b2
+  --docs-deployment-run-id 28759926595 --secret-list-file scripts/fixtures/github-secret-list-final.tsv`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - `pnpm release:status` now uses the same artifact-aware docs deployment run selector as the final release handoff
   before it trusts an unpinned Deploy Docs workflow run. The status audit verifies the selected run with `gh run view`,
   reuses that run id for missing-manifest recovery and the embedded handoff, and leaves artifact-incomplete runs

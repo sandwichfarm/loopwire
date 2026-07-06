@@ -275,6 +275,8 @@ These notes describe source-tree progress. They are not a public release announc
   proof dispatch, and final status instead of asking operators to manually replace a placeholder.
 - `pnpm release:status` now uses the same artifact-aware Deploy Docs run selector when no run id is pinned, so missing
   manifest recovery and the embedded handoff cannot use a workflow run that lacks the docs proof artifacts.
+- `pnpm release:status --docs-deployment-run-id` now verifies that the pinned Deploy Docs run exposes both docs proof
+  artifacts before reusing that id in missing-manifest recovery or the embedded final handoff.
 - `pnpm release:handoff` now rejects absolute or parent-traversal VM handoff output paths before rendering VM SSH plan
   and runbook commands.
 - VM evidence asset preparation now rejects unsafe custom `--release-dir` values before dry-run or execution, including
