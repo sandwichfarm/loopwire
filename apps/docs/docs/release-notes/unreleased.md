@@ -260,6 +260,9 @@ These notes describe source-tree progress. They are not a public release announc
   rehearsals that intentionally use a synthetic SHA must opt into `--allow-head-mismatch`.
 - `pnpm release:agent-ready --help` now describes hosted checks as commit-scoped, matching the enforced
   `--require-hosted-checks` behavior.
+- `pnpm release:agent-ready -- --require-docs-deployment-artifacts` can now require the commit-scoped Deploy Docs run
+  to expose both docs proof artifacts (`loopwire-docs` plus `loopwire-docs-deployment`) after Bunny deployment secrets
+  are configured.
 - New `pnpm release:fetch-docs-proof` downloads the Deploy Docs `loopwire-docs` and
   `loopwire-docs-deployment` artifacts, then verifies the non-dry-run manifest against the expected commit before
   `pnpm release:status` consumes it.

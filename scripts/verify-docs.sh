@@ -594,6 +594,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'reintroduces `--re
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "shared release tag-ref verifier"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm vm:prepare-release-evidence` wiring disappears'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "agent-ready release checks no longer use"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-docs-deployment-artifacts"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "both docs proof artifacts"
 assert_contains "apps/docs/docs/release-notes/0.1.0.md" 'These notes describe the `v0.1.0` release contents'
 assert_contains \
   "apps/docs/docs/release-notes/0.1.0.md" \
@@ -632,6 +634,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "operator-only secr
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:agent-ready`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "repo-side release readiness"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "requires a clean checkout by default"
+assert_contains "apps/docs/docs/developer/release.md" "--require-docs-deployment-artifacts"
+assert_contains "apps/docs/docs/developer/release.md" "Do not use it before Bunny deployment proof exists."
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--allow-dirty`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current checkout `HEAD` to equal `--git-head`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--allow-head-mismatch`'

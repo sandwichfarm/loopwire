@@ -208,6 +208,9 @@ matches the pushed commit. Use `--allow-dirty` and `--allow-head-mismatch` only 
 committing. Use `--skip-local-gates` only for fast script-contract rehearsal. Add `--require-hosted-checks` when the
 checkout has already been pushed and you need the handoff tied to successful hosted CI and Deploy Docs runs filtered by
 the exact `--git-head`; it is optional because it requires GitHub API access.
+After operator-configured Bunny secrets and a Deploy Docs run, add `--require-docs-deployment-artifacts` to require the
+same artifact-bearing docs proof (`loopwire-docs` plus `loopwire-docs-deployment`) before treating the handoff as
+post-deploy ready. Do not use it before Bunny deployment proof exists.
 The strict final proof still requires published GitHub Release assets.
 It also still requires Bunny deployment proof, a successful final-proof workflow, and VM evidence from
 operator-controlled hosts.

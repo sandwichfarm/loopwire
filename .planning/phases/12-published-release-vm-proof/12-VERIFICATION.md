@@ -2852,6 +2852,15 @@
   arming.
 - Codebase-memory MCP is currently available for `home-sandwich-Develop-loopwire`; `index_status` reports the graph is
   ready.
+- `pnpm release:agent-ready` now has an optional post-Bunny deployment artifact gate. The default handoff path still
+  verifies repo-side readiness without secrets, while `--require-docs-deployment-artifacts` blocks until the
+  commit-scoped Deploy Docs run exposes both `loopwire-docs` and `loopwire-docs-deployment`.
+- Focused validation passed for the artifact gate: `bash -n scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`
+  passed. Live read-only expected-failure validation against commit `5d2ac35055270dc68d4e9263462e346f6d07bbb7`
+  confirmed CI run `28760367861` and Deploy Docs run `28760367851` are successful, but the Deploy Docs run is not
+  artifact-bearing because `loopwire-docs-deployment` is absent. This remains an operator-owned Bunny secret/deploy
+  gate, not an agent-side source change.
 
 ## Status
 

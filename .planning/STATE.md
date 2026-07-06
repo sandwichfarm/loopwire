@@ -3358,3 +3358,16 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
   Rendered `apps/docs/docs/.vitepress/dist/index.html` contains the descriptive `product-screenshot.svg` alt text and
   no `aria-hidden` on the hero figure. No public release, Bunny deployment, secret write, VM launch, tag push, host
   audio mutation, or support-matrix promotion was performed.
+- 2026-07-06 agent-ready docs deployment artifact gate: `scripts/verify-agent-release-ready.sh` now accepts
+  `--require-docs-deployment-artifacts`, which reuses `scripts/select-docs-deployment-run.sh` to require a
+  commit-scoped Deploy Docs run exposing both `loopwire-docs` and `loopwire-docs-deployment`. The gate is optional so
+  pre-secret agent handoff can still verify hosted CI and docs builds before operator-owned Bunny deployment.
+- 2026-07-06 agent-ready docs deployment artifact validation: `bash -n scripts/verify-agent-release-ready.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`
+  passed. Live read-only `pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head
+  5d2ac35055270dc68d4e9263462e346f6d07bbb7 --allow-dirty --require-hosted-checks
+  --require-docs-deployment-artifacts --skip-local-gates` failed at the new gate as expected: CI run `28760367861` and
+  Deploy Docs run `28760367851` were successful for commit `5d2ac35055270dc68d4e9263462e346f6d07bbb7`, but the docs
+  run exposed only `loopwire-docs`, not `loopwire-docs-deployment`, and reported the likely cause as missing Bunny
+  secrets. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
+  support-matrix promotion was performed.

@@ -299,6 +299,15 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--require-hosted-checks"
   echo "verify-scripts: agent-ready release help is missing hosted-check support" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--require-docs-deployment-artifacts" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing docs deployment artifact support" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" |
+  grep -F -- "after Deploy Docs has run with Bunny secrets configured" >/dev/null || {
+    echo "verify-scripts: agent-ready release help is missing post-Bunny sequencing guidance" >&2
+    exit 1
+  }
 printf '%s\n' "$agent_release_ready_help" | grep -F -- "--allow-dirty" >/dev/null || {
   echo "verify-scripts: agent-ready release help is missing allow-dirty rehearsal support" >&2
   exit 1
@@ -594,6 +603,11 @@ printf '%s\n' "$agent_release_ready_plan" |
     echo "verify-scripts: agent-ready release smoke did not report skipped hosted checks" >&2
     exit 1
   }
+printf '%s\n' "$agent_release_ready_plan" |
+  grep -F "skipped: docs deployment artifact check (--require-docs-deployment-artifacts not set)" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not report skipped docs deployment artifact check" >&2
+    exit 1
+  }
 agent_ready_dirty_probe=".verify-agent-release-ready-dirty-probe"
 agent_ready_current_head="$(git rev-parse HEAD)"
 rm -f "$agent_ready_dirty_probe"
@@ -626,6 +640,54 @@ agent_ready_fake_bin="$(mktemp -d)"
 cat >"$agent_ready_fake_bin/gh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+
+if [ "${1:-}" = "api" ]; then
+  api_path="${2:?missing api path}"
+  jq_expr=""
+  shift 2
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --jq)
+        jq_expr="${2:?missing --jq value}"
+        shift 2
+        ;;
+      *)
+        echo "unexpected fake gh api argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  [ "$api_path" = "repos/sandwichfarm/loopwire/actions/runs/222/artifacts" ] || {
+    echo "unexpected artifact API path: $api_path" >&2
+    exit 1
+  }
+  [ "$jq_expr" = ".artifacts[].name" ] || {
+    echo "unexpected artifact jq expression: $jq_expr" >&2
+    exit 1
+  }
+
+  case "${LOOPWIRE_FAKE_GH_ARTIFACT_MODE:-ok}" in
+    ok)
+      printf '%s\n' loopwire-docs loopwire-docs-deployment
+      ;;
+    missing-deployment)
+      printf '%s\n' loopwire-docs
+      ;;
+    empty)
+      ;;
+    fail)
+      echo "artifact API denied" >&2
+      exit 42
+      ;;
+    *)
+      echo "unexpected fake artifact mode: ${LOOPWIRE_FAKE_GH_ARTIFACT_MODE}" >&2
+      exit 1
+      ;;
+  esac
+  exit 0
+fi
 
 workflow=""
 commit=""
@@ -698,6 +760,60 @@ printf '%s\n' "$agent_release_ready_hosted_plan" |
     echo "verify-scripts: agent-ready release hosted docs proof is missing run evidence" >&2
     exit 1
   }
+printf '%s\n' "$agent_release_ready_hosted_plan" |
+  grep -F "skipped: docs deployment artifact check (--require-docs-deployment-artifacts not set)" >/dev/null || {
+    echo "verify-scripts: agent-ready release hosted smoke did not report skipped docs deployment artifacts" >&2
+    exit 1
+  }
+agent_release_ready_artifact_plan="$(
+  PATH="$agent_ready_fake_bin:$PATH" bash scripts/verify-agent-release-ready.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-dirty \
+    --allow-head-mismatch \
+    --require-hosted-checks \
+    --require-docs-deployment-artifacts \
+    --skip-local-gates
+)"
+printf '%s\n' "$agent_release_ready_artifact_plan" |
+  grep -F "ok: artifact-bearing hosted Deploy Docs run" >/dev/null || {
+    echo "verify-scripts: agent-ready release did not verify artifact-bearing docs run" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_artifact_plan" |
+  grep -F "selected Deploy Docs workflow run 222" >/dev/null || {
+    echo "verify-scripts: agent-ready release artifact proof is missing selected run evidence" >&2
+    exit 1
+  }
+agent_ready_missing_artifact_log="$(mktemp)"
+if LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment PATH="$agent_ready_fake_bin:$PATH" \
+  bash scripts/verify-agent-release-ready.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-dirty \
+    --allow-head-mismatch \
+    --require-hosted-checks \
+    --require-docs-deployment-artifacts \
+    --skip-local-gates >"$agent_ready_missing_artifact_log" 2>&1; then
+  rm -f "$agent_ready_missing_artifact_log"
+  echo "verify-scripts: agent-ready release accepted a Deploy Docs run without deployment artifacts" >&2
+  exit 1
+fi
+grep -F "blocked: artifact-bearing hosted Deploy Docs run" "$agent_ready_missing_artifact_log" >/dev/null || {
+  cat "$agent_ready_missing_artifact_log" >&2
+  rm -f "$agent_ready_missing_artifact_log"
+  echo "verify-scripts: agent-ready release missing-artifact failure did not name the blocked gate" >&2
+  exit 1
+}
+grep -F "missing workflow artifact: loopwire-docs-deployment" "$agent_ready_missing_artifact_log" >/dev/null || {
+  cat "$agent_ready_missing_artifact_log" >&2
+  rm -f "$agent_ready_missing_artifact_log"
+  echo "verify-scripts: agent-ready release missing-artifact failure did not name the missing deployment artifact" >&2
+  exit 1
+}
+rm -f "$agent_ready_missing_artifact_log"
 rm -rf "$agent_ready_fake_bin"
 if printf '%s\n' "$agent_release_ready_plan" |
   grep -F "allowed: release notes still carry candidate wording" >/dev/null; then

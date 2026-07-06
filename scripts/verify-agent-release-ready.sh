@@ -7,6 +7,7 @@ git_head=""
 public_key="packaging/release-signing-public.pem"
 skip_local_gates="false"
 require_hosted_checks="false"
+require_docs_deployment_artifacts="false"
 allow_dirty="false"
 allow_head_mismatch="false"
 dsp_configuration="scripts/fixtures/dsp-provider-configuration.json"
@@ -28,6 +29,8 @@ Options:
   --skip-local-gates     Only verify offline release readiness and handoff rendering
   --require-hosted-checks
                          Require commit-scoped CI and Deploy Docs workflow runs to be successful for --git-head
+  --require-docs-deployment-artifacts
+                         Require a successful Deploy Docs run for --git-head to expose docs proof artifacts
   --allow-dirty          Permit a dirty checkout for local rehearsal; strict handoff checks require a clean tree
   --allow-head-mismatch  Permit current checkout HEAD to differ from --git-head for offline fixture rehearsal
 
@@ -36,6 +39,8 @@ mutate host audio. Passing means the repository-side automation is ready for the
 By default it requires a clean checkout at exactly --git-head so the rendered handoff matches the pushed commit.
 Strict final proof still requires published artifacts, Bunny deployment proof, final proof workflow success, and VM
 evidence captured from operator-controlled hosts. Hosted checks are optional because they require GitHub API access.
+Use --require-docs-deployment-artifacts after Deploy Docs has run with Bunny secrets configured; before that operator
+step, a successful Deploy Docs workflow may only expose the build artifact.
 USAGE
 }
 
@@ -249,6 +254,10 @@ while [ "$#" -gt 0 ]; do
       require_hosted_checks="true"
       shift
       ;;
+    --require-docs-deployment-artifacts)
+      require_docs_deployment_artifacts="true"
+      shift
+      ;;
     --allow-dirty)
       allow_dirty="true"
       shift
@@ -320,6 +329,15 @@ if [ "$require_hosted_checks" = "true" ]; then
   run_hosted_workflow_probe "commit-scoped hosted Deploy Docs workflow run" deploy-docs.yml
 else
   echo "skipped: hosted workflow checks (--require-hosted-checks not set)"
+  echo
+fi
+
+if [ "$require_docs_deployment_artifacts" = "true" ]; then
+  run_gate \
+    "artifact-bearing hosted Deploy Docs run" \
+    bash scripts/select-docs-deployment-run.sh --repo "$repo" --git-head "$git_head"
+else
+  echo "skipped: docs deployment artifact check (--require-docs-deployment-artifacts not set)"
   echo
 fi
 
