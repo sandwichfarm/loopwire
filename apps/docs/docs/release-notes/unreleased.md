@@ -490,6 +490,9 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm release:handoff` now prints the explicit VM evidence `gh release upload --clobber` command and a post-upload
   `pnpm release:status` audit before Final Release Proof dispatch, so evidence packaging cannot be mistaken for
   published release-asset proof.
+- `pnpm release:handoff --vm-evidence-asset NAME` now passes that same selected name into
+  `pnpm vm:prepare-release-evidence -- --asset-name NAME`, so VM evidence preparation, upload, final proof, and status
+  audit cannot diverge on archive names.
 - `pnpm release:status` now resolves the GitHub tag ref, including annotated tags, and rejects releases whose tag does
   not point at the expected `--git-head` commit.
 - Final release proof now runs the same live GitHub tag-ref check before published-release downloads, so the manual

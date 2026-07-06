@@ -544,6 +544,11 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidenc
   echo "verify-scripts: release handoff plan is missing signed VM evidence preparation" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--asset-name loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing selected VM evidence asset name in preparation" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" |
   grep -F "gh release upload v0.1.0 dist/release/loopwire-vm-evidence-v0.1.0-operator.tar.gz" |
   grep -F "dist/release/SHA256SUMS" |
@@ -624,6 +629,11 @@ printf '%s\n' "$release_handoff_placeholder_plan" |
 printf '%s\n' "$release_handoff_placeholder_plan" |
   grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz --vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz --require-hosted-checks" >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan is missing commit-scoped hosted agent-ready command" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--asset-name loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing default VM evidence asset name in preparation" >&2
     exit 1
   }
 release_handoff_docs_run_reminder="operator-deferred: run the docs_deployment_run_id selection command after "

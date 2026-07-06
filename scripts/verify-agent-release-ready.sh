@@ -351,6 +351,7 @@ assert_handoff_contains "$handoff" "-f release_evidence_asset=${release_evidence
 assert_handoff_contains "$handoff" "-f vm_evidence_asset=${vm_evidence_asset}"
 assert_handoff_contains "$handoff" "--release-evidence-asset ${release_evidence_asset}"
 assert_handoff_contains "$handoff" "--vm-evidence-asset ${vm_evidence_asset}"
+assert_handoff_contains "$handoff" "--asset-name ${vm_evidence_asset}"
 echo "ok: final release handoff rendering"
 printf '%s\n' "$handoff" | indent
 echo

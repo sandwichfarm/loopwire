@@ -246,9 +246,10 @@ names, the required secret check, strict release readiness command, reviewed ann
 Release workflow dispatch, Deploy Docs workflow dispatch, docs deployment run selection, docs deployment proof
 download, a post-deploy `pnpm release:agent-ready -- --require-docs-deployment-artifacts --skip-local-gates` check with
 the same evidence archive names, all-target VM host setup and doctor preflights, VM SSH plan/runbook/evidence commands,
-VM evidence asset preparation command, explicit `gh release upload --clobber` for the VM evidence archive plus refreshed
-`SHA256SUMS` files, a post-upload `pnpm release:status` audit, final proof workflow dispatch, and local final-proof
-dry-run, followed by the final `pnpm release:status` audit of the published release state. The post-upload status audit
+VM evidence asset preparation command with the selected `--asset-name`, explicit `gh release upload --clobber` for the
+VM evidence archive plus refreshed `SHA256SUMS` files, a post-upload `pnpm release:status` audit, final proof workflow
+dispatch, and local final-proof dry-run, followed by the final `pnpm release:status` audit of the published release
+state. The post-upload status audit
 should prove the release and VM evidence archive assets are visible, then remain blocked until Final Release Proof
 runs. After the
 final-proof dispatch command, it prints the expected GitHub Actions run name that `release:status` will require:
@@ -597,7 +598,9 @@ The helper reruns the packager, regenerates and re-signs `SHA256SUMS`, verifies
 `gh release upload --clobber` command for the archive plus refreshed manifest files. Final proof can then prove the VM
 evidence archive is a signed release asset before extraction. The final release handoff repeats that upload command and
 the follow-up `pnpm release:status` audit so operators have a visible proof step between VM evidence packaging and
-Final Release Proof dispatch. `--env-file` consumes only
+Final Release Proof dispatch. When `release:handoff --vm-evidence-asset NAME` is used, the rendered
+`pnpm vm:prepare-release-evidence` command receives the same `--asset-name NAME` that upload, final proof, and status
+audit commands expect. `--env-file` consumes only
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE` and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE` for this helper; Bunny storage credentials
 are ignored so access keys never appear in the dry-run or upload handoff output.
 The helper validates `--env-file`, `--private-key`, `--public-key`, and `--evidence-root` before artifact reads or

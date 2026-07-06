@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T09:39:57+02:00"
-last_activity: 2026-07-06 - Final handoff makes VM evidence upload explicit
+last_updated: "2026-07-06T09:56:41+02:00"
+last_activity: 2026-07-06 - Final handoff keeps VM evidence asset names consistent
 progress:
   total_phases: 5
   completed_phases: 4
@@ -95,6 +95,11 @@ Latest VM evidence publication hardening: 2026-07-06 - `scripts/plan-final-relea
 `gh release upload --clobber` command for the signed VM evidence archive plus refreshed `SHA256SUMS` files, followed by
 a post-upload `pnpm release:status` audit before Final Release Proof dispatch. This keeps VM evidence packaging,
 publication, and final proof as separate visible steps.
+Latest VM evidence asset-name hardening: 2026-07-06 - `scripts/plan-final-release-handoff.sh` now passes the selected
+`--vm-evidence-asset` name into `pnpm vm:prepare-release-evidence -- --asset-name ...`, not only upload, final proof,
+and release-status commands. `scripts/verify-agent-release-ready.sh` and `scripts/verify-scripts.sh` now reject handoff
+plans where a custom VM evidence archive name would be prepared under one filename and uploaded or audited under
+another.
 
 ## Blockers / Concerns
 
@@ -155,6 +160,17 @@ publication, and final proof as separate visible steps.
 
 ## Verification Log
 
+- 2026-07-06 VM evidence asset-name handoff hardening: `scripts/plan-final-release-handoff.sh` now passes the selected
+  VM evidence archive name into `pnpm vm:prepare-release-evidence -- --asset-name ...`; the same selected name already
+  flows through VM evidence upload, final proof dispatch, and both release-status audits. `scripts/verify-agent-release-ready.sh`
+  now asserts that final release handoffs contain the selected `--asset-name`, and `scripts/verify-scripts.sh` checks
+  both custom and default handoff plans. Focused validation passed: `bash -n
+  scripts/plan-final-release-handoff.sh scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, rendered `pnpm release:handoff -- --vm-evidence-asset
+  loopwire-vm-evidence-v0.1.0-operator.tar.gz`, `pnpm release:agent-ready -- --vm-evidence-asset
+  loopwire-vm-evidence-v0.1.0-operator.tar.gz --allow-dirty --skip-local-gates`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and `git diff --check`. No secret write, release tag, public release, Bunny deployment, final
+  proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - 2026-07-06 release status evidence asset override hardening: `scripts/audit-final-release-state.sh` can now audit
   tag-bound release and VM evidence asset override names instead of always downloading the default archive names.
   `scripts/plan-final-release-handoff.sh` forwards the same release and VM evidence asset names from final proof

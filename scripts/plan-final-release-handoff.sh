@@ -439,6 +439,7 @@ print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-releas
   --published-release-tag "$tag" --release-public-key "$public_key" --require-published-release \
   --require-github-release-source --require-all-targets --execute
 vm_prepare=(pnpm vm:prepare-release-evidence -- --tag "$tag" --repo "$repo" --all)
+vm_prepare+=(--asset-name "$vm_evidence_asset")
 if [ -n "$env_file" ]; then
   vm_prepare+=(--env-file "$env_file")
   if [ "$release_private_key_file_explicit" = "true" ]; then

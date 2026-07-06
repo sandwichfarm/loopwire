@@ -5,6 +5,17 @@
 
 ## Evidence Passed
 
+- The final release handoff now prepares VM evidence archives under the same selected asset name used by upload, final
+  proof, and status audits. `scripts/plan-final-release-handoff.sh` passes `--vm-evidence-asset NAME` through to
+  `pnpm vm:prepare-release-evidence -- --asset-name NAME`; `scripts/verify-agent-release-ready.sh` rejects handoffs
+  that omit the selected `--asset-name`, and `scripts/verify-scripts.sh` checks both custom and default archive-name
+  paths. Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh
+  scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, rendered
+  `pnpm release:handoff -- --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz`, `pnpm
+  release:agent-ready -- --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz --allow-dirty
+  --skip-local-gates`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. No secret write, release
+  tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
+  support-matrix promotion was performed.
 - The final release handoff now makes VM evidence publication an explicit ceremony step. After rendering
   `pnpm vm:prepare-release-evidence`, `scripts/plan-final-release-handoff.sh` prints the exact
   `gh release upload --clobber` command for `loopwire-vm-evidence-<tag>.tar.gz`, `SHA256SUMS`, and
