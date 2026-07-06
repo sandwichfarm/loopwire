@@ -70,6 +70,9 @@
     }
   }
 
+  // Highlights the clicked row immediately; the transaction confirms it.
+  let pendingDeviceId: string | null = $state(null);
+
   function selectDevice(deviceId: string): void {
     if (deviceId === $selectedDevice?.id) {
       return;
@@ -77,7 +80,12 @@
 
     uiStore.clearSelection();
     uiStore.endRename();
-    void runtimeService.switchDevice(deviceId);
+    pendingDeviceId = deviceId;
+    void runtimeService.switchDevice(deviceId).finally(() => {
+      if (pendingDeviceId === deviceId) {
+        pendingDeviceId = null;
+      }
+    });
   }
 
   function deleteCanvasSelection(): void {
@@ -132,7 +140,7 @@
 <div class="shell">
   <Sidebar
     devices={sidebarDevices}
-    selectedId={$selectedDevice?.id}
+    selectedId={pendingDeviceId ?? $selectedDevice?.id}
     onSelect={selectDevice}
     onCreate={createDevice}
     onRemove={removeDevice}

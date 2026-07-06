@@ -722,11 +722,25 @@ function parsePipeWirePortGroups(output: string): readonly {
       continue;
     }
 
-    const deviceName = portName.split(":", 1)[0]?.trim() || portName;
+    const separatorIndex = portName.indexOf(":");
+    const deviceName = separatorIndex === -1 ? portName : portName.slice(0, separatorIndex).trim() || portName;
+    const channelPort = separatorIndex === -1 ? "" : portName.slice(separatorIndex + 1).trim();
+
+    // Only audio channel ports count; MIDI-only nodes (Midi-Bridge,
+    // bluez_midi) never reach the pickers because they cannot be linked as
+    // audio endpoints.
+    if (!isAudioChannelPort(channelPort)) {
+      continue;
+    }
+
     groups.set(deviceName, (groups.get(deviceName) ?? 0) + 1);
   }
 
   return Array.from(groups, ([deviceName, portCount]) => ({ deviceName, portCount }));
+}
+
+function isAudioChannelPort(portName: string): boolean {
+  return /(^|_)(FL|FR|FC|LFE|RL|RR|SL|SR|MONO|UNK|AUX\d*)$/i.test(portName) || /_\d+$/.test(portName);
 }
 
 function parseJackPlaybackDevices(output: string, backend: AudioBackendKind): readonly AudioPlaybackDevice[] {

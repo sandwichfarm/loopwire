@@ -210,6 +210,59 @@ describe("createPipeWireGraphRuntimeAdapter", () => {
     expect(calls).toContain(`pw-link ${sourceNode}:monitor_FL ${busNode}:playback_FL`);
   });
 
+  it("unloads a never-applied device as a no-op instead of failing on absent ports", async () => {
+    const passThruConfiguration: HostRuntimeConfiguration = {
+      id: "Native Mix",
+      name: "Native Mix",
+      inputs: [{ id: "pass-thru", label: "Pass-Thru", channels: 2 }],
+      outputs: [{ id: "program", label: "Program Out", channels: 2 }],
+      routes: [{ id: "pass-program", from: "pass-thru", to: "program", muted: false }]
+    };
+    const { runner } = createRecordingRunner({
+      "pw-cli list-objects Node": { stdout: "" },
+      "pw-link -o": { stdout: "" },
+      "pw-link -i": { stdout: "" },
+      "pw-link -l": { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.unload(passThruConfiguration);
+
+    expect(result).toEqual({ ok: true, message: "No Loopwire PipeWire links to unload" });
+  });
+
+  it("skips links for absent host endpoints instead of failing the whole apply", async () => {
+    const configurationWithGhost: HostRuntimeConfiguration = {
+      id: "Native Mix",
+      name: "Native Mix",
+      inputs: [
+        { id: "mic", label: "Studio Mic", channels: 2, deviceName: "alsa_input.studio" },
+        { id: "ghost", label: "Midi Bridge", channels: 2, deviceName: "Midi-Bridge" }
+      ],
+      outputs: [{ id: "program", label: "Program Out", channels: 2, deviceName: "loopwire_program" }],
+      routes: [
+        { id: "mic-program", from: "mic", to: "program", muted: false },
+        { id: "ghost-program", from: "ghost", to: "program", muted: false }
+      ]
+    };
+    const { runner, calls } = createRecordingRunner({
+      "pw-link -o": { stdout: sourcePorts() },
+      "pw-link -i": { stdout: targetPorts() },
+      "pw-link -l": { stdout: "" },
+      "pw-link": { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(configurationWithGhost);
+
+    expect(result).toEqual({
+      ok: true,
+      message:
+        "Linked 2 PipeWire port pair(s); 0 already linked; Skipped absent endpoint(s): Midi Bridge (Midi-Bridge)"
+    });
+    expect(calls.some((call) => call.includes("Midi-Bridge"))).toBe(false);
+  });
+
   it("plans explicit bus-to-monitor routes instead of all output-monitor pairs", async () => {
     const cabledConfiguration: HostRuntimeConfiguration = {
       ...pipeWireConfiguration,
