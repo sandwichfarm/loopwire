@@ -371,7 +371,9 @@ check_docs_deployment_manifest() {
 run_release_probe() {
   local label="$1"
   local expected_tag="$2"
-  shift 2
+  local expected_release_evidence_asset="$3"
+  local expected_vm_evidence_asset="$4"
+  shift 4
   local output
   local validation
 
@@ -390,8 +392,8 @@ run_release_probe() {
     return 1
   fi
 
-  if ! validation="$(node - "$label" "$expected_tag" "$output" <<'NODE' 2>&1
-const [label, expectedTag, raw] = process.argv.slice(2);
+  if ! validation="$(node - "$label" "$expected_tag" "$expected_release_evidence_asset" "$expected_vm_evidence_asset" "$output" <<'NODE' 2>&1
+const [label, expectedTag, expectedReleaseEvidenceAsset, expectedVmEvidenceAsset, raw] = process.argv.slice(2);
 let release;
 
 try {
@@ -436,8 +438,8 @@ const expectedAssets = [
   "loopwire-linux-aarch64.tar.gz",
   "SHA256SUMS",
   "SHA256SUMS.sig",
-  `loopwire-release-evidence-${expectedTag}.tar.gz`,
-  `loopwire-vm-evidence-${expectedTag}.tar.gz`
+  expectedReleaseEvidenceAsset,
+  expectedVmEvidenceAsset
 ];
 const assetNames = new Set(
   release.assets
@@ -870,6 +872,8 @@ run_gate "release signing public key" check_public_key || failed=1
 run_release_probe \
   "GitHub Release object" \
   "$tag" \
+  "$release_evidence_asset" \
+  "$vm_evidence_asset" \
   gh release view "$tag" --repo "$repo" \
     --json tagName,url,targetCommitish,isDraft,isPrerelease,assets || failed=1
 

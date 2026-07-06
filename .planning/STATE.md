@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T10:29:26+02:00"
-last_activity: 2026-07-06 - Release handoffs keep custom VM evidence roots consistent
+last_updated: "2026-07-06T10:43:50+02:00"
+last_activity: 2026-07-06 - Release status checks custom evidence assets in GitHub Release object
 progress:
   total_phases: 5
   completed_phases: 4
@@ -109,6 +109,10 @@ Latest VM evidence root handoff hardening: 2026-07-06 - `scripts/plan-final-rele
 local final-proof dry-runs, and both release-status audits. `scripts/audit-final-release-state.sh` forwards its
 selected VM evidence root into the embedded recovery handoff, so copied-back evidence directories no longer fall back
 to `.vm/evidence` in follow-up commands.
+Latest release-object asset hardening: 2026-07-06 - `scripts/audit-final-release-state.sh` now validates the selected
+`--release-evidence-asset` and `--vm-evidence-asset` names inside the GitHub Release object asset list. Custom
+tag-bound evidence archives therefore satisfy the same release-object gate used for default archive names, while still
+requiring signed archive downloads and final-proof handoffs to use those selected names.
 
 ## Blockers / Concerns
 

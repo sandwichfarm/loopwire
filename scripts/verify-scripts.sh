@@ -1150,7 +1150,7 @@ expected_head="0123456789abcdef0123456789abcdef01234567"
 
 json_release() {
   cat <<JSON
-{"tagName":"v0.1.0","url":"https://github.com/sandwichfarm/loopwire/releases/tag/v0.1.0","targetCommitish":"${expected_head}","isDraft":false,"isPrerelease":false,"assets":[{"name":"loopwire-linux-x86_64.tar.gz"},{"name":"loopwire-linux-aarch64.tar.gz"},{"name":"SHA256SUMS"},{"name":"SHA256SUMS.sig"},{"name":"loopwire-release-evidence-v0.1.0.tar.gz"},{"name":"loopwire-vm-evidence-v0.1.0.tar.gz"}]}
+{"tagName":"v0.1.0","url":"https://github.com/sandwichfarm/loopwire/releases/tag/v0.1.0","targetCommitish":"${expected_head}","isDraft":false,"isPrerelease":false,"assets":[{"name":"loopwire-linux-x86_64.tar.gz"},{"name":"loopwire-linux-aarch64.tar.gz"},{"name":"SHA256SUMS"},{"name":"SHA256SUMS.sig"},{"name":"loopwire-release-evidence-v0.1.0-operator.tar.gz"},{"name":"loopwire-vm-evidence-v0.1.0-operator.tar.gz"}]}
 JSON
 }
 
@@ -1276,6 +1276,13 @@ PATH="$release_status_fake_bin:$PATH" bash scripts/audit-final-release-state.sh 
   --secret-list-file scripts/fixtures/github-secret-list-final.tsv \
   --docs-deployment-manifest dist/docs-deployment/missing-status-selector-test.json \
   >"$release_status_fake_log" 2>&1 || true
+grep -F "ok: GitHub Release object" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not accept custom evidence assets in the GitHub Release object" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
 grep -F "loopwire-release-evidence-v0.1.0-operator.tar.gz" "$release_status_fake_log" >/dev/null || {
   echo "verify-scripts: release status did not use the release evidence asset override" >&2
   cat "$release_status_fake_log" >&2

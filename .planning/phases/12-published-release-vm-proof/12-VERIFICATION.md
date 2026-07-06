@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Release status now checks custom evidence archive names in the GitHub Release object itself. `scripts/audit-final-release-state.sh`
+  passes the selected `--release-evidence-asset` and `--vm-evidence-asset` values into its Release object validation,
+  so tag-bound custom archive names are accepted only when the public release asset list includes those exact names.
+  `scripts/verify-scripts.sh` covers this with a fake-GitHub status probe whose release JSON exposes only the custom
+  evidence archive names, and docs now state that release-status overrides apply to both the GitHub Release asset list
+  and signed archive downloads. Focused validation passed: `bash -n scripts/audit-final-release-state.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff
+  --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment,
+  final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - Release and status handoffs now keep custom VM evidence roots consistent. `scripts/plan-final-release-handoff.sh`
   accepts `--vm-evidence-root` and passes it into VM runbook rendering, matrix evidence collection, VM evidence asset
   preparation, local final-proof dry-runs, and follow-up `release:status` audits. `scripts/audit-final-release-state.sh`

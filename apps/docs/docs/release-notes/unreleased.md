@@ -483,6 +483,8 @@ These notes describe source-tree progress. They are not a public release announc
   tag/repo/commit or omit required DSP/JACK provider proof before final proof can be marked ready.
 - `pnpm release:status` can now audit tag-bound release and VM evidence asset override names, and the final handoff
   forwards the same archive names from final-proof dispatch into the final status audit.
+- `pnpm release:status` now checks those selected evidence archive names in the GitHub Release asset list itself, so
+  valid custom release assets are not blocked by a default-name-only Release object probe.
 - `pnpm release:status` now forwards selected release and VM evidence asset override names into its embedded recovery
   handoff, so a blocked status audit cannot print default-archive follow-up commands after auditing custom assets.
 - `pnpm release:agent-ready` now fails if the rendered final release handoff drops the tag-bound release or VM evidence

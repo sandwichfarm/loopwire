@@ -758,6 +758,8 @@ assert_contains "apps/docs/docs/developer/release.md" "release tag ref"
 assert_contains "apps/docs/docs/developer/release.md" 'refs that do not resolve to `--git-head`'
 assert_contains "apps/docs/docs/developer/release.md" "signed downloadable release evidence archive"
 assert_contains "apps/docs/docs/developer/release.md" 'release-evidence.json` does not match'
+assert_contains "apps/docs/docs/developer/release.md" "GitHub Release asset list"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "default-name-only Release object probe"
 assert_contains "apps/docs/docs/developer/release.md" "tag/repo/commit"
 assert_contains "apps/docs/docs/developer/release.md" "same verified run id"
 assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, an artifact-bearing Deploy Docs run"
