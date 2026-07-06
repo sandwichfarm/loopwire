@@ -470,7 +470,9 @@
   .canvas-scroll {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
+    /* Vertical-only at and above the minimum usable width (three fixed
+       200px columns); below it, scroll rather than overlap or clip. */
+    overflow-x: auto;
     padding: var(--lw-canvas-pad-top) var(--lw-space-5) var(--lw-space-5);
     display: flex;
     flex-direction: column;
