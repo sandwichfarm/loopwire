@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T02:31:18+02:00"
-last_activity: 2026-07-06 - Release status now artifact-checks pinned docs deployment run IDs
+last_updated: "2026-07-06T03:29:17+02:00"
+last_activity: 2026-07-06 - DSP provider execute preflight now verifies cleanup
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,11 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - `pnpm release:status --docs-deployment-run-id` now artifact-checks the pinned Deploy Docs
-run before using that id in missing-manifest recovery or the embedded final handoff. Explicit and auto-selected docs
-runs must expose both `loopwire-docs` and `loopwire-docs-deployment`; artifact-incomplete runs are diagnosed and left
-unresolved instead of being passed into final proof commands. Phase 12 remains gated on public GitHub Release install,
-Bunny deployment proof, final proof workflow success, and operator-run VM evidence.
+Last activity: 2026-07-06 - `pnpm dsp:verify` execute-mode preflight now clears rendered provider outputs after
+verification and reports the cleanup result in `execution.cleanup`. The script verifier asserts the fake live-capable
+provider receives `clear-output`, and docs now describe the write, verify, clear sequence before startup restore uses a
+provider. This proves the provider cleanup contract without claiming native host DSP capture/playback.
 
 ## Blockers / Concerns
 

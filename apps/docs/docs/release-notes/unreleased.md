@@ -155,6 +155,8 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm dsp:plan` and `pnpm dsp:verify` now describe and exercise the command-backed DSP provider contract before a
   user enables provider-backed boot restore. `pnpm dsp:verify -- --require-live-capability` now probes provider
   `capabilities` and fails unless the provider declares `supportsLiveGraph:true`.
+- `pnpm dsp:verify` now clears rendered provider outputs after execute-mode verification and fails if cleanup fails,
+  so live-provider preflight covers the same `clear-output` path startup restore depends on.
 - `pnpm jack:ports` can print JACK port requirements from a configuration export or persisted state as JSON or TSV,
   giving pro-audio users a read-only session-template handoff.
 - `pnpm jack:verify` can compare those JACK requirements against live `jack_lsp` output or a saved port-list fixture

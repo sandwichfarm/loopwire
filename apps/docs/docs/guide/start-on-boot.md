@@ -195,9 +195,10 @@ write, verify, and clear operations. `verify-output` must return explicit JSON; 
 even when the provider exits successfully. The source checkout and packaged systemd helpers can pass the same
 `--backend dsp`, `--dsp-provider-command`, `--dsp-provider-timeout-ms`, `--dsp-provider-mode`, and `--dsp-frame-count`
 flags. Run `pnpm dsp:plan` first to inspect the bounded provider operations, then run `pnpm dsp:verify` with the
-provider command before enabling boot restore. Release artifacts install `loopwire-dsp-provider`, a bundled file-backed
-provider for contract smoke and local restore preflight. It stores seeded source buffers and configuration-scoped rendered output
-buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
+provider command before enabling boot restore. Execute-mode preflight writes rendered outputs, verifies them, and then
+clears those outputs so the provider cleanup path is tested before startup restore uses it. Release artifacts install
+`loopwire-dsp-provider`, a bundled file-backed provider for contract smoke and local restore preflight. It stores
+seeded source buffers and configuration-scoped rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
 provider. Persisted `selectedBackend: "dsp"` state is honored for startup restore, but it still requires an explicit
 `--dsp-provider-command` after the persisted backend is resolved. `--mode live --backend dsp` or persisted DSP live

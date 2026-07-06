@@ -292,12 +292,14 @@ async function executeProvider(audioHost, args, configuration) {
   );
   const apply = await adapter.apply(configuration);
   const verify = apply.ok ? await adapter.verify(configuration) : undefined;
-  const ok = Boolean(apply.ok && verify?.ok);
+  const cleanup = apply.ok ? await adapter.unload(configuration) : undefined;
+  const ok = Boolean(apply.ok && verify?.ok && cleanup?.ok);
 
   return {
     ok,
     apply,
     ...(verify ? { verify } : {}),
+    ...(cleanup ? { cleanup } : {}),
     commandLog: adapter.commandLog
   };
 }

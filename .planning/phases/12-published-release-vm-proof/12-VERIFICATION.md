@@ -5,6 +5,12 @@
 
 ## Evidence Passed
 
+- `pnpm dsp:verify` execute-mode preflight now calls provider cleanup after apply and verification. The JSON payload
+  reports `execution.cleanup`, the aggregate `ok` requires cleanup success, and `scripts/verify-scripts.sh` asserts
+  the fake live-capable provider receives `clear-output --configuration-id jack-mix --output-id program`.
+- Docs now describe the provider preflight sequence as read/write/verify/clear before startup restore uses the same
+  provider cleanup path. This remains provider-contract proof only; no native host DSP capture/playback, host audio
+  mutation, release tag, public release, Bunny deployment, or VM launch was performed.
 - `pnpm release:status --docs-deployment-run-id` now verifies the pinned Deploy Docs run exposes both docs proof
   artifacts before it reuses that run id. A pinned run that lacks `loopwire-docs-deployment` blocks with
   `verified Deploy Docs proof artifacts`, leaves missing-manifest recovery unresolved, and does not pin the embedded

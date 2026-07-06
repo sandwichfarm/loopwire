@@ -2994,6 +2994,7 @@ if (payload.ok !== true) process.exit(1);
 if (payload.mode !== "execute") process.exit(1);
 if (payload.execution.apply.ok !== true) process.exit(1);
 if (payload.execution.verify.ok !== true) process.exit(1);
+if (payload.execution.cleanup.ok !== true) process.exit(1);
 if (payload.providerCapability?.supportsLiveGraph !== true) process.exit(1);
 ' || {
   echo "verify-scripts: DSP provider execute JSON output is malformed" >&2
@@ -3013,6 +3014,10 @@ grep -F "write-output --output-id program --channels 2 --frames 2" "$dsp_provide
 }
 grep -F "verify-output --output-id program --channels 2 --frames 2" "$dsp_provider_log" >/dev/null || {
   echo "verify-scripts: DSP provider execute did not verify program output" >&2
+  exit 1
+}
+grep -F "clear-output --configuration-id jack-mix --output-id program" "$dsp_provider_log" >/dev/null || {
+  echo "verify-scripts: DSP provider execute did not clear program output" >&2
   exit 1
 }
 if node scripts/describe-dsp-provider.mjs \
