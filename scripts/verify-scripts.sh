@@ -558,7 +558,9 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | gr
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:status" |
   grep -F -- "--docs-deployment-run-id 123456" |
   grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" |
-  grep -F -- "--vm-start-port 2700" >/dev/null || {
+  grep -F -- "--vm-start-port 2700" |
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz" |
+  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null || {
     echo "verify-scripts: release handoff plan is missing final release status audit" >&2
     exit 1
   }
@@ -959,6 +961,14 @@ printf '%s\n' "$release_status_help" | grep -F -- "--env-file FILE" >/dev/null |
   echo "verify-scripts: release status help is missing env-file handoff support" >&2
   exit 1
 }
+printf '%s\n' "$release_status_help" | grep -F -- "--release-evidence-asset NAME" >/dev/null || {
+  echo "verify-scripts: release status help is missing release evidence asset override support" >&2
+  exit 1
+}
+printf '%s\n' "$release_status_help" | grep -F -- "--vm-evidence-asset NAME" >/dev/null || {
+  echo "verify-scripts: release status help is missing VM evidence asset override support" >&2
+  exit 1
+}
 printf '%s\n' "$release_status_help" | grep -F -- "--skip-gh" >/dev/null || {
   echo "verify-scripts: release status help is missing offline support" >&2
   exit 1
@@ -992,6 +1002,22 @@ if bash scripts/audit-final-release-state.sh \
   --docs-deployment-run-id nope \
   --skip-gh >/dev/null 2>&1; then
   echo "verify-scripts: release status accepted an invalid docs deployment run id" >&2
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --release-evidence-asset ../loopwire-release-evidence-v0.1.0.tar.gz \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted an unsafe release evidence asset name" >&2
+  exit 1
+fi
+if bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --vm-evidence-asset ../loopwire-vm-evidence-v0.1.0.tar.gz \
+  --skip-gh >/dev/null 2>&1; then
+  echo "verify-scripts: release status accepted an unsafe VM evidence asset name" >&2
   exit 1
 fi
 grep -F 'bash scripts/select-docs-deployment-run.sh \' scripts/audit-final-release-state.sh >/dev/null || {
@@ -1137,9 +1163,25 @@ PATH="$release_status_fake_bin:$PATH" bash scripts/audit-final-release-state.sh 
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
   --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz \
+  --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz \
   --secret-list-file scripts/fixtures/github-secret-list-final.tsv \
   --docs-deployment-manifest dist/docs-deployment/missing-status-selector-test.json \
   >"$release_status_fake_log" 2>&1 || true
+grep -F "loopwire-release-evidence-v0.1.0-operator.tar.gz" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not use the release evidence asset override" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
+grep -F "loopwire-vm-evidence-v0.1.0-operator.tar.gz" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not use the VM evidence asset override" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
 grep -F "ok: verified Deploy Docs artifact run selection" "$release_status_fake_log" >/dev/null || {
   echo "verify-scripts: release status did not run artifact-aware docs selection" >&2
   cat "$release_status_fake_log" >&2

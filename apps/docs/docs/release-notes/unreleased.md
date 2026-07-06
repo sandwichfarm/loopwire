@@ -481,6 +481,8 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm release:status` now downloads the public `loopwire-release-evidence-<tag>.tar.gz` asset, verifies its signed
   checksum entry, safe-extracts it, and rejects release-evidence manifests that do not match the selected
   tag/repo/commit or omit required DSP/JACK provider proof before final proof can be marked ready.
+- `pnpm release:status` can now audit tag-bound release and VM evidence asset override names, and the final handoff
+  forwards the same archive names from final-proof dispatch into the final status audit.
 - `pnpm release:status` now resolves the GitHub tag ref, including annotated tags, and rejects releases whose tag does
   not point at the expected `--git-head` commit.
 - Final release proof now runs the same live GitHub tag-ref check before published-release downloads, so the manual

@@ -335,14 +335,17 @@ when omitted, so a successful CI, docs, or proof run for an older commit cannot 
 manifest must be non-dry-run proof for the built docs dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
 saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Deploy Docs run audited for final proof,
-`--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH plan, or `--skip-gh` when you
-only want local evidence checks. Pinned Deploy Docs run ids still have to expose both `loopwire-docs` and
+`--release-evidence-asset NAME` or `--vm-evidence-asset NAME` to audit the same tag-bound evidence archive names passed
+to Final Release Proof, `--vm-start-port 2600` to align VM evidence collection handoffs with the rendered SSH plan, or
+`--skip-gh` when you only want local evidence checks. Pinned Deploy Docs run ids still have to expose both `loopwire-docs` and
 `loopwire-docs-deployment`; if either artifact is missing, `release:status` leaves the run id unresolved in recovery
 commands instead of passing an artifact-incomplete run into final proof. Use `--env-file` to let the embedded local handoff plan reuse the release private-key
 path and Bunny docs host/prefix from the same local secret file without printing Bunny storage credentials. The embedded
 handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
 to copy release key paths into separate command flags. It also keeps `--env-file` on the rendered docs proof fetch
-command. When a Deploy Docs workflow run is verified, `release:status` reuses that same verified run id for missing
+command. The handoff also forwards the selected release and VM evidence asset names into its final `release:status`
+command, so the dispatch and final audit do not silently diverge when an operator uses tag-bound override names. When a
+Deploy Docs workflow run is verified, `release:status` reuses that same verified run id for missing
 docs manifest recovery and final proof dispatch instead of re-querying a fresh run hint. Without
 `--docs-deployment-run-id`, `release:status` runs the same artifact-aware docs deployment run selection used by the
 handoff, so recovery commands only receive a run id after GitHub shows both `loopwire-docs` and
@@ -354,7 +357,8 @@ the matching `pnpm release:fetch-docs-proof` command for the expected commit and
 Custom local path inputs for `release:status`, including `--env-file`, `--secret-list-file`,
 `--docs-deployment-manifest`, `--docs-dist`, `--vm-evidence-root`, and `--support-matrix`, reject traversal,
 root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and existing paths with the wrong file or
-directory type before the audit begins.
+directory type before the audit begins. Evidence asset overrides are also validated as basename-only, tag-bound
+`loopwire-release-evidence-<tag>*.tar.gz` or `loopwire-vm-evidence-<tag>*.tar.gz` names before GitHub downloads run.
 When `--vm-evidence-root` points at copied-back VM evidence outside `.vm/evidence`, `release:status` uses that same root
 for both the matrix evidence-status audit and the support-matrix promotion audit, so a promoted row is checked against
 the operator-selected evidence bundle path.

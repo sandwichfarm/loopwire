@@ -14,6 +14,8 @@ docs_dist="${LOOPWIRE_DOCS_DIST:-apps/docs/docs/.vitepress/dist}"
 vm_evidence_root=".vm/evidence"
 vm_start_port="2600"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
+release_evidence_asset=""
+vm_evidence_asset=""
 skip_gh="false"
 latest_docs_deployment_run_id=""
 docs_deployment_run_selection_failed="false"
@@ -38,6 +40,9 @@ Options:
   --vm-evidence-root DIR      VM evidence root, default .vm/evidence
   --vm-start-port PORT        SSH start port for VM evidence collection handoffs, default 2600
   --support-matrix FILE       Support matrix path, default apps/docs/docs/guide/support-matrix.md
+  --release-evidence-asset NAME
+                              Release evidence archive asset override
+  --vm-evidence-asset NAME    VM evidence archive asset override
   --skip-gh                   Skip live GitHub release/workflow lookups
 
 The command is read-only. It exits nonzero while any required final release proof surface is missing or unverifiable.
@@ -76,6 +81,13 @@ validate_vm_start_port() {
 validate_docs_deployment_run_id() {
   [ -z "$docs_deployment_run_id" ] || [[ "$docs_deployment_run_id" =~ ^[0-9]+$ ]] ||
     fail "docs deployment run id must be numeric: $docs_deployment_run_id"
+}
+
+validate_optional_asset() {
+  local kind="$1"
+  local asset="$2"
+
+  [ -z "$asset" ] || bash scripts/validate-release-asset-name.sh --kind "$kind" --tag "$tag" --asset "$asset" >/dev/null
 }
 
 reject_unsafe_value() {
@@ -479,7 +491,7 @@ download_release_asset_or_explain() {
 }
 
 check_published_vm_evidence_archive() {
-  local asset="loopwire-vm-evidence-${tag}.tar.gz"
+  local asset="$vm_evidence_asset"
   local tmp_dir
   local vm_evidence_root
 
@@ -544,7 +556,7 @@ check_release_tag_ref() {
 }
 
 check_published_release_evidence_archive() {
-  local asset="loopwire-release-evidence-${tag}.tar.gz"
+  local asset="$release_evidence_asset"
   local tmp_dir
   local evidence_root
   local evidence_dir=""
@@ -791,6 +803,14 @@ while [ "$#" -gt 0 ]; do
       support_matrix="${2:?missing value for --support-matrix}"
       shift 2
       ;;
+    --release-evidence-asset)
+      release_evidence_asset="${2:?missing value for --release-evidence-asset}"
+      shift 2
+      ;;
+    --vm-evidence-asset)
+      vm_evidence_asset="${2:?missing value for --vm-evidence-asset}"
+      shift 2
+      ;;
     --skip-gh)
       skip_gh="true"
       shift
@@ -809,6 +829,10 @@ done
 [ -n "$tag" ] || fail "missing --tag vX.Y.Z"
 validate_repo
 validate_tag
+validate_optional_asset "release-evidence" "$release_evidence_asset"
+validate_optional_asset "vm-evidence" "$vm_evidence_asset"
+release_evidence_asset="${release_evidence_asset:-loopwire-release-evidence-${tag}.tar.gz}"
+vm_evidence_asset="${vm_evidence_asset:-loopwire-vm-evidence-${tag}.tar.gz}"
 reject_unsafe_value "$public_key" "public key"
 reject_unsafe_value "$expected_git_head" "git head"
 [ -z "$env_file" ] || validate_local_path "$env_file" "env file" file

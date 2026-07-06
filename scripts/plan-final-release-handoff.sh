@@ -489,7 +489,12 @@ echo
 echo "12. Audit final release status after final proof completes:"
 release_status_prefix=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-head "$git_head" \
   --public-key "$public_key")
-release_status_suffix=(--vm-start-port "$vm_start_port" --support-matrix "$support_matrix")
+release_status_suffix=(
+  --vm-start-port "$vm_start_port"
+  --support-matrix "$support_matrix"
+  --release-evidence-asset "$release_evidence_asset"
+  --vm-evidence-asset "$vm_evidence_asset"
+)
 if [ -n "$env_file" ]; then
   release_status_suffix+=(--env-file "$env_file")
 fi

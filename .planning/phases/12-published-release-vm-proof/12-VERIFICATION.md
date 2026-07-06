@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Release status now audits the same evidence archive override names used by final proof dispatch. The read-only final
+  status auditor accepts tag-bound `--release-evidence-asset` and `--vm-evidence-asset` names, rejects unsafe names
+  before any GitHub download, and the final handoff forwards its selected archive names into the closing
+  `pnpm release:status` command. `scripts/verify-scripts.sh` covers help text, handoff propagation, unsafe-name
+  rejection, and fake GitHub download patterns for both override assets. Focused validation passed:
+  `bash -n scripts/audit-final-release-state.sh scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, provider execution, or support-matrix promotion was performed.
 - Final Release Proof workflow verification now locks the VM evidence archive bundle gate in place.
   `scripts/verify-github-workflows.sh` scopes the assertion to the `Download VM evidence archive` step and requires the
   VM archive manifest verifier to run with all-target, bundle-level, published-release checks before exporting
