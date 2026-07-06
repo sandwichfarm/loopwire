@@ -73,6 +73,16 @@ export function describeRouteControlSemantics(
   backend: AudioBackendKind,
   capability?: RouteControlBackendCapability
 ): RouteControlSemantics {
+  if (backend === "dsp") {
+    return {
+      mode: "planned",
+      badge: "DSP",
+      message:
+        "DSP provider controls are available through provider-backed background restore; desktop live apply needs " +
+        "provider command settings first."
+    };
+  }
+
   if (capability?.kind === backend && capability.mixing) {
     return describeDetectedRouteControlSemantics(capability);
   }
@@ -98,14 +108,6 @@ export function describeRouteControlSemantics(
       mode: "link",
       badge: "Link",
       message: "Native JACK applies route mute by disconnecting connections; per-edge gain remains planned."
-    };
-  }
-
-  if (backend === "dsp") {
-    return {
-      mode: "planned",
-      badge: "DSP",
-      message: "DSP provider controls require an explicit live provider before desktop live apply can use them."
     };
   }
 

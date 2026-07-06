@@ -42,7 +42,9 @@ describe("route control semantics", () => {
     expect(describeRouteControlSemantics("dsp")).toEqual({
       mode: "planned",
       badge: "DSP",
-      message: "DSP provider controls require an explicit live provider before desktop live apply can use them."
+      message:
+        "DSP provider controls are available through provider-backed background restore; desktop live apply needs " +
+        "provider command settings first."
     });
   });
 

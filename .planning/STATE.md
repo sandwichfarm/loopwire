@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T03:29:17+02:00"
-last_activity: 2026-07-06 - DSP provider execute preflight now verifies cleanup
+last_updated: "2026-07-06T03:44:00+02:00"
+last_activity: 2026-07-06 - Desktop DSP live apply now fails closed until provider settings exist
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - `pnpm dsp:verify` execute-mode preflight now clears rendered provider outputs after
-verification and reports the cleanup result in `execution.cleanup`. The script verifier asserts the fake live-capable
-provider receives `clear-output`, and docs now describe the write, verify, clear sequence before startup restore uses a
-provider. This proves the provider cleanup contract without claiming native host DSP capture/playback.
+Last activity: 2026-07-06 - desktop live apply now blocks persisted DSP provider backends even when a graph-edge
+capability report is present, because the desktop shell does not yet expose DSP provider command settings. DSP provider
+restore remains the background restore path, with docs and release notes updated to keep that boundary explicit.
 
 ## Blockers / Concerns
 
@@ -48,9 +47,9 @@ provider. This proves the provider cleanup contract without claiming native host
   is driven by detected backend mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local
   restore-contract smoke and packaging proof. Native JACK now has an injected virtual-port provider hook and bundled
   `loopwire-jack-ports` wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client
-  creation, and native host graph-edge gain implementation remain planned. DSP live restore now requires the operator
-  to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now requires provider
-  `capabilities` to declare `supportsLiveGraph:true`.
+  creation, native host graph-edge gain implementation, and desktop DSP provider command settings remain planned. DSP
+  live restore now requires the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and
+  live DSP restore now requires provider `capabilities` to declare `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -63,7 +62,8 @@ provider. This proves the provider cleanup contract without claiming native host
 - Nix package metadata and final proof wiring are smoke-tested structurally, but non-skipped `nix build` proof still
   needs a Nix-enabled host or VM target.
 - Live JACK client creation, live backend DSP capture/injection, native graph-edge gain, and published release proof
-  remain the major product gaps for a fully functional Loopback-class app.
+  remain the major product gaps for a fully functional Loopback-class app. Desktop DSP provider settings are also
+  required before the GUI can arm session-local DSP live apply.
 - Packaged background restore is now release-shaped through `loopwire --background`, but public release proof still
   requires signed published artifacts.
 - Public release proof is gated on an explicit versioned release decision, real signing key material, tag push, and VM
@@ -84,6 +84,15 @@ provider. This proves the provider cleanup contract without claiming native host
 
 ## Verification Log
 
+- 2026-07-06 Desktop DSP live-apply boundary: `apps/desktop/src/live-apply-preflight.ts` now blocks persisted DSP
+  provider backends even when a synthetic graph-edge capability report is present, because the desktop shell has no
+  provider command setting or DSP runtime adapter path. `apps/desktop/src/route-control-semantics.ts` now describes DSP
+  controls as provider-backed background restore until desktop provider settings exist. Docs and unreleased notes now
+  state that DSP is background restore/preflight only in the current desktop shell. Focused validation passed:
+  `pnpm --filter @loopwire/desktop test -- live-apply-preflight route-control-semantics`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, `pnpm verify:scripts`, and `git diff --check`.
+  Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
+  dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-06 Pinned docs-run artifact proof: `pnpm release:status --docs-deployment-run-id` now verifies the pinned
   Deploy Docs run exposes both `loopwire-docs` and `loopwire-docs-deployment` before reuse. If the pinned run lacks a
   proof artifact, status reports `blocked: verified Deploy Docs proof artifacts`, leaves the recovery run id unresolved,

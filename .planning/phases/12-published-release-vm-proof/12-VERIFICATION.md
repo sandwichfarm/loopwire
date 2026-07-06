@@ -5,6 +5,12 @@
 
 ## Evidence Passed
 
+- Desktop DSP live apply now fails closed until the desktop has explicit provider command settings. The preflight
+  blocks `selectedBackend: "dsp"` even when a graph-edge capability report is present, route-control copy points users
+  to provider-backed background restore, and docs now avoid implying session-local DSP live apply is wired. Focused
+  validation passed: `pnpm --filter @loopwire/desktop test -- live-apply-preflight route-control-semantics`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, `pnpm verify:scripts`, and `git diff --check`.
+  Full validation passed: `pnpm check`.
 - `pnpm dsp:verify` execute-mode preflight now calls provider cleanup after apply and verification. The JSON payload
   reports `execution.cleanup`, the aggregate `ok` requires cleanup success, and `scripts/verify-scripts.sh` asserts
   the fake live-capable provider receives `clear-output --configuration-id jack-mix --output-id program`.

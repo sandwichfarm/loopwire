@@ -168,7 +168,9 @@ as a known PulseAudio gap.
 Backend detection reports `mixing.controlScope` so the desktop can distinguish true graph-edge controls from
 stream-level, link-only, or unavailable controls. The desktop consumes detected backend mixing semantics instead of
 hardcoding backend names, so a future backend report with graph-edge gain support can unlock route gain editing and
-live-apply preflight without a UI rewrite. ALSA reports unavailable controls because it is diagnostics-only.
+live-apply preflight without a UI rewrite. Persisted `selectedBackend: "dsp"` is stricter: the desktop does not yet
+have a provider-command settings surface for session-local live apply, so DSP remains blocked there even when a
+provider reports graph-edge capability. ALSA reports unavailable controls because it is diagnostics-only.
 
 The core package now has a pure DSP mix planner, renderer, and cycle runner for graph-edge behavior. It can render
 per-route gain and mute into output buffers from supplied `Float32Array` source channels, including one source routed
@@ -192,8 +194,9 @@ an exit-0 command with empty stdout is treated as failed verification. Release a
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
 for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
 accepted for startup restore only when the restore command also supplies the explicit DSP provider command. This is
-still not native live host DSP: live backend DSP still needs a host adapter that can capture source streams and inject
-the rendered outputs into PipeWire or JACK.
+still not native live host DSP: desktop live apply has no DSP provider command setting yet. The live backend DSP path
+still needs a host adapter that can capture source streams and inject the rendered outputs into PipeWire or JACK.
+The live backend DSP still needs host capture and injection proof before desktop live apply can use it.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 

@@ -150,10 +150,11 @@ function liveApplyBlockers(
     return ["ALSA live apply is not implemented; use PipeWire, PulseAudio, or JACK."];
   }
 
-  if (backend === "dsp" && !backendSupportsPerEdgeGain(backend, capability)) {
+  if (backend === "dsp") {
     return [
-      "DSP provider live apply needs an explicit live provider capability report; use background restore provider " +
-        "settings or select PipeWire, PulseAudio, or JACK for desktop live apply."
+      "DSP provider live apply is only available through background restore until a desktop provider command is " +
+        "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
+        "live apply."
     ];
   }
 

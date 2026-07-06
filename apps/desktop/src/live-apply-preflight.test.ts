@@ -187,7 +187,7 @@ describe("describeLiveApplyPreflight", () => {
     ]);
   });
 
-  it("blocks persisted DSP provider live apply until explicit provider capability is available", () => {
+  it("blocks persisted DSP provider live apply until desktop provider settings exist", () => {
     const result = describeLiveApplyPreflight(baseConfiguration, "dsp");
 
     expect(result).toEqual({
@@ -195,20 +195,31 @@ describe("describeLiveApplyPreflight", () => {
       mode: "blocked",
       badge: "Blocked",
       message:
-        "DSP provider live apply needs an explicit live provider capability report; use background restore provider " +
-        "settings or select PipeWire, PulseAudio, or JACK for desktop live apply.",
+        "DSP provider live apply is only available through background restore until a desktop provider command is " +
+        "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
+        "live apply.",
       blockers: [
-        "DSP provider live apply needs an explicit live provider capability report; use background restore provider " +
-          "settings or select PipeWire, PulseAudio, or JACK for desktop live apply."
+        "DSP provider live apply is only available through background restore until a desktop provider command is " +
+          "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
+          "live apply."
       ]
     });
   });
 
-  it("allows DSP provider live apply when graph-edge capability is explicit", () => {
-    expect(describeLiveApplyPreflight(baseConfiguration, "dsp", undefined, graphEdgeDsp)).toMatchObject({
-      ok: true,
-      badge: "Ready",
-      message: "DSP Provider live apply is ready for Studio."
+  it("blocks DSP provider live apply even when graph-edge capability is reported", () => {
+    expect(describeLiveApplyPreflight(baseConfiguration, "dsp", undefined, graphEdgeDsp)).toEqual({
+      ok: false,
+      mode: "blocked",
+      badge: "Blocked",
+      message:
+        "DSP provider live apply is only available through background restore until a desktop provider command is " +
+        "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
+        "live apply.",
+      blockers: [
+        "DSP provider live apply is only available through background restore until a desktop provider command is " +
+          "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
+          "live apply."
+      ]
     });
   });
 
