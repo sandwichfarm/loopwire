@@ -8,7 +8,7 @@
 ### Product UX
 
 - [x] **UX-01**: User sees a polished desktop app shell with app title, backend state, configurations, routes, and monitors.
-- [x] **UX-02**: App uses native window chrome when available and provides custom titlebar controls when not available.
+- [x] **UX-02**: App uses native window chrome; missing decorations are treated as environment bugs to report, not a mode to switch (custom-chrome fallback removed in the UI rebuild).
 - [x] **UX-03**: User can hide and reveal monitors without deleting the underlying monitor.
 - [x] **UX-04**: User-facing copy avoids raw backend jargon outside diagnostics and advanced settings.
 

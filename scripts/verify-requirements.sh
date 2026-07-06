@@ -41,11 +41,11 @@ for requirement in UX-01 UX-02 UX-03 UX-04; do
   assert_requirement_checked "$requirement"
 done
 
-assert_contains "apps/desktop/src/App.svelte" "Chrome"
-assert_contains "apps/desktop/src/App.svelte" "segmented-control"
-assert_contains "apps/desktop/src/chrome-mode-summary.ts" "System chrome preferred"
-assert_contains "apps/desktop/src/App.svelte" "applyWindowChrome"
-assert_contains "apps/desktop/src/App.svelte" "setMonitorHidden"
+assert_contains "apps/desktop/src/lib/components/AppShell.svelte" "Sidebar"
+assert_contains "apps/desktop/src/lib/components/DeviceCanvas.svelte" "CableLayer"
+assert_contains ".planning/REQUIREMENTS.md" "custom-chrome fallback removed in the UI rebuild"
+assert_contains "apps/desktop/src/lib/stores/uiStore.ts" "toggleMonitorsHidden"
+assert_contains "apps/desktop/src/lib/components/CanvasFooter.svelte" "Show Monitors"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "Window Controls Look Wrong"
 
 for requirement in BACKEND-01 BACKEND-02 BACKEND-03 BACKEND-04 BACKEND-05; do
@@ -59,7 +59,7 @@ assert_contains "packages/audio-host/src/detectors.ts" "detectJack"
 assert_contains "packages/audio-host/src/detectors.ts" "detectAlsa"
 assert_contains "packages/core/src/backend-selection.ts" "Exactly one supported audio backend is available."
 assert_contains "packages/core/src/backend-selection.ts" "Multiple supported audio backends are available. The user must choose one."
-assert_contains "apps/desktop/src/App.svelte" "handleBackendChange"
+assert_contains "apps/desktop/src/lib/components/SettingsWindow.svelte" "chooseBackend"
 
 for requirement in CONFIG-01 CONFIG-02 CONFIG-03 CONFIG-04; do
   assert_requirement_checked "$requirement"
