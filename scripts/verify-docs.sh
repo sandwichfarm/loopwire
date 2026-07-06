@@ -621,6 +621,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "rejects unsafe loc
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-all-targets"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The GitHub secret helper now rejects Bunny storage zones"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "enforces scope-complete inputs before set or dry-run output"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "deploy-scope checks report post-upload live-smoke readiness"
+assert_contains "apps/docs/docs/developer/release.md" "deploy-scope checks still pass"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "validate the release private key against the release public key"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current `gh secret set` stdin contract'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints no-value next steps"

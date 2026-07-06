@@ -2870,6 +2870,14 @@
   handoff output included the post-deploy command, and `pnpm verify:scripts`, `pnpm verify:docs`, and full `pnpm check`
   passed. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
   support-matrix promotion was performed.
+- Deploy-scope GitHub secret checks now have explicit coverage for the optional pull-zone hostname path. When
+  `BUNNY_PULL_ZONE_HOSTNAME` is present with deploy-scope Bunny storage secrets, the helper reports that post-upload
+  live docs smoke can run while still not requiring the release signing secret.
+- Focused validation passed for deploy-scope live-smoke coverage: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, graph search located the secret-helper scope and next-step surfaces, `bash -n
+  scripts/verify-scripts.sh scripts/verify-docs.sh scripts/setup-github-secrets.sh`, `pnpm verify:scripts`, and `pnpm
+  verify:docs` passed. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation,
+  or support-matrix promotion was performed.
 
 ## Status
 

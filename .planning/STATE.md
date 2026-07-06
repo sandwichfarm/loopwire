@@ -3382,3 +3382,13 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
   sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567`, `pnpm verify:scripts`,
   `pnpm verify:docs`, and full `pnpm check` passed. No secret write, release tag, public release, Bunny deployment,
   VM launch, host audio mutation, or support-matrix promotion was performed.
+- 2026-07-06 deploy-scope live-smoke secret coverage: `scripts/verify-scripts.sh` now covers `setup-github-secrets.sh
+  --check --scope deploy` when the optional `BUNNY_PULL_ZONE_HOSTNAME` secret is present, proving the helper reports
+  `ok: docs deploy workflow can run post-upload live smoke` without requiring `LOOPWIRE_RELEASE_PRIVATE_KEY` in
+  deploy scope. Release docs now distinguish Bunny upload readiness from live-docs-smoke readiness.
+- 2026-07-06 deploy-scope live-smoke validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located `required_secrets_for_scope`,
+  `print_missing_secret_next_steps`, and the secret-helper test surfaces before implementation. `bash -n
+  scripts/verify-scripts.sh scripts/verify-docs.sh scripts/setup-github-secrets.sh`, `pnpm verify:scripts`, and `pnpm
+  verify:docs` passed. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation,
+  or support-matrix promotion was performed.

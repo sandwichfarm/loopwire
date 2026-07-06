@@ -627,6 +627,9 @@ bash scripts/setup-github-secrets.sh \
 secrets are available. Set mode uses the same scopes before any `gh secret set` call runs: `--scope deploy` requires
 `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`; the default `--scope final` also requires
 `BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`.
+When `--check --scope deploy` sees the optional `BUNNY_PULL_ZONE_HOSTNAME` secret, it also reports that the docs deploy
+workflow can run post-upload live smoke without requiring the release signing secret yet. Without that hostname,
+deploy-scope checks still pass for Bunny upload readiness but report that live docs smoke will be skipped.
 `--secret-list-file` accepts saved `gh secret list` output for deterministic release rehearsal; the artifact may
 contain secret names and metadata columns, but never secret values. `--dry-run` validates inputs and prints secret
 names that would be set without printing secret values or writing to GitHub. `--env-file` accepts a local

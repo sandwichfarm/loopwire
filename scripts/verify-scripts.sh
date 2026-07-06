@@ -6737,6 +6737,20 @@ if grep -F "LOOPWIRE_RELEASE_PRIVATE_KEY" "$secret_deploy_scope_log" >/dev/null;
   echo "verify-scripts: GitHub deploy-scope check mentioned release signing secret" >&2
   exit 1
 fi
+secret_deploy_scope_live_smoke_log="$tmp_dir/setup-github-secrets-deploy-scope-live-smoke.log"
+PATH="$fake_gh_dir:$PATH" \
+  bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check --scope deploy \
+    >"$secret_deploy_scope_live_smoke_log" 2>&1
+grep -F "ok: optional GitHub secret present: BUNNY_PULL_ZONE_HOSTNAME" \
+  "$secret_deploy_scope_live_smoke_log" >/dev/null || {
+    echo "verify-scripts: GitHub deploy-scope check did not report optional pull-zone hostname presence" >&2
+    exit 1
+  }
+grep -F "ok: docs deploy workflow can run post-upload live smoke" \
+  "$secret_deploy_scope_live_smoke_log" >/dev/null || {
+    echo "verify-scripts: GitHub deploy-scope check did not report live-smoke readiness with optional hostname" >&2
+    exit 1
+  }
 secret_missing_release_log="$tmp_dir/setup-github-secrets-missing-release.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-release-key \
   PATH="$fake_gh_dir:$PATH" \
