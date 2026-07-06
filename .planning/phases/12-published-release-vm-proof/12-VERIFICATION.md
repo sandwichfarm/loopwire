@@ -5,6 +5,12 @@
 
 ## Evidence Passed
 
+- Desktop Restore on boot can now carry optional JACK provider settings. The settings panel stores a JACK provider
+  command and timeout, keeps the provider optional for configurations that target pre-existing JACK ports, and passes
+  those values to the Tauri startup command only when JACK is selected for background install. The Tauri renderer writes
+  the matching `--backend jack --jack-provider-command ... --jack-provider-timeout-ms ...` flags and fails before file
+  writes for invalid JACK provider timeout values or mixed DSP/JACK provider commands. Focused validation passed so far:
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, and `pnpm verify:docs`.
 - Desktop Restore on boot can now carry explicit DSP provider settings. The settings panel stores provider command,
   mode, timeout, and frame-count fields, enables DSP Provider selection only for live provider settings, and passes
   those values to the Tauri startup command when writing the background restore unit. The Tauri renderer writes the

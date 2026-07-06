@@ -176,6 +176,10 @@ Release artifacts install `loopwire-jack-ports`, a bundled provider wrapper that
 `loopwire.jack-ports.provision-plan` manifest and returns nonzero unless `LOOPWIRE_JACK_PORTS_DELEGATE` or
 `--delegate-command` points at a live JACK client provider.
 
+The desktop Settings panel exposes the same optional JACK provider command and timeout for Restore on boot. Leave the
+command blank when your saved configuration targets pre-existing JACK ports. Set it when boot restore must ask an
+operator-owned provider to prepare deterministic Loopwire-owned ports before the background service connects routes.
+
 For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
 configuration transaction, per-edge gain/mute math, and verification sequence:
 
@@ -283,13 +287,13 @@ RestartSec=2
 WantedBy=default.target
 ```
 
-For JACK boot restore, the helper appends the same `--jack-provider-command` and `--jack-provider-timeout-ms` flags to
-the generated `ExecStart` line. For DSP provider restore, the helper appends `--backend dsp` plus the DSP provider
-flags. Packaged services pass those flags after `loopwire --background`; source-checkout services pass them after
-`pnpm restore:background --`, so both boot paths keep the same runtime contract. The packaged JACK wrapper is a
-preflight/delegation surface, not a native JACK client creator. The packaged DSP provider is likewise a file-backed
-preflight provider unless a separate live provider is configured with `--dsp-provider-command` and
-`--dsp-provider-mode live`.
+For JACK boot restore, the helper and desktop shell append `--backend jack`, `--jack-provider-command`, and
+`--jack-provider-timeout-ms` to the generated `ExecStart` line only when a JACK provider command is configured. For DSP
+provider restore, the helper appends `--backend dsp` plus the DSP provider flags. Packaged services pass those flags
+after `loopwire --background`; source-checkout services pass them after `pnpm restore:background --`, so both boot
+paths keep the same runtime contract. The packaged JACK wrapper is a preflight/delegation surface, not a native JACK
+client creator. The packaged DSP provider is likewise a file-backed preflight provider unless a separate live provider
+is configured with `--dsp-provider-command` and `--dsp-provider-mode live`.
 
 The helper supports both the packaged launcher path through `--binary "$HOME/.local/bin/loopwire"` and the source
 checkout path through `--source-dir "$PWD"`.

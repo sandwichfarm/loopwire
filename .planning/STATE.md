@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T04:04:11+02:00"
-last_activity: 2026-07-06 - Desktop Restore on boot can render DSP provider settings
+last_updated: "2026-07-06T04:21:31+02:00"
+last_activity: 2026-07-06 - Desktop Restore on boot can render JACK provider settings
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 12 Published Release and VM Proof
 Plan: Strict proof remains gated on published release, Bunny deployment, final proof, and VM evidence
 Status: In Progress
-Last activity: 2026-07-06 - desktop settings now store DSP provider command, mode, timeout, and frame-count fields for
-Restore on boot. When DSP Provider is selected, the Tauri background service renderer writes those settings into the
-user-scoped systemd unit with `--backend dsp --dsp-provider-*` flags and rejects file-backed/invalid live-restore
-options before writing the service. Desktop Host apply still blocks DSP provider live apply.
+Last activity: 2026-07-06 - desktop settings now store optional JACK provider command and timeout fields for Restore on
+boot. When JACK is selected and a provider command is configured, the Tauri background service renderer writes
+`--backend jack --jack-provider-command ... --jack-provider-timeout-ms ...` into the user-scoped systemd unit and rejects
+invalid JACK provider timeouts before writing the service. Desktop Host apply still does not create native JACK clients.
 
 ## Blockers / Concerns
 
@@ -47,11 +47,12 @@ options before writing the service. Desktop Host apply still blocks DSP provider
   provider command, `pnpm dsp:plan`/`pnpm dsp:verify` can preflight that provider command, desktop settings can render
   DSP provider flags into the Restore-on-boot systemd unit, and desktop route-control UX is driven by detected backend
   mixing semantics. A bundled file-backed `loopwire-dsp-provider` now exists for local restore-contract smoke and
-  packaging proof. Native JACK now has an injected virtual-port provider hook and bundled `loopwire-jack-ports`
-  wrapper for manifest/delegation proof, but live host DSP capture/injection, native JACK client creation, native host
-  graph-edge gain implementation, and desktop Host-apply DSP provider execution remain planned. DSP live restore now
-  requires the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now
-  requires provider `capabilities` to declare `supportsLiveGraph:true`.
+  packaging proof. Native JACK now has an injected virtual-port provider hook, bundled `loopwire-jack-ports` wrapper
+  for manifest/delegation proof, and desktop Restore-on-boot settings that can render optional JACK provider flags into
+  the user systemd unit, but live host DSP capture/injection, native JACK client creation, native host graph-edge gain
+  implementation, and desktop Host-apply DSP provider execution remain planned. DSP live restore now requires the
+  operator to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now requires
+  provider `capabilities` to declare `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -86,6 +87,14 @@ options before writing the service. Desktop Host apply still blocks DSP provider
 
 ## Verification Log
 
+- 2026-07-06 Desktop JACK restore provider settings: desktop settings now persist optional JACK provider command and
+  timeout fields, explain that leaving the command blank keeps pre-existing JACK port restore behavior, and pass the
+  provider settings to `manage_startup` only when JACK is selected for background install. The Tauri service renderer
+  now writes `--backend jack --jack-provider-command ... --jack-provider-timeout-ms ...` into the user-scoped systemd
+  unit and rejects invalid JACK provider timeouts or mixed DSP/JACK provider commands before writing the file. Focused
+  validation passed so far: `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, and `pnpm verify:docs`.
+  No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation,
+  or support-matrix promotion was performed.
 - 2026-07-06 Desktop DSP restore provider settings: desktop settings now persist DSP provider command, provider mode,
   timeout, and frame count in local storage, expose DSP Provider as selectable once the settings describe a live
   provider, and pass those settings to `manage_startup` when enabling Restore on boot. The Tauri service renderer now

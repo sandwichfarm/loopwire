@@ -129,6 +129,7 @@
   const storageKey = "loopwire.state.v1";
   const chromeStorageKey = "loopwire.chrome.v1";
   const dspRestoreStorageKey = "loopwire.dsp-restore.v1";
+  const jackRestoreStorageKey = "loopwire.jack-restore.v1";
   const routingBoardTop = 150;
   const routingBoardRowGap = 136;
   const routingBoardBottom = 80;
@@ -301,12 +302,15 @@
   let dspProviderMode: DspProviderMode = "live";
   let dspProviderTimeoutMs = "5000";
   let dspFrameCount = "480";
+  let jackProviderCommand = "";
+  let jackProviderTimeoutMs = "5000";
   let transferText = "";
   let transferNote = "Export the active configuration or paste a Loopwire configuration JSON payload.";
 
   onMount(() => {
     restoreChromePreference();
     restoreDspProviderSettings();
+    restoreJackProviderSettings();
     void bootApplication();
   });
 
@@ -318,6 +322,9 @@
     dspProviderMode === "live" &&
     dspProviderTimeoutValid &&
     dspFrameCountValid;
+  $: jackProviderCommandConfigured = jackProviderCommand.trim().length > 0;
+  $: jackProviderTimeoutValid = positiveIntegerText(jackProviderTimeoutMs);
+  $: jackRestoreProviderReady = !jackProviderCommandConfigured || jackProviderTimeoutValid;
   $: backendCandidates = withDspProviderCandidate(detectedBackendCandidates, dspRestoreProviderReady);
   $: activeConfiguration = getActiveConfiguration(state);
   $: monitorVisibilityGroups = groupMonitorsByVisibility(state, activeConfiguration);
@@ -374,6 +381,10 @@
     backgroundStartupBusy ||
     !desktopRuntimeAvailable ||
     (!backgroundStartupEnabled && state.selectedBackend === "dsp" && !dspRestoreProviderReady) ||
+    (!backgroundStartupEnabled &&
+      state.selectedBackend === "jack" &&
+      jackProviderCommandConfigured &&
+      !jackRestoreProviderReady) ||
     ((!backgroundStartupAvailable || !selectedBackendAvailableForRestore) && !backgroundStartupEnabled);
   $: sourcePickerCandidates = detectedSourceCandidates.length > 0 ? detectedSourceCandidates : staticSourceCandidates;
   $: outputPickerCandidates = nativeBackendUsesHostTargets(state.selectedBackend)
@@ -465,6 +476,54 @@
   function setDspFrameCount(value: string): void {
     dspFrameCount = value;
     persistDspProviderSettings();
+  }
+
+  function restoreJackProviderSettings(): void {
+    const raw = localStorage.getItem(jackRestoreStorageKey);
+
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      if (!parsed || typeof parsed !== "object") {
+        return;
+      }
+
+      const settings = parsed as {
+        readonly command?: unknown;
+        readonly timeoutMs?: unknown;
+      };
+
+      jackProviderCommand = typeof settings.command === "string" ? settings.command : "";
+      jackProviderTimeoutMs = positiveIntegerText(String(settings.timeoutMs ?? ""))
+        ? String(settings.timeoutMs)
+        : "5000";
+    } catch {
+      localStorage.removeItem(jackRestoreStorageKey);
+    }
+  }
+
+  function persistJackProviderSettings(): void {
+    localStorage.setItem(
+      jackRestoreStorageKey,
+      JSON.stringify({
+        command: jackProviderCommand,
+        timeoutMs: jackProviderTimeoutMs
+      })
+    );
+  }
+
+  function setJackProviderCommand(value: string): void {
+    jackProviderCommand = value;
+    persistJackProviderSettings();
+  }
+
+  function setJackProviderTimeout(value: string): void {
+    jackProviderTimeoutMs = value;
+    persistJackProviderSettings();
   }
 
   function parseChromeMode(value: string | null): ChromeMode {
@@ -721,18 +780,29 @@
   function backgroundStartupInvokeOptions(
     action: "background_status" | "background_install" | "background_uninstall"
   ): Record<string, string | number> {
-    if (action !== "background_install" || state.selectedBackend !== "dsp" || !dspProviderCommandConfigured) {
+    if (action !== "background_install") {
       return {};
     }
 
-    return {
-      dspProviderCommand: dspProviderCommand.trim(),
-      dspProviderMode,
-      dspProviderTimeoutMs: positiveIntegerNumber(dspProviderTimeoutMs, 5000),
-      ...(dspFrameCount.trim()
-        ? { dspFrameCount: positiveIntegerNumber(dspFrameCount, 480) }
-        : {})
-    };
+    if (state.selectedBackend === "dsp" && dspProviderCommandConfigured) {
+      return {
+        dspProviderCommand: dspProviderCommand.trim(),
+        dspProviderMode,
+        dspProviderTimeoutMs: positiveIntegerNumber(dspProviderTimeoutMs, 5000),
+        ...(dspFrameCount.trim()
+          ? { dspFrameCount: positiveIntegerNumber(dspFrameCount, 480) }
+          : {})
+      };
+    }
+
+    if (state.selectedBackend === "jack" && jackProviderCommandConfigured) {
+      return {
+        jackProviderCommand: jackProviderCommand.trim(),
+        jackProviderTimeoutMs: positiveIntegerNumber(jackProviderTimeoutMs, 5000)
+      };
+    }
+
+    return {};
   }
 
   async function selectOnlyAvailableBackend(candidates: readonly BackendCandidate[]): Promise<void> {
@@ -1930,6 +2000,18 @@
     return "DSP Provider can be selected for provider-backed Restore on boot.";
   }
 
+  function jackProviderSettingsMessage(): string {
+    if (!jackProviderCommandConfigured) {
+      return "Leave blank to use pre-existing JACK ports during Restore on boot.";
+    }
+
+    if (!jackProviderTimeoutValid) {
+      return "Timeout must be a positive number.";
+    }
+
+    return "Restore on boot will ask this provider to prepare Loopwire-owned JACK ports.";
+  }
+
   function monitorTargetKnown(deviceName: string): boolean {
     return monitorTargetDevices.some((device) => device.deviceName === deviceName);
   }
@@ -2261,6 +2343,40 @@
                 <button
                   type="button"
                   disabled={backgroundStartupBusy || !dspRestoreProviderReady}
+                  on:click={() => void runBackgroundStartupAction("background_install")}
+                >
+                  Update restore
+                </button>
+              {/if}
+            </article>
+
+            <article class="settings-card provider-card" data-mode={jackRestoreProviderReady ? "ready" : "setup"}>
+              <div>
+                <span>JACK provider</span>
+                <strong>{jackProviderCommandConfigured ? "Provider configured" : "Optional"}</strong>
+              </div>
+              <label>
+                <span>Command</span>
+                <input
+                  value={jackProviderCommand}
+                  placeholder="loopwire-jack-ports"
+                  on:input={(event) => setJackProviderCommand(event.currentTarget.value)}
+                />
+              </label>
+              <label>
+                <span>Timeout</span>
+                <input
+                  inputmode="numeric"
+                  value={jackProviderTimeoutMs}
+                  aria-invalid={!jackProviderTimeoutValid}
+                  on:input={(event) => setJackProviderTimeout(event.currentTarget.value)}
+                />
+              </label>
+              <small>{jackProviderSettingsMessage()}</small>
+              {#if backgroundStartupEnabled && state.selectedBackend === "jack"}
+                <button
+                  type="button"
+                  disabled={backgroundStartupBusy || !jackRestoreProviderReady}
                   on:click={() => void runBackgroundStartupAction("background_install")}
                 >
                   Update restore

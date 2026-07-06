@@ -133,6 +133,8 @@ These notes describe source-tree progress. They are not a public release announc
   provider and passes stable `ensure --configuration-id ... --requirement ... --port ...` arguments.
 - The autostart helper now renders background systemd units with `--state-file`, `--mode`, retry options, and
   `--jack-provider-command` so source-checkout and packaged boot restore use the same runtime contract.
+- Desktop Settings now persists the optional JACK provider command and timeout, then writes those flags into the
+  Restore-on-boot service when JACK is the selected backend.
 - `@loopwire/core` now has a pure DSP mix planner/renderer plus an injected source/output cycle runner that applies
   per-edge gain and mute to supplied source buffers, including one source routed to multiple outputs, without claiming
   live host DSP insertion yet.

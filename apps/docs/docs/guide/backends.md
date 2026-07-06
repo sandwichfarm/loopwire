@@ -131,6 +131,9 @@ background restore preflight. It writes a `loopwire.jack-ports.provision-plan` m
 `LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at an operator-supplied live JACK client provider. Keep
 that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
 
+Desktop Restore on boot can persist the same JACK provider command and timeout that the CLI accepts. This only prepares
+the boot-restore service invocation; it does not turn the bundled wrapper into a native JACK client creator.
+
 The ALSA path is read-only diagnostics. It lists playback hardware with `aplay -l` and capture hardware with
 `arecord -l` so users can see whether the kernel/session can see devices before choosing a graph-capable backend.
 Loopwire does not create ALSA virtual devices, move streams, or apply routes through ALSA.

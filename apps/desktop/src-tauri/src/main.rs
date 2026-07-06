@@ -18,15 +18,31 @@ struct BackgroundRestoreOptions {
     dsp_provider_timeout_ms: Option<u64>,
     dsp_provider_mode: Option<String>,
     dsp_frame_count: Option<u64>,
+    jack_provider_command: Option<String>,
+    jack_provider_timeout_ms: Option<u64>,
 }
 
 impl BackgroundRestoreOptions {
     fn validate_for_live_restore(&self) -> Result<(), String> {
-        let has_provider = clean_restore_arg(self.dsp_provider_command.as_deref()).is_some();
+        let has_dsp_provider = clean_restore_arg(self.dsp_provider_command.as_deref()).is_some();
+        let has_jack_provider = clean_restore_arg(self.jack_provider_command.as_deref()).is_some();
+
+        if has_dsp_provider && has_jack_provider {
+            return Err(
+                "DSP provider background restore cannot be combined with JACK provider restore."
+                    .to_string(),
+            );
+        }
 
         if let Some(timeout_ms) = self.dsp_provider_timeout_ms {
             if timeout_ms == 0 {
                 return Err("DSP provider timeout must be greater than zero.".to_string());
+            }
+        }
+
+        if let Some(timeout_ms) = self.jack_provider_timeout_ms {
+            if timeout_ms == 0 {
+                return Err("JACK provider timeout must be greater than zero.".to_string());
             }
         }
 
@@ -35,7 +51,7 @@ impl BackgroundRestoreOptions {
                 return Err("DSP frame count must be greater than zero.".to_string());
             }
 
-            if !has_provider {
+            if !has_dsp_provider {
                 return Err("DSP frame count requires a DSP provider command.".to_string());
             }
         }
@@ -45,17 +61,17 @@ impl BackgroundRestoreOptions {
                 return Err("DSP provider mode must be file-backed or live.".to_string());
             }
 
-            if mode != "file-backed" && !has_provider {
+            if mode != "file-backed" && !has_dsp_provider {
                 return Err("DSP provider mode requires a DSP provider command.".to_string());
             }
 
-            if has_provider && mode != "live" {
+            if has_dsp_provider && mode != "live" {
                 return Err(
                     "DSP provider background restore runs in live mode; choose live provider mode."
                         .to_string(),
                 );
             }
-        } else if has_provider {
+        } else if has_dsp_provider {
             return Err(
                 "DSP provider background restore runs in live mode; choose live provider mode."
                     .to_string(),
@@ -144,6 +160,8 @@ fn manage_startup(
     dsp_provider_timeout_ms: Option<u64>,
     dsp_provider_mode: Option<String>,
     dsp_frame_count: Option<u64>,
+    jack_provider_command: Option<String>,
+    jack_provider_timeout_ms: Option<u64>,
 ) -> Result<String, String> {
     let path = autostart_path()?;
     let background_path = background_startup_path()?;
@@ -154,6 +172,8 @@ fn manage_startup(
         dsp_provider_timeout_ms,
         dsp_provider_mode,
         dsp_frame_count,
+        jack_provider_command,
+        jack_provider_timeout_ms,
     };
 
     match action.as_str() {
@@ -758,6 +778,19 @@ fn render_background_restore_args(state_path: &Path, options: &BackgroundRestore
         }
     }
 
+    if let Some(command) = clean_restore_arg(options.jack_provider_command.as_deref()) {
+        args.push_str(" --backend jack --jack-provider-command \"");
+        args.push_str(&escape_exec_arg(&command));
+        args.push('"');
+        args.push_str(" --jack-provider-timeout-ms ");
+        args.push_str(
+            &options
+                .jack_provider_timeout_ms
+                .unwrap_or(5_000)
+                .to_string(),
+        );
+    }
+
     args
 }
 
@@ -1049,6 +1082,7 @@ mod tests {
                 dsp_provider_timeout_ms: Some(7_000),
                 dsp_provider_mode: Some("live".to_string()),
                 dsp_frame_count: Some(480),
+                ..BackgroundRestoreOptions::default()
             },
         );
 
@@ -1061,6 +1095,23 @@ mod tests {
     }
 
     #[test]
+    fn renders_background_restore_jack_provider_options() {
+        let unit = render_background_service(
+            Path::new("/tmp/Loopwire App"),
+            Path::new("/tmp/config/loopwire/state.json"),
+            &BackgroundRestoreOptions {
+                jack_provider_command: Some("loopwire-jack-ports".to_string()),
+                jack_provider_timeout_ms: Some(7_000),
+                ..BackgroundRestoreOptions::default()
+            },
+        );
+
+        assert!(unit.contains("ExecStart=\"/tmp/Loopwire App\" --background"));
+        assert!(unit.contains("--backend jack --jack-provider-command \"loopwire-jack-ports\""));
+        assert!(unit.contains("--jack-provider-timeout-ms 7000"));
+    }
+
+    #[test]
     fn rejects_invalid_background_restore_dsp_provider_options() {
         assert!(
             BackgroundRestoreOptions {
@@ -1068,6 +1119,7 @@ mod tests {
                 dsp_provider_timeout_ms: Some(0),
                 dsp_provider_mode: Some("live".to_string()),
                 dsp_frame_count: None,
+                ..BackgroundRestoreOptions::default()
             }
             .validate_for_live_restore()
             .expect_err("zero timeout should fail")
@@ -1080,6 +1132,7 @@ mod tests {
                 dsp_provider_timeout_ms: Some(5_000),
                 dsp_provider_mode: Some("file-backed".to_string()),
                 dsp_frame_count: None,
+                ..BackgroundRestoreOptions::default()
             }
             .validate_for_live_restore()
             .expect_err("file-backed live restore should fail")
@@ -1092,10 +1145,39 @@ mod tests {
                 dsp_provider_timeout_ms: Some(5_000),
                 dsp_provider_mode: Some("live".to_string()),
                 dsp_frame_count: Some(480),
+                ..BackgroundRestoreOptions::default()
             }
             .validate_for_live_restore()
             .expect_err("frame count without command should fail")
             .contains("DSP frame count requires")
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_background_restore_jack_provider_options() {
+        assert!(
+            BackgroundRestoreOptions {
+                jack_provider_command: Some("loopwire-jack-ports".to_string()),
+                jack_provider_timeout_ms: Some(0),
+                ..BackgroundRestoreOptions::default()
+            }
+            .validate_for_live_restore()
+            .expect_err("zero JACK timeout should fail")
+            .contains("JACK provider timeout")
+        );
+
+        assert!(
+            BackgroundRestoreOptions {
+                dsp_provider_command: Some("loopwire-live-dsp-provider".to_string()),
+                dsp_provider_timeout_ms: Some(5_000),
+                dsp_provider_mode: Some("live".to_string()),
+                jack_provider_command: Some("loopwire-jack-ports".to_string()),
+                jack_provider_timeout_ms: Some(5_000),
+                ..BackgroundRestoreOptions::default()
+            }
+            .validate_for_live_restore()
+            .expect_err("mixed provider commands should fail")
+            .contains("cannot be combined")
         );
     }
 
