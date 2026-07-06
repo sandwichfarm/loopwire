@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T08:00:13+02:00"
-last_activity: 2026-07-06 - Release signing key handoff prints complete final-scope secret setup
+last_updated: "2026-07-06T08:17:44+02:00"
+last_activity: 2026-07-06 - Published-release verifier rejects duplicate canonical tarball checksums
 progress:
   total_phases: 5
   completed_phases: 4
@@ -74,6 +74,9 @@ Latest release-ceremony hardening: 2026-07-06 - `scripts/prepare-release-signing
 final-proof secret setup handoff after generating a keypair: explicit `--scope final`, Bunny upload fields, pull-zone
 hostname, generated private/public key paths, and the no-value env-template alternative. `pnpm verify:scripts` now
 generates a temporary keypair and rejects helper output that omits those handoff fields.
+Latest checksum hardening: 2026-07-06 - `scripts/verify-published-release.sh` now requires exactly one signed
+`SHA256SUMS` entry for each canonical Linux tarball. `pnpm verify:scripts` includes a signed duplicate-entry release
+fixture and expects the published-release verifier to reject it before install smoke.
 
 ## Blockers / Concerns
 
@@ -134,6 +137,13 @@ generates a temporary keypair and rejects helper output that omits those handoff
 
 ## Verification Log
 
+- 2026-07-06 published release checksum ambiguity hardening: `scripts/verify-published-release.sh` now rejects duplicate
+  `SHA256SUMS` entries for `loopwire-linux-x86_64.tar.gz` and `loopwire-linux-aarch64.tar.gz` instead of accepting any
+  matching row. `scripts/verify-scripts.sh` signs a duplicate-entry release fixture and verifies the published-release
+  smoke fails before install. Focused validation passed: `bash -n scripts/verify-published-release.sh
+  scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full validation
+  passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch,
+  host audio mutation, provider execution, or support-matrix promotion was performed.
 - 2026-07-06 release signing key final-scope handoff: `scripts/prepare-release-signing-key.sh` now prints complete
   final-proof secret setup instructions instead of a partial private-key-only command. The generated next step includes
   `--scope final`, Bunny storage zone/access-key placeholders, pull-zone hostname placeholder, generated private/public

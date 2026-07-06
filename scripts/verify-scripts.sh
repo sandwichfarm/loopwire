@@ -7727,6 +7727,12 @@ if bash scripts/verify-release-asset-checksum.sh \
   echo "verify-scripts: release asset checksum verifier accepted duplicate checksum entries" >&2
   exit 1
 fi
+if bash scripts/verify-published-release.sh \
+  --release-dir "$duplicate_checksum_release_dir" \
+  --public-key "$public_key_file" >/dev/null 2>&1; then
+  echo "verify-scripts: published release verifier accepted duplicate required asset checksum entries" >&2
+  exit 1
+fi
 tampered_checksum_release_dir="$tmp_dir/tampered-checksum-release"
 cp -R "$published_release_dir" "$tampered_checksum_release_dir"
 printf '%s\n' "tamper" >>"$tampered_checksum_release_dir/loopwire-linux-${published_current_arch}.tar.gz"

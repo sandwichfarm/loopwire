@@ -105,9 +105,19 @@ required_assets=(
 
 require_checksum_entry() {
   local asset="$1"
+  local entry_count
 
-  awk -v asset="$asset" '$2 == asset { found = 1 } END { exit found ? 0 : 1 }' "$release_dir/SHA256SUMS" \
-    || fail "SHA256SUMS is missing required asset entry: $asset"
+  entry_count="$(awk -v asset="$asset" '$2 == asset { count++ } END { print count + 0 }' "$release_dir/SHA256SUMS")"
+  case "$entry_count" in
+    1)
+      ;;
+    0)
+      fail "SHA256SUMS is missing required asset entry: $asset"
+      ;;
+    *)
+      fail "SHA256SUMS has duplicate required asset entries: $asset"
+      ;;
+  esac
 }
 
 resolve_release_evidence_archive() {

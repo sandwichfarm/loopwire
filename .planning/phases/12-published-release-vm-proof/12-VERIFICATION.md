@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Published release checksum verification now fails closed on duplicate canonical tarball entries. The published-release
+  verifier requires exactly one signed `SHA256SUMS` row for `loopwire-linux-x86_64.tar.gz` and
+  `loopwire-linux-aarch64.tar.gz`; `scripts/verify-scripts.sh` signs a duplicate-entry release fixture and verifies the
+  published-release smoke rejects it before install. Focused validation passed: `bash -n
+  scripts/verify-published-release.sh scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was
+  performed.
 - Release signing key preparation now renders a complete final-proof secret setup handoff. After generating and
   validating a keypair, `scripts/prepare-release-signing-key.sh` prints explicit `--scope final` setup with Bunny
   upload placeholders, pull-zone hostname placeholder, generated private/public key paths, and the local no-value

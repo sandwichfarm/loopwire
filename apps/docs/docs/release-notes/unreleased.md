@@ -232,6 +232,9 @@ These notes describe source-tree progress. They are not a public release announc
   validation.
 - Published-release verification can now run against a local signed release directory in CI and rejects tampered
   tarballs before the live GitHub Release smoke path is available.
+- Published-release verification now rejects duplicate `SHA256SUMS` entries for canonical Linux tarballs, so a signed
+  manifest cannot contain ambiguous checksums for `loopwire-linux-x86_64.tar.gz` or `loopwire-linux-aarch64.tar.gz`
+  while still passing install smoke.
 - Release workflow now has x86_64 and AArch64 Linux build lanes, with a single publish job that signs one combined
   `SHA256SUMS` manifest before creating or updating the GitHub Release.
 - Release workflow manual dispatch now checks out the resolved tag in detached mode before build and publish work, so a
