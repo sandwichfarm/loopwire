@@ -14,6 +14,8 @@ dsp_configuration="scripts/fixtures/dsp-provider-configuration.json"
 dsp_frame_count="16"
 release_evidence_asset=""
 vm_evidence_asset=""
+docs_artifact="loopwire-docs"
+manifest_artifact="loopwire-docs-deployment"
 
 usage() {
   cat <<'USAGE'
@@ -32,6 +34,9 @@ Options:
                          Expected release evidence archive asset, default loopwire-release-evidence-<tag>.tar.gz
   --vm-evidence-asset NAME
                          Expected VM evidence archive asset, default loopwire-vm-evidence-<tag>.tar.gz
+  --docs-artifact NAME   Deploy Docs dist artifact for post-Bunny proof, default loopwire-docs
+  --manifest-artifact NAME
+                         Deploy Docs manifest artifact for post-Bunny proof, default loopwire-docs-deployment
   --skip-local-gates     Only verify offline release readiness and handoff rendering
   --require-hosted-checks
                          Require commit-scoped CI and Deploy Docs workflow runs to be successful for --git-head
@@ -92,6 +97,14 @@ validate_optional_asset() {
   local asset="$2"
 
   [ -z "$asset" ] || bash scripts/validate-release-asset-name.sh --kind "$kind" --tag "$tag" --asset "$asset" >/dev/null
+}
+
+validate_artifact_name() {
+  local value="$1"
+  local label="$2"
+
+  [ -n "$value" ] || fail "$label must not be empty"
+  reject_unsafe_value "$value" "$label"
 }
 
 validate_relative_path() {
@@ -267,6 +280,14 @@ while [ "$#" -gt 0 ]; do
       vm_evidence_asset="${2:?missing value for --vm-evidence-asset}"
       shift 2
       ;;
+    --docs-artifact)
+      docs_artifact="${2:?missing value for --docs-artifact}"
+      shift 2
+      ;;
+    --manifest-artifact)
+      manifest_artifact="${2:?missing value for --manifest-artifact}"
+      shift 2
+      ;;
     --skip-local-gates)
       skip_local_gates="true"
       shift
@@ -308,6 +329,8 @@ validate_tag
 validate_git_head
 validate_optional_asset "release-evidence" "$release_evidence_asset"
 validate_optional_asset "vm-evidence" "$vm_evidence_asset"
+validate_artifact_name "$docs_artifact" "docs artifact"
+validate_artifact_name "$manifest_artifact" "manifest artifact"
 if [ "$allow_head_mismatch" != "true" ]; then
   validate_current_checkout_head
 fi
@@ -367,7 +390,11 @@ fi
 if [ "$require_docs_deployment_artifacts" = "true" ]; then
   run_gate \
     "artifact-bearing hosted Deploy Docs run" \
-    bash scripts/select-docs-deployment-run.sh --repo "$repo" --git-head "$git_head"
+    bash scripts/select-docs-deployment-run.sh \
+      --repo "$repo" \
+      --git-head "$git_head" \
+      --docs-artifact "$docs_artifact" \
+      --manifest-artifact "$manifest_artifact"
 else
   echo "skipped: docs deployment artifact check (--require-docs-deployment-artifacts not set)"
   echo

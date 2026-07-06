@@ -116,6 +116,9 @@ These notes describe source-tree progress. They are not a public release announc
   above-the-fold product preview available to assistive technology.
 - The final release handoff now prints the operator command that sets final-scope GitHub secrets from the filled local
   env file before the read-only secret audit, without printing or committing secret values.
+- `pnpm release:agent-ready -- --require-docs-deployment-artifacts` now accepts `--docs-artifact` and
+  `--manifest-artifact`, so custom Deploy Docs proof artifact names are checked by the same post-Bunny readiness gate
+  that verifies default `loopwire-docs` and `loopwire-docs-deployment` artifacts.
 - Native-backend live-apply preflight now names routes blocked by non-100% gain and provides a `Reset gains` action
   that restores affected routes to 100% without touching host audio.
 - The native-backend `Reset gains` remediation is now covered by a pure desktop helper, so PipeWire/JACK reset behavior,

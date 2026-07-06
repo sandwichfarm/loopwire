@@ -229,8 +229,10 @@ matrix/cloud-init metadata, packaging metadata, a read-only DSP provider graph-e
 smoke. It also verifies that the rendered final-proof dispatch and closing `release:status` audit carry the tag-bound
 release and VM evidence archive names, so the repo-ready handoff cannot drop the archive proof contract. Use
 `--release-evidence-asset NAME` and `--vm-evidence-asset NAME` when rehearsing a handoff with non-default tag-bound
-archive names. Use `--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof
-topology.
+archive names. When the Deploy Docs workflow artifact names are overridden for a rehearsal, pass
+`--docs-artifact NAME` and `--manifest-artifact NAME` with `--require-docs-deployment-artifacts` so the post-Bunny
+artifact gate checks the same proof artifacts that the fetch/final-proof handoff will use.
+Use `--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof topology.
 By default it requires a clean checkout whose current `HEAD` exactly matches `--git-head`, so the rendered handoff
 matches the pushed commit. Use `--allow-dirty` and `--allow-head-mismatch` only for local development rehearsal before
 committing. Use `--skip-local-gates` only for fast script-contract rehearsal. Add `--require-hosted-checks` when the

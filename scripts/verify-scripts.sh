@@ -346,6 +346,14 @@ printf '%s\n' "$agent_release_ready_help" | grep -F -- "--require-docs-deploymen
   echo "verify-scripts: agent-ready release help is missing docs deployment artifact support" >&2
   exit 1
 }
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--docs-artifact NAME" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing docs artifact override support" >&2
+  exit 1
+}
+printf '%s\n' "$agent_release_ready_help" | grep -F -- "--manifest-artifact NAME" >/dev/null || {
+  echo "verify-scripts: agent-ready release help is missing docs manifest artifact override support" >&2
+  exit 1
+}
 printf '%s\n' "$agent_release_ready_help" |
   grep -F -- "after Deploy Docs has run with Bunny secrets configured" >/dev/null || {
     echo "verify-scripts: agent-ready release help is missing post-Bunny sequencing guidance" >&2
@@ -816,6 +824,9 @@ if [ "${1:-}" = "api" ]; then
     ok)
       printf '%s\n' loopwire-docs loopwire-docs-deployment
       ;;
+    custom)
+      printf '%s\n' loopwire-docs-custom loopwire-docs-deployment-custom
+      ;;
     missing-deployment)
       printf '%s\n' loopwire-docs
       ;;
@@ -930,6 +941,29 @@ printf '%s\n' "$agent_release_ready_artifact_plan" |
     echo "verify-scripts: agent-ready release artifact proof is missing selected run evidence" >&2
     exit 1
   }
+agent_release_ready_custom_docs_artifact_plan="$(
+  LOOPWIRE_FAKE_GH_ARTIFACT_MODE=custom PATH="$agent_ready_fake_bin:$PATH" bash scripts/verify-agent-release-ready.sh \
+    --repo sandwichfarm/loopwire \
+    --tag v0.1.0 \
+    --git-head 0123456789abcdef0123456789abcdef01234567 \
+    --allow-dirty \
+    --allow-head-mismatch \
+    --require-hosted-checks \
+    --require-docs-deployment-artifacts \
+    --docs-artifact loopwire-docs-custom \
+    --manifest-artifact loopwire-docs-deployment-custom \
+    --skip-local-gates
+)"
+printf '%s\n' "$agent_release_ready_custom_docs_artifact_plan" |
+  grep -F "ok: artifact-bearing hosted Deploy Docs run" >/dev/null || {
+    echo "verify-scripts: agent-ready release did not verify custom artifact-bearing docs run" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_custom_docs_artifact_plan" |
+  grep -F "selected Deploy Docs workflow run 222" >/dev/null || {
+    echo "verify-scripts: agent-ready release custom artifact proof is missing selected run evidence" >&2
+    exit 1
+  }
 agent_ready_missing_artifact_log="$(mktemp)"
 if LOOPWIRE_FAKE_GH_ARTIFACT_MODE=missing-deployment PATH="$agent_ready_fake_bin:$PATH" \
   bash scripts/verify-agent-release-ready.sh \
@@ -1010,6 +1044,16 @@ if bash scripts/verify-agent-release-ready.sh \
   --vm-evidence-asset ../loopwire-vm-evidence-v0.1.0.tar.gz \
   --skip-local-gates >/dev/null 2>&1; then
   echo "verify-scripts: agent-ready release accepted an unsafe VM evidence asset name" >&2
+  exit 1
+fi
+if bash scripts/verify-agent-release-ready.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --allow-head-mismatch \
+  --docs-artifact $'loopwire-docs\nbad' \
+  --skip-local-gates >/dev/null 2>&1; then
+  echo "verify-scripts: agent-ready release accepted a newline-containing docs artifact name" >&2
   exit 1
 fi
 if bash scripts/plan-final-release-handoff.sh \

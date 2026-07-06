@@ -650,7 +650,11 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "repo-side release readiness"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "requires a clean checkout by default"
 assert_contains "apps/docs/docs/developer/release.md" "--require-docs-deployment-artifacts"
+assert_contains "apps/docs/docs/developer/release.md" "--docs-artifact NAME"
+assert_contains "apps/docs/docs/developer/release.md" "--manifest-artifact NAME"
 assert_contains "apps/docs/docs/developer/release.md" "Do not use it before Bunny deployment proof exists."
+assert_contains "apps/docs/docs/release-notes/unreleased.md" '`pnpm release:agent-ready -- --require-docs-deployment-artifacts`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "custom Deploy Docs proof artifact names"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--allow-dirty`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'current checkout `HEAD` to equal `--git-head`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" '`--allow-head-mismatch`'

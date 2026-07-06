@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- Agent-ready release proof now carries custom Deploy Docs proof artifact names into the post-Bunny readiness gate.
+  `scripts/verify-agent-release-ready.sh` accepts `--docs-artifact` and `--manifest-artifact`, validates them, and
+  passes them to `scripts/select-docs-deployment-run.sh` whenever `--require-docs-deployment-artifacts` is active.
+  `scripts/verify-scripts.sh` covers default, custom-artifact, and missing-artifact fake GitHub probes, so the gate can
+  no longer silently fall back to default `loopwire-docs` and `loopwire-docs-deployment` artifact names. Release docs
+  and release notes now describe the override path. Focused validation passed: `bash -n
+  scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, and
+  `pnpm verify:docs`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was
+  performed.
 - Final release proof now carries custom evidence asset names end to end. `scripts/verify-published-release.sh` accepts
   a validated `--release-evidence-asset` override, `scripts/verify-final-release-proof.sh` passes that name into the
   published-release gate and passes `--vm-evidence-asset` into VM evidence dry-run preparation, and the Final Release

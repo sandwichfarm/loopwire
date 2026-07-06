@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T11:03:35+02:00"
-last_activity: 2026-07-06 - Final proof carries custom evidence asset names end to end
+last_updated: "2026-07-06T11:21:16+02:00"
+last_activity: 2026-07-06 - Agent-ready carries custom docs proof artifact names
 progress:
   total_phases: 5
   completed_phases: 4
@@ -119,6 +119,10 @@ wrapper carries `--vm-evidence-asset` into VM evidence dry-run preparation. The 
 canonical release and VM evidence archive names after download and passes them into the composed final proof script, so
 custom tag-bound archive names no longer fall back to defaults between workflow download, published-release proof, and
 local handoff planning.
+Latest docs-proof artifact hardening: 2026-07-06 - `scripts/verify-agent-release-ready.sh` now accepts
+`--docs-artifact` and `--manifest-artifact` overrides and passes them into `scripts/select-docs-deployment-run.sh` when
+`--require-docs-deployment-artifacts` is active. The post-Bunny readiness gate can therefore prove custom Deploy Docs
+proof artifact names without falling back to default `loopwire-docs` and `loopwire-docs-deployment` names.
 
 ## Blockers / Concerns
 
@@ -179,6 +183,14 @@ local handoff planning.
 
 ## Verification Log
 
+- 2026-07-06 agent-ready docs artifact hardening: `scripts/verify-agent-release-ready.sh` now validates
+  `--docs-artifact` and `--manifest-artifact` values and forwards them into the artifact-bearing Deploy Docs run
+  selector for `--require-docs-deployment-artifacts`. `scripts/verify-scripts.sh` covers default, custom-artifact, and
+  missing-artifact fake GitHub probes, while release docs and release notes describe the override path. Focused
+  validation passed: `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `pnpm verify:scripts`, and `pnpm verify:docs`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
+  support-matrix promotion was performed.
 - 2026-07-06 VM evidence root handoff hardening: `scripts/plan-final-release-handoff.sh` now accepts
   `--vm-evidence-root` and passes it into VM runbook rendering, `pnpm vm:collect-matrix -- --local-root`,
   `pnpm vm:prepare-release-evidence -- --evidence-root`, local `pnpm verify:final-release`, and the rendered
