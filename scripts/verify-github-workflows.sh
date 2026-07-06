@@ -70,6 +70,24 @@ assert_final_proof_step_uses_published_release_inputs() {
   fi
 }
 
+assert_final_proof_vm_archive_step_verifies_bundles() {
+  local file=".github/workflows/final-release-proof.yml"
+
+  if ! awk '
+    $0 == "      - name: Download VM evidence archive" { in_step = 1; next }
+    in_step && $0 ~ /^      - name: / { in_step = 0 }
+    in_step && /node scripts[/]verify-vm-evidence-archive-manifest[.]mjs/ { verifier = 1 }
+    in_step && /--require-all-targets/ { all_targets = 1 }
+    in_step && /--evidence-root "\$vm_evidence_root"/ { evidence_root = 1 }
+    in_step && /--verify-bundles/ { verify_bundles = 1 }
+    in_step && /--require-published-release/ { published_release = 1 }
+    in_step && /LOOPWIRE_FINAL_VM_EVIDENCE_ROOT=%s/ { exports_root = 1 }
+    END { exit(verifier && all_targets && evidence_root && verify_bundles && published_release && exports_root ? 0 : 1) }
+  ' "$root/$file"; then
+    fail "final release proof VM archive step must verify all published VM bundles and export LOOPWIRE_FINAL_VM_EVIDENCE_ROOT: $file"
+  fi
+}
+
 if ! command -v ruby >/dev/null 2>&1; then
   fail "ruby is required to parse workflow YAML"
 fi
@@ -167,6 +185,7 @@ assert_contains ".github/workflows/final-release-proof.yml" "Release evidence ar
 assert_contains ".github/workflows/final-release-proof.yml" "scripts/verify-final-release-proof.sh"
 assert_final_proof_step_has_github_token
 assert_final_proof_step_uses_published_release_inputs
+assert_final_proof_vm_archive_step_verifies_bundles
 assert_contains "scripts/verify-final-release-proof.sh" "scripts/verify-release-tag-ref.sh"
 assert_contains "scripts/verify-final-release-proof.sh" "release tag ref"
 assert_contains "scripts/fetch-docs-deployment-proof.sh" "scripts/verify-workflow-run.sh"

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T08:17:44+02:00"
-last_activity: 2026-07-06 - Published-release verifier rejects duplicate canonical tarball checksums
+last_updated: "2026-07-06T08:32:53+02:00"
+last_activity: 2026-07-06 - Final proof workflow contract verifies VM archive bundle gate
 progress:
   total_phases: 5
   completed_phases: 4
@@ -77,6 +77,10 @@ generates a temporary keypair and rejects helper output that omits those handoff
 Latest checksum hardening: 2026-07-06 - `scripts/verify-published-release.sh` now requires exactly one signed
 `SHA256SUMS` entry for each canonical Linux tarball. `pnpm verify:scripts` includes a signed duplicate-entry release
 fixture and expects the published-release verifier to reject it before install smoke.
+Latest workflow-contract hardening: 2026-07-06 - `scripts/verify-github-workflows.sh` now scopes Final Release Proof
+VM archive assertions to the `Download VM evidence archive` step. The contract requires
+`verify-vm-evidence-archive-manifest.mjs --require-all-targets --evidence-root "$vm_evidence_root" --verify-bundles
+--require-published-release` and the `LOOPWIRE_FINAL_VM_EVIDENCE_ROOT` handoff before workflow verification passes.
 
 ## Blockers / Concerns
 
@@ -137,6 +141,13 @@ fixture and expects the published-release verifier to reject it before install s
 
 ## Verification Log
 
+- 2026-07-06 final proof VM archive workflow hardening: `scripts/verify-github-workflows.sh` now verifies that the
+  `Download VM evidence archive` workflow step runs the VM archive manifest verifier with all-target, bundle-level,
+  published-release checks and exports the verified evidence root for `verify-final-release-proof.sh`. Focused
+  validation passed: `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
+  support-matrix promotion was performed.
 - 2026-07-06 published release checksum ambiguity hardening: `scripts/verify-published-release.sh` now rejects duplicate
   `SHA256SUMS` entries for `loopwire-linux-x86_64.tar.gz` and `loopwire-linux-aarch64.tar.gz` instead of accepting any
   matching row. `scripts/verify-scripts.sh` signs a duplicate-entry release fixture and verifies the published-release

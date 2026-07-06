@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Final Release Proof workflow verification now locks the VM evidence archive bundle gate in place.
+  `scripts/verify-github-workflows.sh` scopes the assertion to the `Download VM evidence archive` step and requires the
+  VM archive manifest verifier to run with all-target, bundle-level, published-release checks before exporting
+  `LOOPWIRE_FINAL_VM_EVIDENCE_ROOT` for the final proof script. Focused validation passed:
+  `bash -n scripts/verify-github-workflows.sh scripts/verify-docs.sh`, `pnpm verify:workflows`, `pnpm verify:docs`,
+  and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was
+  performed.
 - Published release checksum verification now fails closed on duplicate canonical tarball entries. The published-release
   verifier requires exactly one signed `SHA256SUMS` row for `loopwire-linux-x86_64.tar.gz` and
   `loopwire-linux-aarch64.tar.gz`; `scripts/verify-scripts.sh` signs a duplicate-entry release fixture and verifies the

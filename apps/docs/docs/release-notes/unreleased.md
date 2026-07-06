@@ -443,6 +443,9 @@ These notes describe source-tree progress. They are not a public release announc
 - The final release proof workflow now validates downloaded release and VM evidence tarballs with
   `scripts/extract-safe-tar.sh` before extraction, rejecting unsafe member paths or link entries before project-specific
   evidence verification runs.
+- GitHub workflow contract verification now checks that Final Release Proof's VM evidence archive step verifies every
+  manifest-listed target bundle with `--verify-bundles`, requires published-release evidence, and exports the verified
+  evidence root into the final proof script.
 - The final release proof workflow now defaults its live-docs hostname and remote prefix from
   `BUNNY_PULL_ZONE_HOSTNAME` and `BUNNY_REMOTE_PREFIX`, so the required secret setup feeds the final proof run without
   retyping the pull-zone hostname on every manual dispatch.
