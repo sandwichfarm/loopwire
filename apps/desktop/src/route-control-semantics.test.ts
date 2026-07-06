@@ -40,11 +40,9 @@ describe("route control semantics", () => {
       message: "ALSA route apply and per-edge controls are not implemented yet."
     });
     expect(describeRouteControlSemantics("dsp")).toEqual({
-      mode: "planned",
+      mode: "edge",
       badge: "DSP",
-      message:
-        "DSP provider controls are available through provider-backed background restore; desktop live apply needs " +
-        "provider command settings first."
+      message: "DSP provider controls use graph-edge gain and mute through the configured live provider."
     });
   });
 

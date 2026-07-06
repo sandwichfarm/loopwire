@@ -75,11 +75,10 @@ export function describeRouteControlSemantics(
 ): RouteControlSemantics {
   if (backend === "dsp") {
     return {
-      mode: "planned",
+      mode: "edge",
       badge: "DSP",
       message:
-        "DSP provider controls are available through provider-backed background restore; desktop live apply needs " +
-        "provider command settings first."
+        "DSP provider controls use graph-edge gain and mute through the configured live provider."
     };
   }
 

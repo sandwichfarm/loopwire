@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- Desktop Host apply can now use a live DSP provider after explicit settings and provider capability proof. The
+  preflight still blocks DSP Provider until saved provider settings are live-ready, then the live switch guard verifies
+  provider `capabilities` for `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and
+  `clear-output` before provider IO. The desktop uses the existing provider-backed DSP configuration runtime adapter
+  for graph-edge apply, verify, and rollback, and the Tauri audio command bridge now passes rendered DSP buffers on
+  stdin while allowlisting only bounded provider protocol argument shapes. Focused validation passed so far:
+  `pnpm --filter @loopwire/desktop test -- live-apply-preflight route-control-semantics`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, `pnpm verify:docs`, `pnpm verify:scripts`,
+  `pnpm --filter @loopwire/desktop build`, and `pnpm verify:desktop-preview -- --screenshot-dir
+  /tmp/loopwire-dsp-live-provider-preview`.
 - Desktop Restore on boot can now carry optional JACK provider settings. The settings panel stores a JACK provider
   command and timeout, keeps the provider optional for configurations that target pre-existing JACK ports, and passes
   those values to the Tauri startup command only when JACK is selected for background install. The Tauri renderer writes

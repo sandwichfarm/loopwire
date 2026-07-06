@@ -90,12 +90,14 @@ These notes describe source-tree progress. They are not a public release announc
 - Desktop route-control status, route gain locking, live-apply preflight, and the configuration-switch guard now
   consume detected backend mixing semantics instead of hardcoded backend names, so graph-edge-capable reports can
   unlock per-route gain when a live DSP backend exists without a UI/runtime mismatch.
-- Desktop live apply now keeps persisted DSP provider backends blocked until the desktop has an explicit provider
-  command setting, preventing a graph-edge capability report from implying session-local DSP apply is wired when only
-  provider-backed background restore is available.
+- Desktop live apply now keeps persisted DSP provider backends blocked until the desktop has explicit live provider
+  settings, verifies `capabilities` for `supportsLiveGraph:true` plus the required read/write/verify/clear operations,
+  then uses those settings for provider-backed graph-edge apply, verify, and rollback.
 - Desktop settings now include DSP provider command, mode, timeout, and frame-count fields. Once a live provider
   command is saved, DSP Provider can be selected for Restore on boot and the desktop writes the matching
   `--backend dsp --dsp-provider-*` flags into the user-scoped systemd unit.
+- The Tauri audio command bridge now passes provider stdin for DSP rendered buffers and allowlists only the bounded
+  DSP provider protocol shapes used by desktop live apply.
 - Desktop live-apply preflight and the configuration-switch guard now block the selected backend when current backend
   detection reports it unavailable, so persisted backend choices cannot arm live apply after that audio system
   disappears.

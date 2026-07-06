@@ -29,6 +29,8 @@
     type AudioPlaybackDeviceReport
   } from "@loopwire/audio-host/detectors";
   import {
+    createDspConfigurationRuntimeAdapter,
+    createDspRuntimeCommandPorts,
     createJackGraphRuntimeAdapter,
     createPactlVirtualSinkRuntimeAdapter,
     createPipeWireGraphRuntimeAdapter,
@@ -126,6 +128,7 @@
   };
   type BackendSelectionOrigin = "manual" | "auto";
   type DspProviderMode = "file-backed" | "live";
+  const requiredDspLiveOperations = ["read-source", "write-output", "verify-output", "clear-output"] as const;
   const storageKey = "loopwire.state.v1";
   const chromeStorageKey = "loopwire.chrome.v1";
   const dspRestoreStorageKey = "loopwire.dsp-restore.v1";
@@ -366,7 +369,8 @@
     activeConfiguration,
     state.selectedBackend,
     displayBackendName,
-    selectedBackendCapability
+    selectedBackendCapability,
+    { dspProviderReady: dspRestoreProviderReady }
   );
   $: nativeGainBlockerRoutes = getNativeGainBlockerRoutes(
     activeConfiguration,
@@ -846,7 +850,8 @@
       targetConfiguration,
       sourceState.selectedBackend,
       backendCapabilityReports,
-      displayBackendName
+      displayBackendName,
+      { dspProviderReady: dspRestoreProviderReady }
     );
 
     if (hostApplyMode === "live" && !preflight.ok) {
@@ -1366,6 +1371,21 @@
       return hostAdapterFromOperations(adapter);
     }
 
+    if (backend === "dsp" && dspRestoreProviderReady) {
+      return createDspConfigurationRuntimeAdapter(
+        createDspRuntimeCommandPorts(runner, {
+          command: dspProviderCommand.trim(),
+          timeoutMs: positiveIntegerNumber(dspProviderTimeoutMs, 5000)
+        }),
+        {
+          mode: hostMode,
+          ...(dspFrameCount.trim()
+            ? { frameCount: positiveIntegerNumber(dspFrameCount, 480) }
+            : {})
+        }
+      );
+    }
+
     return undefined;
   }
 
@@ -1376,6 +1396,14 @@
     plan: ConfigurationRuntimePlan,
     mode: HostApplyMode
   ): Promise<HostRuntimeOperationResult> {
+    if (backend === "dsp" && mode === "live") {
+      const capability = await verifyDspLiveProviderCapability();
+
+      if (!capability.ok) {
+        return capability;
+      }
+    }
+
     const hostAdapter = createHostRuntimeAdapter(backend, mode, plan.reason);
 
     if (!hostAdapter) {
@@ -1383,6 +1411,72 @@
     }
 
     return runHostRuntimeOperation(hostAdapter[operationName], configuration, plan, mode);
+  }
+
+  async function verifyDspLiveProviderCapability(): Promise<HostRuntimeOperationResult> {
+    if (!dspRestoreProviderReady) {
+      return {
+        ok: false,
+        message: "DSP live apply needs a saved live provider command, positive timeout, and valid frame count."
+      };
+    }
+
+    const result = await createTauriCommandRunner().run(
+      dspProviderCommand.trim(),
+      ["capabilities"],
+      { timeoutMs: positiveIntegerNumber(dspProviderTimeoutMs, 5000) }
+    );
+
+    if (result.exitCode !== 0) {
+      return {
+        ok: false,
+        message: `DSP live provider capability check failed: ${firstCommandLine(result) ?? `exit ${result.exitCode}`}`
+      };
+    }
+
+    try {
+      const payload = JSON.parse(result.stdout.trim()) as {
+        readonly supportsLiveGraph?: unknown;
+        readonly operations?: unknown;
+      };
+
+      if (payload.supportsLiveGraph !== true) {
+        return {
+          ok: false,
+          message: "DSP live provider must declare supportsLiveGraph:true before desktop host apply can run."
+        };
+      }
+
+      const operations = Array.isArray(payload.operations)
+        ? new Set(payload.operations.filter((operation): operation is string => typeof operation === "string"))
+        : new Set<string>();
+      const missing = requiredDspLiveOperations.filter((operation) => !operations.has(operation));
+
+      if (missing.length > 0) {
+        return {
+          ok: false,
+          message: `DSP live provider is missing required operation(s): ${missing.join(", ")}.`
+        };
+      }
+
+      return { ok: true, message: "DSP live provider capabilities verified." };
+    } catch {
+      return {
+        ok: false,
+        message: "DSP live provider capabilities returned invalid JSON."
+      };
+    }
+  }
+
+  function firstCommandLine(result: CommandResult): string | undefined {
+    return firstNonEmptyLine(result.stderr) ?? firstNonEmptyLine(result.stdout);
+  }
+
+  function firstNonEmptyLine(value: string): string | undefined {
+    return value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
   }
 
   function hostAdapterFromOperations(adapter: {
@@ -1460,7 +1554,8 @@
           const raw = await invoke<string>("run_audio_command", {
             command,
             args: [...args],
-            timeoutMs: options?.timeoutMs
+            timeoutMs: options?.timeoutMs,
+            input: options?.input
           });
           return parseCommandResult(raw, command, args);
         } catch (error) {

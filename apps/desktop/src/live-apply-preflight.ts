@@ -39,6 +39,10 @@ export interface LiveApplyPreflight {
   readonly blockers: readonly string[];
 }
 
+export interface LiveApplyPreflightOptions {
+  readonly dspProviderReady?: boolean;
+}
+
 type BackendDisplayName = (kind: AudioBackendKind) => string;
 
 const defaultBackendDisplayName: BackendDisplayName = (kind) => {
@@ -57,9 +61,10 @@ export function describeLiveApplyPreflight(
   configuration: LoopwireConfiguration,
   backend: AudioBackendKind | undefined,
   displayBackendName: BackendDisplayName = defaultBackendDisplayName,
-  capability?: LiveApplyBackendCapability
+  capability?: LiveApplyBackendCapability,
+  options: LiveApplyPreflightOptions = {}
 ): LiveApplyPreflight {
-  const blockers = liveApplyBlockers(configuration, backend, displayBackendName, capability);
+  const blockers = liveApplyBlockers(configuration, backend, displayBackendName, capability, options);
 
   if (blockers.length === 0) {
     return {
@@ -88,13 +93,15 @@ export function describeConfigurationSwitchPreflight(
   configuration: LoopwireConfiguration,
   backend: AudioBackendKind | undefined,
   capabilities: readonly LiveApplyBackendCapability[],
-  displayBackendName: BackendDisplayName = defaultBackendDisplayName
+  displayBackendName: BackendDisplayName = defaultBackendDisplayName,
+  options: LiveApplyPreflightOptions = {}
 ): LiveApplyPreflight {
   return describeLiveApplyPreflight(
     configuration,
     backend,
     displayBackendName,
-    capabilities.find((capability) => capability.kind === backend)
+    capabilities.find((capability) => capability.kind === backend),
+    options
   );
 }
 
@@ -134,7 +141,8 @@ function liveApplyBlockers(
   configuration: LoopwireConfiguration,
   backend: AudioBackendKind | undefined,
   displayBackendName: BackendDisplayName,
-  capability?: LiveApplyBackendCapability
+  capability?: LiveApplyBackendCapability,
+  options: LiveApplyPreflightOptions = {}
 ): readonly string[] {
   if (!backend) {
     return ["Choose a detected backend before arming live apply."];
@@ -151,11 +159,12 @@ function liveApplyBlockers(
   }
 
   if (backend === "dsp") {
-    return [
-      "DSP provider live apply is only available through background restore until a desktop provider command is " +
-        "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
-        "live apply."
-    ];
+    return options.dspProviderReady
+      ? []
+      : [
+          "DSP provider live apply needs live provider settings. Save a live DSP provider command in Settings before " +
+            "arming host apply."
+        ];
   }
 
   if (backend === "pulseaudio") {

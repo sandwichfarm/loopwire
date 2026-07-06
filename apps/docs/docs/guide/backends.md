@@ -170,10 +170,12 @@ as a known PulseAudio gap.
 
 Backend detection reports `mixing.controlScope` so the desktop can distinguish true graph-edge controls from
 stream-level, link-only, or unavailable controls. The desktop consumes detected backend mixing semantics instead of
-hardcoding backend names, so a future backend report with graph-edge gain support can unlock route gain editing and
-live-apply preflight without a UI rewrite. Persisted `selectedBackend: "dsp"` is stricter: the desktop does not yet
-have a provider-command settings surface for session-local live apply, so DSP remains blocked there even when a
-provider reports graph-edge capability. ALSA reports unavailable controls because it is diagnostics-only.
+hardcoding backend names, so a backend report with graph-edge gain support can unlock route gain editing and
+live-apply preflight without a UI rewrite. Persisted `selectedBackend: "dsp"` is stricter: desktop live apply stays
+blocked until Settings contains a live DSP provider command, live provider mode, positive timeout, and valid frame
+count. Before running provider IO, the desktop asks the provider for `capabilities` and requires
+`supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and `clear-output`.
+ALSA reports unavailable controls because it is diagnostics-only.
 
 The core package now has a pure DSP mix planner, renderer, and cycle runner for graph-edge behavior. It can render
 per-route gain and mute into output buffers from supplied `Float32Array` source channels, including one source routed
@@ -197,11 +199,12 @@ an exit-0 command with empty stdout is treated as failed verification. Release a
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
 for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
 accepted for startup restore only when the restore command also supplies the explicit DSP provider command. The
-desktop settings panel can store that provider command for Restore on boot and renders it into the user-scoped systemd
-unit when DSP Provider is selected. This is still not native live host DSP: the desktop Host apply button does not run
-a DSP provider yet. The live backend DSP path still needs a host adapter that can capture source streams and inject
-the rendered outputs into PipeWire or JACK. The live backend DSP still needs host capture and injection proof before
-desktop live apply can use it.
+desktop settings panel can store that provider command for Restore on boot and desktop Host apply. When Host apply is
+armed with DSP Provider selected, the desktop verifies live provider capabilities, reads source buffers, writes
+rendered graph-edge outputs, verifies them, and uses the same rollback/clear contract as background restore. This is
+still provider-backed host DSP: the live provider must own real PipeWire/JACK capture and injection before the result
+affects host audio. The live backend DSP still needs a real provider with host capture and injection proof before
+release docs can claim bundled live host DSP.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 

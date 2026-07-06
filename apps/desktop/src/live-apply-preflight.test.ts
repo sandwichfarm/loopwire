@@ -187,7 +187,7 @@ describe("describeLiveApplyPreflight", () => {
     ]);
   });
 
-  it("blocks persisted DSP provider live apply until desktop provider settings exist", () => {
+  it("blocks persisted DSP provider live apply until desktop provider settings are live-ready", () => {
     const result = describeLiveApplyPreflight(baseConfiguration, "dsp");
 
     expect(result).toEqual({
@@ -195,31 +195,39 @@ describe("describeLiveApplyPreflight", () => {
       mode: "blocked",
       badge: "Blocked",
       message:
-        "DSP provider live apply is only available through background restore until a desktop provider command is " +
-        "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
-        "live apply.",
+        "DSP provider live apply needs live provider settings. Save a live DSP provider command in Settings before " +
+        "arming host apply.",
       blockers: [
-        "DSP provider live apply is only available through background restore until a desktop provider command is " +
-          "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
-          "live apply."
+        "DSP provider live apply needs live provider settings. Save a live DSP provider command in Settings before " +
+          "arming host apply."
       ]
     });
   });
 
-  it("blocks DSP provider live apply even when graph-edge capability is reported", () => {
+  it("blocks DSP provider live apply even when graph-edge capability is reported without provider settings", () => {
     expect(describeLiveApplyPreflight(baseConfiguration, "dsp", undefined, graphEdgeDsp)).toEqual({
       ok: false,
       mode: "blocked",
       badge: "Blocked",
       message:
-        "DSP provider live apply is only available through background restore until a desktop provider command is " +
-        "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
-        "live apply.",
+        "DSP provider live apply needs live provider settings. Save a live DSP provider command in Settings before " +
+        "arming host apply.",
       blockers: [
-        "DSP provider live apply is only available through background restore until a desktop provider command is " +
-          "configured. Use Restore on boot provider settings, or choose PipeWire, PulseAudio, or JACK for desktop " +
-          "live apply."
+        "DSP provider live apply needs live provider settings. Save a live DSP provider command in Settings before " +
+          "arming host apply."
       ]
+    });
+  });
+
+  it("allows DSP provider live apply once desktop provider settings are live-ready", () => {
+    expect(describeLiveApplyPreflight(baseConfiguration, "dsp", undefined, graphEdgeDsp, {
+      dspProviderReady: true
+    })).toEqual({
+      ok: true,
+      mode: "ready",
+      badge: "Ready",
+      message: "DSP Provider live apply is ready for Studio.",
+      blockers: []
     });
   });
 

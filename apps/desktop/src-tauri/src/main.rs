@@ -1,5 +1,6 @@
 use std::{
-    env, fs, io,
+    env, fs,
+    io::{self, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
@@ -87,6 +88,7 @@ fn run_audio_command(
     command: String,
     args: Vec<String>,
     timeout_ms: Option<u64>,
+    input: Option<String>,
 ) -> Result<String, String> {
     if !is_allowed_audio_command(&command, &args) {
         return Err(format!(
@@ -97,9 +99,14 @@ fn run_audio_command(
     }
 
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(5_000).clamp(250, 30_000));
+    let stdin = if input.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    };
     let mut child = match Command::new(&command)
         .args(&args)
-        .stdin(Stdio::null())
+        .stdin(stdin)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -116,6 +123,14 @@ fn run_audio_command(
             ));
         }
     };
+
+    if let Some(input) = input {
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(input.as_bytes())
+                .map_err(|error| error.to_string())?;
+        }
+    }
 
     let started = Instant::now();
     loop {
@@ -313,8 +328,62 @@ fn is_allowed_audio_command(command: &str, args: &[String]) -> bool {
         "pw-cli" => is_allowed_pw_cli_args(args),
         "pw-link" => is_allowed_pw_link_args(args),
         "wpctl" => args_match(args, &["status"]),
+        _ => is_allowed_dsp_provider_command(command, args),
+    }
+}
+
+fn is_allowed_dsp_provider_command(command: &str, args: &[String]) -> bool {
+    is_provider_command(command) && is_allowed_dsp_provider_args(args)
+}
+
+fn is_provider_command(command: &str) -> bool {
+    !command.is_empty()
+        && !command.starts_with('-')
+        && command.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '/' | '.' | '_' | '-' | '+')
+        })
+}
+
+fn is_allowed_dsp_provider_args(args: &[String]) -> bool {
+    match args.first().map(String::as_str) {
+        Some("capabilities") => args.len() == 1,
+        Some("read-source") => is_allowed_dsp_read_source_args(args),
+        Some("write-output") | Some("verify-output") => is_allowed_dsp_rendered_output_args(args),
+        Some("clear-output") => is_allowed_dsp_clear_output_args(args),
         _ => false,
     }
+}
+
+fn is_allowed_dsp_read_source_args(args: &[String]) -> bool {
+    (args.len() == 5 || args.len() == 7)
+        && args[1] == "--source-id"
+        && is_name_arg(&args[2])
+        && args[3] == "--channels"
+        && is_positive_integer_arg(&args[4])
+        && (args.len() == 5 || (args[5] == "--frames" && is_positive_integer_arg(&args[6])))
+}
+
+fn is_allowed_dsp_rendered_output_args(args: &[String]) -> bool {
+    args.len() == 11
+        && matches!(args[0].as_str(), "write-output" | "verify-output")
+        && args[1] == "--output-id"
+        && is_name_arg(&args[2])
+        && args[3] == "--channels"
+        && is_positive_integer_arg(&args[4])
+        && args[5] == "--frames"
+        && is_positive_integer_arg(&args[6])
+        && args[7] == "--peak"
+        && is_non_negative_number_arg(&args[8])
+        && args[9] == "--configuration-id"
+        && is_name_arg(&args[10])
+}
+
+fn is_allowed_dsp_clear_output_args(args: &[String]) -> bool {
+    args.len() == 5
+        && args[1] == "--configuration-id"
+        && is_name_arg(&args[2])
+        && args[3] == "--output-id"
+        && is_name_arg(&args[4])
 }
 
 fn is_allowed_pactl_args(args: &[String]) -> bool {
@@ -411,6 +480,18 @@ fn is_percent_arg(value: &str) -> bool {
     };
 
     !number.is_empty() && number.chars().all(|character| character.is_ascii_digit())
+}
+
+fn is_positive_integer_arg(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|character| character.is_ascii_digit())
+        && value.parse::<u64>().is_ok_and(|number| number > 0)
+}
+
+fn is_non_negative_number_arg(value: &str) -> bool {
+    value
+        .parse::<f64>()
+        .is_ok_and(|number| number.is_finite() && number >= 0.0)
 }
 
 fn is_port_name(value: &str) -> bool {
@@ -1020,6 +1101,69 @@ mod tests {
     }
 
     #[test]
+    fn allows_expected_dsp_provider_protocol_commands() {
+        for (command, args) in [
+            ("loopwire-live-dsp-provider", vec!["capabilities"]),
+            (
+                "loopwire-live-dsp-provider",
+                vec![
+                    "read-source",
+                    "--source-id",
+                    "mic",
+                    "--channels",
+                    "2",
+                    "--frames",
+                    "480",
+                ],
+            ),
+            (
+                "/usr/bin/loopwire-live-dsp-provider",
+                vec![
+                    "write-output",
+                    "--output-id",
+                    "program",
+                    "--channels",
+                    "2",
+                    "--frames",
+                    "480",
+                    "--peak",
+                    "0.125",
+                    "--configuration-id",
+                    "studio",
+                ],
+            ),
+            (
+                "loopwire-live-dsp-provider",
+                vec![
+                    "verify-output",
+                    "--output-id",
+                    "program",
+                    "--channels",
+                    "2",
+                    "--frames",
+                    "480",
+                    "--peak",
+                    "0",
+                    "--configuration-id",
+                    "studio",
+                ],
+            ),
+            (
+                "loopwire-live-dsp-provider",
+                vec![
+                    "clear-output",
+                    "--configuration-id",
+                    "studio",
+                    "--output-id",
+                    "program",
+                ],
+            ),
+        ] {
+            assert!(allows(command, &args), "{command} {args:?}");
+        }
+    }
+
+    #[test]
     fn rejects_audio_command_argument_shapes_outside_loopwire_contract() {
         for (command, args) in [
             ("sh", vec!["-c", "pactl info"]),
@@ -1040,6 +1184,36 @@ mod tests {
                 vec!["--help", "loopwire_program:playback_1"],
             ),
             ("wpctl", vec!["set-volume", "@DEFAULT_AUDIO_SINK@", "0"]),
+            (
+                "loopwire-live-dsp-provider",
+                vec!["read-source", "--source-id", "mic", "--channels", "0"],
+            ),
+            (
+                "loopwire-live-dsp-provider",
+                vec![
+                    "write-output",
+                    "--output-id",
+                    "program",
+                    "--channels",
+                    "2",
+                    "--frames",
+                    "480",
+                    "--peak",
+                    "NaN",
+                    "--configuration-id",
+                    "studio",
+                ],
+            ),
+            (
+                "loopwire live dsp provider",
+                vec![
+                    "clear-output",
+                    "--configuration-id",
+                    "studio",
+                    "--output-id",
+                    "program",
+                ],
+            ),
         ] {
             assert!(!allows(command, &args), "{command} {args:?}");
         }
