@@ -320,6 +320,10 @@ assert_handoff_contains "$handoff" "Operator-deferred after agent delivery"
 assert_handoff_contains "$handoff" "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
 assert_handoff_contains "$handoff" "operator-deferred: run the docs_deployment_run_id selection command"
 assert_handoff_contains "$handoff" "operator-deferred: pass --release-private-key-file or --env-file"
+assert_handoff_contains "$handoff" "-f release_evidence_asset=loopwire-release-evidence-${tag}.tar.gz"
+assert_handoff_contains "$handoff" "-f vm_evidence_asset=loopwire-vm-evidence-${tag}.tar.gz"
+assert_handoff_contains "$handoff" "--release-evidence-asset loopwire-release-evidence-${tag}.tar.gz"
+assert_handoff_contains "$handoff" "--vm-evidence-asset loopwire-vm-evidence-${tag}.tar.gz"
 echo "ok: final release handoff rendering"
 printf '%s\n' "$handoff" | indent
 echo

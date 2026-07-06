@@ -221,7 +221,9 @@ pnpm release:agent-ready -- \
 `release:agent-ready` is read-only. It runs offline release readiness, verifies the final handoff renders the
 `Operator-deferred after agent delivery` section, and by default also checks workflow contracts, docs contracts, VM
 matrix/cloud-init metadata, packaging metadata, a read-only DSP provider graph-edge plan, and local release artifact
-smoke. Use `--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof topology.
+smoke. It also verifies that the rendered final-proof dispatch and closing `release:status` audit carry the tag-bound
+release and VM evidence archive names, so the repo-ready handoff cannot drop the archive proof contract. Use
+`--dsp-configuration` and `--dsp-frame-count` only when rehearsing a different release DSP proof topology.
 By default it requires a clean checkout whose current `HEAD` exactly matches `--git-head`, so the rendered handoff
 matches the pushed commit. Use `--allow-dirty` and `--allow-head-mismatch` only for local development rehearsal before
 committing. Use `--skip-local-gates` only for fast script-contract rehearsal. Add `--require-hosted-checks` when the

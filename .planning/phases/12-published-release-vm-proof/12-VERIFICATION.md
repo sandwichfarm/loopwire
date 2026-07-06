@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Agent-ready release proof now checks the final evidence asset handoff, not only older release-handoff sentinels.
+  `scripts/verify-agent-release-ready.sh` fails if `scripts/plan-final-release-handoff.sh` no longer renders the
+  tag-bound release or VM evidence archive names in both the final-proof workflow dispatch and the closing
+  `pnpm release:status` audit. `scripts/verify-scripts.sh` checks both rendered command paths through the agent-ready
+  smoke. Focused validation passed: `bash -n scripts/verify-agent-release-ready.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, provider execution, or support-matrix promotion was performed.
 - Release status now audits the same evidence archive override names used by final proof dispatch. The read-only final
   status auditor accepts tag-bound `--release-evidence-asset` and `--vm-evidence-asset` names, rejects unsafe names
   before any GitHub download, and the final handoff forwards its selected archive names into the closing

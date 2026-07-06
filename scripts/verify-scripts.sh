@@ -646,6 +646,18 @@ printf '%s\n' "$agent_release_ready_plan" |
     echo "verify-scripts: agent-ready release smoke did not report skipped docs deployment artifact check" >&2
     exit 1
   }
+printf '%s\n' "$agent_release_ready_plan" | grep -F "gh workflow run final-release-proof.yml" |
+  grep -F -- "-f release_evidence_asset=loopwire-release-evidence-v0.1.0.tar.gz" |
+  grep -F -- "-f vm_evidence_asset=loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not prove final-proof evidence asset handoff" >&2
+    exit 1
+  }
+printf '%s\n' "$agent_release_ready_plan" | grep -F "pnpm release:status" |
+  grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0.tar.gz" |
+  grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0.tar.gz" >/dev/null || {
+    echo "verify-scripts: agent-ready release smoke did not prove final-status evidence asset handoff" >&2
+    exit 1
+  }
 agent_ready_dirty_probe=".verify-agent-release-ready-dirty-probe"
 agent_ready_current_head="$(git rev-parse HEAD)"
 rm -f "$agent_ready_dirty_probe"
