@@ -128,8 +128,11 @@ CI-style checks without a live JACK server, pass
 
 Release artifacts also install `loopwire-jack-ports`, the bundled JACK virtual-port provider wrapper used by
 background restore preflight. It writes a `loopwire.jack-ports.provision-plan` manifest and returns nonzero unless
-`LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at an operator-supplied live JACK client provider. Keep
-that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
+`LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at an operator-supplied live JACK client provider. Use
+`--delegate-mode detached` or `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached` when that provider must stay alive for its
+JACK ports to continue existing. The wrapper returns only after the detached provider survives its readiness delay,
+and Loopwire still re-runs `jack_lsp` afterward, so an alive process without the expected ports remains a failed apply.
+Keep that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
 
 Desktop Restore on boot can persist the same JACK provider command and timeout that the CLI accepts. This only prepares
 the boot-restore service invocation; it does not turn the bundled wrapper into a native JACK client creator.

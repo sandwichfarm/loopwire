@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 type JackPortsCommand = "ensure";
+type JackPortsDelegateMode = "foreground" | "detached";
 
 interface JackPortsCliIo {
   readonly env?: NodeJS.ProcessEnv;
@@ -20,6 +21,8 @@ interface ParsedArgs {
   readonly missingPorts: readonly string[];
   readonly manifestFile: string | undefined;
   readonly delegateCommand: string | undefined;
+  readonly delegateMode: JackPortsDelegateMode;
+  readonly readyDelayMs: number;
 }
 
 interface JackPortProviderRequirement {
@@ -31,7 +34,10 @@ interface JackPortProviderRequirement {
 }
 
 const delegateEnv = "LOOPWIRE_JACK_PORTS_DELEGATE";
+const delegateModeEnv = "LOOPWIRE_JACK_PORTS_DELEGATE_MODE";
 const manifestEnv = "LOOPWIRE_JACK_PORTS_MANIFEST";
+const readyDelayMsEnv = "LOOPWIRE_JACK_PORTS_READY_DELAY_MS";
+const defaultReadyDelayMs = 250;
 
 export async function runJackPortsCli(argv: readonly string[], io: JackPortsCliIo): Promise<number> {
   try {
@@ -56,7 +62,9 @@ export async function runJackPortsCli(argv: readonly string[], io: JackPortsCliI
       return 2;
     }
 
-    return await delegateEnsure(parsed, normalizedArgv, io);
+    return parsed.delegateMode === "detached"
+      ? await delegateDetached(parsed, normalizedArgv, io)
+      : await delegateEnsure(parsed, normalizedArgv, io);
   } catch (error) {
     io.stderr(`${errorMessage(error)}\n`);
     return 2;
@@ -81,6 +89,8 @@ function parseArgs(argv: readonly string[], env: NodeJS.ProcessEnv): ParsedArgs 
   let configurationId: string | undefined;
   let manifestFile = env[manifestEnv];
   let delegateCommand = env[delegateEnv];
+  let delegateMode = parseDelegateMode(env[delegateModeEnv] ?? "foreground");
+  let readyDelayMs = parseReadyDelayMs(env[readyDelayMsEnv] ?? String(defaultReadyDelayMs));
   const requirements: JackPortProviderRequirement[] = [];
   const missingPorts: string[] = [];
 
@@ -112,6 +122,12 @@ function parseArgs(argv: readonly string[], env: NodeJS.ProcessEnv): ParsedArgs 
       case "--delegate-command":
         delegateCommand = value;
         break;
+      case "--delegate-mode":
+        delegateMode = parseDelegateMode(value);
+        break;
+      case "--ready-delay-ms":
+        readyDelayMs = parseReadyDelayMs(value);
+        break;
       default:
         throw new Error(`Unknown JACK ports argument: ${flag}`);
     }
@@ -137,7 +153,9 @@ function parseArgs(argv: readonly string[], env: NodeJS.ProcessEnv): ParsedArgs 
     requirements,
     missingPorts: uniqueSorted(missingPorts),
     manifestFile: manifestFile ?? defaultManifestFile(env),
-    delegateCommand
+    delegateCommand,
+    delegateMode,
+    readyDelayMs
   };
 }
 
@@ -148,7 +166,9 @@ function emptyArgs(env: NodeJS.ProcessEnv): ParsedArgs {
     requirements: [],
     missingPorts: [],
     manifestFile: env[manifestEnv] ?? defaultManifestFile(env),
-    delegateCommand: env[delegateEnv]
+    delegateCommand: env[delegateEnv],
+    delegateMode: parseDelegateMode(env[delegateModeEnv] ?? "foreground"),
+    readyDelayMs: parseReadyDelayMs(env[readyDelayMsEnv] ?? String(defaultReadyDelayMs))
   };
 }
 
@@ -187,7 +207,9 @@ async function writeProvisionManifest(parsed: ParsedArgs): Promise<void> {
     configurationId: parsed.configurationId,
     requirements: parsed.requirements,
     missingPorts: parsed.missingPorts,
-    delegateCommand: parsed.delegateCommand ?? null
+    delegateCommand: parsed.delegateCommand ?? null,
+    delegateMode: parsed.delegateCommand ? parsed.delegateMode : null,
+    readyDelayMs: parsed.readyDelayMs
   };
 
   await mkdir(dirname(parsed.manifestFile), { recursive: true });
@@ -221,11 +243,56 @@ function delegateEnsure(parsed: ParsedArgs, originalArgv: readonly string[], io:
   });
 }
 
+function delegateDetached(parsed: ParsedArgs, originalArgv: readonly string[], io: JackPortsCliIo): Promise<number> {
+  return new Promise((resolve) => {
+    const child = spawn(parsed.delegateCommand ?? "", delegateArgv(originalArgv), {
+      detached: true,
+      env: { ...process.env, ...(io.env ?? {}) },
+      stdio: "ignore"
+    });
+    let settled = false;
+    let readyTimer: NodeJS.Timeout | undefined;
+
+    const finish = (code: number): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      if (readyTimer) {
+        clearTimeout(readyTimer);
+      }
+      resolve(code);
+    };
+
+    child.on("error", (error: NodeJS.ErrnoException) => {
+      io.stderr(`Could not start detached JACK delegate provider: ${error.message}\n`);
+      finish(error.code === "ENOENT" ? 127 : 1);
+    });
+    child.on("exit", (code, signal) => {
+      io.stderr(
+        `Detached JACK delegate provider exited before readiness delay: ${exitDescription(code, signal)}\n`
+      );
+      finish(code ?? 1);
+    });
+
+    readyTimer = setTimeout(() => {
+      child.removeAllListeners("exit");
+      child.unref();
+      io.stdout(
+        `started detached JACK delegate provider pid ${child.pid} after ${parsed.readyDelayMs}ms readiness delay\n`
+      );
+      finish(0);
+    }, parsed.readyDelayMs);
+  });
+}
+
 function delegateArgv(argv: readonly string[]): readonly string[] {
   const forwarded: string[] = [];
+  const wrapperOnlyFlags = new Set(["--delegate-command", "--delegate-mode", "--ready-delay-ms"]);
 
   for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index] === "--delegate-command") {
+    if (wrapperOnlyFlags.has(argv[index] ?? "")) {
       index += 1;
       continue;
     }
@@ -252,12 +319,36 @@ function parsePositiveInteger(value: string, label: string): number {
   return Number(value);
 }
 
+function parseReadyDelayMs(value: string): number {
+  if (!/^(0|[1-9][0-9]*)$/.test(value)) {
+    throw new Error("--ready-delay-ms must be a non-negative integer");
+  }
+
+  return Number(value);
+}
+
+function parseDelegateMode(value: string): JackPortsDelegateMode {
+  if (value !== "foreground" && value !== "detached") {
+    throw new Error("--delegate-mode must be foreground or detached");
+  }
+
+  return value;
+}
+
 function uniqueSorted(values: readonly string[]): readonly string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function exitDescription(code: number | null, signal: NodeJS.Signals | null): string {
+  if (code !== null) {
+    return `exit ${code}`;
+  }
+
+  return signal ? `signal ${signal}` : "unknown exit";
 }
 
 function usage(): string {
@@ -269,13 +360,20 @@ Usage:
 Options:
   --manifest-file FILE       Record the provision plan. Defaults to XDG_STATE_HOME/loopwire/jack-ports-provision.json.
   --delegate-command COMMAND Delegate live JACK client creation to COMMAND.
+  --delegate-mode MODE       foreground (default) waits for COMMAND; detached keeps a long-running provider alive.
+  --ready-delay-ms MS        Detached mode readiness delay before returning success. Default: ${defaultReadyDelayMs}.
 
 Environment:
   LOOPWIRE_JACK_PORTS_MANIFEST   Default manifest path.
   LOOPWIRE_JACK_PORTS_DELEGATE   Live provider command used when --delegate-command is omitted.
+  LOOPWIRE_JACK_PORTS_DELEGATE_MODE
+                                  Default delegate mode: foreground or detached.
+  LOOPWIRE_JACK_PORTS_READY_DELAY_MS
+                                  Default detached readiness delay in milliseconds.
 
 The bundled command never pretends to create JACK clients by itself. Without a delegate it records the exact plan and
-exits nonzero so live restore fails closed with an actionable message.
+exits nonzero so live restore fails closed with an actionable message. Detached mode is for live JACK providers that
+must keep running for their ports to exist; Loopwire still re-runs jack_lsp after this wrapper returns.
 `;
 }
 

@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- `loopwire-jack-ports` now supports detached delegate mode for operator-supplied live JACK providers whose ports only
+  exist while the provider process stays alive. The wrapper accepts `--delegate-mode detached` or
+  `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached`, strips wrapper-only flags before invoking the delegate, waits through a
+  bounded readiness delay, returns nonzero if the delegate exits early, and leaves the existing JACK runtime re-probe to
+  prove the requested ports appeared in `jack_lsp`. Focused validation passed so far:
+  `pnpm --filter @loopwire/audio-host test -- jack-ports-cli.test.ts`, `pnpm --filter @loopwire/audio-host typecheck`,
+  `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm verify:runtime`, and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, or support-matrix promotion was performed.
 - `pnpm verify:vm` now verifies source-owned VM launch and runbook handoffs, not only target metadata and cloud-init.
   The new `scripts/vm-matrix.sh verify-handoffs` command renders launch TSV, SSH TSV, and the operator runbook to a
   temporary directory, then checks every target for its QEMU launch command, evidence pull command, SSH port allocation,

@@ -174,7 +174,9 @@ The provider command receives stable `ensure --configuration-id ... --requiremen
 runtime. Loopwire re-runs `jack_lsp` after the provider exits and still fails closed if the expected ports are missing.
 Release artifacts install `loopwire-jack-ports`, a bundled provider wrapper that records those arguments in a
 `loopwire.jack-ports.provision-plan` manifest and returns nonzero unless `LOOPWIRE_JACK_PORTS_DELEGATE` or
-`--delegate-command` points at a live JACK client provider.
+`--delegate-command` points at a live JACK client provider. If the provider is a long-running JACK client, set
+`LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached` for the wrapper process or pass `--delegate-mode detached` directly to the
+wrapper; the background restore still verifies the resulting ports with `jack_lsp` before connecting routes.
 
 The desktop Settings panel exposes the same optional JACK provider command and timeout for Restore on boot. Leave the
 command blank when your saved configuration targets pre-existing JACK ports. Set it when boot restore must ask an

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T05:01:40+02:00"
-last_activity: 2026-07-06 - VM launch and runbook handoffs are verified without launching guests
+last_updated: "2026-07-06T05:18:43+02:00"
+last_activity: 2026-07-06 - JACK provider wrapper supports detached long-running delegates
 progress:
   total_phases: 5
   completed_phases: 4
@@ -32,6 +32,10 @@ SSH TSV, and the operator runbook without launching guests. The new `verify-hand
 QEMU launch command, evidence pull command, SSH port allocation, evidence directory, and runbook verification steps.
 This strengthens source-owned VM proof while keeping actual distro image selection, package installation, guest launch,
 and evidence capture operator-owned.
+Follow-up activity: 2026-07-06 - `loopwire-jack-ports` now supports detached delegate mode for operator-supplied live
+JACK providers that must keep running for their ports to exist. The wrapper removes wrapper-only flags before invoking
+the delegate, waits for a bounded readiness delay, returns success only if the delegate remains alive through that
+delay, and leaves the existing runtime re-probe to prove the requested ports appeared in `jack_lsp`.
 
 ## Blockers / Concerns
 
@@ -51,11 +55,12 @@ and evidence capture operator-owned.
   `supportsLiveGraph:true` and the required provider operations, and the Tauri bridge carries rendered DSP buffers on
   stdin. A bundled file-backed `loopwire-dsp-provider` now exists for local restore-contract smoke and packaging proof.
   Native JACK now has an injected virtual-port provider hook, bundled `loopwire-jack-ports` wrapper for
-  manifest/delegation proof, and desktop Restore-on-boot settings that can render optional JACK provider flags into the
-  user systemd unit, but live host DSP capture/injection still requires an operator-supplied live provider, and native
-  JACK client creation plus native host graph-edge gain implementation remain planned. DSP live restore now requires
-  the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now requires
-  provider `capabilities` to declare `supportsLiveGraph:true`.
+  manifest/delegation proof, detached mode for long-running operator-supplied delegates, and desktop Restore-on-boot
+  settings that can render optional JACK provider flags into the user systemd unit, but live host DSP capture/injection
+  still requires an operator-supplied live provider, and bundled native JACK client creation plus native host graph-edge
+  gain implementation remain planned. DSP live restore now requires the operator to declare a live provider explicitly
+  with `--dsp-provider-mode live`, and live DSP restore now requires provider `capabilities` to declare
+  `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -90,6 +95,15 @@ and evidence capture operator-owned.
 
 ## Verification Log
 
+- 2026-07-06 JACK detached provider delegate mode: `loopwire-jack-ports` now accepts `--delegate-mode detached` and
+  `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached` for long-running live JACK provider delegates. In detached mode, the
+  wrapper starts the provider, strips wrapper-only flags from the forwarded arguments, waits through a bounded
+  readiness delay, returns nonzero if the delegate exits early, and then relies on the existing JACK runtime re-probe
+  to prove the expected ports exist. Focused validation passed so far: `pnpm --filter @loopwire/audio-host test --
+  jack-ports-cli.test.ts`, `pnpm --filter @loopwire/audio-host typecheck`, `pnpm verify:docs`, `pnpm verify:scripts`,
+  `pnpm verify:runtime`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion
+  was performed.
 - 2026-07-06 VM launch/runbook handoff verification: `scripts/vm-matrix.sh verify-handoffs` now renders the launch
   TSV, SSH TSV, and VM runbook to a temporary directory and validates every target's QEMU launch command, evidence pull
   command, SSH port allocation, evidence directory, and runbook verification steps. `pnpm verify:vm` and the VM Matrix

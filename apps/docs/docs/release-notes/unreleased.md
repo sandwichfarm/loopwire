@@ -134,6 +134,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Native JACK apply can now call an injected JACK virtual port provider for missing Loopwire-owned ports and re-probe
   `jack_lsp` before connecting. Release artifacts now include `loopwire-jack-ports`, a provider wrapper that records
   the provision plan and fails closed unless delegated to a live JACK client provider.
+- `loopwire-jack-ports` can now start long-running JACK provider delegates in detached mode for providers whose ports
+  only exist while the provider process stays alive. Loopwire still re-probes `jack_lsp` after the wrapper returns.
 - Background restore now accepts `--jack-provider-command`, which wraps that command as the injected JACK virtual port
   provider and passes stable `ensure --configuration-id ... --requirement ... --port ...` arguments.
 - The autostart helper now renders background systemd units with `--state-file`, `--mode`, retry options, and
@@ -647,8 +649,9 @@ These notes describe source-tree progress. They are not a public release announc
 - `packaging/release-signing-public.pem` now contains the project release public key, and the live repository has the
   matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret; Bunny deployment secrets and tagged release proof are still required
   before publishing.
-- Native JACK client creation and true per-edge gain remain planned. App-only JACK routes and monitors still require a
-  separate JACK client or `loopwire-jack-ports` delegate to create the expected Loopwire-owned ports before live apply.
+- Bundled native JACK client creation and true per-edge gain remain planned. App-only JACK routes and monitors still
+  require a separate JACK client or `loopwire-jack-ports` delegate to create the expected Loopwire-owned ports before
+  live apply.
 - Live host apply needs Tauri desktop runtime; browser preview fails closed without host mutation.
 - Packaged background restore uses the bundled JavaScript restore engine and currently requires `node` on `PATH`.
 - VM host planning and cloud-init rendering do not launch guests, download distro images, or promote support-matrix rows

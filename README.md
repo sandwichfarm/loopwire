@@ -74,7 +74,9 @@ User-scoped startup can be managed from the desktop sidebar. **Open on boot** ma
 Release tarballs and package templates install a `loopwire --background` entrypoint for packaged background restore.
 They also install `loopwire-dsp-provider` for provider-backed DSP restore preflight and `loopwire-jack-ports` for
 JACK virtual-port restore preflight. The JACK wrapper records the exact provision plan and fails closed unless
-`LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at a live JACK client provider.
+`LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at a live JACK client provider. Long-running JACK
+provider delegates can opt into detached mode with `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached`; Loopwire still
+re-probes `jack_lsp` before treating those ports as real.
 
 Installer and package metadata smoke tests are local-only for now: `verify:install` builds a fake release artifact and
 proves checksum rejection, while `verify:packaging` checks that AUR and flake package templates point at the same

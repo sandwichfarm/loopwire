@@ -117,6 +117,87 @@ describe("runJackPortsCli", () => {
     await expect(readFile(log, "utf8")).resolves.toBe(`${ensureArgs.join(" ")} --manifest-file ${manifest}\n`);
   });
 
+  it("starts a long-running delegate in detached mode without forwarding wrapper-only flags", async () => {
+    const dir = await temporaryDir();
+    const delegate = join(dir, "delegate.mjs");
+    const log = join(dir, "delegate.log");
+    const manifest = join(dir, "manifest.json");
+
+    await writeFile(
+      delegate,
+      [
+        "#!/usr/bin/env node",
+        "import { appendFileSync } from 'node:fs';",
+        "appendFileSync(process.env.DELEGATE_LOG, `${process.pid}\\n${process.argv.slice(2).join(' ')}\\n`);",
+        "setInterval(() => {}, 1000);"
+      ].join("\n"),
+      { mode: 0o755 }
+    );
+
+    const result = await runCli(
+      [
+        ...ensureArgs,
+        "--manifest-file",
+        manifest,
+        "--delegate-command",
+        delegate,
+        "--delegate-mode",
+        "detached",
+        "--ready-delay-ms",
+        "50"
+      ],
+      { DELEGATE_LOG: log }
+    );
+    const [pidText, argvText] = (await readFile(log, "utf8")).trimEnd().split("\n");
+
+    try {
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("started detached JACK delegate provider pid");
+      expect(result.stderr).toBe("");
+      expect(argvText).toBe(`${ensureArgs.join(" ")} --manifest-file ${manifest}`);
+      await expect(readFile(manifest, "utf8")).resolves.toContain('"delegateMode": "detached"');
+    } finally {
+      const pid = Number(pidText);
+      if (Number.isInteger(pid) && pid > 0) {
+        try {
+          process.kill(pid);
+        } catch {
+          // The test only needs to avoid leaving an intentionally detached child behind.
+        }
+      }
+    }
+  });
+
+  it("fails detached mode when the delegate exits before the readiness delay", async () => {
+    const dir = await temporaryDir();
+    const delegate = join(dir, "delegate.mjs");
+    const manifest = join(dir, "manifest.json");
+
+    await writeFile(
+      delegate,
+      ["#!/usr/bin/env node", "process.stderr.write('jack server refused client\\n');", "process.exit(23);"].join(
+        "\n"
+      ),
+      { mode: 0o755 }
+    );
+
+    const result = await runCli([
+      ...ensureArgs,
+      "--manifest-file",
+      manifest,
+      "--delegate-command",
+      delegate,
+      "--delegate-mode",
+      "detached",
+      "--ready-delay-ms",
+      "100"
+    ]);
+
+    expect(result.exitCode).toBe(23);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Detached JACK delegate provider exited before readiness delay: exit 23");
+  });
+
   it("rejects malformed requirements before writing a manifest", async () => {
     const manifest = join(await temporaryDir(), "bad.json");
     const result = await runCli([
