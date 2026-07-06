@@ -15,6 +15,7 @@ const requireVmEvidence = args.includes("--require-vm-evidence");
 const requireAllVmTargets = args.includes("--require-all-vm-targets");
 const requireVmLaunchPlan = args.includes("--require-vm-launch-plan");
 const requireDspProviderPlan = args.includes("--require-dsp-provider-plan");
+const requireJackProviderPlan = args.includes("--require-jack-provider-plan");
 const requireNoReleaseBlockers = args.includes("--require-no-release-blockers");
 const requireCleanGit = args.includes("--require-clean-git");
 const projectRoot = process.cwd();
@@ -131,6 +132,10 @@ if (requireDspProviderPlan) {
   validateRequiredDspProviderPlan();
 }
 
+if (requireJackProviderPlan) {
+  validateRequiredJackProviderPlan();
+}
+
 console.log(`Release evidence verified: ${evidenceDir}`);
 
 function usage() {
@@ -162,6 +167,8 @@ Options:
                      Require matrix-wide dry-run VM launch-plan evidence.
   --require-dsp-provider-plan
                      Require read-only command-backed DSP provider plan evidence.
+  --require-jack-provider-plan
+                     Require read-only command-backed JACK provider port-plan evidence.
   --require-no-release-blockers
                      Fail if release.findings contains blocker entries.
   --require-clean-git
@@ -409,17 +416,52 @@ function validateRequiredDspProviderPlan() {
   validateDspProviderPlanLog(command.log, binding);
 }
 
+function validateRequiredJackProviderPlan() {
+  const command = findCommand("jack-provider-plan");
+  if (!command) {
+    fail("missing command result: jack-provider-plan");
+  }
+
+  if (command.required !== true || command.exitCode !== 0) {
+    fail("jack-provider-plan must be required and successful");
+  }
+
+  const tokens = validateNodeScriptInvocation(command, "scripts/describe-jack-ports.mjs", "jack-provider-plan");
+  if (tokens.includes("--verify") || tokens.includes("--ports-file")) {
+    fail("jack-provider-plan command must not verify or read live JACK ports");
+  }
+  if (!tokens.includes("--loopwire-owned-only")) {
+    fail("jack-provider-plan command must include --loopwire-owned-only");
+  }
+
+  const binding = manifest.release?.jackProviderPlan;
+  if (!binding || typeof binding !== "object" || Array.isArray(binding)) {
+    fail("release evidence is missing jackProviderPlan binding metadata");
+  }
+  if (binding.required !== true) {
+    fail("jack-provider-plan command must be marked required in release evidence metadata");
+  }
+
+  validateConfigurationPath(binding.configuration, "JACK provider configuration");
+  requireOptionValue(tokens, "--configuration", binding.configuration, "jack-provider-plan");
+  validateJackProviderPlanLog(command.log, binding);
+}
+
 function validateDspConfigurationPath(value) {
+  validateConfigurationPath(value, "DSP provider configuration");
+}
+
+function validateConfigurationPath(value, label) {
   if (typeof value !== "string" || value.length === 0) {
-    fail("DSP provider configuration path is missing");
+    fail(`${label} path is missing`);
   }
 
   if (value.includes("\0") || /[\r\n]/.test(value)) {
-    fail("DSP provider configuration path must be a single safe value");
+    fail(`${label} path must be a single safe value`);
   }
 
   if (isAbsolute(value) || value.split(/[\\/]+/).includes("..")) {
-    fail("DSP provider configuration path must be relative and must not contain parent traversal");
+    fail(`${label} path must be relative and must not contain parent traversal`);
   }
 }
 
@@ -547,6 +589,170 @@ function readDspProviderConfiguration(configurationPath) {
     }
     if (typeof route.from !== "string" || typeof route.to !== "string") {
       fail("DSP provider configuration routes must include from and to ids");
+    }
+  }
+
+  return configuration;
+}
+
+function validateJackProviderPlanLog(log, binding) {
+  const logPath = resolveEvidenceFile(log, "jack-provider-plan log");
+  const payload = readJson(logPath);
+  const configuration = readJackProviderConfiguration(binding.configuration);
+
+  if (payload.configurationId !== configuration.id) {
+    fail(`jack-provider-plan configuration id mismatch: expected ${configuration.id}, got ${payload.configurationId ?? "<missing>"}`);
+  }
+  if (payload.clientPrefix !== "loopwire") {
+    fail("jack-provider-plan must use the default loopwire client prefix");
+  }
+  if ("ok" in payload || "portSource" in payload || "missingCount" in payload) {
+    fail("jack-provider-plan log must be a read-only requirement plan, not readiness verification");
+  }
+  if (!Array.isArray(payload.requirements) || payload.requirements.length === 0) {
+    fail("jack-provider-plan log must include Loopwire-owned requirements");
+  }
+
+  const expected = expectedJackProviderRows(configuration);
+  const seenRows = new Map();
+
+  for (const requirement of payload.requirements) {
+    if (!requirement || typeof requirement !== "object" || Array.isArray(requirement)) {
+      fail("jack-provider-plan requirement must be an object");
+    }
+    if (requirement.source !== "loopwire-owned") {
+      fail(`jack-provider-plan requirement must be Loopwire-owned: ${requirement.endpointId ?? "<missing>"}`);
+    }
+    for (const field of ["kind", "endpointId", "endpointLabel", "deviceName"]) {
+      if (typeof requirement[field] !== "string" || requirement[field].length === 0) {
+        fail(`jack-provider-plan requirement is missing ${field}`);
+      }
+    }
+    validatePositiveIntegerCell(String(requirement.channelCount), `jack-provider-plan channel count for ${requirement.endpointId}`);
+    if (!Array.isArray(requirement.suggestedPorts) || requirement.suggestedPorts.length !== Number(requirement.channelCount)) {
+      fail(`jack-provider-plan suggested port count mismatch for ${requirement.endpointId}`);
+    }
+    if (requirement.suggestedPorts.some((port) => typeof port !== "string" || !port.startsWith(`${requirement.deviceName}:`))) {
+      fail(`jack-provider-plan suggested ports must use the requirement device name for ${requirement.endpointId}`);
+    }
+
+    const rowKey = `${requirement.kind}\t${requirement.endpointId}\t${requirement.deviceName}`;
+    const expectedRow = expected.get(rowKey);
+    if (!expectedRow) {
+      fail(`jack-provider-plan row is not expected for configuration ${binding.configuration}: ${requirement.kind} ${requirement.endpointId}`);
+    }
+    if (requirement.endpointLabel !== expectedRow.label) {
+      fail(`jack-provider-plan label mismatch for ${requirement.kind} ${requirement.endpointId}: expected ${expectedRow.label}, got ${requirement.endpointLabel}`);
+    }
+    if (String(requirement.channelCount) !== expectedRow.channels) {
+      fail(`jack-provider-plan channel mismatch for ${requirement.kind} ${requirement.endpointId}: expected ${expectedRow.channels}, got ${requirement.channelCount}`);
+    }
+    const nextSeenCount = (seenRows.get(rowKey) ?? 0) + 1;
+    if (nextSeenCount > expectedRow.count) {
+      fail(`jack-provider-plan row appears too many times: ${requirement.kind} ${requirement.endpointId}`);
+    }
+    seenRows.set(rowKey, nextSeenCount);
+  }
+
+  for (const [rowKey, expectedRow] of expected) {
+    const seenCount = seenRows.get(rowKey) ?? 0;
+    if (seenCount === 0) {
+      fail(`jack-provider-plan log is missing expected row: ${rowKey.replaceAll("\t", " ")}`);
+    }
+    if (seenCount !== expectedRow.count) {
+      fail(`jack-provider-plan row count mismatch for ${rowKey.replaceAll("\t", " ")}: expected ${expectedRow.count}, got ${seenCount}`);
+    }
+  }
+}
+
+function expectedJackProviderRows(configuration) {
+  const expectedRows = new Map();
+  const inputs = new Map(configuration.inputs.map((input) => [input.id, input]));
+  const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+
+  for (const route of configuration.routes) {
+    const input = inputs.get(route.from);
+    const output = outputs.get(route.to);
+    if (!input || !output) {
+      fail(`JACK provider configuration has an invalid route: ${route.id ?? `${route.from}->${route.to}`}`);
+    }
+
+    const channels = String(Math.min(input.channels, output.channels));
+    addExpectedJackRow(expectedRows, "route-source", input, configuration, "input", channels);
+    addExpectedJackRow(expectedRows, "route-target", output, configuration, "output", channels);
+  }
+
+  for (const output of configuration.outputs) {
+    for (const monitor of configuration.monitors ?? []) {
+      const channels = String(Math.min(output.channels, monitor.channels));
+      addExpectedJackRow(expectedRows, "monitor-source", output, configuration, "output", channels);
+      addExpectedJackRow(expectedRows, "monitor-target", monitor, configuration, "monitor", channels);
+    }
+  }
+
+  return expectedRows;
+}
+
+function addExpectedJackRow(rows, kind, endpoint, configuration, endpointKind, channels) {
+  if (typeof endpoint.deviceName === "string" && endpoint.deviceName.trim().length > 0) {
+    return;
+  }
+
+  const deviceName = jackDeviceName(configuration, endpoint, endpointKind);
+  const key = `${kind}\t${endpoint.id}\t${deviceName}`;
+  const existing = rows.get(key);
+  rows.set(key, {
+    label: endpoint.label,
+    channels: String(Math.max(Number(existing?.channels ?? 0), Number(channels))),
+    count: (existing?.count ?? 0) + 1
+  });
+}
+
+function jackDeviceName(configuration, endpoint, endpointKind) {
+  if (endpointKind === "input") {
+    return ["loopwire", configuration.id, "input", endpoint.id].map(sanitizeJackName).join("_").slice(0, 80);
+  }
+  if (endpointKind === "monitor") {
+    return ["loopwire", configuration.id, "monitor", endpoint.id].map(sanitizeJackName).join("_").slice(0, 80);
+  }
+  return ["loopwire", configuration.id, endpoint.id].map(sanitizeJackName).join("_").slice(0, 80);
+}
+
+function sanitizeJackName(value) {
+  const sanitized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return sanitized || "unnamed";
+}
+
+function readJackProviderConfiguration(configurationPath) {
+  const value = readJson(join(projectRoot, configurationPath));
+  const configuration = value?.kind === "loopwire.configuration" && value?.version === 1
+    ? value.configuration
+    : value;
+
+  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration)) {
+    fail("JACK provider configuration must be an object or configuration export");
+  }
+
+  validateDspEndpointArray(configuration.inputs, "inputs");
+  validateDspEndpointArray(configuration.outputs, "outputs");
+  if (configuration.monitors !== undefined) {
+    validateDspEndpointArray(configuration.monitors, "monitors");
+  }
+  if (!Array.isArray(configuration.routes)) {
+    fail("JACK provider configuration routes must be an array");
+  }
+
+  for (const route of configuration.routes) {
+    if (!route || typeof route !== "object" || Array.isArray(route)) {
+      fail("JACK provider configuration routes must contain objects");
+    }
+    if (typeof route.from !== "string" || typeof route.to !== "string") {
+      fail("JACK provider configuration routes must include from and to ids");
     }
   }
 
@@ -837,6 +1043,20 @@ function validateScriptInvocation(command, scriptPath, label) {
 
   if (tokens[0] !== "bash" || tokens[1] !== scriptPath) {
     fail(`${label} command must invoke bash ${scriptPath}`);
+  }
+
+  return tokens;
+}
+
+function validateNodeScriptInvocation(command, scriptPath, label) {
+  if (typeof command.command !== "string" || command.command.length === 0) {
+    fail(`${label} command is missing the executed command`);
+  }
+
+  const tokens = splitShellWords(command.command, label);
+
+  if (tokens[0] !== "node" || tokens[1] !== scriptPath) {
+    fail(`${label} command must invoke node ${scriptPath}`);
   }
 
   return tokens;

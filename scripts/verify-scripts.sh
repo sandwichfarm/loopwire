@@ -1271,6 +1271,10 @@ node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-dsp-prov
   echo "verify-scripts: release evidence verifier help is missing DSP provider plan support" >&2
   exit 1
 }
+node scripts/verify-release-evidence.mjs --help | grep -F -- "--require-jack-provider-plan" >/dev/null || {
+  echo "verify-scripts: release evidence verifier help is missing JACK provider plan support" >&2
+  exit 1
+}
 printf '%s\n' "$verify_published_release_help" | grep -F -- "--require-release-evidence" >/dev/null || {
   echo "verify-scripts: published release verifier help is missing evidence asset support" >&2
   exit 1
@@ -1829,6 +1833,14 @@ printf '%s\n' "$collect_evidence_help" | grep -F -- "--require-dsp-provider-plan
   echo "verify-scripts: release evidence help is missing DSP provider requirement support" >&2
   exit 1
 }
+printf '%s\n' "$collect_evidence_help" | grep -F -- "--jack-configuration FILE" >/dev/null || {
+  echo "verify-scripts: release evidence help is missing JACK configuration support" >&2
+  exit 1
+}
+printf '%s\n' "$collect_evidence_help" | grep -F -- "--require-jack-provider-plan" >/dev/null || {
+  echo "verify-scripts: release evidence help is missing JACK provider requirement support" >&2
+  exit 1
+}
 printf '%s\n' "$collect_evidence_help" | grep -F -- "--summarize-release-readiness-log FILE" >/dev/null || {
   echo "verify-scripts: release evidence help is missing readiness log summary support" >&2
   exit 1
@@ -1878,6 +1890,20 @@ if (!dsp.command.includes("scripts/fixtures/dsp-provider-configuration.json")) p
 if (dsp.command.includes("--execute")) process.exit(1);
 ' || {
   echo "verify-scripts: full release evidence plan is missing required DSP provider plan" >&2
+  exit 1
+}
+printf '%s\n' "$collect_evidence_full_plan" | node -e '
+const fs = require("node:fs");
+const plan = JSON.parse(fs.readFileSync(0, "utf8"));
+const jack = plan.find((entry) => entry.name === "jack-provider-plan");
+if (!jack || jack.required !== true) process.exit(1);
+if (!jack.command.includes("scripts/describe-jack-ports.mjs")) process.exit(1);
+if (!jack.command.includes("--configuration")) process.exit(1);
+if (!jack.command.includes("scripts/fixtures/jack-provider-configuration.json")) process.exit(1);
+if (!jack.command.includes("--loopwire-owned-only")) process.exit(1);
+if (jack.command.includes("--verify") || jack.command.includes("--ports-file")) process.exit(1);
+' || {
+  echo "verify-scripts: full release evidence plan is missing required JACK provider plan" >&2
   exit 1
 }
 printf '%s\n' "$collect_evidence_full_plan" | node -e '
@@ -2029,6 +2055,13 @@ fi
 if node scripts/collect-release-evidence.mjs \
   --list-commands \
   --profile quick \
+  --jack-configuration ../unsafe.json >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence accepted an unsafe JACK configuration path" >&2
+  exit 1
+fi
+if node scripts/collect-release-evidence.mjs \
+  --list-commands \
+  --profile quick \
   --dsp-frame-count nope >/dev/null 2>&1; then
   echo "verify-scripts: release evidence accepted an invalid DSP frame count" >&2
   exit 1
@@ -2050,6 +2083,24 @@ if (!dsp.command.includes("--frame-count")) process.exit(1);
 if (!dsp.command.includes("8")) process.exit(1);
 ' || {
   echo "verify-scripts: required release evidence plan did not make DSP provider plan required" >&2
+  exit 1
+}
+collect_evidence_jack_required_plan="$(
+  node scripts/collect-release-evidence.mjs \
+    --list-commands \
+    --profile quick \
+    --require-jack-provider-plan \
+    --jack-configuration scripts/fixtures/jack-provider-configuration.json
+)"
+printf '%s\n' "$collect_evidence_jack_required_plan" | node -e '
+const fs = require("node:fs");
+const plan = JSON.parse(fs.readFileSync(0, "utf8"));
+const jack = plan.find((entry) => entry.name === "jack-provider-plan");
+if (!jack || jack.required !== true) process.exit(1);
+if (!jack.command.includes("--loopwire-owned-only")) process.exit(1);
+if (jack.command.includes("--verify")) process.exit(1);
+' || {
+  echo "verify-scripts: required release evidence plan did not make JACK provider plan required" >&2
   exit 1
 }
 collect_evidence_vm_required_plan="$(
@@ -3137,6 +3188,11 @@ release_evidence_missing_dsp_plan_dir="$tmp_dir/release-evidence-missing-dsp-pla
 release_evidence_bad_dsp_plan_command_dir="$tmp_dir/release-evidence-bad-dsp-plan-command"
 release_evidence_bad_dsp_plan_log_dir="$tmp_dir/release-evidence-bad-dsp-plan-log"
 release_evidence_wrong_dsp_plan_target_dir="$tmp_dir/release-evidence-wrong-dsp-plan-target"
+release_evidence_missing_jack_plan_dir="$tmp_dir/release-evidence-missing-jack-plan"
+release_evidence_bad_jack_plan_command_dir="$tmp_dir/release-evidence-bad-jack-plan-command"
+release_evidence_live_jack_plan_command_dir="$tmp_dir/release-evidence-live-jack-plan-command"
+release_evidence_bad_jack_plan_log_dir="$tmp_dir/release-evidence-bad-jack-plan-log"
+release_evidence_wrong_jack_plan_target_dir="$tmp_dir/release-evidence-wrong-jack-plan-target"
 node - "$release_evidence_dir" "$release_evidence_partial_dir" "$release_evidence_blocked_dir" \
   "$release_evidence_empty_log_dir" "$release_evidence_parent_log_dir" "$release_evidence_symlink_log_dir" \
   "$release_evidence_bad_vm_dir" "$release_evidence_duplicate_vm_dir" "$release_evidence_bad_vm_command_dir" \
@@ -3147,7 +3203,10 @@ node - "$release_evidence_dir" "$release_evidence_partial_dir" "$release_evidenc
   "$release_evidence_missing_launch_plan_dir" \
   "$release_evidence_bad_launch_plan_command_dir" "$release_evidence_bad_launch_plan_log_dir" \
   "$release_evidence_missing_dsp_plan_dir" "$release_evidence_bad_dsp_plan_command_dir" \
-  "$release_evidence_bad_dsp_plan_log_dir" "$release_evidence_wrong_dsp_plan_target_dir" <<'NODE'
+  "$release_evidence_bad_dsp_plan_log_dir" "$release_evidence_wrong_dsp_plan_target_dir" \
+  "$release_evidence_missing_jack_plan_dir" "$release_evidence_bad_jack_plan_command_dir" \
+  "$release_evidence_live_jack_plan_command_dir" "$release_evidence_bad_jack_plan_log_dir" \
+  "$release_evidence_wrong_jack_plan_target_dir" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const [
@@ -3176,7 +3235,12 @@ const [
   missingDspPlanDir,
   badDspPlanCommandDir,
   badDspPlanLogDir,
-  wrongDspPlanTargetDir
+  wrongDspPlanTargetDir,
+  missingJackPlanDir,
+  badJackPlanCommandDir,
+  liveJackPlanCommandDir,
+  badJackPlanLogDir,
+  wrongJackPlanTargetDir
 ] = process.argv.slice(2);
 const targets = fs.readFileSync("vm/targets.tsv", "utf8")
   .split(/\r?\n/)
@@ -3252,6 +3316,18 @@ function dspProviderPlanCommand() {
   };
 }
 
+function jackProviderPlanCommand() {
+  return {
+    ...command("jack-provider-plan", "jack-provider-plan.json"),
+    command: [
+      "node scripts/describe-jack-ports.mjs",
+      "--configuration scripts/fixtures/jack-provider-configuration.json",
+      "--loopwire-owned-only",
+      "--pretty"
+    ].join(" ")
+  };
+}
+
 function vmLaunchPlanLog(selectedTargets) {
   const rows = [
     "# target\timage\timage_format\tfirmware\tssh_port\tmemory\tcpus\tlaunch_command\tevidence_pull_command"
@@ -3294,6 +3370,76 @@ function dspProviderPlanLog() {
   ].join("\n") + "\n";
 }
 
+function jackProviderPlanLog() {
+  return JSON.stringify({
+    configurationId: "release-jack-proof",
+    configurationName: "Release JACK Proof",
+    clientPrefix: "loopwire",
+    requirements: [
+      {
+        kind: "route-source",
+        endpointId: "mic",
+        endpointLabel: "Studio Mic",
+        source: "loopwire-owned",
+        deviceName: "loopwire_release-jack-proof_input_mic",
+        channelCount: 2,
+        suggestedPorts: [
+          "loopwire_release-jack-proof_input_mic:capture_1",
+          "loopwire_release-jack-proof_input_mic:capture_2"
+        ]
+      },
+      {
+        kind: "route-target",
+        endpointId: "program",
+        endpointLabel: "Program",
+        source: "loopwire-owned",
+        deviceName: "loopwire_release-jack-proof_program",
+        channelCount: 2,
+        suggestedPorts: [
+          "loopwire_release-jack-proof_program:playback_1",
+          "loopwire_release-jack-proof_program:playback_2"
+        ]
+      },
+      {
+        kind: "route-target",
+        endpointId: "program",
+        endpointLabel: "Program",
+        source: "loopwire-owned",
+        deviceName: "loopwire_release-jack-proof_program",
+        channelCount: 2,
+        suggestedPorts: [
+          "loopwire_release-jack-proof_program:playback_1",
+          "loopwire_release-jack-proof_program:playback_2"
+        ]
+      },
+      {
+        kind: "monitor-source",
+        endpointId: "program",
+        endpointLabel: "Program",
+        source: "loopwire-owned",
+        deviceName: "loopwire_release-jack-proof_program",
+        channelCount: 2,
+        suggestedPorts: [
+          "loopwire_release-jack-proof_program:monitor_1",
+          "loopwire_release-jack-proof_program:monitor_2"
+        ]
+      },
+      {
+        kind: "monitor-target",
+        endpointId: "phones",
+        endpointLabel: "Headphones",
+        source: "loopwire-owned",
+        deviceName: "loopwire_release-jack-proof_monitor_phones",
+        channelCount: 2,
+        suggestedPorts: [
+          "loopwire_release-jack-proof_monitor_phones:playback_1",
+          "loopwire_release-jack-proof_monitor_phones:playback_2"
+        ]
+      }
+    ]
+  }, null, 2) + "\n";
+}
+
 function writeBundle(dir, selectedTargets, blockers = [], emptyLog = null) {
   fs.mkdirSync(dir, { recursive: true });
   const commands = [
@@ -3301,6 +3447,7 @@ function writeBundle(dir, selectedTargets, blockers = [], emptyLog = null) {
     docsLiveCommand(),
     vmLaunchPlanCommand(),
     dspProviderPlanCommand(),
+    jackProviderPlanCommand(),
     ...selectedTargets.map(vmCommand)
   ];
   const manifest = {
@@ -3335,6 +3482,10 @@ function writeBundle(dir, selectedTargets, blockers = [], emptyLog = null) {
         frameCount: "16",
         required: true
       },
+      jackProviderPlan: {
+        configuration: "scripts/fixtures/jack-provider-configuration.json",
+        required: true
+      },
       findings: blockers,
       blockers
     },
@@ -3349,6 +3500,8 @@ function writeBundle(dir, selectedTargets, blockers = [], emptyLog = null) {
         ? vmLaunchPlanLog(targets)
         : item.name === "dsp-provider-plan"
           ? dspProviderPlanLog()
+        : item.name === "jack-provider-plan"
+          ? jackProviderPlanLog()
         : `ok: ${item.name}\n`;
     fs.writeFileSync(path.join(dir, item.log), content);
   }
@@ -3581,6 +3734,56 @@ writeBundle(wrongDspPlanTargetDir, targets);
     "clear-output\tpreview\tMain Mix\t2\t16"
   ].join("\n") + "\n");
 }
+
+writeBundle(missingJackPlanDir, targets);
+{
+  const manifestPath = path.join(missingJackPlanDir, "release-evidence.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  manifest.commands = manifest.commands.filter((entry) => entry.name !== "jack-provider-plan");
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+writeBundle(badJackPlanCommandDir, targets);
+{
+  const manifestPath = path.join(badJackPlanCommandDir, "release-evidence.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const item = manifest.commands.find((entry) => entry.name === "jack-provider-plan");
+  item.command = [
+    "echo node scripts/describe-jack-ports.mjs",
+    "--configuration scripts/fixtures/jack-provider-configuration.json",
+    "--loopwire-owned-only",
+    "--pretty"
+  ].join(" ");
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+writeBundle(liveJackPlanCommandDir, targets);
+{
+  const manifestPath = path.join(liveJackPlanCommandDir, "release-evidence.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const item = manifest.commands.find((entry) => entry.name === "jack-provider-plan");
+  item.command += " --verify";
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+writeBundle(badJackPlanLogDir, targets);
+{
+  const payload = JSON.parse(jackProviderPlanLog());
+  payload.requirements = payload.requirements.filter((entry) => entry.kind !== "monitor-target");
+  fs.writeFileSync(path.join(badJackPlanLogDir, "jack-provider-plan.json"), `${JSON.stringify(payload, null, 2)}\n`);
+}
+
+writeBundle(wrongJackPlanTargetDir, targets);
+{
+  const payload = JSON.parse(jackProviderPlanLog());
+  const item = payload.requirements.find((entry) => entry.kind === "route-target");
+  item.deviceName = "loopwire_release-jack-proof_preview";
+  item.suggestedPorts = [
+    "loopwire_release-jack-proof_preview:in_1",
+    "loopwire_release-jack-proof_preview:in_2"
+  ];
+  fs.writeFileSync(path.join(wrongJackPlanTargetDir, "jack-provider-plan.json"), `${JSON.stringify(payload, null, 2)}\n`);
+}
 NODE
 node scripts/verify-release-evidence.mjs \
   --evidence-dir "$release_evidence_dir" \
@@ -3594,6 +3797,7 @@ node scripts/verify-release-evidence.mjs \
   --require-all-vm-targets \
   --require-vm-launch-plan \
   --require-dsp-provider-plan \
+  --require-jack-provider-plan \
   --require-no-release-blockers \
   --require-clean-git >/dev/null
 if node scripts/verify-release-evidence.mjs \
@@ -3775,6 +3979,36 @@ if node scripts/verify-release-evidence.mjs \
   --evidence-dir "$release_evidence_wrong_dsp_plan_target_dir" \
   --require-dsp-provider-plan >/dev/null 2>&1; then
   echo "verify-scripts: release evidence verifier accepted DSP provider rows for the wrong target" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_missing_jack_plan_dir" \
+  --require-jack-provider-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted missing JACK provider evidence" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_bad_jack_plan_command_dir" \
+  --require-jack-provider-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted a fake JACK provider command" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_live_jack_plan_command_dir" \
+  --require-jack-provider-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted live JACK provider verification in release plan" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_bad_jack_plan_log_dir" \
+  --require-jack-provider-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted incomplete JACK provider rows" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_wrong_jack_plan_target_dir" \
+  --require-jack-provider-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted JACK provider rows for the wrong target" >&2
   exit 1
 fi
 

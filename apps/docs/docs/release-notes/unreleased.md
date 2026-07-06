@@ -405,6 +405,10 @@ These notes describe source-tree progress. They are not a public release announc
   placeholder DSP provider rows that do not match the manifest-bound configuration.
 - Final release DSP provider evidence now also requires `clear-output` rows for configured outputs, so release proof
   covers the same rollback/unload operation required by live DSP restore.
+- Final release JACK provider evidence now requires `--require-jack-provider-plan`, requiring a read-only
+  `jack-provider-plan` row in release evidence bundles that validates
+  `scripts/describe-jack-ports.mjs --loopwire-owned-only` output without `--verify` so published proof covers
+  deterministic Loopwire-owned JACK port requirements without calling `jack_lsp` or executing a provider.
 - Release tarballs, the curl installer, AUR metadata, and Nix metadata now expose `loopwire-dsp-provider` beside the
   main `loopwire` launcher.
 - Release evidence collection and verification can now require live docs smoke with `--require-live-docs`, binding final

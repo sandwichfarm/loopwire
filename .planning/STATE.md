@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T06:14:37+02:00"
-last_activity: 2026-07-06 - Support bundles can capture read-only JACK provider plans
+last_updated: "2026-07-06T06:36:26+02:00"
+last_activity: 2026-07-06 - Release evidence can require read-only JACK provider plans
 progress:
   total_phases: 5
   completed_phases: 4
@@ -49,6 +49,11 @@ Latest evidence hardening: 2026-07-06 - Support bundles can now include read-onl
 `--include-jack-provider-plan`. The collector writes `jack-provider-plan.json`, summarizes redacted `jackProvider`
 metadata in `support-bundle.json`, filters to deterministic Loopwire-owned JACK requirements, and avoids running
 `jack_lsp`, `loopwire-jack-ports`, or any supplied provider command unless explicit readiness inputs are provided.
+Latest release-evidence hardening: 2026-07-06 - Final release evidence can now require read-only JACK provider plan
+proof with `--require-jack-provider-plan`. The release collector records `jack-provider-plan.json` from
+`scripts/describe-jack-ports.mjs --loopwire-owned-only` without `--verify`, the verifier binds that JSON to
+`scripts/fixtures/jack-provider-configuration.json`, and the release workflow plus final proof wrapper now require the
+same JACK provider plan alongside DSP provider proof.
 
 ## Blockers / Concerns
 
@@ -117,6 +122,18 @@ metadata in `support-bundle.json`, filters to deterministic Loopwire-owned JACK 
   scripts/collect-support-bundle.mjs`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full
   validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
   dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was performed.
+- 2026-07-06 JACK provider release evidence: `scripts/collect-release-evidence.mjs` now records read-only
+  `jack-provider-plan.json` in full-profile evidence and quick evidence when `--require-jack-provider-plan` is supplied.
+  `scripts/verify-release-evidence.mjs` rejects missing, fake, live-verifying, incomplete, or mismatched JACK provider
+  rows and requires only Loopwire-owned deterministic requirements from the manifest-bound fixture. The protected
+  release workflow and `pnpm verify:final-release` now require the JACK provider plan with DSP provider proof. Focused
+  validation passed so far: `node --check scripts/collect-release-evidence.mjs`, `node --check
+  scripts/verify-release-evidence.mjs`, `node scripts/collect-release-evidence.mjs --list-commands --profile full`,
+  `node scripts/describe-jack-ports.mjs --configuration scripts/fixtures/jack-provider-configuration.json
+  --loopwire-owned-only --pretty`, `pnpm verify:scripts`, `pnpm verify:workflows`, `pnpm verify:docs`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was
+  performed.
 - 2026-07-06 Desktop JACK provider live apply: desktop Host apply now uses saved JACK provider settings for native JACK
   live apply, while preflight only unblocks deterministic Loopwire-owned JACK port gaps when those settings are valid.
   The Tauri audio command bridge allowlists the bounded JACK provider `ensure --configuration-id ... --requirement ...

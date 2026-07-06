@@ -444,6 +444,7 @@ run_step "release evidence" \
   --require-all-vm-targets \
   --require-vm-launch-plan \
   --require-dsp-provider-plan \
+  --require-jack-provider-plan \
   --require-no-release-blockers \
   --require-clean-git
 

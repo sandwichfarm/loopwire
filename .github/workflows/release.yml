@@ -340,7 +340,8 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --public-key "$LOOPWIRE_RELEASE_PUBLIC_KEY_FILE" \
             --require-published-release \
-            --require-dsp-provider-plan
+            --require-dsp-provider-plan \
+            --require-jack-provider-plan
           pnpm verify:release-evidence -- \
             --evidence-dir "$evidence_dir" \
             --release-tag "$LOOPWIRE_RELEASE_TAG" \
@@ -349,6 +350,7 @@ jobs:
             --git-head "$LOOPWIRE_RELEASE_COMMIT" \
             --require-published-release \
             --require-dsp-provider-plan \
+            --require-jack-provider-plan \
             --require-no-release-blockers
           evidence_archive="dist/release/loopwire-release-evidence-${LOOPWIRE_RELEASE_TAG}.tar.gz"
           tar -C "dist/release-evidence" -czf "$evidence_archive" "$LOOPWIRE_RELEASE_TAG"

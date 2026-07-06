@@ -1,0 +1,53 @@
+{
+  "id": "release-jack-proof",
+  "name": "Release JACK Proof",
+  "description": "Stable release evidence topology for command-backed JACK provider planning.",
+  "inputs": [
+    {
+      "id": "mic",
+      "label": "Studio Mic",
+      "role": "input",
+      "channels": 2
+    },
+    {
+      "id": "player",
+      "label": "Music Player",
+      "role": "input",
+      "channels": 2,
+      "deviceName": "mpd"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "program",
+      "label": "Program",
+      "role": "output",
+      "channels": 2
+    }
+  ],
+  "monitors": [
+    {
+      "id": "phones",
+      "label": "Headphones",
+      "role": "monitor",
+      "channels": 2
+    }
+  ],
+  "routes": [
+    {
+      "id": "mic-program",
+      "from": "mic",
+      "to": "program",
+      "gain": 1,
+      "muted": false
+    },
+    {
+      "id": "player-program",
+      "from": "player",
+      "to": "program",
+      "gain": 1,
+      "muted": false
+    }
+  ],
+  "updatedAt": "2026-07-06T00:00:00.000Z"
+}

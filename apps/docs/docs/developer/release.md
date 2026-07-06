@@ -28,12 +28,12 @@ pnpm collect:evidence -- --output-dir .release-evidence/v0.1.0 --profile full --
 
 The collector writes command logs plus `release-evidence.json`, including git state, tool versions, command exit codes,
 backend detection, Rust compile status, workflow parsing, release-readiness preflight state, and GSD milestone state.
-The full profile records read-only DSP provider plan evidence as required evidence, records offline release readiness
-with GitHub/tag/clean-checkout checks skipped, and records the strict publish preflight, published-release installer
-smoke, and VM bundle verification as optional evidence. The manifest exposes parsed `release.findings` plus
-`release.blockers` from the readiness log. This lets a rehearsal bundle show current external blockers without failing
-evidence collection, while still rejecting candidate-only versioned release notes. Use `--profile quick` inside VM runs
-when a full workspace check has already been captured separately.
+The full profile records read-only DSP provider plan evidence and read-only JACK provider plan evidence as required
+evidence, records offline release readiness with GitHub/tag/clean-checkout checks skipped, and records the strict
+publish preflight, published-release installer smoke, and VM bundle verification as optional evidence. The manifest
+exposes parsed `release.findings` plus `release.blockers` from the readiness log. This lets a rehearsal bundle show
+current external blockers without failing evidence collection while still rejecting candidate-only versioned release notes.
+Use `--profile quick` inside VM runs when a full workspace check has already been captured separately.
 
 Custom `--output-dir` values are local evidence directories only. They may be absolute temp directories or relative
 project paths, but the collector rejects root/home placeholders, parent/current-directory traversal, URL syntax, glob
@@ -52,6 +52,7 @@ pnpm collect:evidence -- \
   --docs-hostname "$BUNNY_PULL_ZONE_HOSTNAME" \
   --require-vm-evidence \
   --require-dsp-provider-plan \
+  --require-jack-provider-plan \
   --vm-target all \
   --vm-evidence-dir '.vm/evidence/{target}'
 ```
@@ -71,13 +72,18 @@ verify-output, and clear-output operation rows, and binds the configuration path
 `release-evidence.json`. It proves the release still exposes the provider contract without mutating host audio. Release
 tarballs must also expose `loopwire-dsp-provider` beside `loopwire`; the provider is file-backed smoke infrastructure,
 not live backend capture.
+The JACK provider plan command runs `scripts/describe-jack-ports.mjs` against
+`scripts/fixtures/jack-provider-configuration.json` with `--loopwire-owned-only` and without `--verify`. It records the
+deterministic Loopwire-owned client names and suggested channel ports that a bundled or operator-supplied JACK provider
+must create, while proving release evidence did not call `jack_lsp` or execute a provider.
 
 The tag release workflow collects the published-release portion automatically after `gh release create` or upload
-finishes. It runs `pnpm collect:evidence` with `--require-published-release --require-dsp-provider-plan`, verifies the
-bundle with `pnpm verify:release-evidence`, writes `loopwire-release-evidence-<tag>.tar.gz` into the release directory,
-regenerates the signed `SHA256SUMS` manifest so the evidence archive is checksummed, uploads the archive plus updated
-manifest files to the GitHub Release, and uploads a matching `loopwire-release-evidence-<tag>` workflow artifact. VM
-evidence remains operator-collected because GitHub-hosted runners do not provide the declared desktop/audio VM matrix.
+finishes. It runs `pnpm collect:evidence` with
+`--require-published-release --require-dsp-provider-plan --require-jack-provider-plan`, verifies the bundle with
+`pnpm verify:release-evidence`, writes `loopwire-release-evidence-<tag>.tar.gz` into the release directory, regenerates
+the signed `SHA256SUMS` manifest so the evidence archive is checksummed, uploads the archive plus updated manifest files
+to the GitHub Release, and uploads a matching `loopwire-release-evidence-<tag>` workflow artifact. VM evidence remains
+operator-collected because GitHub-hosted runners do not provide the declared desktop/audio VM matrix.
 
 The evidence collector and verifier enforce the same v-prefixed semver tag rule as the release workflow. A path-like
 tag such as `v0.1.0/preview` is rejected before command planning, manifest acceptance, or archive attachment.
@@ -103,6 +109,7 @@ pnpm verify:release-evidence -- \
   --require-all-vm-targets \
   --require-vm-launch-plan \
   --require-dsp-provider-plan \
+  --require-jack-provider-plan \
   --require-no-release-blockers \
   --require-clean-git
 ```
@@ -124,6 +131,11 @@ With `--require-dsp-provider-plan`, the verifier also requires a successful `dsp
 read-source, write-output, verify-output, and clear-output rows for the manifest-bound frame count and configuration.
 The row targets, labels, and channel counts must match the configured routed sources and outputs, so unrelated
 placeholder DSP rows cannot satisfy final release proof.
+With `--require-jack-provider-plan`, the verifier also requires a successful `jack-provider-plan` command row that
+invokes `node scripts/describe-jack-ports.mjs` in read-only mode with `--loopwire-owned-only`. The JSON log must contain
+only Loopwire-owned requirements for the manifest-bound fixture, must not contain readiness fields from `--verify`, and
+must match the deterministic device names and channel counts expected from the configured routed inputs, outputs, and
+monitors.
 When `--require-live-docs` is present, the verifier requires a successful `docs-live-smoke` command row that executed
 `bash scripts/verify-docs-live.sh` against the public installer and the same deployed docs base URL or hostname plus
 remote prefix recorded in `release-evidence.json`.

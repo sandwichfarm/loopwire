@@ -5,6 +5,18 @@
 
 ## Evidence Passed
 
+- Release evidence can now include required read-only JACK provider plans. `collect-release-evidence.mjs` adds
+  `--jack-configuration` and `--require-jack-provider-plan`, records `jack-provider-plan.json` with
+  `describe-jack-ports.mjs --loopwire-owned-only --pretty` and no `--verify`, and binds the plan to
+  `release.jackProviderPlan` metadata. `verify-release-evidence.mjs` rejects missing, echo-disguised, live-verifying,
+  incomplete, or mismatched JACK provider plan rows, validates only Loopwire-owned deterministic requirements from
+  `scripts/fixtures/jack-provider-configuration.json`, and the protected release workflow plus final proof wrapper now
+  require the JACK plan beside DSP provider proof. Focused validation passed so far: `node --check
+  scripts/collect-release-evidence.mjs`, `node --check scripts/verify-release-evidence.mjs`, full-profile command-plan
+  inspection, real JACK plan rendering from the fixture, `pnpm verify:scripts`, `pnpm verify:workflows`,
+  `pnpm verify:docs`, and `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag,
+  public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or
+  support-matrix promotion was performed.
 - Support bundles can now include read-only JACK provider plans for provider-backed JACK reports. The collector accepts
   `--include-jack-provider-plan` and `--jack-provider-command`, writes `jack-provider-plan.json`, summarizes
   deterministic Loopwire-owned JACK requirements as `jackProvider` in `support-bundle.json`, redacts the supplied

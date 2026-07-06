@@ -23,6 +23,10 @@ const dspConfiguration =
   process.env.LOOPWIRE_DSP_CONFIGURATION ??
   "scripts/fixtures/dsp-provider-configuration.json";
 const dspFrameCount = readOption("--dsp-frame-count") ?? process.env.LOOPWIRE_DSP_FRAME_COUNT ?? "16";
+const jackConfiguration =
+  readOption("--jack-configuration") ??
+  process.env.LOOPWIRE_JACK_CONFIGURATION ??
+  "scripts/fixtures/jack-provider-configuration.json";
 const wantsHelp = args.includes("-h") || args.includes("--help");
 const listCommands = args.includes("--list-commands");
 const requirePublishedRelease = args.includes("--require-published-release");
@@ -30,6 +34,7 @@ const requireVmEvidence = args.includes("--require-vm-evidence");
 const requireLiveDocs = args.includes("--require-live-docs");
 const requireNixRelease = args.includes("--require-nix-release");
 const requireDspProviderPlan = args.includes("--require-dsp-provider-plan");
+const requireJackProviderPlan = args.includes("--require-jack-provider-plan");
 const summarizeReleaseReadinessLog = readOption("--summarize-release-readiness-log");
 
 if (wantsHelp) {
@@ -55,6 +60,7 @@ validateSingleLine(vmLaunchImageRoot, "VM launch image root");
 validateTcpPort(vmLaunchStartPort, "VM launch start port");
 validateRelativePath(dspConfiguration, "DSP provider configuration");
 validatePositiveInteger(dspFrameCount, "DSP provider frame count");
+validateRelativePath(jackConfiguration, "JACK provider configuration");
 
 if (requireLiveDocs && !docsLiveBaseUrl && !docsLiveHostname) {
   fail("--require-live-docs needs --docs-base-url or --docs-hostname");
@@ -133,6 +139,10 @@ const manifest = {
       frameCount: dspFrameCount,
       required: isDspProviderPlanRequired(profile)
     },
+    jackProviderPlan: {
+      configuration: jackConfiguration,
+      required: isJackProviderPlanRequired(profile)
+    },
     findings: releaseFindings,
     blockers: releaseFindings.filter((finding) => finding.severity === "blocker")
   },
@@ -204,6 +214,12 @@ Release options:
                      Source frames requested in DSP provider plan evidence. Defaults to 16.
   --require-dsp-provider-plan
                      Include read-only DSP provider plan evidence in quick profile.
+                     Full profile includes it as required evidence by default.
+  --jack-configuration FILE
+                     Configuration used for read-only JACK provider plan evidence.
+                     Defaults to scripts/fixtures/jack-provider-configuration.json.
+  --require-jack-provider-plan
+                     Include read-only JACK provider plan evidence in quick profile.
                      Full profile includes it as required evidence by default.
   --list-commands    Print the command plan as JSON without running commands or writing files.
   --summarize-release-readiness-log FILE
@@ -402,6 +418,10 @@ function isDspProviderPlanRequired(selectedProfile) {
   return selectedProfile === "full" || requireDspProviderPlan;
 }
 
+function isJackProviderPlanRequired(selectedProfile) {
+  return selectedProfile === "full" || requireJackProviderPlan;
+}
+
 function dspProviderPlanCommand(selectedProfile) {
   return {
     name: "dsp-provider-plan",
@@ -415,6 +435,22 @@ function dspProviderPlanCommand(selectedProfile) {
     ]),
     log: "dsp-provider-plan.tsv",
     required: isDspProviderPlanRequired(selectedProfile)
+  };
+}
+
+function jackProviderPlanCommand(selectedProfile) {
+  return {
+    name: "jack-provider-plan",
+    command: shellCommand([
+      "node",
+      "scripts/describe-jack-ports.mjs",
+      "--configuration",
+      jackConfiguration,
+      "--loopwire-owned-only",
+      "--pretty",
+    ]),
+    log: "jack-provider-plan.json",
+    required: isJackProviderPlanRequired(selectedProfile)
   };
 }
 
@@ -515,7 +551,8 @@ function evidenceCommands(selectedProfile) {
       ...(requireLiveDocs ? [docsLiveSmoke] : []),
       ...(requireNixRelease ? [nixReleasePackage] : []),
       ...(requireVmEvidence ? vmEvidence : []),
-      ...(requireDspProviderPlan ? [dspProviderPlanCommand(selectedProfile)] : [])
+      ...(requireDspProviderPlan ? [dspProviderPlanCommand(selectedProfile)] : []),
+      ...(requireJackProviderPlan ? [jackProviderPlanCommand(selectedProfile)] : [])
     ];
 
     return [...commands, ...requiredEvidence];
@@ -525,6 +562,7 @@ function evidenceCommands(selectedProfile) {
     { name: "workspace-check", command: "pnpm check", log: "workspace-check.log" },
     ...common,
     dspProviderPlanCommand(selectedProfile),
+    jackProviderPlanCommand(selectedProfile),
     {
       name: "release-readiness-publish-preflight",
       command: shellCommand([
