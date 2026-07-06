@@ -50,8 +50,11 @@ reorder with click-and-drag.
 - Failed edits (duplicate names, invalid routes, removing the last bus) leave state untouched and surface a typed
   error toast.
 - Every device keeps at least one output bus.
-- Edits are saved to Loopwire state immediately and are applied to the host on the next device selection or startup
-  restore (selection re-runs the full unload→apply→verify transaction).
+- Structural edits (add/remove sources, buses, monitors, cables, On/Off toggles) re-run the apply transaction for the
+  selected device so the host tracks the canvas; volume edits are saved but
+  applied to the host on the next device selection or startup restore (link-only backends cannot apply gain live).
+- The sidebar On/Off pill is live for the selected device: On applies it through the saved backend, Off removes its
+  Loopwire-owned host state; removing a device unloads it first.
 
 ## Host Audio Boundary
 

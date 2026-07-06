@@ -2,7 +2,7 @@
   import { tick } from "svelte";
   import type { AudioEndpoint, LoopwireConfiguration } from "@loopwire/core";
   import { isEndpointEnabled } from "@loopwire/core";
-  import { deviceStore, hostCatalog, levelStore, uiStore } from "../app";
+  import { deviceStore, hostCatalog, levelStore, reapplySelectedDevice, uiStore } from "../app";
   import {
     cablePath,
     channelCablesFor,
@@ -252,6 +252,8 @@
       if (endpoint) {
         uiStore.selectEndpoint(endpoint.id);
       }
+
+      reapplySelectedDevice();
     }
   }
 
@@ -273,6 +275,8 @@
       if (endpoint) {
         uiStore.selectEndpoint(endpoint.id);
       }
+
+      reapplySelectedDevice();
     }
   }
 
@@ -287,6 +291,8 @@
       if (bus) {
         uiStore.selectEndpoint(bus.id);
       }
+
+      reapplySelectedDevice();
     }
   }
 
@@ -348,6 +354,8 @@
       if (route) {
         uiStore.selectRoute(route.id);
       }
+
+      reapplySelectedDevice();
     }
   }
 
@@ -417,7 +425,14 @@
           volume={Math.round(deviceStore.sourceVolume(device, endpoint.id) * 100)}
           isAppSource={endpoint.id !== "pass-thru"}
           onSelect={() => uiStore.selectEndpoint(endpoint.id)}
-          onToggleEnabled={(enabled) => reportIfFailed(deviceStore.setSourceEnabled(device.id, endpoint.id, enabled))}
+          onToggleEnabled={(enabled) => {
+            const result = deviceStore.setSourceEnabled(device.id, endpoint.id, enabled);
+            reportIfFailed(result);
+
+            if (result.ok) {
+              reapplySelectedDevice();
+            }
+          }}
           onToggleOptions={() => uiStore.toggleOptionsExpanded(endpoint.id)}
           onVolume={(volume) => reportIfFailed(deviceStore.setSourceVolume(device.id, endpoint.id, volume / 100))}
           onMuteWhenCapturing={(value) => reportIfFailed(deviceStore.setMuteWhenCapturing(device.id, endpoint.id, value))}
@@ -446,7 +461,14 @@
             optionsExpanded={$expandedOptions.has(endpoint.id)}
             levels={$levelStore}
             onSelect={() => uiStore.selectEndpoint(endpoint.id)}
-            onToggleEnabled={(enabled) => reportIfFailed(deviceStore.setSourceEnabled(device.id, endpoint.id, enabled))}
+            onToggleEnabled={(enabled) => {
+            const result = deviceStore.setSourceEnabled(device.id, endpoint.id, enabled);
+            reportIfFailed(result);
+
+            if (result.ok) {
+              reapplySelectedDevice();
+            }
+          }}
             onToggleOptions={() => uiStore.toggleOptionsExpanded(endpoint.id)}
             onVolume={(volume) => reportIfFailed(deviceStore.setSourceVolume(device.id, endpoint.id, volume / 100))}
           />

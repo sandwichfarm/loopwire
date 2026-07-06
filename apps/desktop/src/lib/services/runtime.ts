@@ -193,6 +193,44 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
   }
 
   let switchToken = 0;
+  /** Device currently applied live on the host, if any. */
+  let liveDeviceId: string | null = null;
+
+  /** Removes a device's Loopwire-owned host state (Off toggle, preview switches). */
+  async function unloadDevice(deviceId: string): Promise<boolean> {
+    const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
+    const backend = selectedBackend();
+
+    if (!target || !hasTauriRuntime() || !backend) {
+      return true;
+    }
+
+    const hostAdapter = createHostAdapter(backend, "live", "switch");
+
+    if (!hostAdapter) {
+      return true;
+    }
+
+    busy.set(true);
+    status.set("applying");
+    note.set(`Removing ${target.name} from ${displayBackendName(backend)}.`);
+
+    const result = await hostAdapter.unload(toHostRuntimeConfiguration(target));
+
+    status.set(result.ok ? "verified" : "failed");
+    note.set(result.message ?? (result.ok ? `Removed ${target.name} from the host.` : "Host unload failed."));
+    busy.set(false);
+
+    if (result.ok && liveDeviceId === deviceId) {
+      liveDeviceId = null;
+    }
+
+    if (!result.ok) {
+      onError(result.message ?? "Host unload failed.");
+    }
+
+    return result.ok;
+  }
 
   /**
    * Runs the unload→apply→verify transaction for a device switch, live through
@@ -204,6 +242,16 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     const token = ++switchToken;
     const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
     const { mode, skippedReason } = resolveApplyMode(target);
+
+    // A preview switch away from a live-applied device must still take that
+    // device's Loopwire-owned state off the host.
+    if (mode === "preview" && liveDeviceId && liveDeviceId !== deviceId) {
+      await unloadDevice(liveDeviceId);
+    }
+
+    if (mode === "preview" && liveDeviceId === deviceId && target?.enabled === false) {
+      await unloadDevice(deviceId);
+    }
 
     busy.set(true);
     status.set("applying");
@@ -242,6 +290,10 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
     updateStatus(result);
 
+    if (result.ok && mode === "live") {
+      liveDeviceId = deviceId;
+    }
+
     if (result.ok && mode === "preview" && skippedReason && hasTauriRuntime() && selectedBackend()) {
       // A backend is saved but this selection could not go live — say why.
       note.set(`Applied in preview only: ${skippedReason}`);
@@ -276,6 +328,10 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
     if (result.ok) {
       deviceStore.restoreSnapshot(result.state);
+
+      if (mode === "live") {
+        liveDeviceId = findActiveConfiguration(currentState())?.id ?? null;
+      }
     }
 
     lastApplyMode.set(mode);
@@ -414,6 +470,7 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     detectBackends,
     chooseBackend,
     switchDevice,
+    unloadDevice,
     verifyStartup,
     refreshStartupStatus,
     setStartupEnabled,

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isConfigurationEnabled, isConfigurationMuted, configurationVolume } from "@loopwire/core";
-  import { deviceStore, levelStore, runtimeService, uiStore } from "../app";
+  import { deviceStore, levelStore, reapplySelectedDevice, runtimeService, uiStore } from "../app";
   import { peakLevelFor } from "../stores/levelStore";
   import type { SidebarDevice } from "./Sidebar.svelte";
   import type { IconName } from "./Icon.svelte";
@@ -59,6 +59,8 @@
 
   function removeDevice(deviceId: string): void {
     const snapshot = deviceStore.snapshot();
+    // Take the device's Loopwire-owned host state down before dropping it.
+    void runtimeService.unloadDevice(deviceId);
     const { result, removed } = deviceStore.removeDevice(deviceId);
     reportIfFailed(result);
 
@@ -87,8 +89,14 @@
     }
 
     if (selection.kind === "route") {
-      reportIfFailed(deviceStore.removeRoute(device.id, selection.routeId));
+      const removed = deviceStore.removeRoute(device.id, selection.routeId);
+      reportIfFailed(removed);
       uiStore.clearSelection();
+
+      if (removed.ok) {
+        reapplySelectedDevice();
+      }
+
       return;
     }
 
@@ -103,6 +111,7 @@
 
     if (result.ok) {
       uiStore.clearSelection();
+      reapplySelectedDevice();
     }
   }
 
@@ -128,7 +137,16 @@
     onCreate={createDevice}
     onRemove={removeDevice}
     onReorder={(deviceId, toIndex) => reportIfFailed(deviceStore.moveDevice(deviceId, toIndex))}
-    onToggleEnabled={(deviceId, enabled) => reportIfFailed(deviceStore.setDeviceEnabled(deviceId, enabled))}
+    onToggleEnabled={(deviceId, enabled) => {
+      const result = deviceStore.setDeviceEnabled(deviceId, enabled);
+      reportIfFailed(result);
+
+      // The On/Off pill is live for the selected device: On applies it,
+      // Off takes its Loopwire-owned state off the host.
+      if (result.ok && deviceId === $selectedDevice?.id) {
+        void (enabled ? runtimeService.switchDevice(deviceId) : runtimeService.unloadDevice(deviceId));
+      }
+    }}
     onToggleMuted={(deviceId) => {
       const device = $devices.find((candidate) => candidate.id === deviceId);
       if (device) {

@@ -28,3 +28,16 @@ export const hostCatalog = createHostCatalog();
 export const themeService = createThemeService();
 
 export const runtimeService = createRuntimeService(deviceStore, (message) => uiStore.pushToast("error", message));
+
+/**
+ * Structural graph edits (add/remove endpoints, cables, On/Off) re-run the
+ * apply transaction for the selected device so the host tracks the canvas.
+ * Volume edits stay configured-only until the backend can apply gain.
+ */
+export function reapplySelectedDevice(): void {
+  const deviceId = deviceStore.snapshot().activeConfigurationId;
+
+  if (deviceId) {
+    void runtimeService.switchDevice(deviceId);
+  }
+}
