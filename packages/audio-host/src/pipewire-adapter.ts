@@ -77,6 +77,16 @@ function isPipeWireNodeList(
 
 const defaultTimeoutMs = 5000;
 const defaultSinkPrefix = "loopwire";
+const portRegistrationRetries = 12;
+const portRegistrationDelayMs = 150;
+
+function delay(durationMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+function isMissingPortsFailure(result: HostRuntimeOperationResult): boolean {
+  return result.ok === false && /Missing PipeWire .*ports for /.test(result.message ?? "");
+}
 
 export function createPipeWireGraphRuntimeAdapter(
   runner: CommandRunner,
@@ -151,7 +161,18 @@ async function applyPipeWireLinks(
   }
 
   const effectiveConfiguration = withVirtualEndpointDeviceNames(context, configuration);
-  const prepared = await preparePipeWireRoutePlans(context, effectiveConfiguration, "apply");
+  let prepared = await preparePipeWireRoutePlans(context, effectiveConfiguration, "apply");
+
+  // Freshly created virtual nodes register their ports asynchronously; retry
+  // planning briefly instead of failing the whole apply on the race.
+  for (let attempt = 0; !isPreparedPipeWireRoutePlans(prepared) && attempt < portRegistrationRetries; attempt += 1) {
+    if (createdNodes.length === 0 || !isMissingPortsFailure(prepared)) {
+      break;
+    }
+
+    await delay(portRegistrationDelayMs);
+    prepared = await preparePipeWireRoutePlans(context, effectiveConfiguration, "apply");
+  }
 
   if (!isPreparedPipeWireRoutePlans(prepared)) {
     await destroyPipeWireNodes(context, "rollback", createdNodes);

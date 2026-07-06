@@ -195,9 +195,25 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
   let switchToken = 0;
   /** Device currently applied live on the host, if any. */
   let liveDeviceId: string | null = null;
+  /**
+   * Host transactions never interleave: concurrent switch/unload/re-apply
+   * requests queue behind each other (a mid-flight apply racing a second one
+   * corrupts node/port bookkeeping on the host).
+   */
+  let transactionQueue: Promise<unknown> = Promise.resolve();
+
+  function enqueueTransaction<T>(run: () => Promise<T>): Promise<T> {
+    const next = transactionQueue.then(run, run);
+    transactionQueue = next.catch(() => undefined);
+    return next;
+  }
 
   /** Removes a device's Loopwire-owned host state (Off toggle, preview switches). */
-  async function unloadDevice(deviceId: string): Promise<boolean> {
+  function unloadDevice(deviceId: string): Promise<boolean> {
+    return enqueueTransaction(() => runUnloadDevice(deviceId));
+  }
+
+  async function runUnloadDevice(deviceId: string): Promise<boolean> {
     const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
     const backend = selectedBackend();
 
@@ -234,23 +250,31 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
   /**
    * Runs the unload→apply→verify transaction for a device switch, live through
-   * the saved backend whenever preflight passes. Switches are serialized by
-   * token: a stale async result cannot replace the state or status of a newer
-   * selection.
+   * the saved backend whenever preflight passes. Transactions are queued so
+   * they never interleave, and serialized by token: a superseded request
+   * neither runs nor replaces the state of a newer selection.
    */
-  async function switchDevice(deviceId: string): Promise<boolean> {
+  function switchDevice(deviceId: string): Promise<boolean> {
     const token = ++switchToken;
+    return enqueueTransaction(() => runSwitchDevice(deviceId, token));
+  }
+
+  async function runSwitchDevice(deviceId: string, token: number): Promise<boolean> {
+    if (token !== switchToken) {
+      return false;
+    }
+
     const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
     const { mode, skippedReason } = resolveApplyMode(target);
 
     // A preview switch away from a live-applied device must still take that
     // device's Loopwire-owned state off the host.
     if (mode === "preview" && liveDeviceId && liveDeviceId !== deviceId) {
-      await unloadDevice(liveDeviceId);
+      await runUnloadDevice(liveDeviceId);
     }
 
     if (mode === "preview" && liveDeviceId === deviceId && target?.enabled === false) {
-      await unloadDevice(deviceId);
+      await runUnloadDevice(deviceId);
     }
 
     busy.set(true);

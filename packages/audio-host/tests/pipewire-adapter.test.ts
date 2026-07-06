@@ -178,6 +178,38 @@ describe("createPipeWireGraphRuntimeAdapter", () => {
     expect(calls).toContain(`pw-link ${sourceNode}:monitor_FR ${busNode}:playback_FR`);
   });
 
+  it("waits for freshly created virtual sink ports to register before failing", async () => {
+    const passThruConfiguration: HostRuntimeConfiguration = {
+      id: "Native Mix",
+      name: "Native Mix",
+      inputs: [{ id: "pass-thru", label: "Pass-Thru", channels: 2 }],
+      outputs: [{ id: "program", label: "Program Out", channels: 2 }],
+      routes: [{ id: "pass-program", from: "pass-thru", to: "program", muted: false }]
+    };
+    const sourceNode = "loopwire_native_mix_source_pass-thru";
+    const busNode = "loopwire_native_mix_program";
+    const { runner, calls } = createRecordingRunner({
+      "pw-cli list-objects Node": [
+        { stdout: "" },
+        { stdout: pipeWireNode("90", sourceNode) },
+        { stdout: [pipeWireNode("90", sourceNode), pipeWireNode("91", busNode)].join("\n") }
+      ],
+      "pw-cli": { stdout: "" },
+      // ports register only on the second planning attempt (creation race)
+      "pw-link -o": [{ stdout: "" }, { stdout: [`${sourceNode}:monitor_FL`, `${sourceNode}:monitor_FR`].join("\n") }],
+      "pw-link -i": [{ stdout: "" }, { stdout: [`${busNode}:playback_FL`, `${busNode}:playback_FR`].join("\n") }],
+      "pw-link -l": { stdout: "" },
+      "pw-link": { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(passThruConfiguration);
+
+    expect(result.ok).toBe(true);
+    expect(calls.filter((call) => call === "pw-link -i").length).toBeGreaterThanOrEqual(2);
+    expect(calls).toContain(`pw-link ${sourceNode}:monitor_FL ${busNode}:playback_FL`);
+  });
+
   it("plans explicit bus-to-monitor routes instead of all output-monitor pairs", async () => {
     const cabledConfiguration: HostRuntimeConfiguration = {
       ...pipeWireConfiguration,
