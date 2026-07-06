@@ -419,6 +419,10 @@ else
   fetch_docs_proof+=("${fetch_docs_proof_suffix[@]}")
   print_command "${fetch_docs_proof[@]}"
 fi
+echo "  # Re-run agent-ready in post-deploy mode after artifact-bearing Deploy Docs proof exists:"
+print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
+  --git-head "$git_head" --public-key "$public_key" --require-hosted-checks \
+  --require-docs-deployment-artifacts --skip-local-gates
 echo
 echo "9. Render the operator VM evidence handoff:"
 print_command pnpm vm:host-setup -- --all

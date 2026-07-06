@@ -2861,6 +2861,15 @@
   confirmed CI run `28760367861` and Deploy Docs run `28760367851` are successful, but the Deploy Docs run is not
   artifact-bearing because `loopwire-docs-deployment` is absent. This remains an operator-owned Bunny secret/deploy
   gate, not an agent-side source change.
+- The final release handoff now prints a post-deploy `pnpm release:agent-ready -- --require-docs-deployment-artifacts
+  --skip-local-gates` command immediately after docs deployment proof fetch. This gives operators an exact command to
+  re-check the Bunny artifact-bearing Deploy Docs surface before VM evidence and final proof.
+- Focused validation passed for the handoff update: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, graph search located the release-status docs artifact and handoff surfaces,
+  `bash -n scripts/plan-final-release-handoff.sh scripts/verify-scripts.sh scripts/verify-docs.sh` passed, rendered
+  handoff output included the post-deploy command, and `pnpm verify:scripts`, `pnpm verify:docs`, and full `pnpm check`
+  passed. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 
 ## Status
 

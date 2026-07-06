@@ -220,9 +220,8 @@ into checksum, extraction, or manifest errors for files that were never download
 
 The handoff prints the agent-ready release automation preflight for the exact commit, the required secret check, strict
 release readiness command, reviewed annotated tag command, exact tag push ref, Release workflow dispatch, Deploy Docs
-workflow dispatch, docs deployment run selection, docs deployment proof download, all-target VM host setup and doctor preflights, VM SSH
-plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local
-final-proof dry-run, followed by a final `pnpm release:status` audit of the published release state. After the
+workflow dispatch, docs deployment run selection, docs deployment proof download, a post-deploy
+`pnpm release:agent-ready -- --require-docs-deployment-artifacts --skip-local-gates` check, all-target VM host setup and doctor preflights, VM SSH plan/runbook/evidence commands, VM evidence asset preparation command, final proof workflow dispatch, and local final-proof dry-run, followed by a final `pnpm release:status` audit of the published release state. After the
 final-proof dispatch command, it prints the expected GitHub Actions run name that `release:status` will require:
 `Final Release Proof <tag> @ <git-head>`. It does not set secrets, create tags, dispatch workflows, upload VM evidence,
 or mutate host audio. It starts with an
@@ -247,9 +246,9 @@ when rehearsing the release handoff on an offline machine.
 
 If the Deploy Docs run id is not known yet, the handoff prints a `docs_deployment_run_id="$(...)"`
 assignment using `pnpm release:select-docs-run` / `scripts/select-docs-deployment-run.sh`, then reuses that verified
-run id in the docs proof fetch, final proof dispatch, and final status audit commands. The selector is read-only and
-requires a completed successful Deploy Docs run for the expected commit that exposes both `loopwire-docs` and
-`loopwire-docs-deployment` artifacts. `--env-file` accepts the same local file used by
+run id in the docs proof fetch, post-deploy agent-ready artifact check, final proof dispatch, and final status audit
+commands. The selector is read-only and requires a completed successful Deploy Docs run for the expected commit that
+exposes both `loopwire-docs` and `loopwire-docs-deployment` artifacts. `--env-file` accepts the same local file used by
 `scripts/setup-github-secrets.sh`, but the handoff consumes only `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`,
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`, `BUNNY_PULL_ZONE_HOSTNAME`, and `BUNNY_REMOTE_PREFIX`. Bunny storage credentials
 are ignored by the handoff so access keys never appear in rendered release commands. When `--env-file` is present, the

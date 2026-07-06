@@ -3371,3 +3371,14 @@ Bunny deployment proof, final proof workflow success, and operator-run VM eviden
   run exposed only `loopwire-docs`, not `loopwire-docs-deployment`, and reported the likely cause as missing Bunny
   secrets. No secret write, release tag, public release, Bunny deployment, VM launch, host audio mutation, or
   support-matrix promotion was performed.
+- 2026-07-06 final handoff post-deploy agent-ready check: `scripts/plan-final-release-handoff.sh` now prints a second
+  `pnpm release:agent-ready` command in the docs proof step, adding `--require-docs-deployment-artifacts
+  --skip-local-gates` after the Deploy Docs run is selected and proof artifacts are fetched. The first agent-ready
+  command remains a pre-secret exact-commit hosted CI/docs build check; the second one is explicitly post-Bunny proof.
+- 2026-07-06 final handoff post-deploy validation: codebase-memory MCP `index_status` reported
+  `home-sandwich-Develop-loopwire` ready, and graph search located the final handoff, release-status docs artifact,
+  and docs-deployment selector surfaces before implementation. `bash -n scripts/plan-final-release-handoff.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, rendered `bash scripts/plan-final-release-handoff.sh --repo
+  sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, and full `pnpm check` passed. No secret write, release tag, public release, Bunny deployment,
+  VM launch, host audio mutation, or support-matrix promotion was performed.

@@ -862,6 +862,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:rende
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm vm:render-runbook` command'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now prints `pnpm vm:host-setup -- --all`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'The final release handoff now ends with `pnpm release:status`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'post-deploy `pnpm release:agent-ready'
+assert_contains "apps/docs/docs/developer/release.md" "post-deploy agent-ready artifact check"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Final Release Proof workflow runs now include the audited tag"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "prints that expected Final Release Proof run name"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "avoiding follow-on checksum, extraction, and manifest errors"

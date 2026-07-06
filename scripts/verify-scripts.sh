@@ -547,6 +547,11 @@ printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "pnpm release:fetch-
     echo "verify-scripts: release handoff placeholder plan did not reuse selected docs run for proof fetch" >&2
     exit 1
   }
+printf '%s\n' "$release_handoff_placeholder_plan" |
+  grep -F "pnpm release:agent-ready -- --repo sandwichfarm/loopwire --tag v0.1.0 --git-head 0123456789abcdef0123456789abcdef01234567 --public-key packaging/release-signing-public.pem --require-hosted-checks --require-docs-deployment-artifacts --skip-local-gates" >/dev/null || {
+    echo "verify-scripts: release handoff placeholder plan is missing post-deploy agent-ready artifact command" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_placeholder_plan" | grep -F "gh workflow run final-release-proof.yml" |
   grep -F -- '-f "docs_deployment_run_id=$docs_deployment_run_id"' >/dev/null || {
     echo "verify-scripts: release handoff placeholder plan did not reuse selected docs run for final proof" >&2

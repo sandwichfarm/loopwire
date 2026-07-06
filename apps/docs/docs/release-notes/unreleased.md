@@ -592,6 +592,9 @@ These notes describe source-tree progress. They are not a public release announc
   rehearsals must opt in with `--allow-head-mismatch`.
 - The final release handoff now prints an exact-commit `pnpm release:agent-ready -- --require-hosted-checks` preflight
   before secret checks, tagging, workflow dispatch, VM evidence, or final proof steps.
+- The final release handoff now also prints a post-deploy `pnpm release:agent-ready -- --require-docs-deployment-artifacts
+  --skip-local-gates` check after docs proof fetch, so operators re-run the same release-ready surface once Bunny
+  deployment artifacts exist.
 - The final release handoff now ends with `pnpm release:status`, so operators finish publication with the same
   read-only aggregate audit that checks GitHub Release assets, docs deployment proof, final-proof workflow status, VM
   evidence, and support-matrix claims.
