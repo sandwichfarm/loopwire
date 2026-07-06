@@ -5,6 +5,15 @@
 
 ## Evidence Passed
 
+- Published release evidence archives now require the same read-only DSP/JACK provider proof as final release evidence.
+  `scripts/verify-published-release.sh --require-release-evidence` and `scripts/audit-final-release-state.sh` both
+  forward `--require-dsp-provider-plan --require-jack-provider-plan` when verifying
+  `loopwire-release-evidence-<tag>.tar.gz`; `pnpm verify:scripts` now includes a signed staged-release regression that
+  strips `jack-provider-plan` from the archive and expects the published-release verifier to reject it. Focused
+  validation passed: `bash -n scripts/verify-published-release.sh scripts/audit-final-release-state.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, and `git diff --check`. Full validation
+  passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch,
+  host audio mutation, provider execution, or support-matrix promotion was performed.
 - Release evidence can now include required read-only JACK provider plans. `collect-release-evidence.mjs` adds
   `--jack-configuration` and `--require-jack-provider-plan`, records `jack-provider-plan.json` with
   `describe-jack-ports.mjs --loopwire-owned-only --pretty` and no `--verify`, and binds the plan to

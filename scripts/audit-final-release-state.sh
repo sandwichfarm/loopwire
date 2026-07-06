@@ -604,6 +604,8 @@ check_published_release_evidence_archive() {
     --repo "$repo" \
     --git-head "$expected_git_head" \
     --require-published-release \
+    --require-dsp-provider-plan \
+    --require-jack-provider-plan \
     --require-no-release-blockers
 }
 

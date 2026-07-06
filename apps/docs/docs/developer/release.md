@@ -405,8 +405,8 @@ pnpm verify:published-release -- \
 
 The script downloads release assets with `gh`, requires the `x86_64` and `aarch64` canonical tarballs, verifies the
 signed manifest and checksum entries, optionally requires `loopwire-release-evidence-<tag>.tar.gz` to be listed in the
-signed `SHA256SUMS` manifest, verifies that evidence archive against the expected `release.tag` and repository,
-public key, rejects unsafe archive paths before extraction, rejects link members before extraction, rejects unsafe
+signed `SHA256SUMS` manifest, verifies that evidence archive against the expected `release.tag`, repository, and public
+key, requires the same read-only DSP and JACK provider-plan proof used by final release evidence, rejects unsafe archive paths before extraction, rejects link members before extraction, rejects unsafe
 manifest command log paths during evidence verification, installs from the downloaded asset directory, and runs the
 installed binary. This must pass before docs or package templates claim a public release is installable.
 When local `--release-dir` verification omits `--tag`, the verifier derives the expected tag from the single evidence

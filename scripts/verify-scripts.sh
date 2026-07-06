@@ -7792,6 +7792,24 @@ if bash scripts/verify-published-release.sh \
   echo "verify-scripts: published release verifier accepted blocked release evidence asset" >&2
   exit 1
 fi
+missing_jack_evidence_release_dir="$tmp_dir/missing-jack-evidence-published-release"
+missing_jack_evidence_archive_src="$tmp_dir/missing-jack-evidence-archive-src"
+cp -R "$published_release_dir" "$missing_jack_evidence_release_dir"
+mkdir -p "$missing_jack_evidence_archive_src"
+cp -R "$release_evidence_missing_jack_plan_dir" "$missing_jack_evidence_archive_src/v0.1.0"
+bind_release_evidence_public_key "$missing_jack_evidence_archive_src/v0.1.0" "$public_key_file"
+tar -C "$missing_jack_evidence_archive_src" \
+  -czf "$missing_jack_evidence_release_dir/loopwire-release-evidence-v0.1.0.tar.gz" \
+  v0.1.0
+refresh_published_release_manifest "$missing_jack_evidence_release_dir" "$private_key_file"
+if bash scripts/verify-published-release.sh \
+  --release-dir "$missing_jack_evidence_release_dir" \
+  --public-key "$public_key_file" \
+  --tag v0.1.0 \
+  --require-release-evidence >/dev/null 2>&1; then
+  echo "verify-scripts: published release verifier accepted release evidence without JACK provider proof" >&2
+  exit 1
+fi
 missing_arch_release_dir="$tmp_dir/missing-arch-published-release"
 mkdir -p "$missing_arch_release_dir"
 cp \

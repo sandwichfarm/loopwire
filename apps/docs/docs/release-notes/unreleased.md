@@ -455,7 +455,8 @@ These notes describe source-tree progress. They are not a public release announc
 - VM evidence packaging now validates the completed tarball with `scripts/extract-safe-tar.sh`, so unsafe archive
   members fail before the archive is attached to a public release.
 - Published release verification can now require that public evidence archive with `--require-release-evidence`, extract
-  it, and reject archives with missing published-release smoke or blocker findings.
+  it, and reject archives with missing published-release smoke, missing read-only DSP/JACK provider proof, or blocker
+  findings.
 - Published release verification now supports `--require-github-release-source`, and final release proof passes it so
   local `--release-dir` smoke cannot satisfy public release proof.
 - Published release evidence archive verification now binds the manifest to the expected `release.tag` and repo. It
@@ -463,7 +464,7 @@ These notes describe source-tree progress. They are not a public release announc
   manifest command logs that escape the evidence directory or resolve through symlinks.
 - `pnpm release:status` now downloads the public `loopwire-release-evidence-<tag>.tar.gz` asset, verifies its signed
   checksum entry, safe-extracts it, and rejects release-evidence manifests that do not match the selected
-  tag/repo/commit before final proof can be marked ready.
+  tag/repo/commit or omit required DSP/JACK provider proof before final proof can be marked ready.
 - `pnpm release:status` now resolves the GitHub tag ref, including annotated tags, and rejects releases whose tag does
   not point at the expected `--git-head` commit.
 - Final release proof now runs the same live GitHub tag-ref check before published-release downloads, so the manual

@@ -22,8 +22,9 @@ Usage:
 Downloads release assets with gh, verifies canonical assets are present in the signed SHA256SUMS manifest, installs the
 host tarball from the downloaded release directory, and runs the installed binary. Use --release-dir for CI smoke coverage
 of the same verification path without network or GitHub release access. Add --require-release-evidence to require, verify,
-and checksum-bind the loopwire-release-evidence-<tag>.tar.gz release asset. Add --require-github-release-source to fail
-if a local --release-dir is supplied for final public proof.
+checksum-bind, and final-proof-check the loopwire-release-evidence-<tag>.tar.gz release asset, including read-only DSP
+and JACK provider plan proof. Add --require-github-release-source to fail if a local --release-dir is supplied for final
+public proof.
 USAGE
 }
 
@@ -162,6 +163,8 @@ verify_release_evidence_archive() {
     --evidence-dir "$evidence_dir"
     --public-key "$public_key"
     --require-published-release
+    --require-dsp-provider-plan
+    --require-jack-provider-plan
     --require-no-release-blockers
   )
   if [ -z "$evidence_tag" ]; then

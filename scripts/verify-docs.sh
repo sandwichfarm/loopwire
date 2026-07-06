@@ -392,7 +392,8 @@ assert_contains "apps/docs/docs/developer/release.md" "The evidence collector an
 assert_contains "apps/docs/docs/developer/release.md" "rejected before command planning, manifest acceptance"
 assert_contains "apps/docs/docs/developer/release.md" 'repository identity in `OWNER/REPO` form'
 assert_contains "apps/docs/docs/developer/release.md" "rejected before GitHub access or evidence verification"
-assert_contains "apps/docs/docs/developer/release.md" 'expected `release.tag` and repository'
+assert_contains "apps/docs/docs/developer/release.md" 'expected `release.tag`, repository, and public'
+assert_contains "apps/docs/docs/developer/release.md" "same read-only DSP and JACK provider-plan proof"
 assert_contains "apps/docs/docs/developer/release.md" "derives the expected tag from the single evidence"
 assert_contains "apps/docs/docs/developer/release.md" 'rejects any mismatch with `release-evidence.json`'
 assert_contains "apps/docs/docs/developer/release.md" 'git.head'
@@ -850,7 +851,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'stricter mode for 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "loopwire-release-evidence-<tag>.tar.gz"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "verifies its signed"
-assert_contains "apps/docs/docs/release-notes/unreleased.md" "tag/repo/commit before final proof"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "tag/repo/commit or omit required DSP/JACK provider proof"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "omit required DSP/JACK provider proof"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "covered by the same signed checksum manifest"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-release-evidence"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--require-dsp-provider-plan"

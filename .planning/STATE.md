@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T06:36:26+02:00"
-last_activity: 2026-07-06 - Release evidence can require read-only JACK provider plans
+last_updated: "2026-07-06T06:48:45+02:00"
+last_activity: 2026-07-06 - Published release evidence archives require DSP/JACK provider proof
 progress:
   total_phases: 5
   completed_phases: 4
@@ -54,6 +54,11 @@ proof with `--require-jack-provider-plan`. The release collector records `jack-p
 `scripts/describe-jack-ports.mjs --loopwire-owned-only` without `--verify`, the verifier binds that JSON to
 `scripts/fixtures/jack-provider-configuration.json`, and the release workflow plus final proof wrapper now require the
 same JACK provider plan alongside DSP provider proof.
+Latest public-release hardening: 2026-07-06 - Public release evidence archives now use the same read-only provider proof
+threshold as final release evidence. `scripts/verify-published-release.sh --require-release-evidence` and
+`scripts/audit-final-release-state.sh` pass `--require-dsp-provider-plan --require-jack-provider-plan` to
+`verify-release-evidence.mjs`, and `pnpm verify:scripts` rejects a signed staged release whose
+`loopwire-release-evidence-<tag>.tar.gz` omits `jack-provider-plan`.
 
 ## Blockers / Concerns
 
