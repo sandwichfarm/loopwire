@@ -550,6 +550,9 @@ These notes describe source-tree progress. They are not a public release announc
   rehearsals tied to the operator-selected docs deployment instead of the commit-scoped workflow lookup.
 - `pnpm release:status --vm-evidence-root` now passes the selected evidence root into support-matrix verification, so
   promoted support rows are checked against the same copied-back VM evidence bundle path as the matrix status gate.
+- `pnpm release:status --vm-evidence-root` now also forwards the selected VM evidence root into its embedded recovery
+  handoff, keeping VM evidence collection, asset preparation, local final proof, and status re-audits on the same
+  copied-back evidence directory.
 - Pinned Deploy Docs release-status audits now label the evidence as the selected run, avoiding latest-run wording when
   an operator intentionally audits a specific workflow run id.
 - `scripts/setup-github-secrets.sh` now accepts `--env-file` for local uncommitted Bunny.net values and release key

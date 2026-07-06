@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T10:11:49+02:00"
-last_activity: 2026-07-06 - Release status recovery handoff keeps evidence asset names consistent
+last_updated: "2026-07-06T10:29:26+02:00"
+last_activity: 2026-07-06 - Release handoffs keep custom VM evidence roots consistent
 progress:
   total_phases: 5
   completed_phases: 4
@@ -104,6 +104,11 @@ Latest release-status recovery hardening: 2026-07-06 - `scripts/audit-final-rele
 release evidence archive name, VM evidence archive name, and support matrix path into its embedded
 `scripts/plan-final-release-handoff.sh` recovery plan. A blocked `pnpm release:status` run that audits custom
 tag-bound asset names can no longer print default-archive follow-up commands.
+Latest VM evidence root handoff hardening: 2026-07-06 - `scripts/plan-final-release-handoff.sh` now accepts
+`--vm-evidence-root` and threads it through VM runbook rendering, VM matrix collection, VM evidence asset preparation,
+local final-proof dry-runs, and both release-status audits. `scripts/audit-final-release-state.sh` forwards its
+selected VM evidence root into the embedded recovery handoff, so copied-back evidence directories no longer fall back
+to `.vm/evidence` in follow-up commands.
 
 ## Blockers / Concerns
 
@@ -164,6 +169,17 @@ tag-bound asset names can no longer print default-archive follow-up commands.
 
 ## Verification Log
 
+- 2026-07-06 VM evidence root handoff hardening: `scripts/plan-final-release-handoff.sh` now accepts
+  `--vm-evidence-root` and passes it into VM runbook rendering, `pnpm vm:collect-matrix -- --local-root`,
+  `pnpm vm:prepare-release-evidence -- --evidence-root`, local `pnpm verify:final-release`, and the rendered
+  `pnpm release:status` audits. `scripts/audit-final-release-state.sh` forwards the selected VM evidence root into its
+  embedded recovery handoff, and `scripts/verify-scripts.sh` covers both direct handoff rendering and status-generated
+  recovery rendering. Focused validation passed: `bash -n scripts/plan-final-release-handoff.sh
+  scripts/audit-final-release-state.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, custom-root
+  `pnpm release:handoff` probe, custom-root `scripts/audit-final-release-state.sh --skip-gh` probe,
+  `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. No secret write, release tag, public release,
+  Bunny deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix
+  promotion was performed.
 - 2026-07-06 release status recovery asset-name hardening: `scripts/audit-final-release-state.sh` now passes selected
   `--release-evidence-asset`, `--vm-evidence-asset`, and `--support-matrix` values into the embedded local final
   release handoff plan. `scripts/verify-scripts.sh` now checks that a fake-GitHub `pnpm release:status` run with

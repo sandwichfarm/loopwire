@@ -5,6 +5,16 @@
 
 ## Evidence Passed
 
+- Release and status handoffs now keep custom VM evidence roots consistent. `scripts/plan-final-release-handoff.sh`
+  accepts `--vm-evidence-root` and passes it into VM runbook rendering, matrix evidence collection, VM evidence asset
+  preparation, local final-proof dry-runs, and follow-up `release:status` audits. `scripts/audit-final-release-state.sh`
+  forwards its selected VM evidence root into the embedded recovery handoff, so copied-back evidence directories do not
+  fall back to `.vm/evidence` in recovery commands. Focused validation passed: `bash -n
+  scripts/plan-final-release-handoff.sh scripts/audit-final-release-state.sh scripts/verify-scripts.sh
+  scripts/verify-docs.sh`, custom-root `pnpm release:handoff` probe, custom-root
+  `scripts/audit-final-release-state.sh --skip-gh` probe, `pnpm verify:scripts`, `pnpm verify:docs`, and
+  `git diff --check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch,
+  host audio mutation, provider execution, or support-matrix promotion was performed.
 - Release status recovery handoffs now keep custom evidence archive names consistent. `scripts/audit-final-release-state.sh`
   forwards the selected `--release-evidence-asset`, `--vm-evidence-asset`, and `--support-matrix` values into its
   embedded `scripts/plan-final-release-handoff.sh` plan, so a blocked status audit cannot print default-archive

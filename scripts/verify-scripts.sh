@@ -393,6 +393,7 @@ release_handoff_plan="$(
     --release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz \
     --vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz \
     --vm-start-port 2700 \
+    --vm-evidence-root /operator/vm-evidence \
     --secret-list-file release-secret-names.tsv
 )"
 release_handoff_env_plan="$(
@@ -536,10 +537,20 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:doctor -- --all" >/dev/
   echo "verify-scripts: release handoff plan is missing all-target VM doctor preflight" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:render-runbook" |
+  grep -F -- "--evidence-root /operator/vm-evidence" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing custom VM evidence root in runbook rendering" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:collect-matrix" | grep -F -- "--require-github-release-source" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing GitHub-source VM evidence collection" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:collect-matrix" |
+  grep -F -- "--local-root /operator/vm-evidence" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing custom VM evidence root in matrix collection" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidence" | grep -F -- "--private-key" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing signed VM evidence preparation" >&2
   exit 1
@@ -547,6 +558,11 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidenc
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidence" |
   grep -F -- "--asset-name loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
     echo "verify-scripts: release handoff plan is missing selected VM evidence asset name in preparation" >&2
+    exit 1
+  }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm vm:prepare-release-evidence" |
+  grep -F -- "--evidence-root /operator/vm-evidence" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing custom VM evidence root in asset preparation" >&2
     exit 1
   }
 printf '%s\n' "$release_handoff_plan" |
@@ -575,10 +591,16 @@ printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" | gr
   echo "verify-scripts: release handoff plan is missing local final-proof dry-run" >&2
   exit 1
 }
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm verify:final-release" |
+  grep -F -- "--vm-evidence-root /operator/vm-evidence" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing custom VM evidence root in local final proof" >&2
+    exit 1
+  }
 printf '%s\n' "$release_handoff_plan" | grep -F "pnpm release:status" |
   grep -F -- "--docs-deployment-run-id 123456" |
   grep -F -- "--git-head 0123456789abcdef0123456789abcdef01234567" |
   grep -F -- "--vm-start-port 2700" |
+  grep -F -- "--vm-evidence-root /operator/vm-evidence" |
   grep -F -- "--release-evidence-asset loopwire-release-evidence-v0.1.0-operator.tar.gz" |
   grep -F -- "--vm-evidence-asset loopwire-vm-evidence-v0.1.0-operator.tar.gz" >/dev/null || {
     echo "verify-scripts: release handoff plan is missing final release status audit" >&2
@@ -8604,6 +8626,26 @@ if grep -F "blocked: support matrix published-release claims" "$release_status_c
   echo "verify-scripts: release status support matrix gate ignored the custom VM evidence root" >&2
   exit 1
 fi
+grep -F "pnpm vm:collect-matrix" "$release_status_custom_root_log" |
+  grep -F -- "--local-root $release_status_custom_vm_root" >/dev/null || {
+    echo "verify-scripts: release status recovery handoff lost the custom VM collection root" >&2
+    exit 1
+  }
+grep -F "pnpm vm:prepare-release-evidence" "$release_status_custom_root_log" |
+  grep -F -- "--evidence-root $release_status_custom_vm_root" >/dev/null || {
+    echo "verify-scripts: release status recovery handoff lost the custom VM evidence prep root" >&2
+    exit 1
+  }
+grep -F "pnpm verify:final-release" "$release_status_custom_root_log" |
+  grep -F -- "--vm-evidence-root $release_status_custom_vm_root" >/dev/null || {
+    echo "verify-scripts: release status recovery handoff lost the custom final-proof VM evidence root" >&2
+    exit 1
+  }
+grep -F "pnpm release:status" "$release_status_custom_root_log" |
+  grep -F -- "--vm-evidence-root $release_status_custom_vm_root" >/dev/null || {
+    echo "verify-scripts: release status recovery handoff lost the custom release-status VM evidence root" >&2
+    exit 1
+  }
 if bash scripts/verify-vm-evidence.sh \
   --target arch-hyprland-pipewire \
   --evidence-dir "$evidence_dir" \

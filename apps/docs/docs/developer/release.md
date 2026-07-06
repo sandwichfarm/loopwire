@@ -372,8 +372,9 @@ root/home-expanded paths, URL syntax, glob metacharacters, symlinks, and existin
 directory type before the audit begins. Evidence asset overrides are also validated as basename-only, tag-bound
 `loopwire-release-evidence-<tag>*.tar.gz` or `loopwire-vm-evidence-<tag>*.tar.gz` names before GitHub downloads run.
 When `--vm-evidence-root` points at copied-back VM evidence outside `.vm/evidence`, `release:status` uses that same root
-for both the matrix evidence-status audit and the support-matrix promotion audit, so a promoted row is checked against
-the operator-selected evidence bundle path.
+for the matrix evidence-status audit, support-matrix promotion audit, and embedded recovery handoff. VM evidence
+collection, asset preparation, local final proof, and follow-up status commands therefore stay bound to the same
+operator-selected evidence bundle path.
 
 Parse an existing release-readiness log without rerunning release checks:
 

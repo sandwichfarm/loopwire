@@ -14,6 +14,7 @@ docs_remote_prefix=""
 release_evidence_asset=""
 vm_evidence_asset=""
 vm_image_root="/operator/images"
+vm_evidence_root=".vm/evidence"
 vm_start_port="2600"
 vm_ssh_plan="dist/release/vm-ssh-plan.tsv"
 vm_runbook="dist/release/vm-runbook.md"
@@ -43,6 +44,7 @@ Options:
   --release-evidence-asset NAME     Optional release evidence asset override
   --vm-evidence-asset NAME          Optional VM evidence asset override
   --vm-image-root DIR               Operator VM image root, default /operator/images
+  --vm-evidence-root DIR            Local VM evidence root, default .vm/evidence
   --vm-start-port PORT              SSH start port for rendered VM handoff, default 2600
   --vm-ssh-plan FILE                Rendered SSH collection plan, default dist/release/vm-ssh-plan.tsv
   --vm-runbook FILE                 Rendered VM runbook path, default dist/release/vm-runbook.md
@@ -112,6 +114,33 @@ validate_repo_relative_output_path() {
       fail "$label must be a repo-relative output path without . or .. segments: $value"
       ;;
   esac
+}
+
+validate_local_dir_path() {
+  local value="$1"
+  local label="$2"
+  local normalized
+
+  reject_unsafe_value "$value" "$label"
+  normalized="${value#./}"
+
+  [ -n "$normalized" ] || fail "$label must not be empty"
+  case "$normalized" in
+    "/" | "~" | "~/"* | *://* | *"*"* | *"?"* | *"["* | *"]"*)
+      fail "$label must not be root, home-expanded, URL-like, or contain glob metacharacters: $value"
+      ;;
+  esac
+
+  case "/$normalized/" in
+    */../* | */./*)
+      fail "$label must not contain . or .. path segments: $value"
+      ;;
+  esac
+
+  [ ! -L "$value" ] || fail "$label must not be a symlink: $value"
+  if [ -e "$value" ] && [ ! -d "$value" ]; then
+    fail "$label must be a directory when it exists: $value"
+  fi
 }
 
 validate_optional_asset() {
@@ -290,6 +319,10 @@ while [ "$#" -gt 0 ]; do
       vm_image_root="${2:?missing value for --vm-image-root}"
       shift 2
       ;;
+    --vm-evidence-root)
+      vm_evidence_root="${2:?missing value for --vm-evidence-root}"
+      shift 2
+      ;;
     --vm-start-port)
       vm_start_port="${2:?missing value for --vm-start-port}"
       shift 2
@@ -336,6 +369,7 @@ validate_tag
 validate_git_head
 validate_docs_run_id
 validate_port
+validate_local_dir_path "$vm_evidence_root" "VM evidence root"
 validate_repo_relative_output_path "$vm_ssh_plan" "VM SSH plan"
 validate_repo_relative_output_path "$vm_runbook" "VM runbook"
 validate_optional_asset "release-evidence" "$release_evidence_asset"
@@ -347,8 +381,6 @@ reject_unsafe_value "$docs_base_url" "docs base URL"
 reject_unsafe_value "$docs_hostname" "docs hostname"
 reject_unsafe_value "$docs_remote_prefix" "docs remote prefix"
 reject_unsafe_value "$vm_image_root" "VM image root"
-reject_unsafe_value "$vm_ssh_plan" "VM SSH plan"
-reject_unsafe_value "$vm_runbook" "VM runbook"
 reject_unsafe_value "$support_matrix" "support matrix"
 reject_unsafe_value "$secret_list_file" "secret-list file"
 
@@ -434,12 +466,14 @@ echo "9. Render the operator VM evidence handoff:"
 print_command pnpm vm:host-setup -- --all
 print_command pnpm vm:doctor -- --all
 print_command pnpm vm:render-ssh-plan -- --all --start-port "$vm_start_port" --output "$vm_ssh_plan"
-print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --start-port "$vm_start_port" --output "$vm_runbook"
+print_command pnpm vm:render-runbook -- --all --image-root "$vm_image_root" --start-port "$vm_start_port" \
+  --evidence-root "$vm_evidence_root" --output "$vm_runbook"
 print_command pnpm vm:collect-matrix -- --plan "$vm_ssh_plan" --published-release-repo "$repo" \
   --published-release-tag "$tag" --release-public-key "$public_key" --require-published-release \
-  --require-github-release-source --require-all-targets --execute
+  --require-github-release-source --require-all-targets --local-root "$vm_evidence_root" --execute
 vm_prepare=(pnpm vm:prepare-release-evidence -- --tag "$tag" --repo "$repo" --all)
 vm_prepare+=(--asset-name "$vm_evidence_asset")
+vm_prepare+=(--evidence-root "$vm_evidence_root")
 if [ -n "$env_file" ]; then
   vm_prepare+=(--env-file "$env_file")
   if [ "$release_private_key_file_explicit" = "true" ]; then
@@ -460,6 +494,7 @@ release_status_prefix=(pnpm release:status -- --repo "$repo" --tag "$tag" --git-
   --public-key "$public_key")
 release_status_suffix=(
   --vm-start-port "$vm_start_port"
+  --vm-evidence-root "$vm_evidence_root"
   --support-matrix "$support_matrix"
   --release-evidence-asset "$release_evidence_asset"
   --vm-evidence-asset "$vm_evidence_asset"
@@ -508,7 +543,7 @@ local_final=(pnpm verify:final-release -- --repo "$repo" --tag "$tag" --public-k
   --git-head "$git_head" \
   --release-evidence-dir ".release-evidence/${tag}-published" \
   --docs-deployment-manifest "dist/docs-deployment/deployment-manifest.json" \
-  --vm-evidence-root ".vm/evidence" \
+  --vm-evidence-root "$vm_evidence_root" \
   --support-matrix "$support_matrix" \
   --dry-run \
   --plan-output "dist/release/final-release-proof-plan.txt")

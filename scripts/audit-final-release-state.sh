@@ -972,6 +972,7 @@ run_gate \
 handoff_plan=(bash scripts/plan-final-release-handoff.sh --repo "$repo" --tag "$tag" \
   --git-head "$expected_git_head" \
   --vm-start-port "$vm_start_port" \
+  --vm-evidence-root "$vm_evidence_root" \
   --support-matrix "$support_matrix" \
   --release-evidence-asset "$release_evidence_asset" \
   --vm-evidence-asset "$vm_evidence_asset")
