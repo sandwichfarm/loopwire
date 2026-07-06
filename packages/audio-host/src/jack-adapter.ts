@@ -509,6 +509,7 @@ function isJackPortList(
 function validateJackConfiguration(configuration: HostRuntimeConfiguration): HostRuntimeOperationResult {
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+  const monitors = new Map((configuration.monitors ?? []).map((monitor) => [monitor.id, monitor]));
 
   for (const route of configuration.routes ?? []) {
     if (!route.muted && route.gain !== undefined && route.gain !== 1) {
@@ -522,6 +523,12 @@ function validateJackConfiguration(configuration: HostRuntimeConfiguration): Hos
     const target = outputs.get(route.to);
 
     if (!source || !target) {
+      // Explicit bus → monitor cables: JACK still applies its implicit
+      // output×monitor connections, so these routes are tolerated, not planned.
+      if (outputs.has(route.from) && monitors.has(route.to)) {
+        continue;
+      }
+
       return { ok: false, message: `Route ${route.id} references an unknown endpoint` };
     }
 
@@ -542,6 +549,7 @@ function createJackConnectionPlans(
 ): JackConnectionPlanResult | HostRuntimeOperationResult {
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+  const monitorIds = new Set((configuration.monitors ?? []).map((monitor) => monitor.id));
   const plans: JackConnectionPlan[] = [];
 
   for (const route of configuration.routes ?? []) {
@@ -549,6 +557,10 @@ function createJackConnectionPlans(
     const target = outputs.get(route.to);
 
     if (!source || !target) {
+      if (outputs.has(route.from) && monitorIds.has(route.to)) {
+        continue;
+      }
+
       return { ok: false, message: `Route ${route.id} references an unknown endpoint` };
     }
 

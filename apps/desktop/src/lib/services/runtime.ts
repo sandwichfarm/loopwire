@@ -171,8 +171,14 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
       return { mode: "preview", skippedReason: "no device is selected" };
     }
 
+    if (configuration.enabled === false) {
+      return { mode: "preview", skippedReason: "this device is turned off" };
+    }
+
+    // Preflight sees the same route muting the adapters will (Off endpoints),
+    // so an Off source with a lowered volume does not block live apply.
     const preflight = describeConfigurationSwitchPreflight(
-      configuration,
+      { ...configuration, routes: routesWithOffEndpointsMuted(configuration) },
       backend,
       get(capabilityReports),
       displayBackendName,
@@ -417,14 +423,31 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
 export type RuntimeService = ReturnType<typeof createRuntimeService>;
 
-function toHostRuntimeConfiguration(configuration: LoopwireConfiguration): HostRuntimeConfiguration {
+/**
+ * Routes touching an Off endpoint are marked muted so live apply disconnects
+ * them instead of pretending an Off card still carries audio.
+ */
+export function routesWithOffEndpointsMuted(configuration: LoopwireConfiguration): LoopwireConfiguration["routes"] {
+  const disabledEndpointIds = new Set(
+    [...configuration.inputs, ...configuration.outputs, ...configuration.monitors]
+      .filter((endpoint) => endpoint.enabled === false)
+      .map((endpoint) => endpoint.id)
+  );
+
+  return configuration.routes.map((route) =>
+    disabledEndpointIds.has(route.from) || disabledEndpointIds.has(route.to) ? { ...route, muted: true } : route
+  );
+}
+
+/** Maps domain state to the host adapter contract. */
+export function toHostRuntimeConfiguration(configuration: LoopwireConfiguration): HostRuntimeConfiguration {
   return {
     id: configuration.id,
     name: configuration.name,
     inputs: configuration.inputs,
     outputs: configuration.outputs,
     monitors: configuration.monitors,
-    routes: configuration.routes
+    routes: routesWithOffEndpointsMuted(configuration)
   };
 }
 

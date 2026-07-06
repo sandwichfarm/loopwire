@@ -178,6 +178,36 @@ describe("createPipeWireGraphRuntimeAdapter", () => {
     expect(calls).toContain(`pw-link ${sourceNode}:monitor_FR ${busNode}:playback_FR`);
   });
 
+  it("plans explicit bus-to-monitor routes instead of all output-monitor pairs", async () => {
+    const cabledConfiguration: HostRuntimeConfiguration = {
+      ...pipeWireConfiguration,
+      outputs: [
+        { id: "program", label: "Program Out", channels: 2, deviceName: "loopwire_program" },
+        { id: "aux", label: "Aux Out", channels: 2, deviceName: "loopwire_aux" }
+      ],
+      monitors: [{ id: "headphones", label: "Headphones", channels: 2, deviceName: "alsa_output.headphones" }],
+      routes: [
+        { id: "mic-program", from: "mic", to: "program", muted: false },
+        // only the program bus is cabled to the monitor; aux stays unwired
+        { id: "program-headphones", from: "program", to: "headphones", muted: false }
+      ]
+    };
+    const { runner, calls } = createRecordingRunner({
+      "pw-link -o": { stdout: `${sourcePorts()}\nloopwire_program:monitor_FL\nloopwire_program:monitor_FR\nloopwire_aux:monitor_FL\nloopwire_aux:monitor_FR` },
+      "pw-link -i": { stdout: `${targetPorts()}\n${monitorTargetPorts()}` },
+      "pw-link -l": { stdout: "" },
+      "pw-link": { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(cabledConfiguration);
+
+    expect(result.ok).toBe(true);
+    expect(calls).toContain("pw-link loopwire_program:monitor_FL alsa_output.headphones:playback_FL");
+    expect(calls).toContain("pw-link loopwire_program:monitor_FR alsa_output.headphones:playback_FR");
+    expect(calls.some((call) => call.startsWith("pw-link loopwire_aux:monitor_"))).toBe(false);
+  });
+
   it("destroys virtual PipeWire source nodes during unload", async () => {
     const passThruConfiguration: HostRuntimeConfiguration = {
       id: "Native Mix",

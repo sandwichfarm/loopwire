@@ -548,6 +548,13 @@ function activePipeWirePlanCount(configuration: HostRuntimeConfiguration): numbe
     (configuration.monitors ?? []).length;
 }
 
+interface PipeWireMonitorRoute {
+  readonly routeId: string;
+  readonly output: HostRuntimeEndpoint;
+  readonly monitor: HostRuntimeEndpoint;
+  readonly active: boolean;
+}
+
 function createPipeWireRoutePlans(
   configuration: HostRuntimeConfiguration,
   outputPorts: readonly string[],
@@ -555,13 +562,29 @@ function createPipeWireRoutePlans(
 ): PipeWireRoutePlanResult | HostRuntimeOperationResult {
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+  const monitorsById = new Map((configuration.monitors ?? []).map((monitor) => [monitor.id, monitor]));
   const plans: PipeWireRoutePlan[] = [];
+  const explicitMonitorRoutes: PipeWireMonitorRoute[] = [];
 
   for (const route of configuration.routes ?? []) {
     const source = inputs.get(route.from);
     const target = outputs.get(route.to);
 
     if (!source || !target) {
+      // Explicit bus → monitor cables are planned in the monitor stage below.
+      const monitorSource = outputs.get(route.from);
+      const monitorTarget = monitorsById.get(route.to);
+
+      if (monitorSource && monitorTarget) {
+        explicitMonitorRoutes.push({
+          routeId: route.id,
+          output: monitorSource,
+          monitor: monitorTarget,
+          active: !route.muted
+        });
+        continue;
+      }
+
       return { ok: false, message: `Route ${route.id} references an unknown endpoint` };
     }
 
@@ -576,11 +599,16 @@ function createPipeWireRoutePlans(
     const targetPorts = selectEndpointPorts(inputPorts, target, targetDeviceName);
     const channelCount = Math.min(source.channels, target.channels);
 
-    if (sourcePorts.length < channelCount) {
-      return { ok: false, message: `Missing PipeWire output ports for ${source.label} (${sourceDeviceName})` };
-    }
+    if (sourcePorts.length < channelCount || targetPorts.length < channelCount) {
+      // A muted route with absent host ports has nothing to unlink.
+      if (route.muted) {
+        continue;
+      }
 
-    if (targetPorts.length < channelCount) {
+      if (sourcePorts.length < channelCount) {
+        return { ok: false, message: `Missing PipeWire output ports for ${source.label} (${sourceDeviceName})` };
+      }
+
       return { ok: false, message: `Missing PipeWire input ports for ${target.label} (${targetDeviceName})` };
     }
 
@@ -595,46 +623,61 @@ function createPipeWireRoutePlans(
     });
   }
 
-  for (const output of configuration.outputs) {
-    const outputDeviceName = normalizedDeviceName(output);
+  // Explicit bus → monitor cables win; without any, every bus feeds every
+  // monitor (the pre-cable legacy behavior).
+  const monitorPairs: readonly PipeWireMonitorRoute[] =
+    explicitMonitorRoutes.length > 0
+      ? explicitMonitorRoutes
+      : configuration.outputs.flatMap((output) =>
+          (configuration.monitors ?? []).map((monitor) => ({
+            routeId: `${output.id}->${monitor.id}`,
+            output,
+            monitor,
+            active: true
+          }))
+        );
+
+  for (const pair of monitorPairs) {
+    const outputDeviceName = normalizedDeviceName(pair.output);
 
     if (!outputDeviceName) {
       continue;
     }
 
-    const outputMonitorPorts = selectMonitorSourcePorts(outputPorts, output, outputDeviceName);
+    const outputMonitorPorts = selectMonitorSourcePorts(outputPorts, pair.output, outputDeviceName);
+    const monitorDeviceName = normalizedDeviceName(pair.monitor);
 
-    for (const monitor of configuration.monitors ?? []) {
-      const monitorDeviceName = normalizedDeviceName(monitor);
+    if (!monitorDeviceName) {
+      return {
+        ok: false,
+        message: `Monitor ${pair.monitor.id} needs a deviceName; native PipeWire monitor routing requires an existing sink`
+      };
+    }
 
-      if (!monitorDeviceName) {
-        return {
-          ok: false,
-          message: `Monitor ${monitor.id} needs a deviceName; native PipeWire monitor routing requires an existing sink`
-        };
+    const monitorTargetPorts = selectEndpointPorts(inputPorts, pair.monitor, monitorDeviceName);
+    const channelCount = Math.min(pair.output.channels, pair.monitor.channels);
+
+    if (outputMonitorPorts.length < channelCount || monitorTargetPorts.length < channelCount) {
+      if (!pair.active) {
+        continue;
       }
-
-      const monitorTargetPorts = selectEndpointPorts(inputPorts, monitor, monitorDeviceName);
-      const channelCount = Math.min(output.channels, monitor.channels);
 
       if (outputMonitorPorts.length < channelCount) {
-        return { ok: false, message: `Missing PipeWire monitor output ports for ${output.label} (${outputDeviceName})` };
+        return { ok: false, message: `Missing PipeWire monitor output ports for ${pair.output.label} (${outputDeviceName})` };
       }
 
-      if (monitorTargetPorts.length < channelCount) {
-        return { ok: false, message: `Missing PipeWire input ports for ${monitor.label} (${monitorDeviceName})` };
-      }
-
-      plans.push({
-        routeId: `${output.id}->${monitor.id}`,
-        label: `${output.label} monitor -> ${monitor.label}`,
-        active: true,
-        pairs: outputMonitorPorts.slice(0, channelCount).map((outputPort, index) => ({
-          outputPort,
-          inputPort: monitorTargetPorts[index] ?? monitorTargetPorts[0] ?? monitorDeviceName
-        }))
-      });
+      return { ok: false, message: `Missing PipeWire input ports for ${pair.monitor.label} (${monitorDeviceName})` };
     }
+
+    plans.push({
+      routeId: pair.routeId,
+      label: `${pair.output.label} monitor -> ${pair.monitor.label}`,
+      active: pair.active,
+      pairs: outputMonitorPorts.slice(0, channelCount).map((outputPort, index) => ({
+        outputPort,
+        inputPort: monitorTargetPorts[index] ?? monitorTargetPorts[0] ?? monitorDeviceName
+      }))
+    });
   }
 
   return { ok: true, plans };
