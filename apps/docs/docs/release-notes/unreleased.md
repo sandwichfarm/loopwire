@@ -250,6 +250,9 @@ These notes describe source-tree progress. They are not a public release announc
   log-summary mode for checking preflight blockers without rerunning release checks.
 - Release signing key preparation helper that refuses repo-local private keys and verifies the generated key pair before
   printing the GitHub secret setup command.
+- Release signing key preparation now prints the complete final-proof secret setup command, including `--scope final`,
+  Bunny upload fields, pull-zone hostname, and matching public/private key paths, plus the no-value env-template
+  alternative.
 - GitHub secret checks now fail with the underlying `gh secret list` error when repository secret names cannot be read,
   instead of misreporting API or auth failures as missing release/deploy secrets.
 - GitHub secret checks now support `--scope deploy` for Bunny.net upload readiness separately from the default strict

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T07:44:29+02:00"
-last_activity: 2026-07-06 - Native-backend gain reset remediation is isolated and regression-tested
+last_updated: "2026-07-06T08:00:13+02:00"
+last_activity: 2026-07-06 - Release signing key handoff prints complete final-scope secret setup
 progress:
   total_phases: 5
   completed_phases: 4
@@ -70,6 +70,10 @@ SSH evidence-pull commands omit the manifest-bound release tag, repository, rele
 Latest UX hardening: 2026-07-06 - Native PipeWire/JACK `Reset gains` remediation now runs through a pure desktop helper
 instead of an inline Svelte loop. Regression coverage proves it resets only unmuted non-100% native blockers, preserves
 muted saved gain values, and no-ops for PulseAudio or graph-edge-capable backend reports.
+Latest release-ceremony hardening: 2026-07-06 - `scripts/prepare-release-signing-key.sh` now prints the complete
+final-proof secret setup handoff after generating a keypair: explicit `--scope final`, Bunny upload fields, pull-zone
+hostname, generated private/public key paths, and the no-value env-template alternative. `pnpm verify:scripts` now
+generates a temporary keypair and rejects helper output that omits those handoff fields.
 
 ## Blockers / Concerns
 
@@ -130,6 +134,14 @@ muted saved gain values, and no-ops for PulseAudio or graph-edge-capable backend
 
 ## Verification Log
 
+- 2026-07-06 release signing key final-scope handoff: `scripts/prepare-release-signing-key.sh` now prints complete
+  final-proof secret setup instructions instead of a partial private-key-only command. The generated next step includes
+  `--scope final`, Bunny storage zone/access-key placeholders, pull-zone hostname placeholder, generated private/public
+  key paths, and the local env-template alternative. `scripts/verify-scripts.sh` now creates a temporary keypair and
+  verifies those rendered handoff fields. Focused validation passed: `bash -n scripts/prepare-release-signing-key.sh
+  scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full validation
+  passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM
+  launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - 2026-07-06 native gain reset remediation: extracted desktop native-backend `Reset gains` behavior into
   `resetNativeRouteGainsForLiveApply`, keeping the Svelte component responsible only for persistence and user-facing
   messaging. Regression tests cover PipeWire reset with muted saved-gain preservation, JACK multi-route reset,

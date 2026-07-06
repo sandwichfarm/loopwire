@@ -250,6 +250,37 @@ bash scripts/plan-final-release-handoff.sh -- --help >/dev/null || {
   echo "verify-scripts: release handoff does not accept the package-script argument separator" >&2
   exit 1
 }
+prepare_key_tmp="$(mktemp -d)"
+prepare_key_output="$(
+  bash scripts/prepare-release-signing-key.sh \
+    --private-key-out "$prepare_key_tmp/private.pem" \
+    --public-key-out "$prepare_key_tmp/public.pem"
+)"
+printf '%s\n' "$prepare_key_output" |
+  grep -F "bash scripts/setup-github-secrets.sh --repo OWNER/REPO --scope final" >/dev/null || {
+    rm -rf "$prepare_key_tmp"
+    echo "verify-scripts: release signing key helper is missing explicit final-scope secret setup" >&2
+    exit 1
+  }
+printf '%s\n' "$prepare_key_output" |
+  grep -F -- "--release-private-key-file \"$prepare_key_tmp/private.pem\"" >/dev/null || {
+    rm -rf "$prepare_key_tmp"
+    echo "verify-scripts: release signing key helper is missing generated private-key path" >&2
+    exit 1
+  }
+printf '%s\n' "$prepare_key_output" |
+  grep -F -- "--release-public-key-file \"$prepare_key_tmp/public.pem\"" >/dev/null || {
+    rm -rf "$prepare_key_tmp"
+    echo "verify-scripts: release signing key helper is missing generated public-key path" >&2
+    exit 1
+  }
+printf '%s\n' "$prepare_key_output" |
+  grep -F "bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>" >/dev/null || {
+    rm -rf "$prepare_key_tmp"
+    echo "verify-scripts: release signing key helper is missing env-template handoff" >&2
+    exit 1
+  }
+rm -rf "$prepare_key_tmp"
 printf '%s\n' "$agent_release_ready_help" |
   grep -F -- "Require commit-scoped CI and Deploy Docs workflow runs" >/dev/null || {
     echo "verify-scripts: agent-ready release help is missing commit-scoped hosted-check wording" >&2

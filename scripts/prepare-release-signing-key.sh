@@ -109,8 +109,14 @@ Public key:  $public_key_path
 
 Next steps:
   1. Commit only the public key: $public_key_path
-  2. Store the private key as a GitHub secret:
-     bash scripts/setup-github-secrets.sh --repo OWNER/REPO --release-private-key-file "$private_key_path"
+  2. Store final-proof GitHub secrets from local values; do not print or commit secret values:
+     bash scripts/setup-github-secrets.sh --repo OWNER/REPO --scope final \\
+       --storage-zone <zone> --access-key <key> --pull-zone-hostname <host> \\
+       --release-private-key-file "$private_key_path" \\
+       --release-public-key-file "$public_key_path"
+     # Or create, fill, and load the local no-value env template:
+     bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
+     bash scripts/setup-github-secrets.sh --repo OWNER/REPO --scope final --env-file <secret-env-file>
   3. Re-run release readiness:
      pnpm verify:release-readiness -- --repo OWNER/REPO --tag v0.1.0 --public-key "$public_key_path"
 EOF

@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Release signing key preparation now renders a complete final-proof secret setup handoff. After generating and
+  validating a keypair, `scripts/prepare-release-signing-key.sh` prints explicit `--scope final` setup with Bunny
+  upload placeholders, pull-zone hostname placeholder, generated private/public key paths, and the local no-value
+  env-template alternative. `scripts/verify-scripts.sh` now creates a temporary keypair and rejects helper output that
+  omits those handoff fields. Focused validation passed: `bash -n scripts/prepare-release-signing-key.sh
+  scripts/verify-scripts.sh`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full validation
+  passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM
+  launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - Native PipeWire/JACK gain reset remediation is now isolated from `App.svelte` and regression-tested. The desktop
   helper resets only live-blocking unmuted non-100% routes for native link-only backends, preserves muted saved
   non-100% gains, and leaves PulseAudio or graph-edge-capable PipeWire reports unchanged. Focused validation passed:
