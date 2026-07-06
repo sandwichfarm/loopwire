@@ -41,6 +41,7 @@ bash -n \
   scripts/package-vm-evidence.sh \
   scripts/prepare-vm-evidence-release-asset.sh \
   scripts/verify-vm-evidence.sh \
+  scripts/verify-desktop-binary-launch.sh \
   scripts/collect-vm-evidence.sh \
   scripts/collect-vm-evidence-ssh.sh \
   scripts/collect-vm-matrix-evidence.sh \
@@ -78,6 +79,10 @@ if (root.scripts["verify:docs-deployment"] !== "node scripts/verify-docs-deploym
 }
 if (root.scripts["verify:desktop-preview"] !== "node scripts/verify-desktop-preview.mjs") {
   console.error("verify-scripts: root package is missing verify:desktop-preview");
+  process.exit(1);
+}
+if (root.scripts["verify:desktop-binary-launch"] !== "bash scripts/verify-desktop-binary-launch.sh") {
+  console.error("verify-scripts: root package is missing verify:desktop-binary-launch");
   process.exit(1);
 }
 if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff.sh") {
@@ -143,6 +148,10 @@ node scripts/verify-support-matrix.mjs --help | grep -F -- "--matrix FILE" >/dev
 }
 node scripts/verify-desktop-preview.mjs --help | grep -F -- "--skip-if-missing" >/dev/null || {
   echo "verify-scripts: desktop preview verifier help is missing skip-if-missing support" >&2
+  exit 1
+}
+bash scripts/verify-desktop-binary-launch.sh --help | grep -F -- "--binary FILE" >/dev/null || {
+  echo "verify-scripts: desktop binary launch verifier help is missing binary path support" >&2
   exit 1
 }
 awk 'NF != 1 || $1 !~ /^[A-Z0-9_]+$/ { exit 1 }' \
@@ -8375,6 +8384,9 @@ evidence_dir="$tmp_dir/vm-evidence"
 mkdir -p "$evidence_dir"
 printf '%s\n' "pnpm check passed" >"$evidence_dir/pnpm-check.log"
 printf '%s\n' "Loopwire desktop launch smoke passed: http://127.0.0.1:5181/" >"$evidence_dir/desktop-launch.log"
+printf '%s\n' \
+  "Desktop binary launch smoke passed: apps/desktop/src-tauri/target/release/loopwire stayed alive for 5s without GDK Error 71." \
+  >"$evidence_dir/desktop-binary-launch.log"
 printf '%s\n' "audio host build passed" >"$evidence_dir/audio-host-build.log"
 printf '%s\n' '{"platform":"linux","reports":[{"kind":"pipewire","availability":"available"}]}' >"$evidence_dir/detect-audio.json"
 node - "$evidence_dir/environment.json" <<'NODE'
@@ -8513,6 +8525,7 @@ write_test_png "$evidence_dir/screenshot.png" 1280 720
 {
   printf 'pnpm-check\t0\t2026-07-03T00:00:00+00:00\t2026-07-03T00:00:01+00:00\tpnpm-check.log\n'
   printf 'desktop-launch\t0\t2026-07-03T00:00:01+00:00\t2026-07-03T00:00:02+00:00\tdesktop-launch.log\n'
+  printf 'desktop-binary-launch\t0\t2026-07-03T00:00:02+00:00\t2026-07-03T00:00:03+00:00\tdesktop-binary-launch.log\n'
   printf 'audio-host-build\t0\t2026-07-03T00:00:01+00:00\t2026-07-03T00:00:02+00:00\taudio-host-build.log\n'
   printf 'detect-audio\t0\t2026-07-03T00:00:02+00:00\t2026-07-03T00:00:03+00:00\tdetect-audio.json\n'
   printf 'ct-host-check\t0\t2026-07-03T00:00:03+00:00\t2026-07-03T00:00:04+00:00\tct-host-check.log\n'
@@ -8520,6 +8533,24 @@ write_test_png "$evidence_dir/screenshot.png" 1280 720
   printf 'support-bundle\t0\t2026-07-03T00:00:05+00:00\t2026-07-03T00:00:06+00:00\tsupport-bundle.log\n'
 } >"$evidence_dir/command-results.tsv"
 bash scripts/verify-vm-evidence.sh --target arch-hyprland-pipewire --evidence-dir "$evidence_dir" >/dev/null
+fake_desktop_binary="$tmp_dir/fake-loopwire-desktop"
+cat >"$fake_desktop_binary" <<'EOF'
+#!/usr/bin/env bash
+sleep 2
+EOF
+chmod +x "$fake_desktop_binary"
+bash scripts/verify-desktop-binary-launch.sh --binary "$fake_desktop_binary" --duration 1s >/dev/null
+bad_desktop_binary="$tmp_dir/bad-loopwire-desktop"
+cat >"$bad_desktop_binary" <<'EOF'
+#!/usr/bin/env bash
+echo "Gdk-Message: Error 71 (Protocol error) dispatching to Wayland display." >&2
+exit 1
+EOF
+chmod +x "$bad_desktop_binary"
+if bash scripts/verify-desktop-binary-launch.sh --binary "$bad_desktop_binary" --duration 1s >/dev/null 2>&1; then
+  echo "verify-scripts: desktop binary launch verifier accepted GDK Error 71 output" >&2
+  exit 1
+fi
 status_root="$tmp_dir/vm-status-root"
 mkdir -p "$status_root"
 cp -R "$evidence_dir" "$status_root/arch-hyprland-pipewire"

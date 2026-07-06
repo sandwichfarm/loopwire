@@ -9,6 +9,7 @@ output_dir=""
 screenshot_file=""
 screenshot_command=""
 desktop_port="5181"
+desktop_binary_duration="5s"
 operator_note=""
 published_release_dir=""
 published_release_repo=""
@@ -30,6 +31,8 @@ Options:
   --screenshot-file FILE       Copy an already captured screenshot to screenshot.png.
   --screenshot-command CMD     Run CMD with LOOPWIRE_SCREENSHOT_PATH set to screenshot.png.
   --desktop-port PORT          Local port for the desktop launch smoke. Defaults to 5181.
+  --desktop-binary-duration DURATION
+                              Timeout for packaged desktop binary launch smoke. Defaults to 5s.
   --published-release-dir DIR  Run installed-release smoke against a signed local release directory.
   --published-release-repo REPO Run installed-release smoke against a GitHub release repository.
   --published-release-tag TAG  Release tag for installed-release smoke.
@@ -84,6 +87,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --desktop-port)
       desktop_port="${2:-}"
+      shift 2
+      ;;
+    --desktop-binary-duration)
+      desktop_binary_duration="${2:-}"
       shift 2
       ;;
     --published-release-dir)
@@ -358,6 +365,12 @@ NODE
   record_result "desktop-launch" "desktop-launch.log" "$status" "$started_at" "$finished_at"
 }
 
+run_desktop_binary_launch_smoke() {
+  run_logged "desktop-binary-launch" "desktop-binary-launch.log" bash -c \
+    'cargo build --release --manifest-path apps/desktop/src-tauri/Cargo.toml && bash scripts/verify-desktop-binary-launch.sh --binary apps/desktop/src-tauri/target/release/loopwire --duration "$1"' \
+    _ "$desktop_binary_duration"
+}
+
 run_support_bundle() {
   run_logged "support-bundle" "support-bundle.log" node scripts/collect-support-bundle.mjs \
     --output-dir "$output_dir/support-bundle" \
@@ -465,6 +478,7 @@ write_notes
 write_environment_manifest
 run_logged "pnpm-check" "pnpm-check.log" pnpm check
 run_desktop_launch_smoke
+run_desktop_binary_launch_smoke
 run_audio_detect
 run_logged "ct-host-check" "ct-host-check.log" bash scripts/ct-host-check.sh
 run_logged "autostart" "autostart.log" pnpm verify:autostart

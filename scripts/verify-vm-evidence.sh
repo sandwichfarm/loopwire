@@ -18,6 +18,7 @@ Usage:
 Required files:
   pnpm-check.log
   desktop-launch.log
+  desktop-binary-launch.log
   audio-host-build.log
   environment.json
   detect-audio.json
@@ -35,10 +36,11 @@ Required files:
 
 The target must exist in vm/targets.tsv. This verifier checks that the evidence bundle has the expected files and that
 the backend detection JSON contains the target platform and reports array. It also checks command-results.tsv to prove
-the required guest commands, including desktop launch smoke, completed successfully. The nested support bundle ledger
-must also prove its quick-profile diagnostics completed and wrote non-empty logs. The environment manifest must match
-the selected VM target's distro, desktop/session, audio stack, and architecture. With --require-published-release, the
-bundle must also prove an installed release smoke through scripts/verify-published-release.sh.
+the required guest commands, including Vite desktop launch smoke and packaged desktop binary launch smoke, completed
+successfully. The nested support bundle ledger must also prove its quick-profile diagnostics completed and wrote
+non-empty logs. The environment manifest must match the selected VM target's distro, desktop/session, audio stack, and
+architecture. With --require-published-release, the bundle must also prove an installed release smoke through
+scripts/verify-published-release.sh.
 With --release-tag, the bundle must include structured published-release metadata for that exact tag.
 Use --require-github-release-source with --require-published-release --release-tag for final support claims that must
 prove the VM installed from the GitHub Release surface instead of a guest-visible local release directory.
@@ -101,6 +103,7 @@ fi
 for required in \
   pnpm-check.log \
   desktop-launch.log \
+  desktop-binary-launch.log \
   audio-host-build.log \
   environment.json \
   detect-audio.json \
@@ -349,6 +352,7 @@ const requirePublishedRelease = process.argv[3] === "true";
 const required = new Map([
   ["pnpm-check", "pnpm-check.log"],
   ["desktop-launch", "desktop-launch.log"],
+  ["desktop-binary-launch", "desktop-binary-launch.log"],
   ["audio-host-build", "audio-host-build.log"],
   ["detect-audio", "detect-audio.json"],
   ["ct-host-check", "ct-host-check.log"],

@@ -48,6 +48,7 @@
     "verify:nix-release": "bash scripts/verify-nix-release-package.sh",
     "verify:aur": "bash scripts/verify-aur-package.sh",
     "verify:docs": "bash scripts/verify-docs.sh",
+    "verify:desktop-binary-launch": "bash scripts/verify-desktop-binary-launch.sh",
     "verify:desktop-preview": "node scripts/verify-desktop-preview.mjs",
     "verify:docs-deployment": "node scripts/verify-docs-deployment-manifest.mjs",
     "verify:docs-live": "bash scripts/verify-docs-live.sh",
