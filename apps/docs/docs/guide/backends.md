@@ -60,6 +60,8 @@ This command does not create virtual devices or change host routes.
 - list PipeWire input ports as host-backed output and physical monitor target candidates,
 - create Loopwire-owned virtual output and monitor sinks with `pw-cli create-node adapter` when an output bus or
   monitor has no host `deviceName`,
+- create Loopwire-owned virtual source nodes the same way when a source has no host `deviceName` (Pass-Thru: a sink
+  applications play into whose monitor ports feed the configuration's buses),
 - link configured existing PipeWire output ports to input ports when route endpoints include host `deviceName` values,
 - link configured host-backed input ports into those Loopwire-owned virtual output sinks,
 - disconnect configured route links when a route is muted,

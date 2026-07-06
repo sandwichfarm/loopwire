@@ -82,7 +82,8 @@ saved backend when preflight passes and falls back to preview (with the reason) 
 Configuration export/import and the on-demand diagnostics panel were removed from the rebuilt desktop UI; their
 domain/CLI paths (`packages/core` persistence, support-bundle and verification scripts) remain available.
 
-PipeWire live apply can create Loopwire-owned virtual output and monitor sinks, link existing source ports into them,
+PipeWire live apply can create Loopwire-owned virtual output and monitor sinks, create virtual source nodes for
+unbound sources such as Pass-Thru (a sink applications play into whose monitor feeds the buses), link source ports,
 disconnect muted links, preserve muted route gain values, and target existing host-backed outputs or physical monitor
 sinks. JACK live apply is limited to existing-port `jack_connect`/`jack_disconnect` routes, muted route disconnects
 that can preserve muted gain values, and existing physical monitor sinks. PulseAudio compatibility live apply covers

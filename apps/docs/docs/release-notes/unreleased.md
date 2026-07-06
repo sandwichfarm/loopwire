@@ -17,6 +17,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Selecting a device now applies its configuration through the saved backend immediately (with preflight and
   rollback); when live apply cannot run, the switch happens in preview and the reason is reported. Sidebar devices
   reorder with click-and-drag, UI text is unselectable, and card selection no longer clears itself.
+- Native PipeWire now creates Loopwire-owned virtual source nodes for sources without a host binding, so the default
+  Pass-Thru → Channels 1 & 2 device applies live end to end instead of being blocked by preflight.
 - Removed from the UI in this rebuild (domain/CLI paths remain): configuration export/import, the diagnostics panel,
   manual host-binding fields, custom window chrome mode, and DSP/JACK provider settings; meters render silence until a
   per-port level stream exists in the audio host layer.

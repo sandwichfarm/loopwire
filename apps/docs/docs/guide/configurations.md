@@ -61,8 +61,9 @@ explicit apply path; dry-run and fake-runner tests remain the default verificati
 whole sink-input streams, it can route each source to only one output at a time; the adapter and preflight reject
 multiple routes from the same source.
 
-Native PipeWire can create Loopwire-owned virtual output and monitor sinks, link existing source ports into those
-sinks, disconnect muted route edges, and route to physical monitor sink targets. JACK can link existing host ports or
+Native PipeWire can create Loopwire-owned virtual output and monitor sinks, create virtual source nodes for unbound
+sources such as Pass-Thru, link existing or Loopwire-owned source ports into those sinks, disconnect muted route
+edges, and route to physical monitor sink targets. JACK can link existing host ports or
 pre-existing Loopwire-owned JACK ports, disconnect muted route edges, and route to physical or Loopwire-owned monitor
 targets. JACK virtual port creation and true mixer-style gain remain planned backend work.
 
@@ -73,8 +74,10 @@ through the Tauri command bridge, which only allows `pactl`, `pw-cli`, `pw-link`
 `jack_disconnect` without invoking a shell.
 
 Before every live device switch, Loopwire runs a static preflight against the selected backend and configuration. It blocks known-failing live applies such as no selected backend, a backend
-that detection reports unavailable, PulseAudio fan-out routes, native PipeWire/JACK routes with non-100% gain (set the
-source volume back to 100% to clear this), and missing host source ports for native PipeWire routes. Blockers surface
+that detection reports unavailable, PulseAudio fan-out routes, and native PipeWire/JACK routes with non-100% gain (set
+the source volume back to 100% to clear this). Sources without a host binding are not blockers on native PipeWire:
+they become Loopwire-owned virtual nodes (Pass-Thru is a sink applications play into whose monitor feeds the buses).
+Blockers surface
 as error toasts and in the backend status line. Preflight consumes detected backend mixing semantics: PulseAudio
 compatibility is stream-level, native PipeWire and JACK are link-only, and ALSA route controls are unavailable because
 the ALSA path is diagnostics-only.

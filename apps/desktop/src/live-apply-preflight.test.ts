@@ -261,7 +261,7 @@ describe("describeLiveApplyPreflight", () => {
     expect(getNativeGainBlockerRoutes(mutedConfiguration, "jack").map((route) => route.id)).toEqual([]);
   });
 
-  it("does not block route gain when detected backend semantics support graph-edge gain", () => {
+  it("does not block gain or unbound sources when the backend creates virtual devices with graph-edge gain", () => {
     const result = describeLiveApplyPreflight(
       baseConfiguration,
       "pipewire",
@@ -269,8 +269,8 @@ describe("describeLiveApplyPreflight", () => {
       graphEdgePipeWire
     );
 
-    expect(result.message).toBe("PipeWire DSP live apply needs host source ports for Call Audio.");
-    expect(result.blockers).toEqual(["PipeWire DSP live apply needs host source ports for Call Audio."]);
+    // Unbound sources become Loopwire-owned virtual nodes on this backend.
+    expect(result).toMatchObject({ ok: true, mode: "ready", blockers: [] });
     expect(getNativeGainBlockerRoutes(baseConfiguration, "pipewire", graphEdgePipeWire)).toEqual([]);
   });
 
@@ -362,8 +362,8 @@ describe("describeConfigurationSwitchPreflight", () => {
       (kind) => (kind === "pipewire" ? "PipeWire DSP" : kind)
     );
 
-    expect(result.message).toBe("PipeWire DSP live apply needs host source ports for Call Audio.");
-    expect(result.blockers).toEqual(["PipeWire DSP live apply needs host source ports for Call Audio."]);
+    // Graph-edge gain + virtual-device creation clear both static blockers.
+    expect(result).toMatchObject({ ok: true, mode: "ready", blockers: [] });
   });
 
   it("does not use a capability report for a different backend", () => {

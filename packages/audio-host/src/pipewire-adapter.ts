@@ -1,5 +1,5 @@
 import type { CommandResult, CommandRunner } from "./types.js";
-import { sinkNameForMonitor, sinkNameForOutput } from "./runtime-adapter.js";
+import { sinkNameForInput, sinkNameForMonitor, sinkNameForOutput } from "./runtime-adapter.js";
 import type { HostRuntimeConfiguration, HostRuntimeEndpoint, HostRuntimeOperationResult } from "./runtime-adapter.js";
 
 export type PipeWireRuntimeMode = "dry-run" | "apply";
@@ -65,7 +65,7 @@ interface PipeWireNode {
 }
 
 interface PipeWireVirtualSinkEndpoint {
-  readonly kind: "output" | "monitor";
+  readonly kind: "input" | "output" | "monitor";
   readonly endpoint: HostRuntimeEndpoint;
 }
 
@@ -466,6 +466,13 @@ function withVirtualEndpointDeviceNames(
 ): HostRuntimeConfiguration {
   return {
     ...configuration,
+    // Unbound sources (Pass-Thru) become Loopwire-owned virtual sinks whose
+    // monitor ports feed the buses, so link plans resolve against them.
+    inputs: (configuration.inputs ?? []).map((input) => (
+      normalizedDeviceName(input)
+        ? input
+        : { ...input, deviceName: virtualSinkNodeName(context, configuration, { kind: "input", endpoint: input }) }
+    )),
     outputs: configuration.outputs.map((output) => (
       normalizedDeviceName(output)
         ? output
@@ -480,6 +487,9 @@ function withVirtualEndpointDeviceNames(
 }
 
 function virtualSinkEndpoints(configuration: HostRuntimeConfiguration): readonly PipeWireVirtualSinkEndpoint[] {
+  const inputs = (configuration.inputs ?? [])
+    .filter((input) => !normalizedDeviceName(input))
+    .map((endpoint): PipeWireVirtualSinkEndpoint => ({ kind: "input", endpoint }));
   const outputs = configuration.outputs
     .filter((output) => !normalizedDeviceName(output))
     .map((endpoint): PipeWireVirtualSinkEndpoint => ({ kind: "output", endpoint }));
@@ -487,7 +497,7 @@ function virtualSinkEndpoints(configuration: HostRuntimeConfiguration): readonly
     .filter((monitor) => !normalizedDeviceName(monitor))
     .map((endpoint): PipeWireVirtualSinkEndpoint => ({ kind: "monitor", endpoint }));
 
-  return [...outputs, ...monitors];
+  return [...inputs, ...outputs, ...monitors];
 }
 
 function virtualSinkNodeName(
@@ -495,6 +505,10 @@ function virtualSinkNodeName(
   configuration: HostRuntimeConfiguration,
   target: PipeWireVirtualSinkEndpoint
 ): string {
+  if (target.kind === "input") {
+    return sinkNameForInput(context.sinkPrefix, configuration, target.endpoint);
+  }
+
   return target.kind === "output"
     ? sinkNameForOutput(context.sinkPrefix, configuration, target.endpoint)
     : sinkNameForMonitor(context.sinkPrefix, configuration, target.endpoint);

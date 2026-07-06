@@ -140,6 +140,87 @@ describe("createPipeWireGraphRuntimeAdapter", () => {
     ]);
   });
 
+  it("creates virtual PipeWire source nodes for unbound sources (Pass-Thru) and links their monitors", async () => {
+    const passThruConfiguration: HostRuntimeConfiguration = {
+      id: "Native Mix",
+      name: "Native Mix",
+      inputs: [{ id: "pass-thru", label: "Pass-Thru", channels: 2 }],
+      outputs: [{ id: "program", label: "Program Out", channels: 2 }],
+      routes: [{ id: "pass-program", from: "pass-thru", to: "program", muted: false }]
+    };
+    const sourceNode = "loopwire_native_mix_source_pass-thru";
+    const busNode = "loopwire_native_mix_program";
+    const { runner, calls } = createRecordingRunner({
+      "pw-cli list-objects Node": [
+        { stdout: "" },
+        { stdout: pipeWireNode("90", sourceNode) },
+        { stdout: [pipeWireNode("90", sourceNode), pipeWireNode("91", busNode)].join("\n") }
+      ],
+      "pw-cli": { stdout: "" },
+      "pw-link -o": { stdout: [`${sourceNode}:monitor_FL`, `${sourceNode}:monitor_FR`].join("\n") },
+      "pw-link -i": { stdout: [`${busNode}:playback_FL`, `${busNode}:playback_FR`].join("\n") },
+      "pw-link -l": { stdout: "" },
+      [`pw-link ${sourceNode}:monitor_FL ${busNode}:playback_FL`]: { stdout: "" },
+      [`pw-link ${sourceNode}:monitor_FR ${busNode}:playback_FR`]: { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.apply(passThruConfiguration);
+
+    expect(result).toEqual({
+      ok: true,
+      message: "Created 2 PipeWire virtual sink node(s); Linked 2 PipeWire port pair(s); 0 already linked"
+    });
+    expect(calls).toContain(
+      "pw-cli create-node adapter " + pipeWireVirtualSinkProps(sourceNode, "Pass-Thru", "FL FR")
+    );
+    expect(calls).toContain(`pw-link ${sourceNode}:monitor_FL ${busNode}:playback_FL`);
+    expect(calls).toContain(`pw-link ${sourceNode}:monitor_FR ${busNode}:playback_FR`);
+  });
+
+  it("destroys virtual PipeWire source nodes during unload", async () => {
+    const passThruConfiguration: HostRuntimeConfiguration = {
+      id: "Native Mix",
+      name: "Native Mix",
+      inputs: [{ id: "pass-thru", label: "Pass-Thru", channels: 2 }],
+      outputs: [{ id: "program", label: "Program Out", channels: 2 }],
+      routes: [{ id: "pass-program", from: "pass-thru", to: "program", muted: false }]
+    };
+    const sourceNode = "loopwire_native_mix_source_pass-thru";
+    const busNode = "loopwire_native_mix_program";
+    const { runner, calls } = createRecordingRunner({
+      "pw-cli list-objects Node": {
+        stdout: [pipeWireNode("90", sourceNode), pipeWireNode("91", busNode)].join("\n")
+      },
+      "pw-cli": { stdout: "" },
+      "pw-link -o": { stdout: [`${sourceNode}:monitor_FL`, `${sourceNode}:monitor_FR`].join("\n") },
+      "pw-link -i": { stdout: [`${busNode}:playback_FL`, `${busNode}:playback_FR`].join("\n") },
+      "pw-link -l": {
+        stdout: [
+          `${sourceNode}:monitor_FL`,
+          `  |-> ${busNode}:playback_FL`,
+          `${sourceNode}:monitor_FR`,
+          `  |-> ${busNode}:playback_FR`
+        ].join("\n")
+      },
+      "pw-link -d": { stdout: "" },
+      [`pw-link -d ${sourceNode}:monitor_FL ${busNode}:playback_FL`]: { stdout: "" },
+      [`pw-link -d ${sourceNode}:monitor_FR ${busNode}:playback_FR`]: { stdout: "" },
+      "pw-cli destroy 90": { stdout: "" },
+      "pw-cli destroy 91": { stdout: "" }
+    });
+    const adapter = createPipeWireGraphRuntimeAdapter(runner, { mode: "apply" });
+
+    const result = await adapter.unload(passThruConfiguration);
+
+    expect(result).toEqual({
+      ok: true,
+      message: "Unlinked 2 PipeWire port pair(s); Destroyed 2 PipeWire virtual sink node(s)"
+    });
+    expect(calls).toContain("pw-cli destroy 90");
+    expect(calls).toContain("pw-cli destroy 91");
+  });
+
   it("skips PipeWire links that already exist", async () => {
     const { runner, calls } = createRecordingRunner({
       "pw-link -o": { stdout: sourcePorts() },
