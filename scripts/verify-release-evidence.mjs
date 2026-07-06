@@ -383,6 +383,17 @@ function validateRequiredVmLaunchPlan() {
 
   requireOptionValue(tokens, "--image-root", binding.imageRoot, "vm-launch-plan");
   requireOptionValue(tokens, "--start-port", binding.startPort, "vm-launch-plan");
+  if (requirePublishedRelease) {
+    if (!tokens.includes("--require-published-release")) {
+      fail("vm-launch-plan command must require published-release evidence");
+    }
+    requireOptionValue(tokens, "--release-tag", manifest.release.tag, "vm-launch-plan");
+    requireOptionValue(tokens, "--published-release-repo", manifest.release.repo, "vm-launch-plan");
+    requireOptionValue(tokens, "--release-public-key", manifest.release.publicKey, "vm-launch-plan");
+    if (!tokens.includes("--require-github-release-source")) {
+      fail("vm-launch-plan command must require GitHub release source");
+    }
+  }
   validateVmLaunchPlanLog(command.log, binding);
 }
 
@@ -872,6 +883,32 @@ function validateVmLaunchPlanRow({
   requireOptionValue(evidenceTokens, "--port", sshPort, `vm-launch-plan evidence command for ${target}`);
   if (!evidenceTokens.includes("--execute")) {
     fail(`vm-launch-plan evidence command for ${target} must include --execute`);
+  }
+  if (requirePublishedRelease) {
+    requireOptionValue(
+      evidenceTokens,
+      "--published-release-repo",
+      manifest.release.repo,
+      `vm-launch-plan evidence command for ${target}`
+    );
+    requireOptionValue(
+      evidenceTokens,
+      "--published-release-tag",
+      manifest.release.tag,
+      `vm-launch-plan evidence command for ${target}`
+    );
+    requireOptionValue(
+      evidenceTokens,
+      "--release-public-key",
+      manifest.release.publicKey,
+      `vm-launch-plan evidence command for ${target}`
+    );
+    if (!evidenceTokens.includes("--require-published-release")) {
+      fail(`vm-launch-plan evidence command for ${target} must require published-release evidence`);
+    }
+    if (!evidenceTokens.includes("--require-github-release-source")) {
+      fail(`vm-launch-plan evidence command for ${target} must require GitHub release source`);
+    }
   }
 }
 

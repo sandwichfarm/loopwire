@@ -406,6 +406,7 @@ assert_contains "apps/docs/docs/developer/release.md" 'bash scripts/verify-vm-ev
 assert_contains "apps/docs/docs/developer/release.md" "--require-github-release-source"
 assert_contains "apps/docs/docs/developer/release.md" "verify-published-release.sh --require-github-release-source"
 assert_contains "apps/docs/docs/developer/release.md" "vm-launch-plan.tsv"
+assert_contains "apps/docs/docs/developer/release.md" "manifest-bound release tag, GitHub repository, signing public key"
 assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-vm-evidence-ssh.sh --execute"
 assert_contains "apps/docs/docs/developer/release.md" "dsp-provider-plan.tsv"
 assert_contains "apps/docs/docs/developer/release.md" "scripts/collect-dsp-provider-plan.sh"

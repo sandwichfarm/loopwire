@@ -5,6 +5,19 @@
 
 ## Evidence Passed
 
+- Published-release VM launch plans now carry the same GitHub release-source strictness as final VM evidence. When
+  `collect-release-evidence.mjs` runs with `--require-published-release`, its `vm-launch-plan` command now passes the
+  selected release tag, GitHub repository, release public key, `--require-published-release`, and
+  `--require-github-release-source` into `scripts/vm-matrix.sh render-launch-plan`; the generated
+  `vm-launch-plan.tsv` evidence-pull rows pass the same values to `scripts/collect-vm-evidence-ssh.sh`.
+  `verify-release-evidence.mjs` rejects published-release launch plans whose command row or paired SSH pull rows omit
+  those manifest-bound values. `pnpm verify:scripts` includes a negative release-evidence fixture with weak
+  launch-plan rows and positive direct `vm-matrix.sh render-launch-plan` coverage. Focused validation passed:
+  `bash -n scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`, `node --check
+  scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`, `pnpm verify:scripts`,
+  `pnpm verify:docs`, `pnpm verify:vm`, and `pnpm verify:workflows`. Full validation passed: `pnpm check`.
+  No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation,
+  provider execution, or support-matrix promotion was performed.
 - VM evidence archives now verify extracted target bundles, not just the root manifest. The VM archive manifest verifier
   accepts `--verify-bundles` and optional `--evidence-root`, then runs
   `scripts/verify-vm-evidence.sh` for every manifest-listed target; with `--require-published-release`, it also passes

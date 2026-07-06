@@ -1875,6 +1875,7 @@ if (!launch || launch.required !== true) process.exit(1);
 if (!launch.command.includes("scripts/vm-matrix.sh")) process.exit(1);
 if (!launch.command.includes("render-launch-plan")) process.exit(1);
 if (!launch.command.includes("--all")) process.exit(1);
+if (launch.command.includes("--require-published-release")) process.exit(1);
 ' || {
   echo "verify-scripts: full release evidence plan is missing VM launch plan" >&2
   exit 1
@@ -2142,6 +2143,14 @@ const plan = JSON.parse(fs.readFileSync(0, "utf8"));
 const item = plan.find((entry) => entry.name === "vm-evidence");
 if (!item || !item.command.includes("--require-published-release")) process.exit(1);
 if (!item.command.includes("--release-tag") || !item.command.includes("v0.1.0")) process.exit(1);
+const launch = plan.find((entry) => entry.name === "vm-launch-plan");
+if (!launch || !launch.command.includes("--require-published-release")) process.exit(1);
+if (!launch.command.includes("--release-tag") || !launch.command.includes("v0.1.0")) process.exit(1);
+if (!launch.command.includes("--published-release-repo") || !launch.command.includes("sandwichfarm/loopwire")) process.exit(1);
+if (!launch.command.includes("--release-public-key") || !launch.command.includes("packaging/release-signing-public.pem")) {
+  process.exit(1);
+}
+if (!launch.command.includes("--require-github-release-source")) process.exit(1);
 ' || {
   echo "verify-scripts: VM evidence plan did not inherit published-release strictness" >&2
   exit 1
@@ -3184,6 +3193,7 @@ release_evidence_bad_repo_dir="$tmp_dir/release-evidence-bad-repo"
 release_evidence_missing_launch_plan_dir="$tmp_dir/release-evidence-missing-launch-plan"
 release_evidence_bad_launch_plan_command_dir="$tmp_dir/release-evidence-bad-launch-plan-command"
 release_evidence_bad_launch_plan_log_dir="$tmp_dir/release-evidence-bad-launch-plan-log"
+release_evidence_weak_launch_plan_log_dir="$tmp_dir/release-evidence-weak-launch-plan-log"
 release_evidence_missing_dsp_plan_dir="$tmp_dir/release-evidence-missing-dsp-plan"
 release_evidence_bad_dsp_plan_command_dir="$tmp_dir/release-evidence-bad-dsp-plan-command"
 release_evidence_bad_dsp_plan_log_dir="$tmp_dir/release-evidence-bad-dsp-plan-log"
@@ -3202,6 +3212,7 @@ node - "$release_evidence_dir" "$release_evidence_partial_dir" "$release_evidenc
   "$release_evidence_bad_public_key_dir" "$release_evidence_bad_tag_dir" "$release_evidence_bad_repo_dir" \
   "$release_evidence_missing_launch_plan_dir" \
   "$release_evidence_bad_launch_plan_command_dir" "$release_evidence_bad_launch_plan_log_dir" \
+  "$release_evidence_weak_launch_plan_log_dir" \
   "$release_evidence_missing_dsp_plan_dir" "$release_evidence_bad_dsp_plan_command_dir" \
   "$release_evidence_bad_dsp_plan_log_dir" "$release_evidence_wrong_dsp_plan_target_dir" \
   "$release_evidence_missing_jack_plan_dir" "$release_evidence_bad_jack_plan_command_dir" \
@@ -3232,6 +3243,7 @@ const [
   missingLaunchPlanDir,
   badLaunchPlanCommandDir,
   badLaunchPlanLogDir,
+  weakLaunchPlanLogDir,
   missingDspPlanDir,
   badDspPlanCommandDir,
   badDspPlanLogDir,
@@ -3300,7 +3312,12 @@ function vmLaunchPlanCommand() {
       "bash scripts/vm-matrix.sh render-launch-plan",
       "--all",
       "--image-root .vm/images",
-      "--start-port 2222"
+      "--start-port 2222",
+      "--require-published-release",
+      "--release-tag v0.1.0",
+      "--published-release-repo sandwichfarm/loopwire",
+      "--release-public-key packaging/release-signing-public.pem",
+      "--require-github-release-source"
     ].join(" ")
   };
 }
@@ -3328,7 +3345,7 @@ function jackProviderPlanCommand() {
   };
 }
 
-function vmLaunchPlanLog(selectedTargets) {
+function vmLaunchPlanLog(selectedTargets, { strict = true } = {}) {
   const rows = [
     "# target\timage\timage_format\tfirmware\tssh_port\tmemory\tcpus\tlaunch_command\tevidence_pull_command"
   ];
@@ -3350,6 +3367,13 @@ function vmLaunchPlanLog(selectedTargets) {
       `--target ${target}`,
       "--host 127.0.0.1",
       `--port ${sshPort}`,
+      ...(strict ? [
+        "--published-release-repo sandwichfarm/loopwire",
+        "--published-release-tag v0.1.0",
+        "--release-public-key packaging/release-signing-public.pem",
+        "--require-published-release",
+        "--require-github-release-source"
+      ] : []),
       "--execute"
     ].join(" ");
 
@@ -3691,6 +3715,11 @@ writeBundle(badLaunchPlanLogDir, targets);
   fs.writeFileSync(path.join(badLaunchPlanLogDir, "vm-launch-plan.tsv"), vmLaunchPlanLog(targets.slice(0, -1)));
 }
 
+writeBundle(weakLaunchPlanLogDir, targets);
+{
+  fs.writeFileSync(path.join(weakLaunchPlanLogDir, "vm-launch-plan.tsv"), vmLaunchPlanLog(targets, { strict: false }));
+}
+
 writeBundle(missingDspPlanDir, targets);
 {
   const manifestPath = path.join(missingDspPlanDir, "release-evidence.json");
@@ -3958,6 +3987,13 @@ if node scripts/verify-release-evidence.mjs \
   exit 1
 fi
 if node scripts/verify-release-evidence.mjs \
+  --evidence-dir "$release_evidence_weak_launch_plan_log_dir" \
+  --require-published-release \
+  --require-vm-launch-plan >/dev/null 2>&1; then
+  echo "verify-scripts: release evidence verifier accepted weak VM launch-plan release handoffs" >&2
+  exit 1
+fi
+if node scripts/verify-release-evidence.mjs \
   --evidence-dir "$release_evidence_missing_dsp_plan_dir" \
   --require-dsp-provider-plan >/dev/null 2>&1; then
   echo "verify-scripts: release evidence verifier accepted missing DSP provider evidence" >&2
@@ -4061,6 +4097,17 @@ vm_launch_plan_output="$(
     --start-port 2600 \
     --memory 8192 \
     --cpus 6
+)"
+vm_strict_launch_plan_output="$(
+  bash scripts/vm-matrix.sh render-launch-plan \
+    --target arch-hyprland-pipewire \
+    --image-root /operator/images \
+    --start-port 2600 \
+    --require-published-release \
+    --release-tag v0.1.0 \
+    --published-release-repo sandwichfarm/loopwire \
+    --release-public-key packaging/release-signing-public.pem \
+    --require-github-release-source
 )"
 pnpm_vm_launch_plan_output="$(
   pnpm vm:render-launch-plan -- \
@@ -4425,6 +4472,26 @@ printf '%s\n' "$vm_launch_plan_output" | grep -F -- "--port 2600 --execute" >/de
   echo "verify-scripts: vm launch plan missing evidence pull handoff" >&2
   exit 1
 }
+printf '%s\n' "$vm_strict_launch_plan_output" \
+  | grep -F -- "--published-release-repo sandwichfarm/loopwire" >/dev/null || {
+    echo "verify-scripts: strict VM launch plan missing release repo" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_strict_launch_plan_output" \
+  | grep -F -- "--published-release-tag v0.1.0" >/dev/null || {
+    echo "verify-scripts: strict VM launch plan missing release tag" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_strict_launch_plan_output" \
+  | grep -F -- "--release-public-key packaging/release-signing-public.pem" >/dev/null || {
+    echo "verify-scripts: strict VM launch plan missing release public key" >&2
+    exit 1
+  }
+printf '%s\n' "$vm_strict_launch_plan_output" \
+  | grep -F -- "--require-published-release --require-github-release-source --execute" >/dev/null || {
+    echo "verify-scripts: strict VM launch plan missing published-release verifier flags" >&2
+    exit 1
+  }
 printf '%s\n' "$pnpm_vm_launch_plan_output" | grep -F "ubuntu-gnome-pipewire-aarch64" >/dev/null || {
   echo "verify-scripts: pnpm vm:render-launch-plan did not include AArch64 target" >&2
   exit 1

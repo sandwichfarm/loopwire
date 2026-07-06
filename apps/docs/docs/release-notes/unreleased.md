@@ -419,6 +419,8 @@ These notes describe source-tree progress. They are not a public release announc
   cross-system release proof.
 - Final release evidence can now require `vm-launch-plan.tsv`, validating matrix-wide dry-run launch rows and paired SSH
   evidence-pull commands before public release proof passes.
+- Published-release final evidence now requires the VM launch plan and each paired SSH evidence-pull command to carry
+  the manifest-bound release tag, GitHub repository, release public key, and GitHub-release-source strictness flags.
 - New `pnpm verify:release-evidence` command to verify final release evidence bundles, including required published
   release smoke, all VM targets, non-empty logs, and blocker-free readiness.
 - The release workflow now collects, verifies, attaches `loopwire-release-evidence-<tag>.tar.gz` to the GitHub Release,

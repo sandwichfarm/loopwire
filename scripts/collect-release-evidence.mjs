@@ -510,21 +510,35 @@ function evidenceCommands(selectedProfile) {
     required: requireVmEvidence
   }));
   const docsLiveSmoke = docsLiveBaseUrl || docsLiveHostname || requireLiveDocs ? docsLiveCommand() : null;
+  const vmLaunchPlanCommand = [
+    "bash",
+    "scripts/vm-matrix.sh",
+    "render-launch-plan",
+    "--all",
+    "--image-root",
+    vmLaunchImageRoot,
+    "--start-port",
+    vmLaunchStartPort
+  ];
+
+  if (requirePublishedRelease) {
+    vmLaunchPlanCommand.push(
+      "--require-published-release",
+      "--release-tag",
+      releaseTag,
+      "--published-release-repo",
+      releaseRepo,
+      "--release-public-key",
+      releasePublicKey,
+      "--require-github-release-source"
+    );
+  }
 
   const common = [
     offlineReleaseReadiness,
     {
       name: "vm-launch-plan",
-      command: shellCommand([
-        "bash",
-        "scripts/vm-matrix.sh",
-        "render-launch-plan",
-        "--all",
-        "--image-root",
-        vmLaunchImageRoot,
-        "--start-port",
-        vmLaunchStartPort
-      ]),
+      command: shellCommand(vmLaunchPlanCommand),
       log: "vm-launch-plan.tsv"
     },
     {

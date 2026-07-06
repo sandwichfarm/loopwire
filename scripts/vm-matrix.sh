@@ -25,6 +25,9 @@ Usage:
   vm-matrix.sh render-launch-plan [--target TARGET|--all] [--image-root DIR]
                                [--image-format qcow2|raw] [--start-port PORT]
                                [--memory 4096] [--cpus 4] [--firmware FILE]
+                               [--require-published-release --release-tag vX.Y.Z]
+                               [--published-release-repo OWNER/REPO]
+                               [--release-public-key FILE] [--require-github-release-source]
                                [--output FILE]
   vm-matrix.sh render-runbook [--target TARGET|--all] [--image-root DIR]
                                [--image-format qcow2|raw] [--start-port PORT]
@@ -912,17 +915,36 @@ launch_command_cell() {
 evidence_pull_command_cell() {
   local target="$1"
   local port="$2"
+  local args=(
+    bash
+    scripts/collect-vm-evidence-ssh.sh
+    --target
+    "$target"
+    --host
+    127.0.0.1
+    --port
+    "$port"
+  )
 
-  shell_join \
-    bash \
-    scripts/collect-vm-evidence-ssh.sh \
-    --target \
-    "$target" \
-    --host \
-    127.0.0.1 \
-    --port \
-    "$port" \
-    --execute
+  if [ "$require_published_release" = "true" ]; then
+    args+=(
+      --published-release-repo
+      "$published_release_repo"
+      --published-release-tag
+      "$release_tag"
+      --release-public-key
+      "$release_public_key"
+      --require-published-release
+    )
+  fi
+
+  if [ "$require_github_release_source" = "true" ]; then
+    args+=(--require-github-release-source)
+  fi
+
+  args+=(--execute)
+
+  shell_join "${args[@]}"
 }
 
 emit_launch_plan() {
@@ -1533,7 +1555,16 @@ verify_handoffs() {
     require_contains "$launch_command" "--image ${image_root%/}/${id}.${image_format}" "$id launch command"
     require_contains "$launch_command" "--ssh-port $expected_port" "$id launch command"
     require_contains "$evidence_command" "scripts/collect-vm-evidence-ssh.sh --target $id" "$id evidence command"
-    require_contains "$evidence_command" "--port $expected_port --execute" "$id evidence command"
+    require_contains "$evidence_command" "--port $expected_port" "$id evidence command"
+    require_contains "$evidence_command" "--execute" "$id evidence command"
+    if [ "$require_published_release" = "true" ]; then
+      require_contains "$evidence_command" "--published-release-tag $release_tag" "$id evidence command"
+      require_contains "$evidence_command" "--require-published-release" "$id evidence command"
+    fi
+    if [ "$require_github_release_source" = "true" ]; then
+      require_contains "$evidence_command" "--published-release-repo $published_release_repo" "$id evidence command"
+      require_contains "$evidence_command" "--require-github-release-source" "$id evidence command"
+    fi
 
     grep -Fq "### $id" "$runbook" || fail "$id missing runbook section"
     grep -Fq "$launch_command" "$runbook" || fail "$id runbook missing launch command"
@@ -1669,6 +1700,9 @@ host_family=""
 evidence_root="${LOOPWIRE_VM_EVIDENCE_ROOT:-.vm/evidence}"
 require_published_release="false"
 release_tag=""
+published_release_repo=""
+release_public_key=""
+require_github_release_source="false"
 ssh_plan_host="127.0.0.1"
 ssh_plan_user="loopwire"
 ssh_plan_identity=""
@@ -1736,6 +1770,18 @@ while [ "$#" -gt 0 ]; do
       release_tag="${2:?missing value for --release-tag}"
       shift 2
       ;;
+    --published-release-repo)
+      published_release_repo="${2:?missing value for --published-release-repo}"
+      shift 2
+      ;;
+    --release-public-key)
+      release_public_key="${2:?missing value for --release-public-key}"
+      shift 2
+      ;;
+    --require-github-release-source)
+      require_github_release_source="true"
+      shift
+      ;;
     --host)
       ssh_plan_host="${2:?missing value for --host}"
       shift 2
@@ -1775,6 +1821,28 @@ if [ -n "$release_tag" ] && [ "$require_published_release" != "true" ]; then
 fi
 if [ -n "$release_tag" ]; then
   validate_release_tag "$release_tag"
+fi
+if [ "$command" = "render-launch-plan" ] && [ "$require_published_release" = "true" ]; then
+  [ -n "$release_tag" ] || fail "--require-published-release requires --release-tag"
+fi
+if [ -n "$published_release_repo" ]; then
+  case "$published_release_repo" in
+    */*) ;;
+    *) fail "--published-release-repo must be OWNER/REPO" ;;
+  esac
+  case "$published_release_repo" in
+    *://* | /* | ./* | ../* | *..* | *$'\n'* | *$'\r'*)
+      fail "--published-release-repo must be a GitHub OWNER/REPO value"
+      ;;
+  esac
+fi
+if [ "$require_github_release_source" = "true" ]; then
+  [ "$require_published_release" = "true" ] || fail "--require-github-release-source requires --require-published-release"
+  [ -n "$published_release_repo" ] || fail "--require-github-release-source requires --published-release-repo"
+fi
+if [ "$command" = "render-launch-plan" ] && { [ "$require_published_release" = "true" ] || [ -n "$published_release_repo" ]; }; then
+  [ -n "$published_release_repo" ] || fail "--require-published-release requires --published-release-repo"
+  [ -n "$release_public_key" ] || fail "--require-published-release requires --release-public-key"
 fi
 
 case "$command" in

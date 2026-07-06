@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T07:07:58+02:00"
-last_activity: 2026-07-06 - VM evidence archives verify extracted target bundles
+last_updated: "2026-07-06T07:30:41+02:00"
+last_activity: 2026-07-06 - Published-release VM launch plans carry strict GitHub release source handoffs
 progress:
   total_phases: 5
   completed_phases: 4
@@ -63,6 +63,10 @@ Latest VM evidence archive hardening: 2026-07-06 - `scripts/verify-vm-evidence-a
 `--verify-bundles`, which verifies every manifest-listed `vm-evidence/<target>` directory with
 `scripts/verify-vm-evidence.sh`. The VM packager, final release proof workflow, and final release status audit now use
 that gate, so signed VM evidence archives cannot pass with a valid manifest but missing or invalid target bundles.
+Latest VM launch-plan hardening: 2026-07-06 - Published-release release evidence now renders `vm-launch-plan.tsv`
+with GitHub release source inputs, and final release evidence verification rejects launch-plan handoffs whose paired
+SSH evidence-pull commands omit the manifest-bound release tag, repository, release public key, or
+`--require-github-release-source`.
 
 ## Blockers / Concerns
 
@@ -123,6 +127,17 @@ that gate, so signed VM evidence archives cannot pass with a valid manifest but 
 
 ## Verification Log
 
+- 2026-07-06 strict VM launch-plan release handoffs: published-release release evidence now asks
+  `scripts/vm-matrix.sh render-launch-plan` to include `--require-published-release`, the selected release tag,
+  GitHub repository, release public key, and GitHub-source strictness. `verify-release-evidence.mjs` checks the
+  `vm-launch-plan` command row plus every `collect-vm-evidence-ssh.sh` row in `vm-launch-plan.tsv`, and
+  `pnpm verify:scripts` includes a negative fixture that strips those strict flags from the launch-plan log. Focused
+  validation passed: `bash -n scripts/vm-matrix.sh scripts/verify-scripts.sh scripts/verify-docs.sh`,
+  `node --check scripts/collect-release-evidence.mjs scripts/verify-release-evidence.mjs`,
+  `pnpm verify:scripts`, `pnpm verify:docs`, `pnpm verify:vm`, `pnpm verify:workflows`, and `git diff --check`.
+  Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion
+  was performed.
 - 2026-07-06 JACK provider support-bundle plan: `scripts/collect-support-bundle.mjs` now supports
   `--include-jack-provider-plan` and `--jack-provider-command` for read-only provider-backed JACK reports. The bundle
   records deterministic Loopwire-owned requirements in `jack-provider-plan.json`, summarizes them as `jackProvider`,

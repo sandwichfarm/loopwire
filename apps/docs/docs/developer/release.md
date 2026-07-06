@@ -66,6 +66,10 @@ against each selected bundle. When `--require-published-release` is also present
 Every evidence bundle also records `vm-launch-plan.tsv` from
 `bash scripts/vm-matrix.sh render-launch-plan --all`, so the release archive carries the operator handoff for every
 declared VM target, deterministic SSH port, dry-run launch command, and paired evidence-pull command.
+When published-release proof is required, that launch plan is rendered with `--require-published-release`,
+`--release-tag <tag>`, `--published-release-repo <owner/repo>`, `--release-public-key <file>`, and
+`--require-github-release-source`. Every paired evidence-pull command carries the same GitHub release source
+requirements before `--execute`.
 The DSP provider plan command runs `scripts/collect-dsp-provider-plan.sh` against
 `scripts/fixtures/dsp-provider-configuration.json` without `--execute`, records the expected read-source, write-output,
 verify-output, and clear-output operation rows, and binds the configuration path plus frame count in
@@ -126,6 +130,9 @@ same check also rejects evidence that misses any target from `vm/targets.tsv`.
 With `--require-vm-launch-plan`, the verifier also requires a successful `vm-launch-plan` command row, validates the
 `vm-launch-plan.tsv` header and one row for every target, and checks that each row pairs the rendered
 `scripts/vm-matrix.sh launch` command with the matching `scripts/collect-vm-evidence-ssh.sh --execute` command.
+When `--require-published-release` is also active, both the `vm-launch-plan` command row and every evidence-pull row
+must include the manifest-bound release tag, GitHub repository, signing public key, and GitHub-release-source
+strictness flags.
 With `--require-dsp-provider-plan`, the verifier also requires a successful `dsp-provider-plan` command row that invokes
 `bash scripts/collect-dsp-provider-plan.sh` in read-only mode and validates `dsp-provider-plan.tsv` contains
 read-source, write-output, verify-output, and clear-output rows for the manifest-bound frame count and configuration.
