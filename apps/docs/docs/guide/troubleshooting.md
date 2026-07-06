@@ -200,6 +200,17 @@ pnpm collect:support -- \
   --include-dsp-provider-plan
 ```
 
+For JACK-provider reports tied to missing deterministic Loopwire-owned ports, include the read-only provider plan. This
+does not run `loopwire-jack-ports`, the configured provider command, or `jack_lsp`; it only records what Loopwire would
+ask a provider to prepare.
+
+```bash
+pnpm collect:support -- \
+  --output-dir .support/jack-provider-case \
+  --configuration exported-loopwire-config.json \
+  --include-jack-provider-plan
+```
+
 Review the generated directory before sharing it. The collector redacts local user, host, home directory, runtime uid
 paths, process ids, cookies, and email-like values, but you should still remove anything private before attaching it.
 
@@ -207,6 +218,7 @@ Attach:
 
 - `support-bundle.json`.
 - `detect-audio.json`.
+- `jack-provider-plan.json` when JACK provider plan collection was requested.
 - `dsp-provider-plan.json` when DSP provider plan collection was requested.
 - `ct-host-check.log`.
 - `autostart-status.log`.
@@ -220,6 +232,9 @@ gain/mute support, diagnostics, and known gaps. That summary is the fastest way 
 PipeWire, PulseAudio compatibility, JACK, or ALSA diagnostics-only mode without reading every raw command log first.
 When a configuration or state file is provided, the manifest also includes `jack.status` and
 `jack-port-requirements.json` with read-only JACK readiness results.
+When `--include-jack-provider-plan` is provided, it includes `jackProvider.status` and `jack-provider-plan.json` with
+the deterministic Loopwire-owned JACK requirements Loopwire would ask a provider to prepare. The collector does not run
+the provider command.
 When `--include-dsp-provider-plan` is provided, it also includes `dspProvider.status` and `dsp-provider-plan.json`
 with the read-only source/output operations Loopwire would ask a DSP provider to perform. The collector does not run
 provider execute mode.

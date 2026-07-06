@@ -10,6 +10,8 @@ const configurationId = readOption("--configuration-id");
 const dspFrameCount = readOption("--dsp-frame-count") ?? "16";
 const dspProviderCommand = readOption("--dsp-provider-command");
 const includeDspProviderPlan = args.includes("--include-dsp-provider-plan") || Boolean(dspProviderCommand);
+const jackProviderCommand = readOption("--jack-provider-command");
+const includeJackProviderPlan = args.includes("--include-jack-provider-plan") || Boolean(jackProviderCommand);
 const jackPortsFile = readOption("--jack-ports-file");
 const outputDir = readOption("--output-dir");
 const profile = readOption("--profile") ?? "quick";
@@ -41,6 +43,7 @@ const results = commands.map((command) => runSupportCommand(command, redact));
 const audio = summarizeAudioDetection(outputDir);
 const dspProvider = summarizeDspProviderPlan(outputDir);
 const jack = summarizeJackReadiness(outputDir);
+const jackProvider = summarizeJackProviderPlan(outputDir);
 const manifest = {
   kind: "loopwire.support-bundle",
   version: 1,
@@ -72,6 +75,7 @@ const manifest = {
   audio,
   dspProvider,
   jack,
+  jackProvider,
   commands: results
 };
 
@@ -93,6 +97,8 @@ Usage:
   collect-support-bundle.mjs --output-dir DIR [--profile quick|full]
                              [--configuration FILE | --state-file FILE [--configuration-id ID]]
                              [--jack-ports-file FILE]
+                             [--include-jack-provider-plan]
+                             [--jack-provider-command COMMAND]
                              [--include-dsp-provider-plan]
                              [--dsp-provider-command COMMAND]
                              [--dsp-frame-count N]
@@ -108,6 +114,7 @@ Writes:
   detect-audio.json
   ct-host-check.log
   autostart-status.log
+  optional jack-provider-plan.json
   optional dsp-provider-plan.json
   optional full-profile command logs
 
@@ -116,6 +123,11 @@ Optional JACK readiness input:
   --state-file FILE          Persisted Loopwire state for JACK readiness.
   --configuration-id ID      Select a configuration from --state-file.
   --jack-ports-file FILE     Verify against captured jack_lsp output instead of live jack_lsp.
+
+Optional JACK provider input:
+  --include-jack-provider-plan Include a read-only Loopwire-owned JACK provider plan from the selected configuration.
+  --jack-provider-command COMMAND
+                              Mark that a provider command was supplied without running or logging it.
 
 Optional DSP provider input:
   --include-dsp-provider-plan   Include a read-only DSP provider operation plan from the selected configuration.
@@ -148,8 +160,9 @@ function supportCommands(selectedProfile) {
     }
   ];
   const jackCommand = jackReadinessCommand();
+  const jackProviderPlan = jackProviderPlanCommand();
   const dspCommand = dspProviderPlanCommand();
-  const quickWithOptional = [...quick, jackCommand, dspCommand].filter(Boolean);
+  const quickWithOptional = [...quick, jackCommand, jackProviderPlan, dspCommand].filter(Boolean);
 
   if (selectedProfile === "quick") {
     return quickWithOptional;
@@ -171,6 +184,12 @@ function supportCommands(selectedProfile) {
 }
 
 function jackReadinessCommand() {
+  const shouldRunReadiness = Boolean(jackPortsFile) || (!includeJackProviderPlan && Boolean(configurationFile || stateFile));
+
+  if (!shouldRunReadiness) {
+    return undefined;
+  }
+
   const selectorArgs = configurationSelectorArgs({
     required: Boolean(jackPortsFile),
     label: "--jack-ports-file"
@@ -198,6 +217,34 @@ function jackReadinessCommand() {
       commandArgs.map(shellQuote).join(" ")
     ].join(" && "),
     log: "jack-port-requirements.json"
+  };
+}
+
+function jackProviderPlanCommand() {
+  if (!includeJackProviderPlan) {
+    return undefined;
+  }
+
+  const selectorArgs = configurationSelectorArgs({
+    required: true,
+    label: "--include-jack-provider-plan"
+  });
+  const commandArgs = [
+    "node",
+    "scripts/describe-jack-ports.mjs",
+    "--pretty",
+    "--loopwire-owned-only",
+    ...selectorArgs
+  ];
+
+  return {
+    name: "jack-provider-plan",
+    command: [
+      "pnpm --filter @loopwire/core build >/dev/null 2>&1",
+      "pnpm --filter @loopwire/audio-host build >/dev/null 2>&1",
+      commandArgs.map(shellQuote).join(" ")
+    ].join(" && "),
+    log: "jack-provider-plan.json"
   };
 }
 
@@ -323,6 +370,7 @@ function writeNotes(targetDir, manifest) {
     "- detect-audio.json: backend detection and capability report.",
     "- support-bundle.json audio.backends: summarized backend availability, route-control scope, and known gaps.",
     "- jack-port-requirements.json: present only when a Loopwire configuration/state is provided for JACK readiness.",
+    "- jack-provider-plan.json: present only when JACK provider plan collection is requested.",
     "- dsp-provider-plan.json: present only when DSP provider plan collection is requested.",
     "- ct-host-check.log: redacted host audio diagnostics.",
     "- autostart-status.log: user-scoped startup status.",
@@ -330,6 +378,44 @@ function writeNotes(targetDir, manifest) {
   ];
 
   writeFileSync(join(targetDir, "notes.md"), `${lines.join("\n")}\n`);
+}
+
+function summarizeJackProviderPlan(targetDir) {
+  const jackProviderPath = join(targetDir, "jack-provider-plan.json");
+
+  try {
+    const report = JSON.parse(readFileSync(jackProviderPath, "utf8"));
+    if (!Array.isArray(report.requirements)) {
+      return { status: "invalid", message: "jack-provider-plan.json did not contain requirements." };
+    }
+
+    return {
+      status: "parsed",
+      providerCommand: jackProviderCommand ? "<provided>" : "not_provided",
+      configurationId: report.configurationId ?? "",
+      configurationName: report.configurationName ?? "",
+      clientPrefix: report.clientPrefix ?? "",
+      requirementCount: report.requirements.length,
+      requirements: report.requirements.map((requirement) => ({
+        kind: requirement.kind ?? "unknown",
+        endpointId: requirement.endpointId ?? "",
+        endpointLabel: requirement.endpointLabel ?? "",
+        source: requirement.source ?? "unknown",
+        deviceName: requirement.deviceName ?? "",
+        channelCount: Number.isInteger(requirement.channelCount) ? requirement.channelCount : 0,
+        suggestedPorts: Array.isArray(requirement.suggestedPorts) ? requirement.suggestedPorts : []
+      }))
+    };
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { status: "not_requested" };
+    }
+
+    return {
+      status: "invalid",
+      message: error instanceof Error ? error.message : "jack-provider-plan.json could not be parsed."
+    };
+  }
 }
 
 function summarizeDspProviderPlan(targetDir) {

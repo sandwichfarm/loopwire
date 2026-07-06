@@ -2292,6 +2292,14 @@ node scripts/collect-support-bundle.mjs --help | grep -F -- "--jack-ports-file F
   echo "verify-scripts: support bundle help is missing JACK readiness options" >&2
   exit 1
 }
+node scripts/collect-support-bundle.mjs --help | grep -F -- "--include-jack-provider-plan" >/dev/null || {
+  echo "verify-scripts: support bundle help is missing JACK provider plan option" >&2
+  exit 1
+}
+node scripts/collect-support-bundle.mjs --help | grep -F -- "--jack-provider-command COMMAND" >/dev/null || {
+  echo "verify-scripts: support bundle help is missing JACK provider command option" >&2
+  exit 1
+}
 node scripts/collect-support-bundle.mjs --help | grep -F -- "--include-dsp-provider-plan" >/dev/null || {
   echo "verify-scripts: support bundle help is missing DSP provider plan option" >&2
   exit 1
@@ -7650,6 +7658,43 @@ if (!manifest.commands.some((command) => command.name === "jack-readiness" && co
 }
 ' "$support_jack_dir/support-bundle.json" || {
   echo "verify-scripts: support bundle JACK readiness summary invalid" >&2
+  exit 1
+}
+support_jack_provider_dir="$tmp_dir/support-bundle-jack-provider"
+node scripts/collect-support-bundle.mjs \
+  --output-dir "$support_jack_provider_dir" \
+  --profile quick \
+  --configuration "$jack_configuration" \
+  --include-jack-provider-plan \
+  --jack-provider-command /opt/loopwire/private-jack-provider >/dev/null
+[ -s "$support_jack_provider_dir/jack-provider-plan.json" ] || {
+  echo "verify-scripts: support bundle JACK provider plan log missing" >&2
+  exit 1
+}
+node -e '
+const fs = require("node:fs");
+const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+if (manifest.jack?.status !== "not_requested") {
+  process.exit(1);
+}
+if (manifest.jackProvider?.status !== "parsed" || manifest.jackProvider.providerCommand !== "<provided>") {
+  process.exit(1);
+}
+if (!manifest.jackProvider.requirements.every((item) => item.source === "loopwire-owned")) {
+  process.exit(1);
+}
+if (!manifest.jackProvider.requirements.some((item) => item.deviceName === "loopwire_jack-mix_input_mic")) {
+  process.exit(1);
+}
+const command = manifest.commands.find((item) => item.name === "jack-provider-plan");
+if (!command || command.exitCode !== 0 || !command.command.includes("scripts/describe-jack-ports.mjs")) {
+  process.exit(1);
+}
+if (command.command.includes("--verify") || command.command.includes("private-jack-provider")) {
+  process.exit(1);
+}
+' "$support_jack_provider_dir/support-bundle.json" || {
+  echo "verify-scripts: support bundle JACK provider summary invalid" >&2
   exit 1
 }
 support_dsp_dir="$tmp_dir/support-bundle-dsp"

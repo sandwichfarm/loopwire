@@ -204,6 +204,8 @@ assert_contains "apps/docs/docs/guide/configurations.md" "stale async switch res
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "pnpm detect:audio"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "pnpm collect:support"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "--include-dsp-provider-plan"
+assert_contains "apps/docs/docs/guide/troubleshooting.md" "--include-jack-provider-plan"
+assert_contains "apps/docs/docs/guide/troubleshooting.md" "jackProvider.status"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "dspProvider.status"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "--configuration exported-loopwire-config.json"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "absent app stream cannot prove"

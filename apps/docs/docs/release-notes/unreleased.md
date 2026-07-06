@@ -35,6 +35,8 @@ These notes describe source-tree progress. They are not a public release announc
   the runtime and desktop preflight boundary.
 - Support bundles can now include read-only DSP provider plan summaries with `--include-dsp-provider-plan`, writing
   `dsp-provider-plan.json` and `support-bundle.json` `dspProvider` metadata without running provider execute mode.
+- Support bundles can now include read-only JACK provider plan summaries with `--include-jack-provider-plan`, writing
+  `jack-provider-plan.json` and `support-bundle.json` `jackProvider` metadata without running a JACK provider.
 - VM evidence verification now checks the nested support-bundle command ledger, so failed `detect-audio`,
   `ct-host-check`, or `autostart-status` diagnostics cannot pass as VM support proof.
 - `pnpm verify:vm` now validates rendered launch, SSH, and operator runbook handoffs in addition to target metadata

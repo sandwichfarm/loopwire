@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T05:57:35+02:00"
-last_activity: 2026-07-06 - JACK provider settings now flow through desktop live apply
+last_updated: "2026-07-06T06:14:37+02:00"
+last_activity: 2026-07-06 - Support bundles can capture read-only JACK provider plans
 progress:
   total_phases: 5
   completed_phases: 4
@@ -45,6 +45,10 @@ live apply. Preflight treats a valid provider command as covering only determini
 the live runtime injects `createJackVirtualPortCommandProvider` before re-probing `jack_lsp`, and the Tauri audio
 command bridge allowlists only bounded `ensure --configuration-id ... --requirement ... --port ...` provider shapes
 with optional detached readiness flags.
+Latest evidence hardening: 2026-07-06 - Support bundles can now include read-only JACK provider plans with
+`--include-jack-provider-plan`. The collector writes `jack-provider-plan.json`, summarizes redacted `jackProvider`
+metadata in `support-bundle.json`, filters to deterministic Loopwire-owned JACK requirements, and avoids running
+`jack_lsp`, `loopwire-jack-ports`, or any supplied provider command unless explicit readiness inputs are provided.
 
 ## Blockers / Concerns
 
@@ -105,6 +109,14 @@ with optional detached readiness flags.
 
 ## Verification Log
 
+- 2026-07-06 JACK provider support-bundle plan: `scripts/collect-support-bundle.mjs` now supports
+  `--include-jack-provider-plan` and `--jack-provider-command` for read-only provider-backed JACK reports. The bundle
+  records deterministic Loopwire-owned requirements in `jack-provider-plan.json`, summarizes them as `jackProvider`,
+  redacts the provider command to `<provided>`, and keeps the command ledger free of provider command values or
+  `--verify` when only a provider plan is requested. Focused validation passed: `node --check
+  scripts/collect-support-bundle.mjs`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
+  dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - 2026-07-06 Desktop JACK provider live apply: desktop Host apply now uses saved JACK provider settings for native JACK
   live apply, while preflight only unblocks deterministic Loopwire-owned JACK port gaps when those settings are valid.
   The Tauri audio command bridge allowlists the bounded JACK provider `ensure --configuration-id ... --requirement ...

@@ -5,6 +5,14 @@
 
 ## Evidence Passed
 
+- Support bundles can now include read-only JACK provider plans for provider-backed JACK reports. The collector accepts
+  `--include-jack-provider-plan` and `--jack-provider-command`, writes `jack-provider-plan.json`, summarizes
+  deterministic Loopwire-owned JACK requirements as `jackProvider` in `support-bundle.json`, redacts the supplied
+  provider command to `<provided>`, and avoids `jack_lsp`, `loopwire-jack-ports`, and provider execution unless
+  explicit readiness inputs are supplied. Focused validation passed so far: `node --check
+  scripts/collect-support-bundle.mjs`, `pnpm verify:scripts`, `pnpm verify:docs`, and `git diff --check`. Full
+  validation passed: `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof
+  dispatch, VM launch, host audio mutation, provider execution, or support-matrix promotion was performed.
 - Desktop Host apply can now use saved JACK provider settings for native JACK live apply. Preflight only unblocks
   deterministic Loopwire-owned JACK port gaps when those settings are valid, live apply injects the command-backed JACK
   virtual-port provider before the runtime re-probes `jack_lsp`, and the Tauri audio bridge allowlists only the bounded
