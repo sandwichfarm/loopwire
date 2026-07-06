@@ -13,8 +13,10 @@ These notes describe source-tree progress. They are not a public release announc
 - Source/monitor cards expose On/Off pills and an Options strip (source volume drives outgoing route gains; app
   sources add mute-when-capturing; monitor volume is configured state applied on host apply).
 - App settings moved to a Settings dialog (`Ctrl+,`) with Appearance (Match System/Light/Dark), the audio backend
-  picker with runtime activity ledger, preview/live host-apply arming with preflight, startup integration, and update
-  policy.
+  picker with runtime activity ledger, automatic host-apply status, startup integration, and update policy.
+- Selecting a device now applies its configuration through the saved backend immediately (with preflight and
+  rollback); when live apply cannot run, the switch happens in preview and the reason is reported. Sidebar devices
+  reorder with click-and-drag, UI text is unselectable, and card selection no longer clears itself.
 - Removed from the UI in this rebuild (domain/CLI paths remain): configuration export/import, the diagnostics panel,
   manual host-binding fields, custom window chrome mode, and DSP/JACK provider settings; meters render silence until a
   per-port level stream exists in the audio host layer.

@@ -12,7 +12,7 @@
   const { onClose }: Props = $props();
 
   const { mode: themeMode } = themeService;
-  const { backendCandidates, detectionNote, applyMode, status, note, activity, busy, startup, backgroundStartup } =
+  const { backendCandidates, detectionNote, lastApplyMode, status, note, activity, busy, startup, backgroundStartup } =
     runtimeService;
   const appState = deviceStore.state;
 
@@ -44,9 +44,6 @@
     }
   }
 
-  function toggleApplyMode(): void {
-    runtimeService.setApplyMode($applyMode === "preview" ? "live" : "preview");
-  }
 </script>
 
 <div
@@ -112,13 +109,11 @@
         </select>
       </div>
       <div class="field-row">
-        <label for="apply-mode">Host apply</label>
-        <button id="apply-mode" type="button" class="mode" disabled={$busy || !desktop} onclick={toggleApplyMode}>
-          {$applyMode === "live" ? "Live (armed)" : "Preview"}
-        </button>
-        {#if !desktop}
-          <span class="caption">Live apply requires the desktop shell.</span>
-        {/if}
+        <span class="field-label">Host apply</span>
+        <span class="caption">
+          Automatic — selecting a device applies it through the saved backend when preflight passes; otherwise the
+          switch runs in preview and reports why. Last transaction ran {$lastApplyMode === "live" ? "live" : "in preview"}.
+        </span>
       </div>
       <p class="status" data-status={$status}>
         <span class="badge">{$status}</span>
@@ -316,10 +311,12 @@
     gap: var(--lw-space-3);
   }
 
-  .field-row label {
+  .field-row label,
+  .field-label {
     font: var(--lw-text-body);
     color: var(--lw-text-primary);
     min-width: 150px;
+    flex: none;
   }
 
   select {

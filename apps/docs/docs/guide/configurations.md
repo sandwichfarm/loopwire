@@ -37,8 +37,9 @@ Every mutation is saved to Loopwire state immediately. Host audio changes only t
 described below. Meters render silent tracks until the audio host layer provides per-port levels — Loopwire does not
 simulate levels it cannot observe.
 
-App settings live in a separate Settings dialog (`Ctrl+,`): appearance/theme, the audio backend picker, the
-preview/live host-apply control with its runtime activity ledger, startup integration, and update policy.
+App settings live in a separate Settings dialog (`Ctrl+,`): appearance/theme, the audio backend picker, the automatic
+host-apply status with its runtime activity ledger, startup integration, and update policy. Devices in the sidebar
+reorder with click-and-drag.
 
 ## Safety Rules
 
@@ -49,8 +50,8 @@ preview/live host-apply control with its runtime activity ledger, startup integr
 - Failed edits (duplicate names, invalid routes, removing the last bus) leave state untouched and surface a typed
   error toast.
 - Every device keeps at least one output bus.
-- Editing a device while live apply is armed disarms it back to preview; re-arm in Settings to verify the change
-  against the host.
+- Edits are saved to Loopwire state immediately and are applied to the host on the next device selection or startup
+  restore (selection re-runs the full unload→apply→verify transaction).
 
 ## Host Audio Boundary
 
@@ -65,12 +66,13 @@ sinks, disconnect muted route edges, and route to physical monitor sink targets.
 pre-existing Loopwire-owned JACK ports, disconnect muted route edges, and route to physical or Loopwire-owned monitor
 targets. JACK virtual port creation and true mixer-style gain remain planned backend work.
 
-Settings exposes the **Host apply** control. *Preview* mode runs selected backend adapters without mutating the host.
-*Live (armed)* mode is session-local and routes commands through the Tauri command bridge, which only allows `pactl`,
-`pw-cli`, `pw-link`, `jack_lsp`, `jack_connect`, and `jack_disconnect` without invoking a shell.
+Host apply is automatic: selecting a device (and startup restore) runs the unload→apply→verify transaction live
+through the saved backend whenever the switch preflight passes; without a desktop shell, a saved backend, or a passing
+preflight the transaction runs in preview mode and the status line says why live apply was skipped. Live commands go
+through the Tauri command bridge, which only allows `pactl`, `pw-cli`, `pw-link`, `jack_lsp`, `jack_connect`, and
+`jack_disconnect` without invoking a shell.
 
-Before live mode can be armed — and again before every live device switch — Loopwire runs a static preflight against
-the selected backend and configuration. It blocks known-failing live applies such as no selected backend, a backend
+Before every live device switch, Loopwire runs a static preflight against the selected backend and configuration. It blocks known-failing live applies such as no selected backend, a backend
 that detection reports unavailable, PulseAudio fan-out routes, native PipeWire/JACK routes with non-100% gain (set the
 source volume back to 100% to clear this), and missing host source ports for native PipeWire routes. Blockers surface
 as error toasts and in the backend status line. Preflight consumes detected backend mixing semantics: PulseAudio

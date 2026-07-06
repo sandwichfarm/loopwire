@@ -127,6 +127,7 @@
     onSelect={selectDevice}
     onCreate={createDevice}
     onRemove={removeDevice}
+    onReorder={(deviceId, toIndex) => reportIfFailed(deviceStore.moveDevice(deviceId, toIndex))}
     onToggleEnabled={(deviceId, enabled) => reportIfFailed(deviceStore.setDeviceEnabled(deviceId, enabled))}
     onToggleMuted={(deviceId) => {
       const device = $devices.find((candidate) => candidate.id === deviceId);

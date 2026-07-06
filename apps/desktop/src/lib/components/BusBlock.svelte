@@ -28,7 +28,10 @@
   role="group"
   aria-label={`Output channels ${endpoint.label}`}
   tabindex="0"
-  onclick={onSelect}
+  onclick={(event) => {
+    event.stopPropagation();
+    onSelect();
+  }}
   onkeydown={(event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();

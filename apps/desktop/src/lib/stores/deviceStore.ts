@@ -7,6 +7,7 @@ import {
   createConfiguration,
   createEmptyState,
   findActiveConfiguration,
+  moveConfiguration,
   removeConfiguration,
   removeInputSourceFromConfiguration,
   removeMonitorFromConfiguration,
@@ -95,8 +96,6 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
 
   const devices: Readable<readonly LoopwireConfiguration[]> = derived(state, ($state) => $state.configurations);
   const selectedDevice: Readable<LoopwireConfiguration | undefined> = derived(state, findActiveConfiguration);
-  /** Bumped on every user edit; the runtime service disarms live apply on it. */
-  const edits = writable(0);
 
   function apply(next: LoopwireState): void {
     state.set(next);
@@ -106,7 +105,6 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
   function mutate(action: (current: LoopwireState, now: string) => LoopwireState): DeviceActionResult {
     try {
       apply(action(get(state), new Date().toISOString()));
-      edits.update((count) => count + 1);
       return { ok: true };
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : "Loopwire could not apply this change." };
@@ -168,6 +166,10 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     });
 
     return removed === undefined ? { result } : { result, removed };
+  }
+
+  function moveDevice(deviceId: string, toIndex: number): DeviceActionResult {
+    return mutate((current, now) => moveConfiguration(current, deviceId, toIndex, now));
   }
 
   function renameDevice(deviceId: string, name: string): DeviceActionResult {
@@ -327,13 +329,13 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     state: { subscribe: state.subscribe },
     devices,
     selectedDevice,
-    edits: { subscribe: edits.subscribe },
     restore,
     snapshot,
     restoreSnapshot,
     createDevice,
     selectDevice,
     removeDevice,
+    moveDevice,
     renameDevice,
     setDeviceEnabled,
     setDeviceMuted,

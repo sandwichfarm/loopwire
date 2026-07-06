@@ -563,6 +563,36 @@ export function insertConfiguration(
   };
 }
 
+/** Moves a configuration to a new index in the device list (clamped to bounds). */
+export function moveConfiguration(
+  state: LoopwireState,
+  configurationId: string,
+  toIndex: number,
+  updatedAt: string
+): LoopwireState {
+  const fromIndex = state.configurations.findIndex((configuration) => configuration.id === configurationId);
+
+  if (fromIndex === -1) {
+    throw new Error(`Unknown Loopwire configuration: ${configurationId}`);
+  }
+
+  const clamped = Math.max(0, Math.min(state.configurations.length - 1, Math.trunc(toIndex)));
+
+  if (clamped === fromIndex) {
+    return state;
+  }
+
+  const configurations = [...state.configurations];
+  const [moved] = configurations.splice(fromIndex, 1);
+  configurations.splice(clamped, 0, moved!);
+
+  return {
+    ...state,
+    configurations,
+    appliedAt: updatedAt
+  };
+}
+
 export function activateConfiguration(
   state: LoopwireState,
   configurationId: string,

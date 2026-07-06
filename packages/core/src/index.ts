@@ -24,6 +24,7 @@ export {
   isConfigurationMuted,
   isEndpointEnabled,
   isMonitorHidden,
+  moveConfiguration,
   removeConfiguration,
   removeInputSourceFromConfiguration,
   removeMonitorFromConfiguration,

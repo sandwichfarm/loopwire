@@ -28,11 +28,3 @@ export const hostCatalog = createHostCatalog();
 export const themeService = createThemeService();
 
 export const runtimeService = createRuntimeService(deviceStore, (message) => uiStore.pushToast("error", message));
-
-// Any configuration edit disarms an armed live apply (edits are saved to
-// Loopwire state first; the host must re-verify them explicitly).
-deviceStore.edits.subscribe((count) => {
-  if (count > 0 && runtimeService.disarmForEdit()) {
-    uiStore.pushToast("info", "Live host apply was disarmed after this edit; re-arm it in Settings to verify on the host.");
-  }
-});

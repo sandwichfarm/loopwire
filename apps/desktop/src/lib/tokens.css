@@ -168,6 +168,16 @@ body {
   background: var(--lw-canvas-bg);
   color: var(--lw-text-primary);
   font: var(--lw-text-body);
+  /* Native-app feel: UI chrome text is not selectable; editable fields opt back in. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #app {

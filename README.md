@@ -54,16 +54,19 @@ The desktop shell is a sidebar + patch-bay editor:
   app sources add a mute-when-capturing checkbox; monitor volume is configured state applied on host apply),
 - **Hide Monitors** collapses the third column; renaming auto-opens on create; the UI ships light and dark themes,
   respects `prefers-reduced-motion`, and keeps full keyboard operability,
-- Settings (`Ctrl+,`) holds Appearance, the audio backend picker, the preview/live host-apply arm control, startup
+- Settings (`Ctrl+,`) holds Appearance, the audio backend picker, the automatic host-apply status, startup
   integration, and update policy — the main window stays devices-only.
+- Selecting a device applies its configuration through the saved backend immediately (unload→apply→verify with
+  rollback) whenever the switch preflight passes; otherwise the switch runs in preview and reports why.
+- Sidebar devices reorder with click-and-drag.
 
 Meters render their silent track until a per-port level stream exists in the audio host layer (documented capability
 gap): Loopwire never simulates host-owned audio state.
 
 ### Host integration
 
-Host audio graph changes are guarded behind preview-by-default adapters and a user-armed live apply control. The current
-code can:
+Host audio graph changes run through guarded adapters with preflight checks: device selection applies live through the
+saved backend when preflight passes and falls back to preview (with the reason) when it does not. The current code can:
 
 - detect PipeWire, PulseAudio, JACK, and ALSA availability through read-only probes,
 - list PipeWire and JACK source/target ports plus PulseAudio-compatible streams/sinks for desktop pickers,

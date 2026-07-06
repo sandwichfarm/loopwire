@@ -65,6 +65,22 @@ describe("empty state", () => {
   });
 });
 
+describe("moveConfiguration", () => {
+  it("reorders devices and clamps the target index", async () => {
+    const { moveConfiguration } = await import("../src/index.js");
+    const state = createDefaultState(at); // studio, call, stream
+
+    const moved = moveConfiguration(state, "stream", 0, at);
+    expect(moved.configurations.map((configuration) => configuration.id)).toEqual(["stream", "studio", "call"]);
+
+    const clamped = moveConfiguration(state, "studio", 99, at);
+    expect(clamped.configurations.map((configuration) => configuration.id)).toEqual(["call", "stream", "studio"]);
+
+    expect(moveConfiguration(state, "call", 1, at)).toBe(state);
+    expect(() => moveConfiguration(state, "missing", 0, at)).toThrow(/Unknown Loopwire configuration/);
+  });
+});
+
 describe("device-level controls", () => {
   it("defaults to enabled, unmuted, full volume", () => {
     const configuration = getActiveConfiguration(createDefaultState(at));

@@ -24,7 +24,7 @@ import {
   type RuntimeLogEntry,
   type RuntimeTransactionReason
 } from "@loopwire/core";
-import { describeConfigurationSwitchPreflight, describeLiveApplyPreflight } from "../../live-apply-preflight";
+import { describeConfigurationSwitchPreflight } from "../../live-apply-preflight";
 import type { DeviceStore } from "../stores/deviceStore";
 import { createTauriCommandRunner, createUnavailableCommandRunner } from "./commandRunner";
 import { hasTauriRuntime } from "./statePersistence";
@@ -76,7 +76,8 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
   const backendCandidates = writable<readonly BackendCandidate[]>(fallbackBackendCandidates);
   const capabilityReports = writable<readonly BackendCapabilityReport[]>([]);
   const detectionNote = writable("Browser preview uses packaged backend candidates; run the desktop shell for host detection.");
-  const applyMode = writable<HostApplyMode>("preview");
+  /** What the most recent transaction actually ran as (informational). */
+  const lastApplyMode = writable<HostApplyMode>("preview");
   const status = writable<RuntimeBadge>("ready");
   const note = writable("Preview runtime ready.");
   const activity = writable<readonly RuntimeLogEntry[]>([]);
@@ -123,7 +124,6 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
   async function chooseBackend(kind: AudioBackendKind): Promise<boolean> {
     busy.set(true);
-    applyMode.set("preview");
     status.set("applying");
     note.set(`Verifying ${displayBackendName(kind)} in preview mode.`);
 
@@ -149,90 +149,59 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
   }
 
   /**
-   * Editing a configuration while live apply is armed disarms it: edits are
-   * saved to Loopwire state first and must be re-verified on the host before
-   * another live transaction runs.
+   * Host apply is automatic: a transaction runs live when the desktop shell,
+   * a saved backend, and a passing preflight all line up; otherwise it runs
+   * in preview and the returned reason says why live apply was skipped.
    */
-  function disarmForEdit(): boolean {
-    if (get(applyMode) !== "live") {
-      return false;
+  function resolveApplyMode(configuration: LoopwireConfiguration | undefined): {
+    readonly mode: HostApplyMode;
+    readonly skippedReason?: string;
+  } {
+    if (!hasTauriRuntime()) {
+      return { mode: "preview", skippedReason: "live host apply requires the Loopwire desktop shell" };
     }
 
-    applyMode.set("preview");
-    status.set("ready");
-    note.set("Live apply was disarmed after a configuration edit; re-arm it to verify this change on the host.");
-    return true;
-  }
+    const backend = selectedBackend();
 
-  function setApplyMode(mode: HostApplyMode): boolean {
-    if (mode === "live") {
-      if (!hasTauriRuntime()) {
-        onError("Live host apply requires the Loopwire desktop shell.");
-        return false;
-      }
-
-      const backend = selectedBackend();
-
-      if (!backend) {
-        onError("Choose a detected backend before arming live host apply.");
-        return false;
-      }
-
-      const configuration = findActiveConfiguration(currentState());
-
-      if (!configuration) {
-        onError("Create a device before arming live host apply.");
-        return false;
-      }
-
-      const capability = get(capabilityReports).find((report) => report.kind === backend);
-      const preflight = describeLiveApplyPreflight(configuration, backend, displayBackendName, capability, {
-        dspProviderReady: false,
-        jackProviderReady: false
-      });
-
-      if (!preflight.ok) {
-        onError(preflight.message);
-        return false;
-      }
+    if (!backend) {
+      return { mode: "preview", skippedReason: "no audio backend is saved yet (choose one in Settings)" };
     }
 
-    applyMode.set(mode);
-    status.set("ready");
-    note.set(mode === "live" ? "Live host apply armed for the next device switch." : "Preview runtime ready.");
-    return true;
+    if (!configuration) {
+      return { mode: "preview", skippedReason: "no device is selected" };
+    }
+
+    const preflight = describeConfigurationSwitchPreflight(
+      configuration,
+      backend,
+      get(capabilityReports),
+      displayBackendName,
+      { dspProviderReady: false }
+    );
+
+    if (!preflight.ok) {
+      return { mode: "preview", skippedReason: preflight.message };
+    }
+
+    return { mode: "live" };
   }
 
   let switchToken = 0;
 
   /**
-   * Runs the unload→apply→verify transaction for a device switch. Switches are
-   * serialized by token: a stale async result cannot replace the state or
-   * status of a newer selection.
+   * Runs the unload→apply→verify transaction for a device switch, live through
+   * the saved backend whenever preflight passes. Switches are serialized by
+   * token: a stale async result cannot replace the state or status of a newer
+   * selection.
    */
   async function switchDevice(deviceId: string): Promise<boolean> {
     const token = ++switchToken;
-    const mode = get(applyMode);
-
-    if (mode === "live") {
-      const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
-      const preflight = target
-        ? describeConfigurationSwitchPreflight(target, selectedBackend(), get(capabilityReports), displayBackendName, {
-            dspProviderReady: false
-          })
-        : undefined;
-
-      if (preflight && !preflight.ok) {
-        status.set("failed");
-        note.set(preflight.message);
-        onError(preflight.message);
-        return false;
-      }
-    }
+    const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
+    const { mode, skippedReason } = resolveApplyMode(target);
 
     busy.set(true);
     status.set("applying");
-    note.set(mode === "live" ? "Switching with live host apply armed." : "Switching in preview mode.");
+    note.set(mode === "live" ? `Applying on ${displayBackendName(selectedBackend()!)}.` : "Switching in preview mode.");
 
     let result: ConfigurationRuntimeResult;
 
@@ -266,21 +235,36 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     }
 
     updateStatus(result);
+
+    if (result.ok && mode === "preview" && skippedReason && hasTauriRuntime() && selectedBackend()) {
+      // A backend is saved but this selection could not go live — say why.
+      note.set(`Applied in preview only: ${skippedReason}`);
+      onError(`Applied in preview only: ${skippedReason}`);
+    }
+
+    lastApplyMode.set(mode);
     busy.set(false);
     return result.ok;
   }
 
+  /** Startup restore uses the same automatic live/preview rule as selection. */
   async function verifyStartup(): Promise<void> {
     if (!deviceStore.snapshot().configurations.length) {
       return;
     }
 
+    const { mode } = resolveApplyMode(findActiveConfiguration(currentState()));
+
     status.set("applying");
-    note.set("Verifying the selected device in preview mode.");
+    note.set(
+      mode === "live"
+        ? `Restoring the selected device on ${displayBackendName(selectedBackend()!)}.`
+        : "Verifying the selected device in preview mode."
+    );
 
     const result = await verifyStartupConfiguration(
       currentState(),
-      adapterForBackend(selectedBackend(), "preview"),
+      adapterForBackend(selectedBackend(), mode),
       new Date().toISOString()
     );
 
@@ -288,6 +272,7 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
       deviceStore.restoreSnapshot(result.state);
     }
 
+    lastApplyMode.set(mode);
     updateStatus(result);
   }
 
@@ -413,7 +398,7 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     backendCandidates,
     capabilityReports,
     detectionNote,
-    applyMode,
+    lastApplyMode,
     status,
     note,
     activity,
@@ -422,8 +407,6 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     backgroundStartup,
     detectBackends,
     chooseBackend,
-    disarmForEdit,
-    setApplyMode,
     switchDevice,
     verifyStartup,
     refreshStartupStatus,
