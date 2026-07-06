@@ -20,6 +20,7 @@ import {
   setEndpointEnabled,
   setEndpointMuteWhenCapturing,
   setEndpointVolume,
+  setRouteGain,
   updateConfiguration,
   type AudioEndpoint,
   type LoopwireConfiguration,
@@ -94,6 +95,8 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
 
   const devices: Readable<readonly LoopwireConfiguration[]> = derived(state, ($state) => $state.configurations);
   const selectedDevice: Readable<LoopwireConfiguration | undefined> = derived(state, findActiveConfiguration);
+  /** Bumped on every user edit; the runtime service disarms live apply on it. */
+  const edits = writable(0);
 
   function apply(next: LoopwireState): void {
     state.set(next);
@@ -103,6 +106,7 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
   function mutate(action: (current: LoopwireState, now: string) => LoopwireState): DeviceActionResult {
     try {
       apply(action(get(state), new Date().toISOString()));
+      edits.update((count) => count + 1);
       return { ok: true };
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : "Loopwire could not apply this change." };
@@ -271,8 +275,48 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     return mutate((current, now) => setEndpointEnabled(current, deviceId, endpointId, enabled, now).state);
   }
 
+  /**
+   * Source volume drives the gain of every route leaving the source (the
+   * value host adapters consume); endpoints without routes (monitors) store
+   * the value as configured endpoint volume instead.
+   */
   function setSourceVolume(deviceId: string, endpointId: string, volume: number): DeviceActionResult {
-    return mutate((current, now) => setEndpointVolume(current, deviceId, endpointId, volume, now).state);
+    return mutate((current, now) => {
+      const configuration = current.configurations.find((candidate) => candidate.id === deviceId);
+
+      if (!configuration) {
+        throw new Error(`Unknown Loopwire device: ${deviceId}`);
+      }
+
+      const isInput = configuration.inputs.some((input) => input.id === endpointId);
+      const outgoing = configuration.routes.filter((route) => route.from === endpointId);
+
+      if (!isInput || outgoing.length === 0) {
+        return setEndpointVolume(current, deviceId, endpointId, volume, now).state;
+      }
+
+      let next = current;
+      for (const route of outgoing) {
+        next = setRouteGain(next, deviceId, route.id, volume, now).state;
+      }
+
+      return next;
+    });
+  }
+
+  /** Displayed source volume: gain of its first route, else configured endpoint volume. */
+  function sourceVolume(configuration: LoopwireConfiguration, endpointId: string): number {
+    const route = configuration.routes.find((candidate) => candidate.from === endpointId);
+
+    if (route) {
+      return route.gain;
+    }
+
+    const endpoint = [...configuration.inputs, ...configuration.outputs, ...configuration.monitors].find(
+      (candidate) => candidate.id === endpointId
+    );
+
+    return endpoint?.volume ?? 1;
   }
 
   function setMuteWhenCapturing(deviceId: string, endpointId: string, muteWhenCapturing: boolean): DeviceActionResult {
@@ -283,6 +327,7 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     state: { subscribe: state.subscribe },
     devices,
     selectedDevice,
+    edits: { subscribe: edits.subscribe },
     restore,
     snapshot,
     restoreSnapshot,
@@ -303,6 +348,7 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     removeRoute,
     setSourceEnabled,
     setSourceVolume,
+    sourceVolume,
     setMuteWhenCapturing
   };
 }

@@ -414,6 +414,7 @@
           selected={$canvasSelection?.kind === "endpoint" && $canvasSelection.endpointId === endpoint.id}
           optionsExpanded={$expandedOptions.has(endpoint.id)}
           levels={$levelStore}
+          volume={Math.round(deviceStore.sourceVolume(device, endpoint.id) * 100)}
           isAppSource={endpoint.id !== "pass-thru"}
           onSelect={() => uiStore.selectEndpoint(endpoint.id)}
           onToggleEnabled={(enabled) => reportIfFailed(deviceStore.setSourceEnabled(device.id, endpoint.id, enabled))}

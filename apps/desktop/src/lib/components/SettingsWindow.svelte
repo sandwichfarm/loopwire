@@ -12,7 +12,8 @@
   const { onClose }: Props = $props();
 
   const { mode: themeMode } = themeService;
-  const { backendCandidates, detectionNote, applyMode, status, note, busy, startup, backgroundStartup } = runtimeService;
+  const { backendCandidates, detectionNote, applyMode, status, note, activity, busy, startup, backgroundStartup } =
+    runtimeService;
   const appState = deviceStore.state;
 
   const desktop = hasTauriRuntime();
@@ -123,6 +124,19 @@
         <span class="badge">{$status}</span>
         {$note}
       </p>
+      {#if $activity.length > 0}
+        <details class="ledger">
+          <summary>Last runtime activity ({$activity.length} operations)</summary>
+          <ul>
+            {#each $activity as entry, index (index)}
+              <li>
+                <span class="op">{entry.operation}</span>
+                <span class="op-message">{entry.message}</span>
+              </li>
+            {/each}
+          </ul>
+        </details>
+      {/if}
     </section>
 
     <section aria-labelledby="settings-startup">
@@ -366,5 +380,28 @@
   .status[data-status="failed"] .badge,
   .status[data-status="rolled_back"] .badge {
     color: var(--lw-danger);
+  }
+
+  .ledger {
+    font: var(--lw-text-subtitle);
+    color: var(--lw-text-secondary);
+  }
+
+  .ledger summary {
+    cursor: pointer;
+  }
+
+  .ledger ul {
+    margin: 6px 0 0;
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .op {
+    text-transform: capitalize;
+    color: var(--lw-text-primary);
+    margin-right: 6px;
   }
 </style>

@@ -1,0 +1,108 @@
+- generic [ref=e315]:
+  - complementary [ref=e316]:
+    - generic [ref=e317]:
+      - img [ref=e319]
+      - heading "Devices" [level=2] [ref=e322]
+      - button "Loopwire settings (Ctrl+,)" [ref=e323] [cursor=pointer]:
+        - img [ref=e324]
+    - listbox "Virtual audio devices" [ref=e327]:
+      - option "Loopwire Device 1 Loopwire Device 1 on or off Pass-Thru, Studio Microphone Mute Loopwire Device 1 100%" [ref=e328]:
+        - generic [ref=e329]:
+          - generic [ref=e330]: Loopwire Device 1
+          - switch "Loopwire Device 1 on or off" [checked] [ref=e331] [cursor=pointer]:
+            - generic [ref=e332]: "On"
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - img [ref=e336]
+            - img [ref=e339]
+          - generic "Pass-Thru, Studio Microphone" [ref=e342]
+        - generic [ref=e343]:
+          - button "Mute Loopwire Device 1" [ref=e344] [cursor=pointer]:
+            - img [ref=e345]
+          - generic [ref=e348]:
+            - slider "Loopwire Device 1 volume" [ref=e349] [cursor=pointer]: "100"
+            - generic [ref=e350]: 100%
+      - option "Loopwire Device 2 Loopwire Device 2 on or off Pass-Thru Mute Loopwire Device 2 100%" [selected] [ref=e502]:
+        - generic [ref=e503]:
+          - generic [ref=e504]: Loopwire Device 2
+          - switch "Loopwire Device 2 on or off" [checked] [ref=e505] [cursor=pointer]:
+            - generic [ref=e506]: "On"
+        - generic [ref=e508]:
+          - img [ref=e510]
+          - generic "Pass-Thru" [ref=e513]
+        - generic [ref=e514]:
+          - button "Mute Loopwire Device 2" [ref=e515] [cursor=pointer]:
+            - img [ref=e516]
+          - generic [ref=e519]:
+            - slider "Loopwire Device 2 volume" [ref=e520] [cursor=pointer]: "100"
+            - generic [ref=e521]: 100%
+    - generic [ref=e351]:
+      - button "New Virtual Device" [ref=e352] [cursor=pointer]:
+        - img [ref=e353]
+        - generic [ref=e356]: New Virtual Device
+      - button "Remove selected device" [ref=e357] [cursor=pointer]:
+        - img [ref=e358]
+  - main [ref=e359]:
+    - generic [ref=e360]:
+      - textbox "Device name" [active] [ref=e522]: Loopwire Device 2
+      - generic [ref=e367]:
+        - generic [ref=e368]:
+          - generic [ref=e369]:
+            - generic [ref=e370]: Sources
+            - generic [ref=e371]: Pass-Thru
+          - button "Add source" [ref=e372] [cursor=pointer]:
+            - img [ref=e373]
+            - img [ref=e376]
+        - generic [ref=e378]:
+          - generic [ref=e379]:
+            - generic [ref=e380]: Output Channels
+            - generic [ref=e381]: 2 Channels
+          - button "Add output channels" [ref=e382] [cursor=pointer]:
+            - img [ref=e383]
+        - generic [ref=e386]:
+          - generic [ref=e387]:
+            - generic [ref=e388]: Monitors
+            - generic [ref=e389]: No devices
+          - button "Add monitor" [ref=e390] [cursor=pointer]:
+            - img [ref=e391]
+            - img [ref=e394]
+      - img
+      - group "Source Pass-Thru" [ref=e424]:
+        - generic [ref=e425]:
+          - generic "Pass-Thru" [ref=e426]
+          - switch "Pass-Thru on or off" [checked] [ref=e427] [cursor=pointer]:
+            - generic [ref=e428]: "On"
+        - generic [ref=e430]:
+          - img [ref=e432]
+          - generic [ref=e435]:
+            - generic [ref=e436]:
+              - generic [ref=e437]: 1 (L)
+              - meter "Pass-Thru channel 1 level" [ref=e438]
+              - button "Pass-Thru channel 1 output port" [ref=e439]
+            - generic [ref=e440]:
+              - generic [ref=e441]: 2 (R)
+              - meter "Pass-Thru channel 2 level" [ref=e442]
+              - button "Pass-Thru channel 2 output port" [ref=e443]
+        - button "Options" [ref=e445] [cursor=pointer]:
+          - img [ref=e446]
+          - generic [ref=e448]: Options
+      - group "Output channels Channels 1 & 2" [ref=e450]:
+        - generic [ref=e452]: Channels 1 & 2
+        - generic [ref=e453]:
+          - generic [ref=e454]:
+            - button "Channels 1 & 2 channel 1 input port" [ref=e455]
+            - generic [ref=e456]: Channel 1 (L)
+            - meter "Channels 1 & 2 channel 1 level" [ref=e457]
+            - button "Channels 1 & 2 channel 1 output port" [ref=e458]
+          - generic [ref=e459]:
+            - button "Channels 1 & 2 channel 2 input port" [ref=e460]
+            - generic [ref=e461]: Channel 2 (R)
+            - meter "Channels 1 & 2 channel 2 level" [ref=e462]
+            - button "Channels 1 & 2 channel 2 output port" [ref=e463]
+    - generic [ref=e490]:
+      - button "Delete" [disabled] [ref=e491]:
+        - img [ref=e492]
+        - generic [ref=e494]: Delete
+      - button "Hide Monitors" [ref=e495] [cursor=pointer]:
+        - img [ref=e496]
+        - generic [ref=e499]: Hide Monitors

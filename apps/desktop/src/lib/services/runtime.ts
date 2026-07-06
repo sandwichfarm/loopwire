@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
-import { detectAudioBackends } from "@loopwire/audio-host/detectors";
+import { detectAudioBackends, type BackendCapabilityReport } from "@loopwire/audio-host/detectors";
 import {
   createJackGraphRuntimeAdapter,
   createPactlVirtualSinkRuntimeAdapter,
@@ -12,6 +12,7 @@ import {
 import {
   applyBackendSelection,
   applyConfigurationSwitch,
+  findActiveConfiguration,
   selectBackend,
   verifyStartupConfiguration,
   type AudioBackendKind,
@@ -23,7 +24,7 @@ import {
   type RuntimeLogEntry,
   type RuntimeTransactionReason
 } from "@loopwire/core";
-import type { RouteControlBackendCapability } from "../../route-control-semantics";
+import { describeConfigurationSwitchPreflight, describeLiveApplyPreflight } from "../../live-apply-preflight";
 import type { DeviceStore } from "../stores/deviceStore";
 import { createTauriCommandRunner, createUnavailableCommandRunner } from "./commandRunner";
 import { hasTauriRuntime } from "./statePersistence";
@@ -73,7 +74,7 @@ export function displayBackendName(kind: AudioBackendKind): string {
 
 export function createRuntimeService(deviceStore: DeviceStore, onError: (message: string) => void) {
   const backendCandidates = writable<readonly BackendCandidate[]>(fallbackBackendCandidates);
-  const capabilityReports = writable<readonly RouteControlBackendCapability[]>([]);
+  const capabilityReports = writable<readonly BackendCapabilityReport[]>([]);
   const detectionNote = writable("Browser preview uses packaged backend candidates; run the desktop shell for host detection.");
   const applyMode = writable<HostApplyMode>("preview");
   const status = writable<RuntimeBadge>("ready");
@@ -147,6 +148,22 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     return result.ok;
   }
 
+  /**
+   * Editing a configuration while live apply is armed disarms it: edits are
+   * saved to Loopwire state first and must be re-verified on the host before
+   * another live transaction runs.
+   */
+  function disarmForEdit(): boolean {
+    if (get(applyMode) !== "live") {
+      return false;
+    }
+
+    applyMode.set("preview");
+    status.set("ready");
+    note.set("Live apply was disarmed after a configuration edit; re-arm it to verify this change on the host.");
+    return true;
+  }
+
   function setApplyMode(mode: HostApplyMode): boolean {
     if (mode === "live") {
       if (!hasTauriRuntime()) {
@@ -154,8 +171,28 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
         return false;
       }
 
-      if (!selectedBackend()) {
+      const backend = selectedBackend();
+
+      if (!backend) {
         onError("Choose a detected backend before arming live host apply.");
+        return false;
+      }
+
+      const configuration = findActiveConfiguration(currentState());
+
+      if (!configuration) {
+        onError("Create a device before arming live host apply.");
+        return false;
+      }
+
+      const capability = get(capabilityReports).find((report) => report.kind === backend);
+      const preflight = describeLiveApplyPreflight(configuration, backend, displayBackendName, capability, {
+        dspProviderReady: false,
+        jackProviderReady: false
+      });
+
+      if (!preflight.ok) {
+        onError(preflight.message);
         return false;
       }
     }
@@ -166,11 +203,35 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     return true;
   }
 
-  /** Runs the unload→apply→verify transaction for a device switch. */
+  let switchToken = 0;
+
+  /**
+   * Runs the unload→apply→verify transaction for a device switch. Switches are
+   * serialized by token: a stale async result cannot replace the state or
+   * status of a newer selection.
+   */
   async function switchDevice(deviceId: string): Promise<boolean> {
+    const token = ++switchToken;
+    const mode = get(applyMode);
+
+    if (mode === "live") {
+      const target = currentState().configurations.find((configuration) => configuration.id === deviceId);
+      const preflight = target
+        ? describeConfigurationSwitchPreflight(target, selectedBackend(), get(capabilityReports), displayBackendName, {
+            dspProviderReady: false
+          })
+        : undefined;
+
+      if (preflight && !preflight.ok) {
+        status.set("failed");
+        note.set(preflight.message);
+        onError(preflight.message);
+        return false;
+      }
+    }
+
     busy.set(true);
     status.set("applying");
-    const mode = get(applyMode);
     note.set(mode === "live" ? "Switching with live host apply armed." : "Switching in preview mode.");
 
     let result: ConfigurationRuntimeResult;
@@ -183,11 +244,18 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
         new Date().toISOString()
       );
     } catch (error) {
-      busy.set(false);
-      status.set("failed");
-      const message = error instanceof Error ? error.message : "Device switch failed.";
-      note.set(message);
-      onError(message);
+      if (token === switchToken) {
+        busy.set(false);
+        status.set("failed");
+        const message = error instanceof Error ? error.message : "Device switch failed.";
+        note.set(message);
+        onError(message);
+      }
+
+      return false;
+    }
+
+    if (token !== switchToken) {
       return false;
     }
 
@@ -239,6 +307,22 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
   }
 
   async function setBackgroundStartupEnabled(enabled: boolean): Promise<void> {
+    if (enabled) {
+      const backend = selectedBackend();
+      const available =
+        backend && get(backendCandidates).some((candidate) => candidate.kind === backend && candidate.availability === "available");
+
+      // Refuse to write a systemd unit that cannot restore audio.
+      if (!available) {
+        onError(
+          backend
+            ? `${displayBackendName(backend)} is saved but not currently detected; background restore stays off.`
+            : "Choose and verify an audio backend before enabling background restore."
+        );
+        return;
+      }
+    }
+
     backgroundStartup.set(await runStartupAction(enabled ? "background_install" : "background_uninstall"));
   }
 
@@ -338,6 +422,7 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     backgroundStartup,
     detectBackends,
     chooseBackend,
+    disarmForEdit,
     setApplyMode,
     switchDevice,
     verifyStartup,

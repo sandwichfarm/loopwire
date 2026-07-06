@@ -37,6 +37,31 @@ pnpm vm:plan
 
 ## Current Status
 
+### Desktop UI
+
+The desktop shell is a sidebar + patch-bay editor:
+
+- a fixed **Devices** sidebar lists virtual devices with an On/Off pill, source summary, mute button, and volume
+  slider; **New Virtual Device** creates a device with a default Pass-Thru → Channels 1 & 2 graph, and removal shows
+  an undo toast instead of a confirmation dialog,
+- the canvas renders the selected device as three columns — **Sources**, **Output Channels**, **Monitors** — with
+  200px cards, per-channel meters, and bezier cables drawn between ports,
+- sources and monitors are added from grouped ⊕ menus backed by host enumeration in the desktop shell (sample entries
+  in browser preview); output channel buses are added instantly,
+- new sources/monitors auto-cable (1→1, 2→2); dragging port-to-port creates a route, clicking a cable selects it, and
+  Delete (key or footer button) removes the selection,
+- cards expose On/Off pills and an expandable Options strip (source volume drives outgoing route gains;
+  app sources add a mute-when-capturing checkbox; monitor volume is configured state applied on host apply),
+- **Hide Monitors** collapses the third column; renaming auto-opens on create; the UI ships light and dark themes,
+  respects `prefers-reduced-motion`, and keeps full keyboard operability,
+- Settings (`Ctrl+,`) holds Appearance, the audio backend picker, the preview/live host-apply arm control, startup
+  integration, and update policy — the main window stays devices-only.
+
+Meters render their silent track until a per-port level stream exists in the audio host layer (documented capability
+gap): Loopwire never simulates host-owned audio state.
+
+### Host integration
+
 Host audio graph changes are guarded behind preview-by-default adapters and a user-armed live apply control. The current
 code can:
 
@@ -44,14 +69,15 @@ code can:
 - list PipeWire and JACK source/target ports plus PulseAudio-compatible streams/sinks for desktop pickers,
 - add detected PipeWire/JACK target ports as host-backed outputs for native link routes,
 - connect and disconnect existing JACK ports when route endpoints include host device names,
-- hydrate the desktop Backend picker from host probes when running in Tauri and fall back to preview candidates in the
+- hydrate the Settings backend picker from host probes when running in Tauri and fall back to preview candidates in the
   browser,
-- create, edit, duplicate, delete, export, and import named configurations,
-- switch configurations through an app-runtime unload/apply/verify/rollback transaction,
+- create, rename, and delete devices (configurations) and their sources, buses, monitors, and routes,
+- switch devices through an app-runtime unload/apply/verify/rollback transaction with live-apply preflight checks,
 - restore the selected configuration on startup and re-verify it in the app runtime,
-- edit route gain and mute state from keyboard-accessible controls,
-- open backend diagnostics on demand without exposing backend clutter by default,
 - collect a redacted support bundle with backend detection, host diagnostics, autostart status, and a command ledger.
+
+Configuration export/import and the on-demand diagnostics panel were removed from the rebuilt desktop UI; their
+domain/CLI paths (`packages/core` persistence, support-bundle and verification scripts) remain available.
 
 PipeWire live apply can create Loopwire-owned virtual output and monitor sinks, link existing source ports into them,
 disconnect muted links, preserve muted route gain values, and target existing host-backed outputs or physical monitor
@@ -68,8 +94,9 @@ Cross-system validation is tracked in `vm/targets.tsv` and operated through `scr
 manual VM targets for Arch, Fedora, Ubuntu LTS, Debian stable, NixOS, Hyprland, KDE Plasma, GNOME, Xfce, Sway, Wayland,
 X11, PipeWire, PulseAudio, and JACK.
 
-User-scoped startup can be managed from the desktop sidebar. **Open on boot** manages the GUI autostart entry, and
-**Restore on boot** manages a user systemd unit for packaged background restore. The CLI fallback is
+User-scoped startup can be managed from the desktop Settings window (`Ctrl+,`). **Start with desktop session** manages
+the GUI autostart entry, and **Restore audio in background** manages a user systemd unit for packaged background
+restore. The CLI fallback is
 `scripts/manage-autostart.sh`; source-checkout systemd restore is rendered and tested through `pnpm restore:background`.
 Release tarballs and package templates install a `loopwire --background` entrypoint for packaged background restore.
 They also install `loopwire-dsp-provider` for provider-backed DSP restore preflight and `loopwire-jack-ports` for

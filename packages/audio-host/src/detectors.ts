@@ -20,7 +20,8 @@ export type {
   AudioInputSource,
   AudioInputSourceReport,
   AudioPlaybackDevice,
-  AudioPlaybackDeviceReport
+  AudioPlaybackDeviceReport,
+  BackendCapabilityReport
 } from "./types.js";
 
 const timeoutMs = 3500;

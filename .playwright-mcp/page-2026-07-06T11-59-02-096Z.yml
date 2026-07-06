@@ -1,0 +1,151 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - heading "Devices" [level=2] [ref=e10]
+        - button "Loopwire settings (Ctrl+,)" [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+      - listbox "Virtual audio devices" [ref=e15]:
+        - option "Loopwire Device 1 Loopwire Device 1 on or off Pass-Thru, Studio Microphone Mute Loopwire Device 1 100%" [selected] [ref=e168]:
+          - generic [ref=e33]:
+            - generic [ref=e34]: Loopwire Device 1
+            - switch "Loopwire Device 1 on or off" [checked] [ref=e35] [cursor=pointer]:
+              - generic [ref=e36]: "On"
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - img [ref=e40]
+              - img [ref=e169]
+            - generic "Pass-Thru, Studio Microphone" [ref=e172]
+          - generic [ref=e44]:
+            - button "Mute Loopwire Device 1" [ref=e45] [cursor=pointer]:
+              - img [ref=e46]
+            - generic [ref=e49]:
+              - slider "Loopwire Device 1 volume" [ref=e50] [cursor=pointer]: "100"
+              - generic [ref=e51]: 100%
+      - generic [ref=e16]:
+        - button "New Virtual Device" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e21]: New Virtual Device
+        - button "Remove selected device" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+    - main [ref=e24]:
+      - generic [ref=e52]:
+        - generic [ref=e136]:
+          - heading "Loopwire Device 1" [level=1] [ref=e137]
+          - button "Rename Loopwire Device 1" [ref=e138] [cursor=pointer]:
+            - img [ref=e139]
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]:
+              - generic [ref=e58]: Sources
+              - generic [ref=e59]: 1 Source, Pass-Thru
+            - button "Add source" [ref=e60] [cursor=pointer]:
+              - img [ref=e61]
+              - img [ref=e64]
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - generic [ref=e68]: Output Channels
+              - generic [ref=e69]: 2 Channels
+            - button "Add output channels" [ref=e70] [cursor=pointer]:
+              - img [ref=e71]
+        - img:
+          - button [ref=e173] [cursor=pointer]
+          - button [ref=e174] [cursor=pointer]
+        - generic [ref=e84]:
+          - group "Source Studio Microphone" [ref=e175]:
+            - generic [ref=e176]:
+              - generic "Studio Microphone" [ref=e177]
+              - switch "Studio Microphone on or off" [checked] [ref=e178] [cursor=pointer]:
+                - generic [ref=e179]: "On"
+            - generic [ref=e181]:
+              - img [ref=e183]
+              - generic [ref=e186]:
+                - generic [ref=e187]:
+                  - generic [ref=e188]: 1 (L)
+                  - meter "Studio Microphone channel 1 level" [ref=e189]
+                  - button "Studio Microphone channel 1 output port" [ref=e190]
+                - generic [ref=e191]:
+                  - generic [ref=e192]: 2 (R)
+                  - meter "Studio Microphone channel 2 level" [ref=e193]
+                  - button "Studio Microphone channel 2 output port" [ref=e194]
+            - button "Options" [ref=e196] [cursor=pointer]:
+              - img [ref=e197]
+              - generic [ref=e199]: Options
+          - group "Source Pass-Thru" [ref=e85]:
+            - generic [ref=e86]:
+              - generic "Pass-Thru" [ref=e87]
+              - switch "Pass-Thru on or off" [ref=e88] [cursor=pointer]:
+                - generic [ref=e89]: "Off"
+            - generic [ref=e91]:
+              - img [ref=e93]
+              - generic [ref=e96]:
+                - generic [ref=e97]:
+                  - generic [ref=e98]: 1 (L)
+                  - meter "Pass-Thru channel 1 level" [ref=e99]
+                  - button "Pass-Thru channel 1 output port" [ref=e100]
+                - generic [ref=e101]:
+                  - generic [ref=e102]: 2 (R)
+                  - meter "Pass-Thru channel 2 level" [ref=e103]
+                  - button "Pass-Thru channel 2 output port" [ref=e104]
+            - button "Options" [ref=e106] [cursor=pointer]:
+              - img [ref=e107]
+              - generic [ref=e109]: Options
+        - group "Output channels Channels 1 & 2" [ref=e111]:
+          - generic [ref=e113]: Channels 1 & 2
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - button "Channels 1 & 2 channel 1 input port" [ref=e116]
+              - generic [ref=e117]: Channel 1 (L)
+              - meter "Channels 1 & 2 channel 1 level" [ref=e118]
+              - button "Channels 1 & 2 channel 1 output port" [ref=e119]
+            - generic [ref=e120]:
+              - button "Channels 1 & 2 channel 2 input port" [ref=e121]
+              - generic [ref=e122]: Channel 2 (R)
+              - meter "Channels 1 & 2 channel 2 level" [ref=e123]
+              - button "Channels 1 & 2 channel 2 output port" [ref=e124]
+      - generic [ref=e126]:
+        - button "Delete" [ref=e127] [cursor=pointer]:
+          - img [ref=e128]
+          - generic [ref=e130]: Delete
+        - button "Show Monitors" [ref=e238] [cursor=pointer]:
+          - img [ref=e132]
+          - generic [ref=e135]: Show Monitors
+  - dialog "Loopwire settings" [ref=e241]:
+    - banner [ref=e242]:
+      - heading "Settings" [level=2] [ref=e243]
+      - button "Close settings" [ref=e244] [cursor=pointer]: ×
+    - generic [ref=e245]:
+      - region "Appearance" [ref=e246]:
+        - heading "Appearance" [level=3] [ref=e247]
+        - radiogroup "Theme" [ref=e248]:
+          - radio "Match System" [ref=e249] [cursor=pointer]:
+            - generic [ref=e251]: Match System
+          - radio "Light" [ref=e252] [cursor=pointer]:
+            - generic [ref=e254]: Light
+          - radio "Dark" [checked] [active] [ref=e255] [cursor=pointer]:
+            - generic [ref=e257]: Dark
+      - region "Audio Backend" [ref=e258]:
+        - heading "Audio Backend" [level=3] [ref=e259]
+        - paragraph [ref=e260]: Browser preview uses packaged backend candidates; run the desktop shell for host detection.
+        - generic [ref=e261]:
+          - generic [ref=e262]: Backend
+          - combobox "Backend" [ref=e263]:
+            - option "Choose a backend" [disabled] [selected]
+            - option "PipeWire"
+            - option "PulseAudio"
+            - option "JACK — JACK bridge not detected" [disabled]
+            - option "ALSA — Direct ALSA fallback is not enabled" [disabled]
+        - generic [ref=e264]:
+          - generic [ref=e265]: Host apply
+          - button "Host apply" [disabled] [ref=e266]: Preview
+          - generic [ref=e267]: Live apply requires the desktop shell.
+        - paragraph [ref=e268]:
+          - generic [ref=e269]: ready
+          - text: Preview runtime ready.
+      - region "Startup" [ref=e270]:
+        - heading "Startup" [level=3] [ref=e271]
+        - paragraph [ref=e272]: Run the desktop shell to manage autostart and background restore.
+      - region "Updates" [ref=e273]:
+        - heading "Updates" [level=3] [ref=e274]
+        - paragraph [ref=e275]: Loopwire is pre-release. Updates are delivered through your package manager or the project's release page; the app does not self-update.

@@ -1,0 +1,21 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - heading "Devices" [level=2] [ref=e10]
+      - button "Loopwire settings (Ctrl+,)" [ref=e11] [cursor=pointer]:
+        - img [ref=e12]
+    - listbox "Virtual audio devices" [ref=e15]
+    - generic [ref=e16]:
+      - button "New Virtual Device" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: New Virtual Device
+      - button "Remove selected device" [disabled] [ref=e22]:
+        - img [ref=e23]
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - img [ref=e27]
+      - paragraph [ref=e30]:
+        - text: Create your first virtual audio device by clicking
+        - strong [ref=e31]: New Virtual Device
+        - text: .

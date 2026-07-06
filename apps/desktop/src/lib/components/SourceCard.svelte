@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AudioEndpoint } from "@loopwire/core";
-  import { endpointVolume, isEndpointEnabled } from "@loopwire/core";
+  import { isEndpointEnabled } from "@loopwire/core";
   import { channelLabel } from "../stores/deviceStore";
   import type { PortLevels } from "../stores/levelStore";
   import { levelFor } from "../stores/levelStore";
@@ -18,6 +18,8 @@
     readonly selected: boolean;
     readonly optionsExpanded: boolean;
     readonly levels: PortLevels;
+    /** 0–100 displayed volume (route gain of the source's first cable). */
+    readonly volume: number;
     /** App-capture sources get the mute-when-capturing option. */
     readonly isAppSource: boolean;
     readonly onSelect: () => void;
@@ -34,6 +36,7 @@
     selected,
     optionsExpanded,
     levels,
+    volume,
     isAppSource,
     onSelect,
     onToggleEnabled,
@@ -44,7 +47,6 @@
   }: Props = $props();
 
   const enabled = $derived(isEndpointEnabled(endpoint));
-  const volume = $derived(Math.round(endpointVolume(endpoint) * 100));
 </script>
 
 <!-- Cards are selectable composite widgets: focusable groups whose click/Enter selects; inner controls remain independently interactive. -->

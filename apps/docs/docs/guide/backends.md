@@ -21,13 +21,13 @@ detection through injected command runners, guarded native PipeWire and JACK lin
 virtual-sink runtime adapter.
 
 In the Tauri desktop shell, Loopwire runs the same detector during startup through an allowlisted command bridge and
-hydrates the Backend picker plus Diagnostics panel from those read-only probe results. The browser preview cannot
-inspect the host, so it keeps packaged fallback candidates and says so in the status area.
+hydrates the backend picker in Settings (`Ctrl+,` → Audio Backend) from those read-only probe results, along with a
+detection note and a runtime activity ledger. The browser preview cannot inspect the host, so it keeps packaged
+fallback candidates and says so in that note.
 
-The desktop renders detection as a first-run backend choice callout. When multiple viable backends are detected, the
-callout names the candidates, keeps live apply in preview, and requires the user to select the backend that should be
-saved for live apply and startup restore. If a previously saved backend is no longer detected while multiple viable
-backends remain, the callout names the stale backend and asks the user to replace it with one of the available choices.
+When exactly one viable backend is detected it is selected automatically after a preview verification; when multiple
+viable backends are detected, live apply stays in preview until the user picks the backend that should be
+saved for live apply and startup restore. Unavailable candidates stay listed with the reason they cannot be selected.
 If only one backend is available, the callout explains the automatic selection; if none are available, it stays in a
 blocked diagnostics state. Both automatic single-backend selection and manual backend changes run as a `backend-change`
 runtime transaction: Loopwire applies and verifies the active
@@ -134,10 +134,10 @@ JACK ports to continue existing. The wrapper returns only after the detached pro
 and Loopwire still re-runs `jack_lsp` afterward, so an alive process without the expected ports remains a failed apply.
 Keep that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
 
-Desktop Restore on boot and Host apply can persist the same JACK provider command and timeout that the CLI accepts.
-This prepares deterministic Loopwire-owned JACK ports before the boot-restore service or session-local live apply
-connects routes; it does not turn the bundled wrapper into a native JACK client creator. When a provider needs detached
-mode, save that mode and readiness delay in the JACK provider settings or pass
+The CLI and systemd restore paths persist the JACK provider command and timeout; the rebuilt desktop UI does not
+expose JACK provider settings yet (documented gap), so session-local live apply targets pre-existing JACK ports only.
+The provider path prepares deterministic Loopwire-owned JACK ports before the boot-restore service connects routes; it
+does not turn the bundled wrapper into a native JACK client creator. When a provider needs detached mode, pass
 `--jack-provider-delegate-mode detached --jack-provider-ready-delay-ms 750` to the background restore helpers.
 
 The ALSA path is read-only diagnostics. It lists playback hardware with `aplay -l` and capture hardware with
@@ -205,11 +205,9 @@ an exit-0 command with empty stdout is treated as failed verification. Release a
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
 for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
 accepted for startup restore only when the restore command also supplies the explicit DSP provider command. The
-desktop settings panel can store that provider command for Restore on boot and desktop Host apply. When Host apply is
-armed with DSP Provider selected, the desktop verifies live provider capabilities, reads source buffers, writes
-rendered graph-edge outputs, verifies them, and uses the same rollback/clear contract as background restore. This is
-still provider-backed host DSP: the live provider must own real PipeWire/JACK capture and injection before the result
-affects host audio. The live backend DSP still needs a real provider with host capture and injection proof before
+rebuilt desktop UI does not expose DSP provider settings yet (documented gap), so DSP remains preview-only in the
+desktop shell and provider-backed restore is configured through the CLI/systemd flags. This is still provider-backed
+host DSP: the live provider must own real PipeWire/JACK capture and injection before the result affects host audio. The live backend DSP still needs a real provider with host capture and injection proof before
 release docs can claim bundled live host DSP.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:

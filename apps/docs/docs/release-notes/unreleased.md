@@ -2,6 +2,23 @@
 
 These notes describe source-tree progress. They are not a public release announcement.
 
+## Desktop UI Rebuild
+
+- The desktop shell was rebuilt as a device sidebar plus patch-bay canvas: Sources / Output Channels / Monitors
+  columns with per-channel meters, port dots, and bezier cables between cards.
+- Devices carry On/Off, mute, and volume controls in the sidebar; device removal shows an undo toast instead of a
+  confirmation dialog, and the device list may now be empty (persisted schema v2 with automatic v1 migration).
+- Sources and monitors are added from grouped menus backed by host enumeration; buses append instantly; new endpoints
+  auto-cable channel-to-channel, and port-to-port drags create routes.
+- Source/monitor cards expose On/Off pills and an Options strip (source volume drives outgoing route gains; app
+  sources add mute-when-capturing; monitor volume is configured state applied on host apply).
+- App settings moved to a Settings dialog (`Ctrl+,`) with Appearance (Match System/Light/Dark), the audio backend
+  picker with runtime activity ledger, preview/live host-apply arming with preflight, startup integration, and update
+  policy.
+- Removed from the UI in this rebuild (domain/CLI paths remain): configuration export/import, the diagnostics panel,
+  manual host-binding fields, custom window chrome mode, and DSP/JACK provider settings; meters render silence until a
+  per-port level stream exists in the audio host layer.
+
 ## Supported In Source
 
 - Contributor source install with `pnpm install` and `pnpm check`.

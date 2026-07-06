@@ -125,6 +125,28 @@ describe("graph editing", () => {
     }
   });
 
+  it("routes source volume into every outgoing route gain", () => {
+    const { store, deviceId } = storeWithDevice();
+    const result = store.setSourceVolume(deviceId, "pass-thru", 0.4);
+
+    expect(result.ok).toBe(true);
+    const device = get(store.selectedDevice)!;
+    expect(device.routes.every((route) => route.gain === 0.4)).toBe(true);
+    expect(store.sourceVolume(device, "pass-thru")).toBe(0.4);
+  });
+
+  it("stores monitor volume as configured endpoint volume", () => {
+    const { store, deviceId } = storeWithDevice();
+    store.addMonitor(deviceId, { label: "Desk Speakers" });
+    const monitorId = get(store.selectedDevice)!.monitors[0]!.id;
+
+    const result = store.setSourceVolume(deviceId, monitorId, 0.12);
+
+    expect(result.ok).toBe(true);
+    const device = get(store.selectedDevice)!;
+    expect(device.monitors[0]?.volume).toBe(0.12);
+  });
+
   it("keeps state unchanged when a mutation fails", () => {
     const { store, deviceId } = storeWithDevice();
     const before = store.snapshot();
