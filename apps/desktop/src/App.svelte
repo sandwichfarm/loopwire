@@ -5,6 +5,7 @@
   import { describeBackendChoiceCallout } from "./backend-choice";
   import { describeChromeModeSummary, resolveChromeMode, type ChromeMode } from "./chrome-mode-summary";
   import { groupMonitorsByVisibility, restoreHiddenMonitors } from "./monitor-visibility";
+  import { resetNativeRouteGainsForLiveApply } from "./native-gain-reset";
   import { describeStartupRestoreSummary } from "./startup-restore-summary";
   import {
     createLiveApplyPreflightLog,
@@ -1283,15 +1284,17 @@
     }
 
     const updatedAt = new Date().toISOString();
-    let nextState = state;
-
-    for (const route of nativeGainBlockerRoutes) {
-      nextState = setRouteGain(nextState, activeConfiguration.id, route.id, 1, updatedAt).state;
-    }
+    const reset = resetNativeRouteGainsForLiveApply({
+      state,
+      configuration: activeConfiguration,
+      backend: state.selectedBackend,
+      capability: selectedBackendCapability,
+      updatedAt
+    });
 
     const route = nativeGainBlockerRoutes[0];
     saveConfigurationEdit(
-      nextState,
+      reset.state,
       nativeGainBlockerRoutes.length === 1 && route
         ? `Reset ${describeRouteLabel(activeConfiguration, route)} to 100% for live apply.`
         : `Reset ${nativeGainBlockerRoutes.length} route gains to 100% for ${displayBackendName(state.selectedBackend)} live apply.`

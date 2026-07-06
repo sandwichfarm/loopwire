@@ -118,6 +118,9 @@ These notes describe source-tree progress. They are not a public release announc
   env file before the read-only secret audit, without printing or committing secret values.
 - Native-backend live-apply preflight now names routes blocked by non-100% gain and provides a `Reset gains` action
   that restores affected routes to 100% without touching host audio.
+- The native-backend `Reset gains` remediation is now covered by a pure desktop helper, so PipeWire/JACK reset behavior,
+  muted saved-gain preservation, PulseAudio no-ops, and graph-edge-capable backend no-ops are regression-tested outside
+  the Svelte component.
 - Native-backend non-100% gain blockers now explain both repair paths: reset affected route gains to 100%, or switch
   to a graph-edge/DSP-capable backend when one is available.
 - Native PipeWire/JACK live apply now allows muted routes to retain saved non-100% gain values, because those native

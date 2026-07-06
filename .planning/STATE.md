@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T07:30:41+02:00"
-last_activity: 2026-07-06 - Published-release VM launch plans carry strict GitHub release source handoffs
+last_updated: "2026-07-06T07:44:29+02:00"
+last_activity: 2026-07-06 - Native-backend gain reset remediation is isolated and regression-tested
 progress:
   total_phases: 5
   completed_phases: 4
@@ -67,6 +67,9 @@ Latest VM launch-plan hardening: 2026-07-06 - Published-release release evidence
 with GitHub release source inputs, and final release evidence verification rejects launch-plan handoffs whose paired
 SSH evidence-pull commands omit the manifest-bound release tag, repository, release public key, or
 `--require-github-release-source`.
+Latest UX hardening: 2026-07-06 - Native PipeWire/JACK `Reset gains` remediation now runs through a pure desktop helper
+instead of an inline Svelte loop. Regression coverage proves it resets only unmuted non-100% native blockers, preserves
+muted saved gain values, and no-ops for PulseAudio or graph-edge-capable backend reports.
 
 ## Blockers / Concerns
 
@@ -127,6 +130,14 @@ SSH evidence-pull commands omit the manifest-bound release tag, repository, rele
 
 ## Verification Log
 
+- 2026-07-06 native gain reset remediation: extracted desktop native-backend `Reset gains` behavior into
+  `resetNativeRouteGainsForLiveApply`, keeping the Svelte component responsible only for persistence and user-facing
+  messaging. Regression tests cover PipeWire reset with muted saved-gain preservation, JACK multi-route reset,
+  PulseAudio no-op behavior, and graph-edge-capable PipeWire no-op behavior. Focused validation passed:
+  `pnpm --filter @loopwire/desktop test -- native-gain-reset live-apply-preflight route-control-semantics`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, provider execution, or support-matrix promotion was performed.
 - 2026-07-06 strict VM launch-plan release handoffs: published-release release evidence now asks
   `scripts/vm-matrix.sh render-launch-plan` to include `--require-published-release`, the selected release tag,
   GitHub repository, release public key, and GitHub-source strictness. `verify-release-evidence.mjs` checks the

@@ -5,6 +5,13 @@
 
 ## Evidence Passed
 
+- Native PipeWire/JACK gain reset remediation is now isolated from `App.svelte` and regression-tested. The desktop
+  helper resets only live-blocking unmuted non-100% routes for native link-only backends, preserves muted saved
+  non-100% gains, and leaves PulseAudio or graph-edge-capable PipeWire reports unchanged. Focused validation passed:
+  `pnpm --filter @loopwire/desktop test -- native-gain-reset live-apply-preflight route-control-semantics`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:docs`, and `git diff --check`. Full validation passed:
+  `pnpm check`. No secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host
+  audio mutation, provider execution, or support-matrix promotion was performed.
 - Published-release VM launch plans now carry the same GitHub release-source strictness as final VM evidence. When
   `collect-release-evidence.mjs` runs with `--require-published-release`, its `vm-launch-plan` command now passes the
   selected release tag, GitHub repository, release public key, `--require-published-release`, and
