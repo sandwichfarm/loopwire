@@ -273,6 +273,8 @@ These notes describe source-tree progress. They are not a public release announc
 - New `pnpm release:select-docs-run` finds a completed successful Deploy Docs run for the expected commit that exposes
   both docs proof artifacts, and `pnpm release:handoff` now reuses that selected run id across docs proof fetch, final
   proof dispatch, and final status instead of asking operators to manually replace a placeholder.
+- `pnpm release:status` now uses the same artifact-aware Deploy Docs run selector when no run id is pinned, so missing
+  manifest recovery and the embedded handoff cannot use a workflow run that lacks the docs proof artifacts.
 - `pnpm release:handoff` now rejects absolute or parent-traversal VM handoff output paths before rendering VM SSH plan
   and runbook commands.
 - VM evidence asset preparation now rejects unsafe custom `--release-dir` values before dry-run or execution, including
@@ -474,8 +476,9 @@ These notes describe source-tree progress. They are not a public release announc
   successful docs run for the release commit.
 - `pnpm release:status` now reuses the already verified Deploy Docs run id when printing missing-manifest recovery,
   avoiding a second unverified run lookup for the docs proof fetch command.
-- `pnpm release:status` now keeps its fallback missing-manifest docs proof run-id hint scoped to the expected release
-  commit, so recovery commands cannot point at a newer unrelated Deploy Docs run.
+- `pnpm release:status` now keeps its fallback missing-manifest docs proof run-id hint scoped to an artifact-bearing
+  Deploy Docs run for the expected release commit, so recovery commands cannot point at a newer unrelated or
+  artifact-incomplete docs workflow run.
 - `pnpm release:status` can now audit a pinned Deploy Docs run with `--docs-deployment-run-id`, keeping final proof
   rehearsals tied to the operator-selected docs deployment instead of the commit-scoped workflow lookup.
 - `pnpm release:status --vm-evidence-root` now passes the selected evidence root into support-matrix verification, so

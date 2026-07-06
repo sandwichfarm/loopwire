@@ -703,6 +703,8 @@ assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github
 assert_contains "apps/docs/docs/developer/release.md" 'docs_deployment_run_id="$('
 assert_contains "apps/docs/docs/developer/release.md" "pnpm --silent release:select-docs-run"
 assert_contains "apps/docs/docs/developer/release.md" 'exposes both `loopwire-docs` and'
+assert_contains "apps/docs/docs/developer/release.md" "artifact-bearing Deploy Docs run"
+assert_contains "apps/docs/docs/developer/release.md" "same artifact-aware docs deployment run selection"
 assert_contains "apps/docs/docs/developer/release.md" 'Custom `--vm-ssh-plan` and `--vm-runbook` outputs'
 assert_contains "apps/docs/docs/developer/release.md" 'validates custom `--release-dir` values'
 assert_contains "apps/docs/docs/developer/release.md" 'regenerate `SHA256SUMS` or `SHA256SUMS.sig`'
@@ -719,6 +721,7 @@ assert_contains "apps/docs/docs/developer/release.md" "pnpm release:fetch-docs-p
 assert_contains "apps/docs/docs/developer/release.md" "Deploy Docs run completed successfully"
 assert_contains "apps/docs/docs/developer/release.md" 'expected `--git-head`'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'New `pnpm release:select-docs-run`'
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'same artifact-aware Deploy Docs run selector'
 assert_contains "apps/docs/docs/developer/release.md" "must stay repo-relative"
 assert_contains "apps/docs/docs/developer/release.md" "cannot leave partial docs proof"
 assert_contains "apps/docs/docs/developer/release.md" "symlinks, and existing paths with the wrong file or directory type"
@@ -737,7 +740,7 @@ assert_contains "apps/docs/docs/developer/release.md" "signed downloadable relea
 assert_contains "apps/docs/docs/developer/release.md" 'release-evidence.json` does not match'
 assert_contains "apps/docs/docs/developer/release.md" "tag/repo/commit"
 assert_contains "apps/docs/docs/developer/release.md" "same verified run id"
-assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, Deploy Docs, and Final Release Proof"
+assert_contains "apps/docs/docs/developer/release.md" "completed successful CI, an artifact-bearing Deploy Docs run"
 assert_contains "apps/docs/docs/developer/release.md" '`Final Release Proof <tag> @ <git-head>`'
 assert_contains "apps/docs/docs/developer/release.md" "successful CI, docs, or proof run for an older commit"
 assert_contains "apps/docs/docs/developer/release.md" "--docs-deployment-manifest"

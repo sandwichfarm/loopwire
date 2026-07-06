@@ -842,6 +842,194 @@ if bash scripts/audit-final-release-state.sh \
   echo "verify-scripts: release status accepted an invalid docs deployment run id" >&2
   exit 1
 fi
+grep -F 'bash scripts/select-docs-deployment-run.sh \' scripts/audit-final-release-state.sh >/dev/null || {
+  echo "verify-scripts: release status is missing artifact-aware docs run selection" >&2
+  exit 1
+}
+grep -F 'gh run view "$latest_docs_deployment_run_id"' scripts/audit-final-release-state.sh >/dev/null || {
+  echo "verify-scripts: release status does not inspect the selected docs run" >&2
+  exit 1
+}
+release_status_fake_bin="$(mktemp -d)"
+release_status_fake_log="$(mktemp)"
+cat >"$release_status_fake_bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+expected_head="0123456789abcdef0123456789abcdef01234567"
+
+json_release() {
+  cat <<JSON
+{"tagName":"v0.1.0","url":"https://github.com/sandwichfarm/loopwire/releases/tag/v0.1.0","targetCommitish":"${expected_head}","isDraft":false,"isPrerelease":false,"assets":[{"name":"loopwire-linux-x86_64.tar.gz"},{"name":"loopwire-linux-aarch64.tar.gz"},{"name":"SHA256SUMS"},{"name":"SHA256SUMS.sig"},{"name":"loopwire-release-evidence-v0.1.0.tar.gz"},{"name":"loopwire-vm-evidence-v0.1.0.tar.gz"}]}
+JSON
+}
+
+json_run_array() {
+  local id="$1"
+  local title="${2:-}"
+  if [ -n "$title" ]; then
+    printf '[{"databaseId":%s,"status":"completed","conclusion":"success","headSha":"%s","displayTitle":"%s","url":"https://example.test/run/%s"}]\n' "$id" "$expected_head" "$title" "$id"
+  else
+    printf '[{"databaseId":%s,"status":"completed","conclusion":"success","headSha":"%s","url":"https://example.test/run/%s"}]\n' "$id" "$expected_head" "$id"
+  fi
+}
+
+json_run_object() {
+  local id="$1"
+  printf '{"databaseId":%s,"status":"completed","conclusion":"success","headSha":"%s","url":"https://example.test/run/%s"}\n' "$id" "$expected_head" "$id"
+}
+
+case "${1:-}" in
+  release)
+    case "${2:-}" in
+      view)
+        json_release
+        ;;
+      download)
+        dir=""
+        pattern=""
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --dir)
+              dir="${2:?missing --dir value}"
+              shift 2
+              ;;
+            --pattern)
+              pattern="${2:?missing --pattern value}"
+              shift 2
+              ;;
+            *)
+              shift
+              ;;
+          esac
+        done
+        [ -n "$dir" ] && [ -n "$pattern" ] || exit 1
+        mkdir -p "$dir"
+        printf 'fake asset for %s\n' "$pattern" >"$dir/$pattern"
+        ;;
+      *)
+        echo "unexpected release command: $*" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  api)
+    case "${2:-}" in
+      repos/sandwichfarm/loopwire/git/ref/tags/v0.1.0)
+        printf '{"object":{"type":"commit","sha":"%s"}}\n' "$expected_head"
+        ;;
+      repos/sandwichfarm/loopwire/actions/runs/222/artifacts)
+        printf 'loopwire-docs\nloopwire-docs-deployment\n'
+        ;;
+      *)
+        printf '{}\n'
+        ;;
+    esac
+    ;;
+  run)
+    case "${2:-}" in
+      list)
+        workflow=""
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --workflow)
+              workflow="${2:?missing --workflow value}"
+              shift 2
+              ;;
+            *)
+              shift
+              ;;
+          esac
+        done
+        case "$workflow" in
+          ci.yml)
+            json_run_array 111
+            ;;
+          deploy-docs.yml)
+            json_run_array 222
+            ;;
+          final-release-proof.yml)
+            json_run_array 333 "Final Release Proof v0.1.0 @ ${expected_head}"
+            ;;
+          *)
+            echo "unexpected workflow: $workflow" >&2
+            exit 1
+            ;;
+        esac
+        ;;
+      view)
+        [ "${3:-}" = "222" ] || {
+          echo "unexpected run view id: ${3:-}" >&2
+          exit 1
+        }
+        json_run_object 222
+        ;;
+      *)
+        echo "unexpected run command: $*" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "unexpected gh command: $*" >&2
+    exit 1
+    ;;
+esac
+EOF
+chmod +x "$release_status_fake_bin/gh"
+PATH="$release_status_fake_bin:$PATH" bash scripts/audit-final-release-state.sh \
+  --repo sandwichfarm/loopwire \
+  --tag v0.1.0 \
+  --git-head 0123456789abcdef0123456789abcdef01234567 \
+  --secret-list-file scripts/fixtures/github-secret-list-final.tsv \
+  --docs-deployment-manifest dist/docs-deployment/missing-status-selector-test.json \
+  >"$release_status_fake_log" 2>&1 || true
+grep -F "ok: verified Deploy Docs artifact run selection" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not run artifact-aware docs selection" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
+grep -F "selected Deploy Docs workflow run: 222" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not select the expected docs run" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
+grep -F "selected run verified: databaseId=222" "$release_status_fake_log" >/dev/null || {
+  echo "verify-scripts: release status did not inspect the selected docs run" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+}
+grep -F "pnpm release:fetch-docs-proof" "$release_status_fake_log" |
+  grep -F -- "--run-id 222" >/dev/null || {
+    echo "verify-scripts: release status missing-manifest recovery did not reuse the selected docs run" >&2
+    cat "$release_status_fake_log" >&2
+    rm -rf "$release_status_fake_bin"
+    rm -f "$release_status_fake_log"
+    exit 1
+  }
+grep -F "pnpm release:status" "$release_status_fake_log" |
+  grep -F -- "--docs-deployment-run-id 222" >/dev/null || {
+    echo "verify-scripts: release status handoff did not pin the selected docs run" >&2
+    cat "$release_status_fake_log" >&2
+    rm -rf "$release_status_fake_bin"
+    rm -f "$release_status_fake_log"
+    exit 1
+  }
+if grep -F "<docs-deployment-run-id>" "$release_status_fake_log" >/dev/null; then
+  echo "verify-scripts: release status printed the docs run placeholder despite successful selection" >&2
+  cat "$release_status_fake_log" >&2
+  rm -rf "$release_status_fake_bin"
+  rm -f "$release_status_fake_log"
+  exit 1
+fi
+rm -rf "$release_status_fake_bin"
+rm -f "$release_status_fake_log"
 if bash scripts/audit-final-release-state.sh \
   --repo sandwichfarm/loopwire \
   --tag v0.1.0 \
@@ -5562,7 +5750,7 @@ if awk -F '\t' '$1 == "run list" && $2 == "deploy-docs.yml" && $3 != "0123456789
   echo "verify-scripts: release status queried Deploy Docs without the expected commit filter" >&2
   exit 1
 fi
-grep -F "Deploy Docs artifacts visible:" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
+grep -F "Deploy Docs artifacts visible for run 123456:" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
   echo "verify-scripts: release status did not print docs artifact inventory" >&2
   exit 1
 }
@@ -5580,9 +5768,15 @@ grep -F "likely cause: Deploy Docs skipped Bunny.net deployment because required
     echo "verify-scripts: release status did not explain the likely Bunny skip cause" >&2
     exit 1
   }
-grep -F "pnpm release:fetch-docs-proof -- --repo sandwichfarm/loopwire --run-id 123456 --git-head 0123456789abcdef0123456789abcdef01234567" \
-  "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
-    echo "verify-scripts: release status did not print the concrete docs proof fetch command" >&2
+if grep -F "pnpm release:fetch-docs-proof" "$release_status_missing_docs_manifest_artifacts_log" |
+  grep -F -- "--run-id 123456" >/dev/null; then
+    echo "verify-scripts: release status reused an artifact-incomplete docs run id" >&2
+    exit 1
+fi
+grep -F "pnpm release:fetch-docs-proof" "$release_status_missing_docs_manifest_artifacts_log" |
+  grep -F -- "--run-id" |
+  grep -F -- "docs-deployment-run-id" >/dev/null || {
+    echo "verify-scripts: release status did not leave the docs proof fetch run id unresolved after failed selection" >&2
     exit 1
   }
 grep -F -- "--env-file $release_status_env_file" "$release_status_missing_docs_manifest_artifacts_log" >/dev/null || {
@@ -6000,7 +6194,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted an empty workflow run list" >&2
   exit 1
 fi
-grep -F "commit-scoped Deploy Docs workflow run did not return any workflow runs" \
+grep -F "no completed successful Deploy Docs run found for the expected commit" \
   "$release_status_empty_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block an empty workflow run list" >&2
     exit 1
@@ -6016,7 +6210,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted a failed workflow run" >&2
   exit 1
 fi
-grep -F "commit-scoped Deploy Docs workflow run commit-scoped completed run did not succeed: failure" \
+grep -F "no completed successful Deploy Docs run found for the expected commit" \
   "$release_status_failed_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block a failed workflow run" >&2
     exit 1
@@ -6051,7 +6245,7 @@ if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   echo "verify-scripts: release status accepted a workflow run from the wrong commit" >&2
   exit 1
 fi
-grep -F "commit-scoped Deploy Docs workflow run commit-scoped run is for 0123456789abcdef0123456789abcdef01234567" \
+grep -F "no completed successful Deploy Docs run found for the expected commit" \
   "$release_status_stale_workflow_log" >/dev/null || {
     echo "verify-scripts: release status did not block stale workflow SHA evidence" >&2
     exit 1

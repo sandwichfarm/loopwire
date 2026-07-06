@@ -5,6 +5,19 @@
 
 ## Evidence Passed
 
+- `pnpm release:status` now uses the same artifact-aware docs deployment run selector as the final release handoff
+  before it trusts an unpinned Deploy Docs workflow run. The status audit verifies the selected run with `gh run view`,
+  reuses that run id for missing-manifest recovery and the embedded handoff, and leaves artifact-incomplete runs
+  unresolved instead of passing their ids to docs proof fetch commands.
+- `scripts/select-docs-deployment-run.sh` now prints the visible artifact inventory and likely Bunny-secret cause when
+  a successful commit-scoped Deploy Docs run lacks `loopwire-docs-deployment`, so operators get a concrete recovery
+  diagnosis without weakening the proof rule.
+- Focused validation passed: `bash -n scripts/select-docs-deployment-run.sh scripts/audit-final-release-state.sh
+  scripts/verify-scripts.sh scripts/verify-docs.sh`, `pnpm verify:scripts`, `pnpm verify:docs`,
+  `pnpm verify:release-readiness -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key
+  packaging/release-signing-public.pem --skip-gh --skip-tag --skip-clean-git --allow-candidate-notes`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - `pnpm release:handoff` now avoids a manual docs-run placeholder by rendering a
   `docs_deployment_run_id="$(...)"` selector command backed by `pnpm release:select-docs-run`. The selected run id is
   reused for docs proof fetch, final proof dispatch, and final status. The selector filters Deploy Docs runs by the

@@ -60,6 +60,10 @@ reject_unsafe_value() {
   esac
 }
 
+indent() {
+  sed 's/^/    /'
+}
+
 has_artifact() {
   local artifact="$1"
 
@@ -182,6 +186,17 @@ while IFS= read -r candidate_run_id; do
     exit 0
   fi
 
+  echo "Deploy Docs artifacts visible for run ${candidate_run_id}:" >&2
+  printf '%s\n' "$artifact_names" | indent >&2
+  if ! has_artifact "$docs_artifact"; then
+    echo "missing workflow artifact: $docs_artifact" >&2
+  fi
+  if ! has_artifact "$manifest_artifact"; then
+    echo "missing workflow artifact: $manifest_artifact" >&2
+    if [ "$manifest_artifact" = "loopwire-docs-deployment" ]; then
+      echo "likely cause: Deploy Docs skipped Bunny.net deployment because required Bunny secrets are absent." >&2
+    fi
+  fi
   echo "skipped Deploy Docs run ${candidate_run_id}: missing ${docs_artifact} or ${manifest_artifact}" >&2
 done <<<"$candidates"
 

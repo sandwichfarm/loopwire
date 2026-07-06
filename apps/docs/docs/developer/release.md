@@ -298,8 +298,8 @@ pnpm release:status -- \
 
 The status command checks required GitHub secrets, the release signing public key, the GitHub Release object and
 required release assets, the release tag ref, the signed downloadable release evidence archive, the signed downloadable
-VM evidence archive manifest, completed successful CI, Deploy Docs, and Final Release Proof workflow runs filtered by
-the expected release commit, the docs deployment manifest, published-release-bound VM evidence, support-matrix claims,
+VM evidence archive manifest, completed successful CI, an artifact-bearing Deploy Docs run, and Final Release Proof
+workflow runs filtered by the expected release commit, the docs deployment manifest, published-release-bound VM evidence, support-matrix claims,
 and the local handoff plan. The Final Release Proof workflow run must also use the visible run name
 `Final Release Proof <tag> @ <git-head>`, preventing a successful proof run for the same commit but a different release
 tag from satisfying final status. It exits
@@ -320,8 +320,10 @@ path and Bunny docs host/prefix from the same local secret file without printing
 handoff keeps `--env-file` on the rendered secret-check and VM evidence asset-prep commands, so operators do not need
 to copy release key paths into separate command flags. It also keeps `--env-file` on the rendered docs proof fetch
 command. When a Deploy Docs workflow run is verified, `release:status` reuses that same verified run id for missing
-docs manifest recovery and final proof dispatch instead of re-querying a fresh run hint. If no verified run id has been
-cached yet, the recovery hint falls back only to a Deploy Docs run filtered by the expected release commit. The embedded
+docs manifest recovery and final proof dispatch instead of re-querying a fresh run hint. Without
+`--docs-deployment-run-id`, `release:status` runs the same artifact-aware docs deployment run selection used by the
+handoff, so recovery commands only receive a run id after GitHub shows both `loopwire-docs` and
+`loopwire-docs-deployment` artifacts for the expected release commit. The embedded
 handoff treats `--public-key` as an override only when the status command
 received that flag explicitly; with `--env-file` alone, the VM evidence asset-prep command keeps the env-file route
 instead of expanding the default public-key path. If the docs deployment manifest is missing, `release:status` prints

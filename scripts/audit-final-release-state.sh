@@ -16,6 +16,7 @@ vm_start_port="2600"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
 skip_gh="false"
 latest_docs_deployment_run_id=""
+docs_deployment_run_selection_failed="false"
 
 usage() {
   cat <<'USAGE'
@@ -176,8 +177,41 @@ check_public_key() {
   echo "ok: release signing public key parses: $public_key"
 }
 
+select_docs_deployment_run_id() {
+  local selected_run_id
+
+  if [ -n "$docs_deployment_run_id" ]; then
+    latest_docs_deployment_run_id="$docs_deployment_run_id"
+    echo "using explicit Deploy Docs workflow run: $docs_deployment_run_id"
+    return 0
+  fi
+
+  if [ -n "$latest_docs_deployment_run_id" ]; then
+    echo "using selected Deploy Docs workflow run: $latest_docs_deployment_run_id"
+    return 0
+  fi
+
+  if [ "$skip_gh" = "true" ]; then
+    echo "skipped: live GitHub lookup disabled"
+    return 0
+  fi
+
+  selected_run_id="$(
+    bash scripts/select-docs-deployment-run.sh \
+      --repo "$repo" \
+      --git-head "$expected_git_head"
+  )" || {
+    docs_deployment_run_selection_failed="true"
+    return 1
+  }
+
+  latest_docs_deployment_run_id="$selected_run_id"
+  docs_deployment_run_selection_failed="false"
+  echo "selected Deploy Docs workflow run: $latest_docs_deployment_run_id"
+}
+
 docs_deployment_run_id_hint() {
-  local output
+  local selected_run_id
 
   if [ -n "$docs_deployment_run_id" ]; then
     echo "$docs_deployment_run_id"
@@ -194,25 +228,22 @@ docs_deployment_run_id_hint() {
     return
   fi
 
-  output="$(
-    gh run list --repo "$repo" --workflow deploy-docs.yml --commit "$expected_git_head" --limit 1 \
-      --json databaseId 2>/dev/null || true
-  )"
-  if [ -z "$output" ]; then
+  if [ "$docs_deployment_run_selection_failed" = "true" ]; then
     echo "<docs-deployment-run-id>"
     return
   fi
 
-  node - "$output" <<'NODE' 2>/dev/null || printf '%s\n' "<docs-deployment-run-id>"
-const raw = process.argv[2];
-const runs = JSON.parse(raw);
-const run = Array.isArray(runs) ? runs[0] : null;
-if (run && Number.isInteger(run.databaseId)) {
-  console.log(String(run.databaseId));
-} else {
-  console.log("<docs-deployment-run-id>");
-}
-NODE
+  selected_run_id="$(
+    bash scripts/select-docs-deployment-run.sh \
+      --repo "$repo" \
+      --git-head "$expected_git_head" 2>/dev/null || true
+  )"
+  if [[ "$selected_run_id" =~ ^[0-9]+$ ]]; then
+    echo "$selected_run_id"
+    return
+  fi
+
+  echo "<docs-deployment-run-id>"
 }
 
 workflow_run_id_from_json() {
@@ -784,6 +815,18 @@ run_workflow_probe \
   gh run list --repo "$repo" --workflow ci.yml --commit "$expected_git_head" --limit 1 \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url || failed=1
 
+if [ -z "$docs_deployment_run_id" ]; then
+  echo "==> verified Deploy Docs artifact run selection"
+  if select_docs_deployment_run_id; then
+    echo "ok: verified Deploy Docs artifact run selection"
+    echo
+  else
+    echo "blocked: verified Deploy Docs artifact run selection" >&2
+    echo >&2
+    failed=1
+  fi
+fi
+
 docs_workflow_label="commit-scoped Deploy Docs workflow run"
 docs_workflow_probe=(gh run list --repo "$repo" --workflow deploy-docs.yml --commit "$expected_git_head" --limit 1 \
   --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
@@ -791,6 +834,12 @@ if [ -n "$docs_deployment_run_id" ]; then
   docs_workflow_label="Deploy Docs workflow run"
   docs_workflow_probe=(gh run view "$docs_deployment_run_id" --repo "$repo" \
     --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
+elif [ -n "$latest_docs_deployment_run_id" ]; then
+  docs_workflow_label="Deploy Docs workflow run"
+  docs_workflow_probe=(gh run view "$latest_docs_deployment_run_id" --repo "$repo" \
+    --json databaseId,status,conclusion,headBranch,headSha,createdAt,url)
+elif [ "$skip_gh" != "true" ]; then
+  docs_workflow_probe=(bash -c 'echo "artifact-aware Deploy Docs run selection did not produce a run id" >&2; exit 1')
 fi
 run_workflow_probe \
   "$docs_workflow_label" \
