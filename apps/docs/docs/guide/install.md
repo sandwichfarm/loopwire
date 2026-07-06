@@ -56,8 +56,9 @@ The desktop mode writes `~/.config/autostart/loopwire.desktop`. Release tarballs
 entrypoint for packaged user systemd restore, `loopwire-dsp-provider` for bundled file-backed DSP preflight, and
 `loopwire-jack-ports` for JACK virtual-port restore preflight. The JACK wrapper records the requested ports and exits
 nonzero unless `LOOPWIRE_JACK_PORTS_DELEGATE` or `--delegate-command` points at a live JACK client provider. Delegates
-that must keep a JACK client running can use `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached`, after which restore still
-checks `jack_lsp` before connecting routes. Source checkouts can also render a user systemd unit with
+that must keep a JACK client running can use `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached` or the first-class
+`--jack-provider-delegate-mode detached` restore setting, after which restore still checks `jack_lsp` before connecting
+routes. Source checkouts can also render a user systemd unit with
 `--source-dir "$PWD"` that runs `pnpm restore:background` against the Tauri-written state file. For live PulseAudio
 source restores, add `--retry-pending-ms` and `--retry-interval-ms` to refresh late-starting app streams. For JACK
 restore, add `--jack-provider-command` so the generated service can create deterministic Loopwire-owned ports before

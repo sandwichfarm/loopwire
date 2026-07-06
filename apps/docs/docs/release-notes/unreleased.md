@@ -136,6 +136,9 @@ These notes describe source-tree progress. They are not a public release announc
   the provision plan and fails closed unless delegated to a live JACK client provider.
 - `loopwire-jack-ports` can now start long-running JACK provider delegates in detached mode for providers whose ports
   only exist while the provider process stays alive. Loopwire still re-probes `jack_lsp` after the wrapper returns.
+- Background restore, source/package autostart rendering, and desktop Settings now carry JACK provider delegate mode
+  and readiness delay, so Restore on boot can use detached `loopwire-jack-ports` delegates without hand-editing unit
+  files.
 - Background restore now accepts `--jack-provider-command`, which wraps that command as the injected JACK virtual port
   provider and passes stable `ensure --configuration-id ... --requirement ... --port ...` arguments.
 - The autostart helper now renders background systemd units with `--state-file`, `--mode`, retry options, and

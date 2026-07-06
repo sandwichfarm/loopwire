@@ -21,6 +21,8 @@ struct BackgroundRestoreOptions {
     dsp_frame_count: Option<u64>,
     jack_provider_command: Option<String>,
     jack_provider_timeout_ms: Option<u64>,
+    jack_provider_delegate_mode: Option<String>,
+    jack_provider_ready_delay_ms: Option<u64>,
 }
 
 impl BackgroundRestoreOptions {
@@ -44,6 +46,36 @@ impl BackgroundRestoreOptions {
         if let Some(timeout_ms) = self.jack_provider_timeout_ms {
             if timeout_ms == 0 {
                 return Err("JACK provider timeout must be greater than zero.".to_string());
+            }
+        }
+
+        if let Some(mode) = clean_restore_arg(self.jack_provider_delegate_mode.as_deref()) {
+            if mode != "foreground" && mode != "detached" {
+                return Err(
+                    "JACK provider delegate mode must be foreground or detached.".to_string(),
+                );
+            }
+
+            if mode != "foreground" && !has_jack_provider {
+                return Err(
+                    "JACK provider delegate mode requires a JACK provider command.".to_string(),
+                );
+            }
+        }
+
+        if self.jack_provider_ready_delay_ms.is_some() {
+            if !has_jack_provider {
+                return Err(
+                    "JACK provider readiness delay requires a JACK provider command.".to_string(),
+                );
+            }
+
+            if clean_restore_arg(self.jack_provider_delegate_mode.as_deref())
+                != Some("detached".to_string())
+            {
+                return Err(
+                    "JACK provider readiness delay requires detached delegate mode.".to_string(),
+                );
             }
         }
 
@@ -177,6 +209,8 @@ fn manage_startup(
     dsp_frame_count: Option<u64>,
     jack_provider_command: Option<String>,
     jack_provider_timeout_ms: Option<u64>,
+    jack_provider_delegate_mode: Option<String>,
+    jack_provider_ready_delay_ms: Option<u64>,
 ) -> Result<String, String> {
     let path = autostart_path()?;
     let background_path = background_startup_path()?;
@@ -189,6 +223,8 @@ fn manage_startup(
         dsp_frame_count,
         jack_provider_command,
         jack_provider_timeout_ms,
+        jack_provider_delegate_mode,
+        jack_provider_ready_delay_ms,
     };
 
     match action.as_str() {
@@ -870,6 +906,18 @@ fn render_background_restore_args(state_path: &Path, options: &BackgroundRestore
                 .unwrap_or(5_000)
                 .to_string(),
         );
+
+        if let Some(mode) = clean_restore_arg(options.jack_provider_delegate_mode.as_deref()) {
+            if mode != "foreground" {
+                args.push_str(" --jack-provider-delegate-mode ");
+                args.push_str(&escape_exec_arg(&mode));
+            }
+        }
+
+        if let Some(delay_ms) = options.jack_provider_ready_delay_ms {
+            args.push_str(" --jack-provider-ready-delay-ms ");
+            args.push_str(&delay_ms.to_string());
+        }
     }
 
     args
@@ -1276,6 +1324,8 @@ mod tests {
             &BackgroundRestoreOptions {
                 jack_provider_command: Some("loopwire-jack-ports".to_string()),
                 jack_provider_timeout_ms: Some(7_000),
+                jack_provider_delegate_mode: Some("detached".to_string()),
+                jack_provider_ready_delay_ms: Some(750),
                 ..BackgroundRestoreOptions::default()
             },
         );
@@ -1283,6 +1333,8 @@ mod tests {
         assert!(unit.contains("ExecStart=\"/tmp/Loopwire App\" --background"));
         assert!(unit.contains("--backend jack --jack-provider-command \"loopwire-jack-ports\""));
         assert!(unit.contains("--jack-provider-timeout-ms 7000"));
+        assert!(unit.contains("--jack-provider-delegate-mode detached"));
+        assert!(unit.contains("--jack-provider-ready-delay-ms 750"));
     }
 
     #[test]
@@ -1338,6 +1390,31 @@ mod tests {
             .validate_for_live_restore()
             .expect_err("zero JACK timeout should fail")
             .contains("JACK provider timeout")
+        );
+
+        assert!(
+            BackgroundRestoreOptions {
+                jack_provider_command: Some("loopwire-jack-ports".to_string()),
+                jack_provider_timeout_ms: Some(5_000),
+                jack_provider_delegate_mode: Some("banana".to_string()),
+                ..BackgroundRestoreOptions::default()
+            }
+            .validate_for_live_restore()
+            .expect_err("invalid JACK delegate mode should fail")
+            .contains("delegate mode")
+        );
+
+        assert!(
+            BackgroundRestoreOptions {
+                jack_provider_command: Some("loopwire-jack-ports".to_string()),
+                jack_provider_timeout_ms: Some(5_000),
+                jack_provider_delegate_mode: Some("foreground".to_string()),
+                jack_provider_ready_delay_ms: Some(750),
+                ..BackgroundRestoreOptions::default()
+            }
+            .validate_for_live_restore()
+            .expect_err("foreground readiness delay should fail")
+            .contains("detached delegate mode")
         );
 
         assert!(

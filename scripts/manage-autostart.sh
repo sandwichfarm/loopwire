@@ -16,6 +16,8 @@ retry_pending_ms="${LOOPWIRE_RESTORE_RETRY_PENDING_MS:-0}"
 retry_interval_ms="${LOOPWIRE_RESTORE_RETRY_INTERVAL_MS:-1000}"
 jack_provider_command="${LOOPWIRE_JACK_PROVIDER_COMMAND:-}"
 jack_provider_timeout_ms="${LOOPWIRE_JACK_PROVIDER_TIMEOUT_MS:-5000}"
+jack_provider_delegate_mode="${LOOPWIRE_JACK_PROVIDER_DELEGATE_MODE:-foreground}"
+jack_provider_ready_delay_ms="${LOOPWIRE_JACK_PROVIDER_READY_DELAY_MS:-}"
 dsp_provider_command="${LOOPWIRE_DSP_PROVIDER_COMMAND:-}"
 dsp_provider_timeout_ms="${LOOPWIRE_DSP_PROVIDER_TIMEOUT_MS:-5000}"
 dsp_provider_mode="${LOOPWIRE_DSP_PROVIDER_MODE:-file-backed}"
@@ -52,6 +54,10 @@ Environment:
                                JACK virtual-port provider command for background restore
   LOOPWIRE_JACK_PROVIDER_TIMEOUT_MS
                                JACK virtual-port provider timeout, default 5000
+  LOOPWIRE_JACK_PROVIDER_DELEGATE_MODE
+                               JACK provider delegate mode, foreground or detached, default foreground
+  LOOPWIRE_JACK_PROVIDER_READY_DELAY_MS
+                               Detached JACK provider readiness delay
   LOOPWIRE_DSP_PROVIDER_COMMAND
                                DSP provider command for --backend dsp background restore
   LOOPWIRE_DSP_PROVIDER_TIMEOUT_MS
@@ -112,6 +118,14 @@ while [ "$#" -gt 0 ]; do
       jack_provider_timeout_ms="${2:?missing value for --jack-provider-timeout-ms}"
       shift 2
       ;;
+    --jack-provider-delegate-mode)
+      jack_provider_delegate_mode="${2:?missing value for --jack-provider-delegate-mode}"
+      shift 2
+      ;;
+    --jack-provider-ready-delay-ms)
+      jack_provider_ready_delay_ms="${2:?missing value for --jack-provider-ready-delay-ms}"
+      shift 2
+      ;;
     --dsp-provider-command)
       dsp_provider_command="${2:?missing value for --dsp-provider-command}"
       shift 2
@@ -166,6 +180,25 @@ esac
 [[ "$retry_pending_ms" =~ ^[0-9]+$ ]] || fail "--retry-pending-ms must be a non-negative integer"
 [[ "$retry_interval_ms" =~ ^[1-9][0-9]*$ ]] || fail "--retry-interval-ms must be greater than zero"
 [[ "$jack_provider_timeout_ms" =~ ^[1-9][0-9]*$ ]] || fail "--jack-provider-timeout-ms must be greater than zero"
+case "$jack_provider_delegate_mode" in
+  foreground | detached)
+    ;;
+  *)
+    fail "--jack-provider-delegate-mode must be foreground or detached"
+    ;;
+esac
+if [ -n "$jack_provider_ready_delay_ms" ] && ! [[ "$jack_provider_ready_delay_ms" =~ ^[0-9]+$ ]]; then
+  fail "--jack-provider-ready-delay-ms must be a non-negative integer"
+fi
+if [ "$jack_provider_delegate_mode" != "foreground" ] && [ -z "$jack_provider_command" ]; then
+  fail "--jack-provider-delegate-mode requires --jack-provider-command"
+fi
+if [ -n "$jack_provider_ready_delay_ms" ] && [ -z "$jack_provider_command" ]; then
+  fail "--jack-provider-ready-delay-ms requires --jack-provider-command"
+fi
+if [ -n "$jack_provider_ready_delay_ms" ] && [ "$jack_provider_delegate_mode" != "detached" ]; then
+  fail "--jack-provider-ready-delay-ms requires --jack-provider-delegate-mode detached"
+fi
 [[ "$dsp_provider_timeout_ms" =~ ^[1-9][0-9]*$ ]] || fail "--dsp-provider-timeout-ms must be greater than zero"
 case "$dsp_provider_mode" in
   file-backed | live)
@@ -236,6 +269,14 @@ restore_args() {
     printf ' --jack-provider-command "%s" --jack-provider-timeout-ms %s' \
       "$jack_provider_command" \
       "$jack_provider_timeout_ms"
+
+    if [ "$jack_provider_delegate_mode" != "foreground" ]; then
+      printf ' --jack-provider-delegate-mode %s' "$jack_provider_delegate_mode"
+    fi
+
+    if [ -n "$jack_provider_ready_delay_ms" ]; then
+      printf ' --jack-provider-ready-delay-ms %s' "$jack_provider_ready_delay_ms"
+    fi
   fi
 }
 

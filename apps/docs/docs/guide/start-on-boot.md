@@ -167,6 +167,8 @@ pnpm restore:background -- \
   --backend jack \
   --mode live \
   --jack-provider-command loopwire-jack-ports \
+  --jack-provider-delegate-mode detached \
+  --jack-provider-ready-delay-ms 750 \
   --pretty
 ```
 
@@ -176,11 +178,14 @@ Release artifacts install `loopwire-jack-ports`, a bundled provider wrapper that
 `loopwire.jack-ports.provision-plan` manifest and returns nonzero unless `LOOPWIRE_JACK_PORTS_DELEGATE` or
 `--delegate-command` points at a live JACK client provider. If the provider is a long-running JACK client, set
 `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached` for the wrapper process or pass `--delegate-mode detached` directly to the
-wrapper; the background restore still verifies the resulting ports with `jack_lsp` before connecting routes.
+wrapper. The first-class restore flags `--jack-provider-delegate-mode detached` and `--jack-provider-ready-delay-ms`
+append those wrapper options for packaged and source-checkout services; the background restore still verifies the
+resulting ports with `jack_lsp` before connecting routes.
 
-The desktop Settings panel exposes the same optional JACK provider command and timeout for Restore on boot. Leave the
-command blank when your saved configuration targets pre-existing JACK ports. Set it when boot restore must ask an
-operator-owned provider to prepare deterministic Loopwire-owned ports before the background service connects routes.
+The desktop Settings panel exposes the same optional JACK provider command, timeout, delegate mode, and readiness delay
+for Restore on boot. Leave the command blank when your saved configuration targets pre-existing JACK ports. Set it when
+boot restore must ask an operator-owned provider to prepare deterministic Loopwire-owned ports before the background
+service connects routes.
 
 For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
 configuration transaction, per-edge gain/mute math, and verification sequence:

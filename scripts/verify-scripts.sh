@@ -2179,6 +2179,10 @@ node scripts/restore-background.mjs --help | grep -F -- "--jack-provider-command
   echo "verify-scripts: restore background help is missing JACK provider options" >&2
   exit 1
 }
+node scripts/restore-background.mjs --help | grep -F -- "--jack-provider-delegate-mode" >/dev/null || {
+  echo "verify-scripts: restore background help is missing JACK provider delegate mode option" >&2
+  exit 1
+}
 node scripts/restore-background.mjs --help | grep -F -- "--dsp-provider-command" >/dev/null || {
   echo "verify-scripts: restore background help is missing DSP provider options" >&2
   exit 1
@@ -2223,6 +2227,21 @@ if node scripts/restore-background.mjs --mode preview --retry-pending-ms 1 >/dev
 fi
 if node scripts/restore-background.mjs --jack-provider-timeout-ms 0 >/dev/null 2>&1; then
   echo "verify-scripts: restore background accepted invalid JACK provider timeout" >&2
+  exit 1
+fi
+if node scripts/restore-background.mjs --jack-provider-delegate-mode banana >/dev/null 2>&1; then
+  echo "verify-scripts: restore background accepted invalid JACK provider delegate mode" >&2
+  exit 1
+fi
+if node scripts/restore-background.mjs --jack-provider-delegate-mode detached >/dev/null 2>&1; then
+  echo "verify-scripts: restore background accepted detached JACK delegate mode without provider command" >&2
+  exit 1
+fi
+if node scripts/restore-background.mjs \
+  --jack-provider-command loopwire-jack-ports \
+  --jack-provider-delegate-mode foreground \
+  --jack-provider-ready-delay-ms 750 >/dev/null 2>&1; then
+  echo "verify-scripts: restore background accepted JACK provider readiness delay without detached mode" >&2
   exit 1
 fi
 if node scripts/restore-background.mjs --backend dsp >/dev/null 2>&1; then

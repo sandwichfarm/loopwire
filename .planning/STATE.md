@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.2
 milestone_name: Production Audio Routing
 status: In Progress
-last_updated: "2026-07-06T05:18:43+02:00"
-last_activity: 2026-07-06 - JACK provider wrapper supports detached long-running delegates
+last_updated: "2026-07-06T05:39:46+02:00"
+last_activity: 2026-07-06 - JACK detached delegate settings flow through restore and desktop startup
 progress:
   total_phases: 5
   completed_phases: 4
@@ -36,6 +36,10 @@ Follow-up activity: 2026-07-06 - `loopwire-jack-ports` now supports detached del
 JACK providers that must keep running for their ports to exist. The wrapper removes wrapper-only flags before invoking
 the delegate, waits for a bounded readiness delay, returns success only if the delegate remains alive through that
 delay, and leaves the existing runtime re-probe to prove the requested ports appeared in `jack_lsp`.
+Latest activity: 2026-07-06 - JACK provider detached mode is now first-class across background restore, autostart
+rendering, and desktop Settings. The source/package systemd renderers carry `--jack-provider-delegate-mode detached`
+and optional `--jack-provider-ready-delay-ms`, Tauri validates and renders the same flags before writing user units,
+and the Svelte settings panel persists delegate mode plus readiness delay without requiring unit-file hand edits.
 
 ## Blockers / Concerns
 
@@ -56,11 +60,11 @@ delay, and leaves the existing runtime re-probe to prove the requested ports app
   stdin. A bundled file-backed `loopwire-dsp-provider` now exists for local restore-contract smoke and packaging proof.
   Native JACK now has an injected virtual-port provider hook, bundled `loopwire-jack-ports` wrapper for
   manifest/delegation proof, detached mode for long-running operator-supplied delegates, and desktop Restore-on-boot
-  settings that can render optional JACK provider flags into the user systemd unit, but live host DSP capture/injection
-  still requires an operator-supplied live provider, and bundled native JACK client creation plus native host graph-edge
-  gain implementation remain planned. DSP live restore now requires the operator to declare a live provider explicitly
-  with `--dsp-provider-mode live`, and live DSP restore now requires provider `capabilities` to declare
-  `supportsLiveGraph:true`.
+  settings that can render optional JACK provider command, timeout, delegate mode, and readiness-delay flags into the
+  user systemd unit, but live host DSP capture/injection still requires an operator-supplied live provider, and bundled
+  native JACK client creation plus native host graph-edge gain implementation remain planned. DSP live restore now
+  requires the operator to declare a live provider explicitly with `--dsp-provider-mode live`, and live DSP restore now
+  requires provider `capabilities` to declare `supportsLiveGraph:true`.
 
 - Install artifacts are not published yet. Installer and package docs must not claim release availability before
   artifacts exist.
@@ -95,6 +99,17 @@ delay, and leaves the existing runtime re-probe to prove the requested ports app
 
 ## Verification Log
 
+- 2026-07-06 JACK detached provider restore settings: background restore now accepts
+  `--jack-provider-delegate-mode foreground|detached` plus `--jack-provider-ready-delay-ms`, appends the matching
+  `loopwire-jack-ports` wrapper flags after the generated `ensure ... --port ...` arguments, and reports the selected
+  provider mode in restore JSON. Source and packaged autostart rendering now preserve those flags, and desktop
+  Settings stores/renders JACK provider delegate mode plus readiness delay before Tauri writes the user systemd unit.
+  Focused validation passed so far: `pnpm --filter @loopwire/audio-host test -- jack-adapter.test.ts
+  jack-ports-cli.test.ts`, `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`,
+  `pnpm verify:autostart`, `pnpm verify:docs`, `pnpm verify:scripts`, `pnpm --filter @loopwire/desktop build`,
+  `pnpm verify:desktop-preview -- --screenshot-dir /tmp/loopwire-jack-provider-settings-preview`, and
+  `git diff --check`. Full validation passed: `pnpm check`. No secret write, release tag, public release, Bunny
+  deployment, final proof dispatch, VM launch, host audio mutation, or support-matrix promotion was performed.
 - 2026-07-06 JACK detached provider delegate mode: `loopwire-jack-ports` now accepts `--delegate-mode detached` and
   `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached` for long-running live JACK provider delegates. In detached mode, the
   wrapper starts the provider, strips wrapper-only flags from the forwarded arguments, waits through a bounded

@@ -51,14 +51,18 @@ bash scripts/manage-autostart.sh render \
   --state-file "$state_file" \
   --restore-mode live \
   --jack-provider-command loopwire-jack-ports \
-  --jack-provider-timeout-ms 7000 >"$source_jack_systemd_render"
+  --jack-provider-timeout-ms 7000 \
+  --jack-provider-delegate-mode detached \
+  --jack-provider-ready-delay-ms 750 >"$source_jack_systemd_render"
 bash scripts/manage-autostart.sh render \
   --mode systemd \
   --binary /tmp/loopwire \
   --state-file "$state_file" \
   --restore-mode live \
   --jack-provider-command loopwire-jack-ports \
-  --jack-provider-timeout-ms 7000 >"$packaged_jack_systemd_render"
+  --jack-provider-timeout-ms 7000 \
+  --jack-provider-delegate-mode detached \
+  --jack-provider-ready-delay-ms 750 >"$packaged_jack_systemd_render"
 bash scripts/manage-autostart.sh render \
   --mode systemd \
   --source-dir /tmp/loopwire-source \
@@ -84,8 +88,10 @@ assert_contains "$source_systemd_render" "ExecStart=pnpm --dir \"/tmp/loopwire-s
 assert_contains "$source_systemd_render" "--state-file \"$state_file\" --mode live"
 assert_contains "$source_systemd_render" "--retry-pending-ms 5000 --retry-interval-ms 500"
 assert_contains "$source_jack_systemd_render" "--jack-provider-command \"loopwire-jack-ports\" --jack-provider-timeout-ms 7000"
+assert_contains "$source_jack_systemd_render" "--jack-provider-delegate-mode detached --jack-provider-ready-delay-ms 750"
 assert_contains "$packaged_jack_systemd_render" "ExecStart=\"/tmp/loopwire\" --background --state-file \"$state_file\" --mode live"
 assert_contains "$packaged_jack_systemd_render" "--jack-provider-command \"loopwire-jack-ports\" --jack-provider-timeout-ms 7000"
+assert_contains "$packaged_jack_systemd_render" "--jack-provider-delegate-mode detached --jack-provider-ready-delay-ms 750"
 assert_contains "$source_dsp_systemd_render" "ExecStart=pnpm --dir \"/tmp/loopwire-source\" restore:background"
 assert_contains "$source_dsp_systemd_render" "--backend dsp --dsp-provider-command \"loopwire-dsp-provider\""
 assert_contains "$source_dsp_systemd_render" "--dsp-provider-timeout-ms 7000 --dsp-provider-mode live --dsp-frame-count 2"
@@ -105,6 +111,22 @@ if bash scripts/manage-autostart.sh render \
   --source-dir /tmp/loopwire-source \
   --jack-provider-timeout-ms 0 >/dev/null 2>&1; then
   echo "manage-autostart accepted invalid JACK provider timeout." >&2
+  exit 1
+fi
+if bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --jack-provider-delegate-mode detached >/dev/null 2>&1; then
+  echo "manage-autostart accepted detached JACK provider mode without a provider command." >&2
+  exit 1
+fi
+if bash scripts/manage-autostart.sh render \
+  --mode systemd \
+  --source-dir /tmp/loopwire-source \
+  --jack-provider-command loopwire-jack-ports \
+  --jack-provider-delegate-mode foreground \
+  --jack-provider-ready-delay-ms 750 >/dev/null 2>&1; then
+  echo "manage-autostart accepted JACK provider readiness delay without detached mode." >&2
   exit 1
 fi
 if bash scripts/manage-autostart.sh render \

@@ -128,6 +128,7 @@
   };
   type BackendSelectionOrigin = "manual" | "auto";
   type DspProviderMode = "file-backed" | "live";
+  type JackProviderDelegateMode = "foreground" | "detached";
   const requiredDspLiveOperations = ["read-source", "write-output", "verify-output", "clear-output"] as const;
   const storageKey = "loopwire.state.v1";
   const chromeStorageKey = "loopwire.chrome.v1";
@@ -307,6 +308,8 @@
   let dspFrameCount = "480";
   let jackProviderCommand = "";
   let jackProviderTimeoutMs = "5000";
+  let jackProviderDelegateMode: JackProviderDelegateMode = "foreground";
+  let jackProviderReadyDelayMs = "250";
   let transferText = "";
   let transferNote = "Export the active configuration or paste a Loopwire configuration JSON payload.";
 
@@ -327,7 +330,10 @@
     dspFrameCountValid;
   $: jackProviderCommandConfigured = jackProviderCommand.trim().length > 0;
   $: jackProviderTimeoutValid = positiveIntegerText(jackProviderTimeoutMs);
-  $: jackRestoreProviderReady = !jackProviderCommandConfigured || jackProviderTimeoutValid;
+  $: jackProviderReadyDelayValid =
+    jackProviderDelegateMode === "foreground" || nonNegativeIntegerText(jackProviderReadyDelayMs);
+  $: jackRestoreProviderReady =
+    !jackProviderCommandConfigured || (jackProviderTimeoutValid && jackProviderReadyDelayValid);
   $: backendCandidates = withDspProviderCandidate(detectedBackendCandidates, dspRestoreProviderReady);
   $: activeConfiguration = getActiveConfiguration(state);
   $: monitorVisibilityGroups = groupMonitorsByVisibility(state, activeConfiguration);
@@ -499,12 +505,18 @@
       const settings = parsed as {
         readonly command?: unknown;
         readonly timeoutMs?: unknown;
+        readonly delegateMode?: unknown;
+        readonly readyDelayMs?: unknown;
       };
 
       jackProviderCommand = typeof settings.command === "string" ? settings.command : "";
       jackProviderTimeoutMs = positiveIntegerText(String(settings.timeoutMs ?? ""))
         ? String(settings.timeoutMs)
         : "5000";
+      jackProviderDelegateMode = settings.delegateMode === "detached" ? "detached" : "foreground";
+      jackProviderReadyDelayMs = nonNegativeIntegerText(String(settings.readyDelayMs ?? ""))
+        ? String(settings.readyDelayMs)
+        : "250";
     } catch {
       localStorage.removeItem(jackRestoreStorageKey);
     }
@@ -515,7 +527,9 @@
       jackRestoreStorageKey,
       JSON.stringify({
         command: jackProviderCommand,
-        timeoutMs: jackProviderTimeoutMs
+        timeoutMs: jackProviderTimeoutMs,
+        delegateMode: jackProviderDelegateMode,
+        readyDelayMs: jackProviderReadyDelayMs
       })
     );
   }
@@ -527,6 +541,16 @@
 
   function setJackProviderTimeout(value: string): void {
     jackProviderTimeoutMs = value;
+    persistJackProviderSettings();
+  }
+
+  function setJackProviderDelegateMode(value: JackProviderDelegateMode): void {
+    jackProviderDelegateMode = value;
+    persistJackProviderSettings();
+  }
+
+  function setJackProviderReadyDelay(value: string): void {
+    jackProviderReadyDelayMs = value;
     persistJackProviderSettings();
   }
 
@@ -802,7 +826,11 @@
     if (state.selectedBackend === "jack" && jackProviderCommandConfigured) {
       return {
         jackProviderCommand: jackProviderCommand.trim(),
-        jackProviderTimeoutMs: positiveIntegerNumber(jackProviderTimeoutMs, 5000)
+        jackProviderTimeoutMs: positiveIntegerNumber(jackProviderTimeoutMs, 5000),
+        jackProviderDelegateMode,
+        ...(jackProviderDelegateMode === "detached"
+          ? { jackProviderReadyDelayMs: nonNegativeIntegerNumber(jackProviderReadyDelayMs, 250) }
+          : {})
       };
     }
 
@@ -2040,6 +2068,14 @@
     return positiveIntegerText(value) ? Number.parseInt(value.trim(), 10) : fallback;
   }
 
+  function nonNegativeIntegerText(value: string): boolean {
+    return /^(0|[1-9][0-9]*)$/.test(value.trim());
+  }
+
+  function nonNegativeIntegerNumber(value: string, fallback: number): number {
+    return nonNegativeIntegerText(value) ? Number.parseInt(value.trim(), 10) : fallback;
+  }
+
   function backendCapabilityFor(kind: AudioBackendKind | undefined): RouteControlBackendCapability | undefined {
     return backendCapabilityReports.find((report) => report.kind === kind);
   }
@@ -2100,8 +2136,12 @@
       return "Leave blank to use pre-existing JACK ports during Restore on boot.";
     }
 
-    if (!jackProviderTimeoutValid) {
-      return "Timeout must be a positive number.";
+    if (!jackProviderTimeoutValid || !jackProviderReadyDelayValid) {
+      return "Timeout must be positive; detached readiness delay must be zero or greater.";
+    }
+
+    if (jackProviderDelegateMode === "detached") {
+      return "Restore on boot will keep the JACK provider delegate alive before verifying ports.";
     }
 
     return "Restore on boot will ask this provider to prepare Loopwire-owned JACK ports.";
@@ -2467,6 +2507,30 @@
                   on:input={(event) => setJackProviderTimeout(event.currentTarget.value)}
                 />
               </label>
+              <div class="settings-inline-fields">
+                <label>
+                  <span>Mode</span>
+                  <select
+                    value={jackProviderDelegateMode}
+                    aria-label="JACK provider delegate mode"
+                    on:change={(event) =>
+                      setJackProviderDelegateMode(event.currentTarget.value as JackProviderDelegateMode)}
+                  >
+                    <option value="foreground">Foreground</option>
+                    <option value="detached">Detached</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Ready delay</span>
+                  <input
+                    inputmode="numeric"
+                    value={jackProviderReadyDelayMs}
+                    disabled={jackProviderDelegateMode !== "detached"}
+                    aria-invalid={!jackProviderReadyDelayValid}
+                    on:input={(event) => setJackProviderReadyDelay(event.currentTarget.value)}
+                  />
+                </label>
+              </div>
               <small>{jackProviderSettingsMessage()}</small>
               {#if backgroundStartupEnabled && state.selectedBackend === "jack"}
                 <button

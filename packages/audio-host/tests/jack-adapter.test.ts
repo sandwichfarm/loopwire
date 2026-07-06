@@ -716,9 +716,32 @@ describe("createJackVirtualPortCommandProvider", () => {
       message: "JACK virtual port provider failed: jack server refused client"
     });
   });
+
+  it("appends wrapper options after the JACK provider ensure arguments", async () => {
+    const command = providerCommand("loopwire-jack-ports", [
+      "--delegate-mode",
+      "detached",
+      "--ready-delay-ms",
+      "750"
+    ]);
+    const { runner, calls } = createRecordingRunner({
+      [command]: {
+        stdout: "started detached provider\n"
+      }
+    });
+    const provider = createJackVirtualPortCommandProvider(runner, {
+      args: ["--delegate-mode", "detached", "--ready-delay-ms", "750"]
+    });
+
+    await expect(provider.ensurePorts(plan)).resolves.toEqual({
+      ok: true,
+      message: "started detached provider"
+    });
+    expect(calls).toEqual([command]);
+  });
 });
 
-function providerCommand(command = "loopwire-jack-ports"): string {
+function providerCommand(command = "loopwire-jack-ports", extraArgs: readonly string[] = []): string {
   return [
     command,
     "ensure",
@@ -731,7 +754,8 @@ function providerCommand(command = "loopwire-jack-ports"): string {
     "--port",
     "loopwire_jack_mix_input_mic:capture_1",
     "--port",
-    "loopwire_jack_mix_program:playback_1"
+    "loopwire_jack_mix_program:playback_1",
+    ...extraArgs
   ].join(" ");
 }
 

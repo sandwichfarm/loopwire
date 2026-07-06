@@ -14,6 +14,7 @@ export interface JackRuntimeAdapterOptions {
 export interface JackVirtualPortCommandProviderOptions {
   readonly command?: string;
   readonly timeoutMs?: number;
+  readonly args?: readonly string[];
 }
 
 export interface JackPortRequirementOptions {
@@ -129,7 +130,7 @@ export function createJackVirtualPortCommandProvider(
 
   return {
     async ensurePorts(plan) {
-      const args = jackVirtualPortProviderArgs(plan);
+      const args = [...jackVirtualPortProviderArgs(plan), ...(options.args ?? [])];
       const result = await runner.run(
         command,
         args,

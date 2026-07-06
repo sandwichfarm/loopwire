@@ -13,6 +13,7 @@ function usage() {
 Usage:
   restore-background.mjs [--state-file FILE] [--backend pipewire|pulseaudio|jack|dsp] [--mode preview|live]
                          [--jack-provider-command COMMAND] [--jack-provider-timeout-ms MS]
+                         [--jack-provider-delegate-mode foreground|detached] [--jack-provider-ready-delay-ms MS]
                          [--dsp-provider-command COMMAND] [--dsp-provider-timeout-ms MS]
                          [--dsp-provider-mode file-backed|live] [--dsp-frame-count FRAMES]
                          [--retry-pending-ms MS] [--retry-interval-ms MS] [--pretty]
@@ -28,6 +29,10 @@ Defaults:
                 Optional command that creates missing Loopwire-owned JACK ports during JACK live restore
   --jack-provider-timeout-ms
                 Timeout for the JACK provider command, default 5000
+  --jack-provider-delegate-mode
+                How loopwire-jack-ports handles its live delegate, foreground or detached, default foreground
+  --jack-provider-ready-delay-ms
+                Detached JACK delegate readiness delay before re-probing jack_lsp, default provider behavior
   --dsp-provider-command
                 Command-backed DSP provider used when --backend dsp is selected
   --dsp-provider-timeout-ms
@@ -48,6 +53,8 @@ function parseArgs(argv) {
     backend: undefined,
     jackProviderCommand: undefined,
     jackProviderTimeoutMs: 5000,
+    jackProviderDelegateMode: "foreground",
+    jackProviderReadyDelayMs: undefined,
     dspProviderCommand: undefined,
     dspProviderTimeoutMs: 5000,
     dspProviderMode: "file-backed",
@@ -82,6 +89,14 @@ function parseArgs(argv) {
         break;
       case "--jack-provider-timeout-ms":
         parsed.jackProviderTimeoutMs = parsePositiveInteger(requiredValue(argv, index, arg), arg);
+        index += 1;
+        break;
+      case "--jack-provider-delegate-mode":
+        parsed.jackProviderDelegateMode = requiredValue(argv, index, arg);
+        index += 1;
+        break;
+      case "--jack-provider-ready-delay-ms":
+        parsed.jackProviderReadyDelayMs = parseNonNegativeInteger(requiredValue(argv, index, arg), arg);
         index += 1;
         break;
       case "--dsp-provider-command":
@@ -131,6 +146,24 @@ function parseArgs(argv) {
 
   if (parsed.retryPendingMs > 0 && parsed.mode !== "live") {
     throw new Error("--retry-pending-ms requires --mode live");
+  }
+
+  if (!new Set(["foreground", "detached"]).has(parsed.jackProviderDelegateMode)) {
+    throw new Error("--jack-provider-delegate-mode must be foreground or detached");
+  }
+
+  if (parsed.jackProviderDelegateMode !== "foreground" && !parsed.jackProviderCommand) {
+    throw new Error("--jack-provider-delegate-mode requires --jack-provider-command");
+  }
+
+  if (parsed.jackProviderReadyDelayMs !== undefined) {
+    if (!parsed.jackProviderCommand) {
+      throw new Error("--jack-provider-ready-delay-ms requires --jack-provider-command");
+    }
+
+    if (parsed.jackProviderDelegateMode !== "detached") {
+      throw new Error("--jack-provider-ready-delay-ms requires --jack-provider-delegate-mode detached");
+    }
   }
 
   if (parsed.dspProviderCommand && parsed.backend !== "dsp") {
@@ -262,7 +295,15 @@ async function main() {
     status: pendingStreamRefresh.failure ? "failed" : result.status,
     mode: args.mode,
     backend: selectedBackend,
-    ...(args.jackProviderCommand && selectedBackend === "jack" ? { jackVirtualPortProvider: args.jackProviderCommand } : {}),
+    ...(args.jackProviderCommand && selectedBackend === "jack"
+      ? {
+          jackVirtualPortProvider: args.jackProviderCommand,
+          jackVirtualPortProviderMode: args.jackProviderDelegateMode,
+          ...(args.jackProviderReadyDelayMs !== undefined
+            ? { jackVirtualPortProviderReadyDelayMs: args.jackProviderReadyDelayMs }
+            : {})
+        }
+      : {}),
     ...(selectedBackend === "dsp"
       ? {
           dspProviderCommand: args.dspProviderCommand,
@@ -464,7 +505,8 @@ function createHostAdapter(audioHost, runner, backend, mode, options) {
     const virtualPortProvider = options.jackProviderCommand
       ? audioHost.createJackVirtualPortCommandProvider(runner, {
           command: options.jackProviderCommand,
-          timeoutMs: options.jackProviderTimeoutMs
+          timeoutMs: options.jackProviderTimeoutMs,
+          args: jackProviderWrapperArgs(options)
         })
       : undefined;
 
@@ -475,6 +517,20 @@ function createHostAdapter(audioHost, runner, backend, mode, options) {
   }
 
   throw new Error(`Background restore does not support backend: ${backend}`);
+}
+
+function jackProviderWrapperArgs(options) {
+  const args = [];
+
+  if (options.jackProviderDelegateMode === "detached") {
+    args.push("--delegate-mode", "detached");
+
+    if (options.jackProviderReadyDelayMs !== undefined) {
+      args.push("--ready-delay-ms", String(options.jackProviderReadyDelayMs));
+    }
+  }
+
+  return args;
 }
 
 function toHostRuntimeConfiguration(configuration) {

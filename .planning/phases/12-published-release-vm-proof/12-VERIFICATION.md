@@ -5,6 +5,17 @@
 
 ## Evidence Passed
 
+- JACK detached provider mode is now first-class in the restore/startup product path. `restore-background.mjs` accepts
+  `--jack-provider-delegate-mode foreground|detached` plus `--jack-provider-ready-delay-ms`, appends those
+  `loopwire-jack-ports` wrapper flags after the generated `ensure ... --port ...` arguments, and reports selected JACK
+  provider mode in restore JSON. Source and packaged autostart rendering preserve the same flags, and desktop Settings
+  stores/renders JACK provider delegate mode plus readiness delay before Tauri writes the user systemd unit. Focused
+  validation passed so far: `pnpm --filter @loopwire/audio-host test -- jack-adapter.test.ts jack-ports-cli.test.ts`,
+  `pnpm --filter @loopwire/desktop typecheck`, `pnpm verify:tauri`, `pnpm verify:autostart`, `pnpm verify:docs`,
+  `pnpm verify:scripts`, `pnpm --filter @loopwire/desktop build`, `pnpm verify:desktop-preview -- --screenshot-dir
+  /tmp/loopwire-jack-provider-settings-preview`, and `git diff --check`. Full validation passed: `pnpm check`. No
+  secret write, release tag, public release, Bunny deployment, final proof dispatch, VM launch, host audio mutation, or
+  support-matrix promotion was performed.
 - `loopwire-jack-ports` now supports detached delegate mode for operator-supplied live JACK providers whose ports only
   exist while the provider process stays alive. The wrapper accepts `--delegate-mode detached` or
   `LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached`, strips wrapper-only flags before invoking the delegate, waits through a

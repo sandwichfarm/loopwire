@@ -135,7 +135,9 @@ and Loopwire still re-runs `jack_lsp` afterward, so an alive process without the
 Keep that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
 
 Desktop Restore on boot can persist the same JACK provider command and timeout that the CLI accepts. This only prepares
-the boot-restore service invocation; it does not turn the bundled wrapper into a native JACK client creator.
+the boot-restore service invocation; it does not turn the bundled wrapper into a native JACK client creator. When a
+provider needs detached mode, save that mode and readiness delay in the JACK provider settings or pass
+`--jack-provider-delegate-mode detached --jack-provider-ready-delay-ms 750` to the background restore helpers.
 
 The ALSA path is read-only diagnostics. It lists playback hardware with `aplay -l` and capture hardware with
 `arecord -l` so users can see whether the kernel/session can see devices before choosing a graph-capable backend.
