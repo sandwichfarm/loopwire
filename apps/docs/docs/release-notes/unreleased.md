@@ -29,10 +29,16 @@ These notes describe source-tree progress. They are not a public release announc
 - Sources now carry a kind (app stream, capture hardware, system source, or pass-thru) recorded from host enumeration
   and persisted as an optional schema v2 field; card and sidebar icons, add-menu grouping, and the mute-when-capturing
   option derive from that kind, with the old label heuristics kept only as a fallback for pre-existing saved states.
-- Removed from the UI in this rebuild (domain/CLI paths remain): custom window chrome mode and DSP/JACK provider
-  settings; meters render silence until a per-port level stream exists in the audio host layer. Configuration
-  export/import, the diagnostics panel, and manual host-binding fields returned in a later power-user slice (see
-  the Settings Transfer/Diagnostics and host-binding entries below).
+- Removed from the UI in this rebuild (domain/CLI paths remain): custom window chrome mode; meters render silence
+  until a per-port level stream exists in the audio host layer. Configuration export/import, the diagnostics panel,
+  and manual host-binding fields returned in a later power-user slice (see the Settings Transfer/Diagnostics and
+  host-binding entries below).
+- DSP and JACK provider settings are back in the rebuilt desktop UI: a Settings → Providers section persists the DSP
+  provider command, trust mode, timeout, and frame count plus the JACK provider command, timeout, delegate mode, and
+  readiness delay under the pre-rebuild storage keys. Saving a live DSP provider command makes DSP Provider selectable
+  in the backend picker, live apply re-verifies the DSP provider `capabilities` contract before provider-backed host
+  transactions, saved JACK provider settings feed native JACK live apply and preflight readiness, and enabling
+  background restore writes the matching provider flags into the user-scoped systemd unit.
 
 ## Supported In Source
 

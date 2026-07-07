@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LoopwireConfiguration } from "@loopwire/core";
-import { routesWithOffEndpointsMuted, toHostRuntimeConfiguration } from "./runtime";
+import type { CommandResult } from "@loopwire/audio-host/runtime";
+import { evaluateDspLiveCapabilityResult, routesWithOffEndpointsMuted, toHostRuntimeConfiguration } from "./runtime";
 
 const configuration: LoopwireConfiguration = {
   id: "device",
@@ -37,5 +38,63 @@ describe("toHostRuntimeConfiguration", () => {
     expect(host.routes?.find((route) => route.id === "app-bus")?.muted).toBe(true);
     expect(host.routes?.find((route) => route.id === "mic-bus")?.muted).toBe(false);
     expect(host.inputs?.map((input) => input.id)).toEqual(["mic", "app"]);
+  });
+});
+
+function capabilityResult(overrides: Partial<CommandResult>): CommandResult {
+  return {
+    command: "loopwire-live-dsp-provider",
+    args: ["capabilities"],
+    exitCode: 0,
+    stdout: "",
+    stderr: "",
+    ...overrides
+  };
+}
+
+const liveCapabilities = {
+  supportsLiveGraph: true,
+  operations: ["read-source", "write-output", "verify-output", "clear-output"]
+};
+
+describe("evaluateDspLiveCapabilityResult", () => {
+  it("accepts a live provider declaring every required operation", () => {
+    const result = evaluateDspLiveCapabilityResult(capabilityResult({ stdout: JSON.stringify(liveCapabilities) }));
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("fails on a nonzero exit code with the first command line", () => {
+    const result = evaluateDspLiveCapabilityResult(
+      capabilityResult({ exitCode: 1, stderr: "provider exploded\nmore detail" })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("provider exploded");
+  });
+
+  it("rejects providers without supportsLiveGraph:true", () => {
+    const result = evaluateDspLiveCapabilityResult(
+      capabilityResult({ stdout: JSON.stringify({ ...liveCapabilities, supportsLiveGraph: false }) })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("supportsLiveGraph:true");
+  });
+
+  it("names missing required operations", () => {
+    const result = evaluateDspLiveCapabilityResult(
+      capabilityResult({ stdout: JSON.stringify({ supportsLiveGraph: true, operations: ["read-source"] }) })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("write-output, verify-output, clear-output");
+  });
+
+  it("rejects invalid capability JSON", () => {
+    const result = evaluateDspLiveCapabilityResult(capabilityResult({ stdout: "{not json" }));
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("invalid JSON");
   });
 });

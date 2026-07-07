@@ -124,8 +124,8 @@ Requirements for the next milestone.
 
 ### Provider Settings
 
-- [ ] **PROV-01**: DSP provider command, mode, timeout, and frame count are configurable in Settings, persisted, and gate DSP backend availability.
-- [ ] **PROV-02**: JACK provider command, timeout, delegate mode, and readiness delay are configurable in Settings and feed live apply and preflight readiness.
+- [x] **PROV-01**: DSP provider command, mode, timeout, and frame count are configurable in Settings, persisted, and gate DSP backend availability.
+- [x] **PROV-02**: JACK provider command, timeout, delegate mode, and readiness delay are configurable in Settings and feed live apply and preflight readiness.
 
 ### End-to-End Harness
 
@@ -139,9 +139,9 @@ Requirements for the next milestone.
 | META-01..META-02 | Phase 13 | Complete |
 | BUS-01 | Phase 14 | Complete |
 | SURF-01..SURF-03 | Phase 15 | Complete |
-| PROV-01..PROV-02 | Phase 16 | Pending |
+| PROV-01..PROV-02 | Phase 16 | Complete |
 | E2E-01..E2E-02 | Phase 17 | Pending |
 
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-07-04 after support bundle backend summaries*
+*Last updated: 2026-07-07 after Phase 16 provider settings UI restoration*

@@ -136,8 +136,9 @@ JACK ports to continue existing. The wrapper returns only after the detached pro
 and Loopwire still re-runs `jack_lsp` afterward, so an alive process without the expected ports remains a failed apply.
 Keep that fail-closed behavior until the delegate has proven the expected ports appear in `jack_lsp`.
 
-The CLI and systemd restore paths persist the JACK provider command and timeout; the rebuilt desktop UI does not
-expose JACK provider settings yet (documented gap), so session-local live apply targets pre-existing JACK ports only.
+The CLI and systemd restore paths persist the JACK provider command and timeout; the desktop Settings → Providers
+section persists the same JACK provider settings, so session-local live apply can ask the saved provider to prepare
+Loopwire-owned JACK ports before the runtime re-probes `jack_lsp` and connects routes.
 The provider path prepares deterministic Loopwire-owned JACK ports before the boot-restore service connects routes; it
 does not turn the bundled wrapper into a native JACK client creator. When a provider needs detached mode, pass
 `--jack-provider-delegate-mode detached --jack-provider-ready-delay-ms 750` to the background restore helpers.
@@ -207,8 +208,10 @@ an exit-0 command with empty stdout is treated as failed verification. Release a
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
 for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
 accepted for startup restore only when the restore command also supplies the explicit DSP provider command. The
-rebuilt desktop UI does not expose DSP provider settings yet (documented gap), so DSP remains preview-only in the
-desktop shell and provider-backed restore is configured through the CLI/systemd flags. This is still provider-backed
+desktop Settings → Providers section persists the DSP provider command, trust mode, timeout, and frame count: saving
+a live provider command makes DSP Provider selectable in the backend picker, and desktop live apply re-verifies the
+provider's `capabilities` (`supportsLiveGraph:true` plus the required read/write/verify/clear operations) before any
+provider-backed host transaction. The CLI/systemd flags remain for headless restore. This is still provider-backed
 host DSP: the live provider must own real PipeWire/JACK capture and injection before the result affects host audio. The live backend DSP still needs a real provider with host capture and injection proof before
 release docs can claim bundled live host DSP.
 

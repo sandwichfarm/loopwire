@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import { deviceStore, reapplySelectedDevice, runtimeService, themeService, hostCatalog, uiStore } from "../app";
+  import { deviceStore, providerSettingsService, reapplySelectedDevice, runtimeService, themeService, hostCatalog, uiStore } from "../app";
+  import type { DspProviderMode, JackProviderDelegateMode } from "../services/providerSettings";
   import { displayBackendName } from "../services/runtime";
   import { hasTauriRuntime } from "../services/statePersistence";
   import type { ThemeMode } from "../services/theme";
@@ -25,6 +26,25 @@
     backgroundStartup
   } = runtimeService;
   const appState = deviceStore.state;
+  const {
+    dspCommand,
+    dspMode,
+    dspTimeoutMs,
+    dspFrameCount,
+    dspTimeoutValid,
+    dspFrameCountValid,
+    dspRestoreProviderReady,
+    dspSettingsMessage,
+    jackCommand,
+    jackTimeoutMs,
+    jackDelegateMode,
+    jackReadyDelayMs,
+    jackCommandConfigured,
+    jackTimeoutValid,
+    jackReadyDelayValid,
+    jackRestoreProviderReady,
+    jackSettingsMessage
+  } = providerSettingsService;
 
   const desktop = hasTauriRuntime();
 
@@ -213,6 +233,116 @@
           {/each}
         {/if}
       </details>
+    </section>
+
+    <section aria-labelledby="settings-providers">
+      <h3 id="settings-providers">Providers</h3>
+      <p class="caption">
+        Optional provider commands for DSP graph-edge apply and Loopwire-owned JACK port creation. Settings persist in
+        this browser profile; live effects need the desktop shell.
+      </p>
+
+      <article class="provider-card" data-testid="dsp-provider-card" data-mode={$dspRestoreProviderReady ? "ready" : "setup"}>
+        <p class="provider-title">
+          <span>DSP provider</span>
+          <strong>{$dspRestoreProviderReady ? "Live restore ready" : "Restore setup"}</strong>
+        </p>
+        <div class="field-row">
+          <label for="dsp-provider-command">Command</label>
+          <input
+            id="dsp-provider-command"
+            value={$dspCommand}
+            placeholder="loopwire-live-dsp-provider"
+            oninput={(event) => providerSettingsService.setDspCommand(event.currentTarget.value)}
+          />
+        </div>
+        <div class="provider-inline-fields">
+          <label>
+            <span>Mode</span>
+            <select
+              value={$dspMode}
+              aria-label="DSP provider trust mode"
+              onchange={(event) => providerSettingsService.setDspMode(event.currentTarget.value as DspProviderMode)}
+            >
+              <option value="live">Live</option>
+              <option value="file-backed">File smoke</option>
+            </select>
+          </label>
+          <label>
+            <span>Timeout</span>
+            <input
+              inputmode="numeric"
+              value={$dspTimeoutMs}
+              aria-invalid={!$dspTimeoutValid}
+              aria-label="DSP provider timeout in milliseconds"
+              oninput={(event) => providerSettingsService.setDspTimeout(event.currentTarget.value)}
+            />
+          </label>
+          <label>
+            <span>Frames</span>
+            <input
+              inputmode="numeric"
+              value={$dspFrameCount}
+              aria-invalid={!$dspFrameCountValid}
+              aria-label="DSP provider frame count"
+              oninput={(event) => providerSettingsService.setDspFrameCount(event.currentTarget.value)}
+            />
+          </label>
+        </div>
+        <p class="caption">{$dspSettingsMessage}</p>
+      </article>
+
+      <article class="provider-card" data-testid="jack-provider-card" data-mode={$jackRestoreProviderReady ? "ready" : "setup"}>
+        <p class="provider-title">
+          <span>JACK provider</span>
+          <strong>{$jackCommandConfigured ? "Provider configured" : "Optional"}</strong>
+        </p>
+        <div class="field-row">
+          <label for="jack-provider-command">Command</label>
+          <input
+            id="jack-provider-command"
+            value={$jackCommand}
+            placeholder="loopwire-jack-ports"
+            oninput={(event) => providerSettingsService.setJackCommand(event.currentTarget.value)}
+          />
+        </div>
+        <div class="provider-inline-fields">
+          <label>
+            <span>Timeout</span>
+            <input
+              inputmode="numeric"
+              value={$jackTimeoutMs}
+              aria-invalid={!$jackTimeoutValid}
+              aria-label="JACK provider timeout in milliseconds"
+              oninput={(event) => providerSettingsService.setJackTimeout(event.currentTarget.value)}
+            />
+          </label>
+          <label>
+            <span>Mode</span>
+            <select
+              value={$jackDelegateMode}
+              aria-label="JACK provider delegate mode"
+              onchange={(event) =>
+                providerSettingsService.setJackDelegateMode(event.currentTarget.value as JackProviderDelegateMode)}
+            >
+              <option value="foreground">Foreground</option>
+              <option value="detached">Detached</option>
+            </select>
+          </label>
+          <label>
+            <span>Ready delay</span>
+            <input
+              inputmode="numeric"
+              value={$jackReadyDelayMs}
+              disabled={$jackDelegateMode !== "detached"}
+              aria-invalid={!$jackReadyDelayValid}
+              aria-label="JACK provider detached readiness delay in milliseconds"
+              oninput={(event) => providerSettingsService.setJackReadyDelay(event.currentTarget.value)}
+            />
+          </label>
+        </div>
+        <p class="caption">{$jackSettingsMessage}</p>
+      </article>
     </section>
 
     <section aria-labelledby="settings-transfer">
@@ -535,6 +665,74 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+  }
+
+  .provider-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lw-space-2);
+    border: 1px solid var(--lw-hairline);
+    border-radius: 8px;
+    background: var(--lw-card-bg);
+    padding: 10px;
+  }
+
+  .provider-card[data-mode="ready"] {
+    border-color: var(--lw-accent);
+  }
+
+  .provider-title {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--lw-space-2);
+    font: var(--lw-text-subtitle);
+    color: var(--lw-text-secondary);
+  }
+
+  .provider-title strong {
+    font: var(--lw-text-body);
+    color: var(--lw-text-primary);
+  }
+
+  .provider-card input {
+    flex: 1;
+    min-width: 0;
+    background: var(--lw-sidebar-bg);
+    color: var(--lw-text-primary);
+    border: 1px solid var(--lw-hairline);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font: var(--lw-text-body);
+  }
+
+  .provider-card input:focus-visible {
+    outline: none;
+    box-shadow: var(--lw-focus-ring);
+  }
+
+  .provider-card input[aria-invalid="true"] {
+    border-color: var(--lw-danger);
+  }
+
+  .provider-card input:disabled {
+    opacity: 0.4;
+  }
+
+  .provider-inline-fields {
+    display: flex;
+    gap: var(--lw-space-3);
+  }
+
+  .provider-inline-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+    font: var(--lw-text-subtitle);
+    color: var(--lw-text-secondary);
   }
 
   .transfer-actions {

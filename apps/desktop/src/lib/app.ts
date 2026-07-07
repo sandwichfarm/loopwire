@@ -7,6 +7,7 @@ import { createDeviceStore } from "./stores/deviceStore";
 import { createLevelStore, silentLevelProvider } from "./stores/levelStore";
 import { createUiStore } from "./stores/uiStore";
 import { createHostCatalog } from "./services/hostCatalog";
+import { createProviderSettingsService } from "./services/providerSettings";
 import { createRuntimeService } from "./services/runtime";
 import { createStatePersistence } from "./services/statePersistence";
 import { createThemeService } from "./services/theme";
@@ -27,7 +28,13 @@ export const hostCatalog = createHostCatalog();
 
 export const themeService = createThemeService();
 
-export const runtimeService = createRuntimeService(deviceStore, (message) => uiStore.pushToast("error", message));
+export const providerSettingsService = createProviderSettingsService();
+
+export const runtimeService = createRuntimeService(
+  deviceStore,
+  (message) => uiStore.pushToast("error", message),
+  providerSettingsService
+);
 
 /**
  * Structural graph edits (add/remove endpoints, cables, On/Off) re-run the

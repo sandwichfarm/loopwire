@@ -123,6 +123,8 @@ assert_contains "apps/docs/docs/guide/backends.md" "--jack-provider-delegate-mod
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm jack:ports"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm jack:verify"
 assert_contains "apps/docs/docs/guide/backends.md" "--ports-file captured-jack-lsp.txt"
+assert_contains "apps/docs/docs/guide/backends.md" "desktop Settings → Providers"
+assert_contains "apps/docs/docs/guide/backends.md" "session-local live apply can ask the saved provider"
 assert_contains "apps/docs/docs/guide/backends.md" "The desktop live-apply preflight is"
 assert_contains "apps/docs/docs/guide/backends.md" 'ALSA path is read-only diagnostics'
 assert_contains "apps/docs/docs/guide/backends.md" '`arecord -l`'
@@ -153,6 +155,7 @@ assert_contains "apps/docs/docs/guide/backends.md" "stored by configuration"
 assert_contains "apps/docs/docs/guide/backends.md" "Release artifacts ship"
 assert_contains "apps/docs/docs/guide/backends.md" '`loopwire-dsp-provider`'
 assert_contains "apps/docs/docs/guide/backends.md" 'Persisted `selectedBackend: "dsp"` state'
+assert_contains "apps/docs/docs/guide/backends.md" "makes DSP Provider selectable in the backend picker"
 assert_contains "apps/docs/docs/guide/backends.md" "seed-source"
 assert_contains "apps/docs/docs/guide/backends.md" "live backend DSP still needs"
 assert_contains "apps/docs/docs/guide/backends.md" "pnpm dsp:plan"
@@ -251,6 +254,7 @@ assert_contains "apps/docs/docs/guide/start-on-boot.md" "--jack-provider-command
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--jack-provider-timeout-ms"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--jack-provider-delegate-mode detached"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--jack-provider-ready-delay-ms"
+assert_contains "apps/docs/docs/guide/start-on-boot.md" "Settings → Providers section now persists the JACK provider command"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "LOOPWIRE_JACK_PORTS_DELEGATE"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "LOOPWIRE_JACK_PORTS_DELEGATE_MODE=detached"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "--backend dsp"
@@ -949,6 +953,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `scree
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Sources now carry a kind"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The Output Channels ⊕ now offers **Stereo Bus**, **Mono Bus**, and **Quad Bus**"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "DSP and JACK provider settings are back in the rebuilt desktop UI"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "pre-rebuild storage keys"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "diverges from the reference's instant stereo-only add by one pick"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Settings"

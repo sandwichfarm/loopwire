@@ -1,10 +1,14 @@
-import { get, writable } from "svelte/store";
+import { derived, get, writable } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { detectAudioBackends, type BackendCapabilityReport } from "@loopwire/audio-host/detectors";
 import {
+  createDspConfigurationRuntimeAdapter,
+  createDspRuntimeCommandPorts,
   createJackGraphRuntimeAdapter,
+  createJackVirtualPortCommandProvider,
   createPactlVirtualSinkRuntimeAdapter,
   createPipeWireGraphRuntimeAdapter,
+  type CommandResult,
   type HostRuntimeConfiguration,
   type HostRuntimeOperationResult,
   type MissingStreamVerificationMode
@@ -27,6 +31,7 @@ import {
 import { describeConfigurationSwitchPreflight } from "../../live-apply-preflight";
 import type { DeviceStore } from "../stores/deviceStore";
 import { createTauriCommandRunner, createUnavailableCommandRunner } from "./commandRunner";
+import { withDspProviderCandidate, type ProviderSettingsService } from "./providerSettings";
 import { hasTauriRuntime } from "./statePersistence";
 
 export type HostApplyMode = "preview" | "live";
@@ -72,8 +77,20 @@ export function displayBackendName(kind: AudioBackendKind): string {
   return labels[kind];
 }
 
-export function createRuntimeService(deviceStore: DeviceStore, onError: (message: string) => void) {
-  const backendCandidates = writable<readonly BackendCandidate[]>(fallbackBackendCandidates);
+export function createRuntimeService(
+  deviceStore: DeviceStore,
+  onError: (message: string) => void,
+  providerSettings: ProviderSettingsService
+) {
+  const detectedCandidates = writable<readonly BackendCandidate[]>(fallbackBackendCandidates);
+  /**
+   * DSP has no host probe: its candidate availability follows the saved
+   * provider settings live, so editing them in Settings updates the picker.
+   */
+  const backendCandidates = derived(
+    [detectedCandidates, providerSettings.dspRestoreProviderReady],
+    ([candidates, dspReady]) => withDspProviderCandidate(candidates, dspReady)
+  );
   const capabilityReports = writable<readonly BackendCapabilityReport[]>([]);
   const detectionNote = writable("Browser preview uses packaged backend candidates; run the desktop shell for host detection.");
   /** What the most recent transaction actually ran as (informational). */
@@ -95,7 +112,7 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
   async function detectBackends(): Promise<void> {
     if (!hasTauriRuntime()) {
-      backendCandidates.set(fallbackBackendCandidates);
+      detectedCandidates.set(fallbackBackendCandidates);
       return;
     }
 
@@ -103,7 +120,7 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 
     try {
       const report = await detectAudioBackends(createTauriCommandRunner(), new Date(), "linux");
-      backendCandidates.set(report.candidates);
+      detectedCandidates.set(report.candidates);
       capabilityReports.set(report.reports);
       const available = report.candidates.filter((candidate) => candidate.availability === "available");
       detectionNote.set(
@@ -112,12 +129,12 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
           : `Detected ${available.length} available backend(s): ${available.map((candidate) => candidate.displayName).join(", ")}.`
       );
 
-      const decision = selectBackend(report.candidates, selectedBackend());
+      const decision = selectBackend(get(backendCandidates), selectedBackend());
       if (decision.mode === "auto" && decision.backend.kind !== selectedBackend()) {
         await chooseBackend(decision.backend.kind);
       }
     } catch (error) {
-      backendCandidates.set(fallbackBackendCandidates);
+      detectedCandidates.set(fallbackBackendCandidates);
       detectionNote.set(error instanceof Error ? `Backend detection failed: ${error.message}` : "Backend detection failed.");
     }
   }
@@ -182,7 +199,10 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
       backend,
       get(capabilityReports),
       displayBackendName,
-      { dspProviderReady: false }
+      {
+        dspProviderReady: get(providerSettings.dspRestoreProviderReady),
+        jackProviderReady: get(providerSettings.jackLiveProviderReady)
+      }
     );
 
     if (!preflight.ok) {
@@ -392,14 +412,62 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
         );
         return;
       }
+
+      // A saved-but-invalid JACK provider would render a broken restore unit.
+      if (backend === "jack" && providerSettings.jackSnapshot().configured && !providerSettings.jackSnapshot().restoreReady) {
+        onError(
+          "JACK provider settings are invalid: timeout must be positive and the detached readiness delay must be zero or greater."
+        );
+        return;
+      }
     }
 
     backgroundStartup.set(await runStartupAction(enabled ? "background_install" : "background_uninstall"));
   }
 
+  /**
+   * Saved provider settings ride along with `background_install` so the
+   * user-scoped systemd unit restores through the same provider contract.
+   */
+  function backgroundStartupInvokeOptions(action: string): Record<string, string | number> {
+    if (action !== "background_install") {
+      return {};
+    }
+
+    const backend = selectedBackend();
+
+    if (backend === "dsp") {
+      const dsp = providerSettings.dspSnapshot();
+
+      if (dsp.command) {
+        return {
+          dspProviderCommand: dsp.command,
+          dspProviderMode: dsp.mode,
+          dspProviderTimeoutMs: dsp.timeoutMs,
+          ...(dsp.frameCount !== undefined ? { dspFrameCount: dsp.frameCount } : {})
+        };
+      }
+    }
+
+    if (backend === "jack") {
+      const jack = providerSettings.jackSnapshot();
+
+      if (jack.configured) {
+        return {
+          jackProviderCommand: jack.command,
+          jackProviderTimeoutMs: jack.timeoutMs,
+          jackProviderDelegateMode: jack.delegateMode,
+          ...(jack.delegateMode === "detached" ? { jackProviderReadyDelayMs: jack.readyDelayMs } : {})
+        };
+      }
+    }
+
+    return {};
+  }
+
   async function runStartupAction(action: string): Promise<StartupStatus | null> {
     try {
-      const raw = await invoke<string>("manage_startup", { action });
+      const raw = await invoke<string>("manage_startup", { action, ...backgroundStartupInvokeOptions(action) });
       return parseStartupStatus(raw);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not manage startup integration.";
@@ -440,6 +508,10 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     reason: RuntimeTransactionReason,
     mode: HostApplyMode
   ): Promise<HostRuntimeOperationResult> {
+    if (kind === "dsp") {
+      return runDspOperation(operation, configuration, reason, mode);
+    }
+
     const hostAdapter = createHostAdapter(kind, mode, reason);
 
     if (!hostAdapter) {
@@ -458,6 +530,77 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     return result;
   }
 
+  /**
+   * DSP is provider-backed: operations run only against saved live provider
+   * settings, and live transactions re-verify the provider's `capabilities`
+   * contract before any host apply.
+   */
+  async function runDspOperation(
+    operation: "unload" | "apply" | "verify" | "rollback",
+    configuration: LoopwireConfiguration,
+    reason: RuntimeTransactionReason,
+    mode: HostApplyMode
+  ): Promise<HostRuntimeOperationResult> {
+    const dsp = providerSettings.dspSnapshot();
+
+    if (!dsp.restoreReady) {
+      return { ok: true, message: `Preview-verified ${configuration.name} (DSP Provider host apply unavailable).` };
+    }
+
+    if (mode === "live") {
+      const capability = await verifyDspLiveProviderCapability();
+
+      if (!capability.ok) {
+        return capability;
+      }
+    }
+
+    const runner = mode === "live" ? createTauriCommandRunner() : createUnavailableCommandRunner();
+    const adapter = createDspConfigurationRuntimeAdapter(
+      createDspRuntimeCommandPorts(runner, { command: dsp.command, timeoutMs: dsp.timeoutMs }),
+      {
+        mode: mode === "live" ? "apply" : "dry-run",
+        ...(dsp.frameCount !== undefined ? { frameCount: dsp.frameCount } : {})
+      }
+    );
+
+    const result = await adapter[operation](
+      { ...configuration, routes: routesWithOffEndpointsMuted(configuration) },
+      {
+        id: `dsp-${operation}-${configuration.id}`,
+        reason,
+        toConfigurationId: configuration.id,
+        operations: [operation],
+        createdAt: new Date().toISOString()
+      }
+    );
+
+    if (mode === "preview" && !result.ok) {
+      return {
+        ok: true,
+        message: `Preview noted DSP Provider gap: ${result.message ?? "unsupported host operation"}`
+      };
+    }
+
+    return result;
+  }
+
+  /** Fail closed unless the live DSP provider proves the required graph contract. */
+  async function verifyDspLiveProviderCapability(): Promise<HostRuntimeOperationResult> {
+    const dsp = providerSettings.dspSnapshot();
+
+    if (!dsp.restoreReady) {
+      return {
+        ok: false,
+        message: "DSP live apply needs a saved live provider command, positive timeout, and valid frame count."
+      };
+    }
+
+    const result = await createTauriCommandRunner().run(dsp.command, ["capabilities"], { timeoutMs: dsp.timeoutMs });
+
+    return evaluateDspLiveCapabilityResult(result);
+  }
+
   function createHostAdapter(kind: AudioBackendKind, mode: HostApplyMode, reason: RuntimeTransactionReason) {
     const runner = mode === "live" ? createTauriCommandRunner() : createUnavailableCommandRunner();
     const hostMode = mode === "live" ? "apply" : "dry-run";
@@ -472,11 +615,22 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
     }
 
     if (kind === "jack") {
-      return createJackGraphRuntimeAdapter(runner, { mode: hostMode });
+      const jack = providerSettings.jackSnapshot();
+      return createJackGraphRuntimeAdapter(runner, {
+        mode: hostMode,
+        ...(jack.liveReady
+          ? {
+              virtualPortProvider: createJackVirtualPortCommandProvider(runner, {
+                command: jack.command,
+                timeoutMs: jack.timeoutMs,
+                args: jack.args
+              })
+            }
+          : {})
+      });
     }
 
-    // DSP restore needs a configured live provider; its settings UI is not part
-    // of this rebuild (documented deferral), so DSP stays preview-only here.
+    // DSP runs through runDspOperation (provider-backed configuration adapter).
     return undefined;
   }
 
@@ -503,6 +657,66 @@ export function createRuntimeService(deviceStore: DeviceStore, onError: (message
 }
 
 export type RuntimeService = ReturnType<typeof createRuntimeService>;
+
+const requiredDspLiveOperations = ["read-source", "write-output", "verify-output", "clear-output"] as const;
+
+/**
+ * Evaluates a DSP provider `capabilities` probe. Live host apply is refused
+ * unless the provider declares `supportsLiveGraph:true` and every operation
+ * needed for apply, verify, and rollback/unload.
+ */
+export function evaluateDspLiveCapabilityResult(result: CommandResult): HostRuntimeOperationResult {
+  if (result.exitCode !== 0) {
+    return {
+      ok: false,
+      message: `DSP live provider capability check failed: ${firstCommandLine(result) ?? `exit ${result.exitCode}`}`
+    };
+  }
+
+  try {
+    const payload = JSON.parse(result.stdout.trim()) as {
+      readonly supportsLiveGraph?: unknown;
+      readonly operations?: unknown;
+    };
+
+    if (payload.supportsLiveGraph !== true) {
+      return {
+        ok: false,
+        message: "DSP live provider must declare supportsLiveGraph:true before desktop host apply can run."
+      };
+    }
+
+    const operations = Array.isArray(payload.operations)
+      ? new Set(payload.operations.filter((operation): operation is string => typeof operation === "string"))
+      : new Set<string>();
+    const missing = requiredDspLiveOperations.filter((operation) => !operations.has(operation));
+
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        message: `DSP live provider is missing required operation(s): ${missing.join(", ")}.`
+      };
+    }
+
+    return { ok: true, message: "DSP live provider capabilities verified." };
+  } catch {
+    return {
+      ok: false,
+      message: "DSP live provider capabilities returned invalid JSON."
+    };
+  }
+}
+
+function firstCommandLine(result: CommandResult): string | undefined {
+  return firstNonEmptyLine(result.stderr) ?? firstNonEmptyLine(result.stdout);
+}
+
+function firstNonEmptyLine(value: string): string | undefined {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+}
 
 /**
  * Routes touching an Off endpoint are marked muted so live apply disconnects

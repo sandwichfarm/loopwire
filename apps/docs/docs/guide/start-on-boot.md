@@ -181,9 +181,10 @@ wrapper. The first-class restore flags `--jack-provider-delegate-mode detached` 
 append those wrapper options for packaged and source-checkout services; the background restore still verifies the
 resulting ports with `jack_lsp` before connecting routes.
 
-The rebuilt desktop UI does not expose JACK provider settings yet (documented gap); configure the provider command,
-timeout, delegate mode, and readiness delay through the CLI/systemd flags above. Leave the command blank when your
-saved configuration targets pre-existing JACK ports.
+The desktop Settings → Providers section now persists the JACK provider command, timeout, delegate mode, and
+readiness delay, and enabling Restore audio in background with JACK selected writes the matching `--jack-provider-*`
+flags into the user-scoped restore unit. The CLI/systemd flags above remain for headless setups. Leave the command
+blank when your saved configuration targets pre-existing JACK ports.
 
 For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
 configuration transaction, per-edge gain/mute math, and verification sequence:

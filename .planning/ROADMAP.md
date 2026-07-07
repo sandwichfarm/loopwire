@@ -256,7 +256,7 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 13. Endpoint Kind Metadata | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 14. Multichannel Bus Creation | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 15. Power-User Surfaces | v0.3 | 1/1 | Complete | 2026-07-06 |
-| 16. Provider Settings UI | v0.3 | 0/1 | Not started | - |
+| 16. Provider Settings UI | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 17. End-to-End UI Harness | v0.3 | 0/1 | Not started | - |
 
 ---
@@ -301,7 +301,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 16.1 Provider settings cards + persistence, DSP candidate gating, JACK provider wiring into adapter creation and preflight options.
+- [x] 16.1 Provider settings cards + persistence, DSP candidate gating, JACK provider wiring into adapter creation and preflight options.
 
 ### Phase 17: End-to-End UI Harness (SEED-001)
 

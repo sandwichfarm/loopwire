@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import "./lib/tokens.css";
-  import { deviceStore, hostCatalog, runtimeService, themeService, uiStore } from "./lib/app";
+  import { deviceStore, hostCatalog, providerSettingsService, runtimeService, themeService, uiStore } from "./lib/app";
   import AppShell from "./lib/components/AppShell.svelte";
 
   onMount(() => {
     themeService.restore();
+    providerSettingsService.restore();
     void boot();
   });
 
