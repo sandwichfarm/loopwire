@@ -40,6 +40,12 @@ These notes describe source-tree progress. They are not a public release announc
   transactions, saved JACK provider settings feed native JACK live apply and preflight readiness, and enabling
   background restore writes the matching provider flags into the user-scoped systemd unit.
 
+- An end-to-end UI harness now drives the rebuilt shell through its core flows: `pnpm e2e:ui` builds the frontend,
+  serves it locally, and walks create/rename, add-source cabling, On/Off dimming, select/Delete, Hide Monitors,
+  reload persistence, and sidebar drag-reorder in headless Chromium, asserting DOM outcomes with honest preview-mode
+  scope (no host-apply claims). `pnpm e2e:shell` adds a read-only WebDriver smoke of the real Tauri binary via
+  `tauri-driver` + `WebKitWebDriver` where the host provides them.
+
 ## Supported In Source
 
 - Contributor source install with `pnpm install` and `pnpm check`.
@@ -769,3 +775,4 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm verify:docs`
 - `pnpm verify:vm`
 - `pnpm verify:tauri`
+- `pnpm e2e:ui` (host-dependent manual validation; see the developer e2e guide)

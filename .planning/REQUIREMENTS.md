@@ -129,8 +129,8 @@ Requirements for the next milestone.
 
 ### End-to-End Harness
 
-- [ ] **E2E-01**: A repeatable harness drives the built UI (WebDriver or DOM-level automation) through create/add/cable/toggle/delete flows and asserts outcomes.
-- [ ] **E2E-02**: The harness runs from one documented command and is wired into the repo verification surface.
+- [x] **E2E-01**: A repeatable harness drives the built UI (WebDriver or DOM-level automation) through create/add/cable/toggle/delete flows and asserts outcomes.
+- [x] **E2E-02**: The harness runs from one documented command and is wired into the repo verification surface.
 
 ### v0.3 Traceability
 
@@ -140,8 +140,8 @@ Requirements for the next milestone.
 | BUS-01 | Phase 14 | Complete |
 | SURF-01..SURF-03 | Phase 15 | Complete |
 | PROV-01..PROV-02 | Phase 16 | Complete |
-| E2E-01..E2E-02 | Phase 17 | Pending |
+| E2E-01..E2E-02 | Phase 17 | Complete |
 
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-07-07 after Phase 16 provider settings UI restoration*
+*Last updated: 2026-07-08 after Phase 17 end-to-end UI harness*

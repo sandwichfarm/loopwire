@@ -257,7 +257,7 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 14. Multichannel Bus Creation | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 15. Power-User Surfaces | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 16. Provider Settings UI | v0.3 | 1/1 | Complete | 2026-07-06 |
-| 17. End-to-End UI Harness | v0.3 | 0/1 | Not started | - |
+| 17. End-to-End UI Harness | v0.3 | 1/1 | Complete | 2026-07-08 |
 
 ---
 *Roadmap defined: 2026-07-03*
@@ -310,7 +310,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 17.1 E2E harness (WebDriver against the Tauri shell if available, DOM-level preview automation as documented fallback) + verify script + docs.
+- [x] 17.1 E2E harness (WebDriver against the Tauri shell if available, DOM-level preview automation as documented fallback) + verify script + docs.
 
 
 ## Backlog
