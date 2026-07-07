@@ -220,3 +220,77 @@ describe("graph editing", () => {
     expect(store.snapshot()).toEqual(before);
   });
 });
+
+describe("export/import (SURF-01)", () => {
+  it("round-trips a device through export and import as a new selected device", () => {
+    const { store, deviceId } = storeWithDevice();
+    store.addSource(deviceId, { label: "Studio Mic", deviceName: "alsa_input.usb-mic" });
+
+    const { result: exported, json } = store.exportDevice(deviceId);
+    expect(exported.ok).toBe(true);
+    expect(json).toBeDefined();
+    expect(JSON.parse(json!)).toMatchObject({ kind: "loopwire.configuration", version: 1 });
+
+    const { result, deviceId: importedId } = store.importDevice(json!);
+
+    expect(result.ok).toBe(true);
+    expect(importedId).toBeDefined();
+    expect(importedId).not.toBe(deviceId);
+    expect(store.snapshot().configurations).toHaveLength(2);
+    expect(store.snapshot().activeConfigurationId).toBe(importedId);
+
+    const imported = get(store.selectedDevice)!;
+    expect(imported.inputs.map((input) => input.label)).toContain("Studio Mic");
+    expect(imported.inputs.find((input) => input.label === "Studio Mic")?.deviceName).toBe("alsa_input.usb-mic");
+  });
+
+  it("rejects invalid import payloads and leaves state untouched", () => {
+    const { store } = storeWithDevice();
+    const before = store.snapshot();
+
+    const notJson = store.importDevice("not json");
+    expect(notJson.result.ok).toBe(false);
+    expect(notJson.deviceId).toBeUndefined();
+
+    const wrongKind = store.importDevice(JSON.stringify({ kind: "other", version: 1, configuration: {} }));
+    expect(wrongKind.result.ok).toBe(false);
+    if (!wrongKind.result.ok) {
+      expect(wrongKind.result.message).toContain("schema validation");
+    }
+
+    expect(store.snapshot()).toEqual(before);
+  });
+
+  it("reports unknown devices from exportDevice", () => {
+    const { store } = storeWithDevice();
+
+    const { result, json } = store.exportDevice("missing");
+
+    expect(result.ok).toBe(false);
+    expect(json).toBeUndefined();
+  });
+});
+
+describe("setHostBinding (SURF-03)", () => {
+  it("sets and clears an endpoint's host deviceName", () => {
+    const { store, deviceId } = storeWithDevice();
+
+    const set = store.setHostBinding(deviceId, "channels-1-2", "alsa_output.pci-0000_00_1f.3.analog-stereo");
+    expect(set.ok).toBe(true);
+    expect(get(store.selectedDevice)!.outputs[0]?.deviceName).toBe("alsa_output.pci-0000_00_1f.3.analog-stereo");
+
+    const cleared = store.setHostBinding(deviceId, "channels-1-2", "  ");
+    expect(cleared.ok).toBe(true);
+    expect(get(store.selectedDevice)!.outputs[0]?.deviceName).toBeUndefined();
+  });
+
+  it("fails for unknown endpoints without touching state", () => {
+    const { store, deviceId } = storeWithDevice();
+    const before = store.snapshot();
+
+    const result = store.setHostBinding(deviceId, "missing", "pw-port");
+
+    expect(result.ok).toBe(false);
+    expect(store.snapshot()).toEqual(before);
+  });
+});

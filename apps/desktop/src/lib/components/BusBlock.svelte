@@ -4,6 +4,7 @@
   import type { PortLevels } from "../stores/levelStore";
   import { levelFor } from "../stores/levelStore";
   import Meter from "./Meter.svelte";
+  import OptionsDisclosure from "./OptionsDisclosure.svelte";
   import PortDot from "./PortDot.svelte";
 
   interface Props {
@@ -11,12 +12,25 @@
     /** 1-based channel number of this bus's first channel across the device. */
     readonly startChannel: number;
     readonly selected: boolean;
+    readonly optionsExpanded: boolean;
     readonly levels: PortLevels;
     readonly onSelect: () => void;
+    readonly onToggleOptions: () => void;
+    readonly onHostBinding: (deviceName: string) => void;
     readonly onPortDrag: (endpointId: string, channel: number, event: PointerEvent) => void;
   }
 
-  const { endpoint, startChannel, selected, levels, onSelect, onPortDrag }: Props = $props();
+  const {
+    endpoint,
+    startChannel,
+    selected,
+    optionsExpanded,
+    levels,
+    onSelect,
+    onToggleOptions,
+    onHostBinding,
+    onPortDrag
+  }: Props = $props();
 </script>
 
 <!-- Cards are selectable composite widgets: focusable groups whose click/Enter selects; inner controls remain independently interactive. -->
@@ -71,6 +85,21 @@
       </div>
     {/each}
   </div>
+  <OptionsDisclosure expanded={optionsExpanded} onToggle={onToggleOptions}>
+    <label class="binding-row">
+      <span class="binding-label">Host binding</span>
+      <input
+        type="text"
+        class="binding-input"
+        value={endpoint.deviceName ?? ""}
+        placeholder="pw-link/JACK target port"
+        aria-label={`${endpoint.label} host binding`}
+        onclick={(event) => event.stopPropagation()}
+        onkeydown={(event) => event.stopPropagation()}
+        onchange={(event) => onHostBinding(event.currentTarget.value)}
+      />
+    </label>
+  </OptionsDisclosure>
 </article>
 
 <style>
@@ -126,5 +155,34 @@
     flex: 1;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+  }
+
+  .binding-row {
+    display: flex;
+    align-items: center;
+    gap: var(--lw-space-2);
+  }
+
+  .binding-label {
+    font: var(--lw-text-body);
+    color: var(--lw-text-secondary);
+    min-width: 44px;
+    flex: none;
+  }
+
+  .binding-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--lw-card-bg);
+    color: var(--lw-text-primary);
+    border: 1px solid var(--lw-hairline);
+    border-radius: 5px;
+    padding: 2px 6px;
+    font: var(--lw-text-subtitle);
+  }
+
+  .binding-input:focus-visible {
+    outline: none;
+    box-shadow: var(--lw-focus-ring);
   }
 </style>

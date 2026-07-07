@@ -20,10 +20,20 @@
     readonly onToggleEnabled: (enabled: boolean) => void;
     readonly onToggleOptions: () => void;
     readonly onVolume: (volume: number) => void;
+    readonly onHostBinding: (deviceName: string) => void;
   }
 
-  const { endpoint, selected, optionsExpanded, levels, onSelect, onToggleEnabled, onToggleOptions, onVolume }: Props =
-    $props();
+  const {
+    endpoint,
+    selected,
+    optionsExpanded,
+    levels,
+    onSelect,
+    onToggleEnabled,
+    onToggleOptions,
+    onVolume,
+    onHostBinding
+  }: Props = $props();
 
   const enabled = $derived(isEndpointEnabled(endpoint));
   const volume = $derived(Math.round(endpointVolume(endpoint) * 100));
@@ -78,6 +88,19 @@
       <span class="volume-label">Volume</span>
       <VolumeSlider value={volume} label={`${endpoint.label} volume`} onInput={onVolume} />
     </div>
+    <label class="binding-row">
+      <span class="binding-label">Host binding</span>
+      <input
+        type="text"
+        class="binding-input"
+        value={endpoint.deviceName ?? ""}
+        placeholder="alsa_output..."
+        aria-label={`${endpoint.label} host binding`}
+        onclick={(event) => event.stopPropagation()}
+        onkeydown={(event) => event.stopPropagation()}
+        onchange={(event) => onHostBinding(event.currentTarget.value)}
+      />
+    </label>
     <p class="note">Applied to the host device when this configuration is applied.</p>
   </OptionsDisclosure>
 </article>
@@ -176,6 +199,35 @@
     font: var(--lw-text-body);
     color: var(--lw-text-secondary);
     min-width: 44px;
+  }
+
+  .binding-row {
+    display: flex;
+    align-items: center;
+    gap: var(--lw-space-2);
+  }
+
+  .binding-label {
+    font: var(--lw-text-body);
+    color: var(--lw-text-secondary);
+    min-width: 44px;
+    flex: none;
+  }
+
+  .binding-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--lw-card-bg);
+    color: var(--lw-text-primary);
+    border: 1px solid var(--lw-hairline);
+    border-radius: 5px;
+    padding: 2px 6px;
+    font: var(--lw-text-subtitle);
+  }
+
+  .binding-input:focus-visible {
+    outline: none;
+    box-shadow: var(--lw-focus-ring);
   }
 
   .note {

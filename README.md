@@ -79,8 +79,10 @@ saved backend when preflight passes and falls back to preview (with the reason) 
 - restore the selected configuration on startup and re-verify it in the app runtime,
 - collect a redacted support bundle with backend detection, host diagnostics, autostart status, and a command ledger.
 
-Configuration export/import and the on-demand diagnostics panel were removed from the rebuilt desktop UI; their
-domain/CLI paths (`packages/core` persistence, support-bundle and verification scripts) remain available.
+Configuration export/import and the on-demand diagnostics panel are back in the rebuilt desktop UI: Settings →
+Transfer exports the selected device's versioned JSON and imports pasted exports as new devices, and a Diagnostics
+disclosure under Settings → Audio Backend lists each backend capability report. The matching domain/CLI paths
+(`packages/core` persistence, support-bundle and verification scripts) remain available.
 
 PipeWire live apply can create Loopwire-owned virtual output and monitor sinks, create virtual source nodes for
 unbound sources such as Pass-Thru (a sink applications play into whose monitor feeds the buses), link source ports,

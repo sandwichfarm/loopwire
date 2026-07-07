@@ -29,9 +29,10 @@ These notes describe source-tree progress. They are not a public release announc
 - Sources now carry a kind (app stream, capture hardware, system source, or pass-thru) recorded from host enumeration
   and persisted as an optional schema v2 field; card and sidebar icons, add-menu grouping, and the mute-when-capturing
   option derive from that kind, with the old label heuristics kept only as a fallback for pre-existing saved states.
-- Removed from the UI in this rebuild (domain/CLI paths remain): configuration export/import, the diagnostics panel,
-  manual host-binding fields, custom window chrome mode, and DSP/JACK provider settings; meters render silence until a
-  per-port level stream exists in the audio host layer.
+- Removed from the UI in this rebuild (domain/CLI paths remain): custom window chrome mode and DSP/JACK provider
+  settings; meters render silence until a per-port level stream exists in the audio host layer. Configuration
+  export/import, the diagnostics panel, and manual host-binding fields returned in a later power-user slice (see
+  the Settings Transfer/Diagnostics and host-binding entries below).
 
 ## Supported In Source
 
@@ -238,8 +239,13 @@ These notes describe source-tree progress. They are not a public release announc
   source/output pair and independent per-edge gain/mute state.
 - Desktop source, output, and monitor cards now support endpoint removal. Source/output removal prunes dependent routes,
   monitor removal clears hidden-monitor state, and the last output remains protected.
-- Desktop source and output cards now support manual host binding fields for PipeWire/JACK ports or PulseAudio stream
-  tokens that are not listed by backend enumeration.
+- Desktop source, output, and monitor cards now support manual host binding fields for PipeWire/JACK ports or
+  PulseAudio stream tokens that are not listed by backend enumeration; a successful binding edit re-applies the
+  selected device so the host graph tracks the override.
+- Settings now includes a Transfer section that exports the selected device's versioned configuration JSON (copying it
+  to the clipboard when available) and imports a pasted export as a new selected device, plus a Diagnostics disclosure
+  under Audio Backend listing each backend capability report: availability, mixing scope, per-operation states, and
+  probe diagnostics.
 - Monitor visibility is now scoped per configuration, so hiding a monitor in one workspace does not hide same-id
   monitors in other workspaces.
 - Hidden monitor cards now move into a compact recovery tray with `Show` actions instead of staying dimmed in the main

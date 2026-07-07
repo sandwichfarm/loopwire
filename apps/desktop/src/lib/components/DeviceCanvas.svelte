@@ -212,6 +212,16 @@
     }
   }
 
+  /** Manual host binding is a structural edit: the host graph must track the new port name. */
+  function setHostBinding(endpointId: string, deviceName: string): void {
+    const result = deviceStore.setHostBinding(device.id, endpointId, deviceName);
+    reportIfFailed(result);
+
+    if (result.ok) {
+      reapplySelectedDevice();
+    }
+  }
+
   const sourceMenuSections = $derived.by((): readonly MenuSection[] => {
     const existingIds = new Set(device.inputs.map((input) => input.id));
     const existingLabels = new Set(device.inputs.map((input) => input.label.toLowerCase()));
@@ -484,6 +494,7 @@
           onToggleOptions={() => uiStore.toggleOptionsExpanded(endpoint.id)}
           onVolume={(volume) => reportIfFailed(deviceStore.setSourceVolume(device.id, endpoint.id, volume / 100))}
           onMuteWhenCapturing={(value) => reportIfFailed(deviceStore.setMuteWhenCapturing(device.id, endpoint.id, value))}
+          onHostBinding={(deviceName) => setHostBinding(endpoint.id, deviceName)}
           onPortDrag={(endpointId, channel, event) => startPortDrag(endpointId, channel, "source-out", event)}
         />
       {/each}
@@ -494,8 +505,11 @@
           {endpoint}
           startChannel={busStartChannels.get(endpoint.id) ?? 1}
           selected={$canvasSelection?.kind === "endpoint" && $canvasSelection.endpointId === endpoint.id}
+          optionsExpanded={$expandedOptions.has(endpoint.id)}
           levels={$levelStore}
           onSelect={() => uiStore.selectEndpoint(endpoint.id)}
+          onToggleOptions={() => uiStore.toggleOptionsExpanded(endpoint.id)}
+          onHostBinding={(deviceName) => setHostBinding(endpoint.id, deviceName)}
           onPortDrag={(endpointId, channel, event) => startPortDrag(endpointId, channel, "bus-out", event)}
         />
       {/each}
@@ -519,6 +533,7 @@
           }}
             onToggleOptions={() => uiStore.toggleOptionsExpanded(endpoint.id)}
             onVolume={(volume) => reportIfFailed(deviceStore.setSourceVolume(device.id, endpoint.id, volume / 100))}
+            onHostBinding={(deviceName) => setHostBinding(endpoint.id, deviceName)}
           />
         {/each}
       </div>

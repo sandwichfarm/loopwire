@@ -118,9 +118,9 @@ Requirements for the next milestone.
 
 ### Power-User Surfaces
 
-- [ ] **SURF-01**: Configurations can be exported and imported from the Settings dialog using the versioned JSON format.
-- [ ] **SURF-02**: A diagnostics surface shows backend capability reports and probe results on demand.
-- [ ] **SURF-03**: Sources, buses, and monitors expose a manual host-binding field in card Options for unlisted host ports.
+- [x] **SURF-01**: Configurations can be exported and imported from the Settings dialog using the versioned JSON format.
+- [x] **SURF-02**: A diagnostics surface shows backend capability reports and probe results on demand.
+- [x] **SURF-03**: Sources, buses, and monitors expose a manual host-binding field in card Options for unlisted host ports.
 
 ### Provider Settings
 
@@ -138,7 +138,7 @@ Requirements for the next milestone.
 |-------------|-------|--------|
 | META-01..META-02 | Phase 13 | Complete |
 | BUS-01 | Phase 14 | Complete |
-| SURF-01..SURF-03 | Phase 15 | Pending |
+| SURF-01..SURF-03 | Phase 15 | Complete |
 | PROV-01..PROV-02 | Phase 16 | Pending |
 | E2E-01..E2E-02 | Phase 17 | Pending |
 

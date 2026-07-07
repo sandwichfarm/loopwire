@@ -6,7 +6,9 @@ import {
   addRouteToConfiguration,
   createConfiguration,
   createEmptyState,
+  exportConfiguration,
   findActiveConfiguration,
+  importConfiguration,
   moveConfiguration,
   removeConfiguration,
   removeInputSourceFromConfiguration,
@@ -18,6 +20,7 @@ import {
   setConfigurationEnabled,
   setConfigurationMuted,
   setConfigurationVolume,
+  setEndpointDeviceName,
   setEndpointEnabled,
   setEndpointMuteWhenCapturing,
   setEndpointVolume,
@@ -342,6 +345,45 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     return mutate((current, now) => setEndpointMuteWhenCapturing(current, deviceId, endpointId, muteWhenCapturing, now).state);
   }
 
+  /** Manual host-binding override: sets an endpoint's host `deviceName`; an empty value clears it (SURF-03). */
+  function setHostBinding(deviceId: string, endpointId: string, deviceName: string): DeviceActionResult {
+    return mutate((current, now) => setEndpointDeviceName(current, deviceId, endpointId, deviceName, now).state);
+  }
+
+  /** Serializes a device to the versioned configuration export JSON (SURF-01). */
+  function exportDevice(deviceId: string): { readonly result: DeviceActionResult; readonly json?: string } {
+    const configuration = get(state).configurations.find((candidate) => candidate.id === deviceId);
+
+    if (!configuration) {
+      return { result: { ok: false, message: `Unknown Loopwire device: ${deviceId}` } };
+    }
+
+    try {
+      return { result: { ok: true }, json: exportConfiguration(configuration) };
+    } catch (error) {
+      return {
+        result: { ok: false, message: error instanceof Error ? error.message : "Loopwire could not export this device." }
+      };
+    }
+  }
+
+  /** Imports a configuration export as a new device and selects it; failures leave state untouched (SURF-01). */
+  function importDevice(raw: string): { readonly result: DeviceActionResult; readonly deviceId?: string } {
+    let deviceId: string | undefined;
+    const result = mutate((current, now) => {
+      const imported = importConfiguration(current, raw, now);
+
+      if (!imported.ok) {
+        throw new Error(imported.reason);
+      }
+
+      deviceId = imported.configuration.id;
+      return { ...imported.state, activeConfigurationId: imported.configuration.id, appliedAt: now };
+    });
+
+    return deviceId === undefined ? { result } : { result, deviceId };
+  }
+
   return {
     state: { subscribe: state.subscribe },
     devices,
@@ -368,7 +410,10 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     setSourceEnabled,
     setSourceVolume,
     sourceVolume,
-    setMuteWhenCapturing
+    setMuteWhenCapturing,
+    setHostBinding,
+    exportDevice,
+    importDevice
   };
 }
 

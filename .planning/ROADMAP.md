@@ -255,7 +255,7 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 12. Published Release and VM Proof | v0.2 | 1/1 | In Progress | - |
 | 13. Endpoint Kind Metadata | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 14. Multichannel Bus Creation | v0.3 | 1/1 | Complete | 2026-07-06 |
-| 15. Power-User Surfaces | v0.3 | 0/1 | Not started | - |
+| 15. Power-User Surfaces | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 16. Provider Settings UI | v0.3 | 0/1 | Not started | - |
 | 17. End-to-End UI Harness | v0.3 | 0/1 | Not started | - |
 
@@ -292,7 +292,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 15.1 Settings export/import card, diagnostics disclosure from capability reports, host-binding field in card Options.
+- [x] 15.1 Settings export/import card, diagnostics disclosure from capability reports, host-binding field in card Options.
 
 ### Phase 16: Provider Settings UI (SEED-003)
 

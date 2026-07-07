@@ -115,8 +115,11 @@ Output Channels; the buses dock to the right edge and the button becomes **Show 
 monitors, their host sink bindings, and their cables are preserved and reappear on **Show Monitors**.
 
 Monitors added from the playback-device menu keep the host sink name they were created from, so supported backend
-adapters can route monitor audio to that physical output on apply. Manual host-binding overrides are not part of the
-rebuilt UI yet; export the state file and edit `deviceName` if you need an unlisted sink (tracked as a UI gap).
+adapters can route monitor audio to that physical output on apply. Manual host-binding overrides live in each card's
+**Options** strip: the **Host binding** field on source cards, output-channel buses, and monitor cards accepts an
+unlisted host port or sink name (a `pw-link`/JACK port for sources and buses, an `alsa_output...` sink for monitors).
+Clearing the field removes the override, and a successful edit re-applies the selected device so the host graph tracks
+the new binding.
 
 ## Persistence & Export Format
 
@@ -124,8 +127,9 @@ Devices persist in schema v2, which adds optional device controls (`enabled`, `m
 (`enabled`, `volume`, `muteWhenCapturing`) plus output→monitor routes on top of schema v1. Older payloads migrate
 forward automatically.
 
-Configuration exports use a versioned JSON wrapper (import/export currently has no UI surface; the format remains
-supported by `@loopwire/core` and the CLI scripts):
+Configuration exports use a versioned JSON wrapper. **Settings → Transfer** exports the selected device to this format
+(copying it to the clipboard when available) and imports a pasted export as a new device; the same format remains
+supported by `@loopwire/core` and the CLI scripts:
 
 ```json
 {

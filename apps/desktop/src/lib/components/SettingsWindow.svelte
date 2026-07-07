@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import { deviceStore, runtimeService, themeService, hostCatalog, uiStore } from "../app";
+  import { deviceStore, reapplySelectedDevice, runtimeService, themeService, hostCatalog, uiStore } from "../app";
   import { displayBackendName } from "../services/runtime";
   import { hasTauriRuntime } from "../services/statePersistence";
   import type { ThemeMode } from "../services/theme";
@@ -12,8 +12,18 @@
   const { onClose }: Props = $props();
 
   const { mode: themeMode } = themeService;
-  const { backendCandidates, detectionNote, lastApplyMode, status, note, activity, busy, startup, backgroundStartup } =
-    runtimeService;
+  const {
+    backendCandidates,
+    capabilityReports,
+    detectionNote,
+    lastApplyMode,
+    status,
+    note,
+    activity,
+    busy,
+    startup,
+    backgroundStartup
+  } = runtimeService;
   const appState = deviceStore.state;
 
   const desktop = hasTauriRuntime();
@@ -44,6 +54,43 @@
     }
   }
 
+  let exportJson = $state("");
+  let importJson = $state("");
+
+  function exportActiveDevice(): void {
+    const deviceId = deviceStore.snapshot().activeConfigurationId;
+
+    if (!deviceId) {
+      uiStore.pushToast("error", "Select a device before exporting.");
+      return;
+    }
+
+    const { result, json } = deviceStore.exportDevice(deviceId);
+
+    if (!result.ok || !json) {
+      uiStore.pushToast("error", result.ok ? "Export produced no JSON." : result.message);
+      return;
+    }
+
+    exportJson = json;
+
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(json).catch(() => undefined);
+    }
+  }
+
+  function importDevice(): void {
+    const { result } = deviceStore.importDevice(importJson);
+
+    if (!result.ok) {
+      uiStore.pushToast("error", result.message);
+      return;
+    }
+
+    importJson = "";
+    // The imported device becomes the selection, so the host must track it.
+    reapplySelectedDevice();
+  }
 </script>
 
 <div
@@ -132,6 +179,71 @@
           </ul>
         </details>
       {/if}
+      <details class="ledger" data-testid="diagnostics">
+        <summary>Diagnostics ({$capabilityReports.length} capability {$capabilityReports.length === 1 ? "report" : "reports"})</summary>
+        {#if $capabilityReports.length === 0}
+          <p class="caption">
+            No backend capability reports yet — run the desktop shell so host detection can probe PipeWire, PulseAudio,
+            JACK, and ALSA.
+          </p>
+        {:else}
+          {#each $capabilityReports as report (report.kind)}
+            <div class="diagnostic-report">
+              <p class="diagnostic-title">
+                <strong>{report.displayName}</strong>
+                <span class="badge">{report.availability}</span>
+              </p>
+              <p class="caption">Mixing: {report.mixing.controlScope}</p>
+              <ul class="diagnostic-ops">
+                {#each Object.entries(report.operations) as [operation, opState] (operation)}
+                  <li><span class="op">{operation}</span><span class="op-message">{opState}</span></li>
+                {/each}
+              </ul>
+              {#if report.diagnostics.length > 0}
+                <ul>
+                  {#each report.diagnostics as diagnostic, index (index)}
+                    <li>
+                      <span class="op">{diagnostic.level}</span>
+                      <span class="op-message">{diagnostic.message}</span>
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            </div>
+          {/each}
+        {/if}
+      </details>
+    </section>
+
+    <section aria-labelledby="settings-transfer">
+      <h3 id="settings-transfer">Transfer</h3>
+      <p class="caption">
+        Export the selected device as versioned JSON (also copied to the clipboard when available), or paste an export
+        to import it as a new device.
+      </p>
+      <div class="transfer-actions">
+        <button type="button" class="mode" onclick={exportActiveDevice}>Export selected device</button>
+      </div>
+      {#if exportJson}
+        <textarea
+          class="transfer-text"
+          readonly
+          rows="6"
+          aria-label="Exported device JSON"
+          value={exportJson}
+          onclick={(event) => event.currentTarget.select()}
+        ></textarea>
+      {/if}
+      <textarea
+        class="transfer-text"
+        rows="4"
+        aria-label="Device JSON to import"
+        placeholder={'Paste a "loopwire.configuration" export here'}
+        bind:value={importJson}
+      ></textarea>
+      <div class="transfer-actions">
+        <button type="button" class="mode" disabled={!importJson.trim()} onclick={importDevice}>Import device</button>
+      </div>
     </section>
 
     <section aria-labelledby="settings-startup">
@@ -400,5 +512,50 @@
     text-transform: capitalize;
     color: var(--lw-text-primary);
     margin-right: 6px;
+  }
+
+  .diagnostic-report {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .diagnostic-title {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: var(--lw-space-2);
+    color: var(--lw-text-primary);
+  }
+
+  .diagnostic-ops {
+    margin: 0;
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .transfer-actions {
+    display: flex;
+    gap: var(--lw-space-2);
+  }
+
+  .transfer-text {
+    width: 100%;
+    resize: vertical;
+    background: var(--lw-card-bg);
+    color: var(--lw-text-primary);
+    border: 1px solid var(--lw-hairline);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font: var(--lw-text-subtitle);
+    font-family: monospace;
+  }
+
+  .transfer-text:focus-visible {
+    outline: none;
+    box-shadow: var(--lw-focus-ring);
   }
 </style>
