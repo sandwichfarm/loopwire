@@ -1,6 +1,7 @@
 ---
 id: SEED-001
-status: dormant
+status: sprouted
+sprouted_into: v0.3 Seed Harvest (phases 13-17)
 planted: 2026-07-07T13:56:16+02:00
 planted_during: v0.2 Production Audio Routing (post-Phase-11 desktop UI rebuild)
 trigger_when: when planning UI test infrastructure or an e2e/quality milestone

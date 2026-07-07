@@ -253,10 +253,65 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 10. Live Apply Consent and Runtime Wiring | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 11. True Per-Edge Matrix Semantics | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 12. Published Release and VM Proof | v0.2 | 1/1 | In Progress | - |
+| 13. Endpoint Kind Metadata | v0.3 | 0/1 | Not started | - |
+| 14. Multichannel Bus Creation | v0.3 | 0/1 | Not started | - |
+| 15. Power-User Surfaces | v0.3 | 0/1 | Not started | - |
+| 16. Provider Settings UI | v0.3 | 0/1 | Not started | - |
+| 17. End-to-End UI Harness | v0.3 | 0/1 | Not started | - |
 
 ---
 *Roadmap defined: 2026-07-03*
 *Last updated: 2026-07-03 after desktop backend detection and Phase 12 evidence gating*
+
+## Milestone v0.3: Seed Harvest
+
+Completes the five seeds planted during the desktop UI rebuild. v0.2 Phase 12 (published release + VM proof) remains open in parallel, blocked on signing/publishing infrastructure.
+
+### Phase 13: Endpoint Kind Metadata (SEED-005)
+
+**Goal:** Endpoint kind (app, capture, system, pass-thru) flows from enumeration through the domain schema into icons, menu grouping, and per-kind options, replacing label heuristics.
+**Requirements:** META-01, META-02
+**Plans:** 1 plan
+
+Plans:
+- [ ] 13.1 Add kind to AudioEndpoint (persisted, migrated), populate from hostCatalog enumeration, consume in DeviceCanvas/AppShell icon + option logic.
+
+### Phase 14: Multichannel Bus Creation (SEED-004)
+
+**Goal:** The Output Channels add control can create mono, stereo, and quad buses with correct labels and auto-cabling.
+**Requirements:** BUS-01
+**Plans:** 1 plan
+
+Plans:
+- [ ] 14.1 Bus add menu (mono/stereo/quad), channel-count-aware bus labels/cabling, adapter layout coverage.
+
+### Phase 15: Power-User Surfaces (SEED-002)
+
+**Goal:** Export/import, backend diagnostics, and manual host-binding fields return to the rebuilt UI.
+**Requirements:** SURF-01, SURF-02, SURF-03
+**Plans:** 1 plan
+
+Plans:
+- [ ] 15.1 Settings export/import card, diagnostics disclosure from capability reports, host-binding field in card Options.
+
+### Phase 16: Provider Settings UI (SEED-003)
+
+**Goal:** DSP and JACK provider settings are configurable in Settings, persisted, and wired into backend availability, preflight readiness, and live apply.
+**Requirements:** PROV-01, PROV-02
+**Plans:** 1 plan
+
+Plans:
+- [ ] 16.1 Provider settings cards + persistence, DSP candidate gating, JACK provider wiring into adapter creation and preflight options.
+
+### Phase 17: End-to-End UI Harness (SEED-001)
+
+**Goal:** A documented, repeatable harness drives the real UI through core flows and asserts outcomes; wired into repo verification.
+**Requirements:** E2E-01, E2E-02
+**Plans:** 1 plan
+
+Plans:
+- [ ] 17.1 E2E harness (WebDriver against the Tauri shell if available, DOM-level preview automation as documented fallback) + verify script + docs.
+
 
 ## Backlog
 

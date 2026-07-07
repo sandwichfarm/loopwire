@@ -17,14 +17,18 @@ verified against the host audio graph.
 
 ### Validated
 
-(None yet. The project is greenfield.)
+- [x] Production audio routing with native PipeWire graph support; device selection applies live with preflight and rollback (v0.2, phases 8-11 + UI rebuild).
+- [x] Monitors bind to physical output devices while keeping the reversible Loopwire-owned monitor path (v0.2 Phase 8).
+- [x] True per-edge mixing semantics rather than stream-level sink-input controls only (v0.2 Phase 11).
 
 ### Active
 
-- [ ] Ship production audio routing with native PipeWire graph support and explicit live-apply consent.
-- [ ] Bind monitors to physical output devices without losing the reversible Loopwire-owned monitor path.
-- [ ] Support true per-edge mixing semantics rather than stream-level sink-input controls only.
-- [ ] Prove release artifacts through published install smoke and VM evidence.
+- [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
+- [ ] Endpoint kind metadata drives icons, menu grouping, and per-kind options instead of label heuristics (SEED-005).
+- [ ] Buses can be created with a chosen channel count, not only stereo pairs (SEED-004).
+- [ ] Export/import, backend diagnostics, and manual host bindings return to the rebuilt UI (SEED-002).
+- [ ] DSP/JACK provider settings are configurable from the desktop Settings dialog (SEED-003).
+- [ ] A repeatable end-to-end harness drives the real UI and asserts host behavior (SEED-001).
 
 ### Out of Scope
 
@@ -58,16 +62,35 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 | Use VitePress for docs/site | Explicit user requirement and strong static deployment path | Pending |
 | Keep PipeWire as reference backend | Modern Linux desktop audio graph and best first target | Pending |
 
-## Current Milestone: v0.2 Production Audio Routing
+## Current Milestone: v0.3 Seed Harvest
 
-**Goal:** Move from a verified foundation to credible production audio routing by closing the remaining backend gaps.
+**Goal:** Complete the five planted seeds from the UI rebuild: reliable endpoint metadata, multichannel buses, restored power-user surfaces, provider settings, and a real end-to-end test harness.
 
 **Target features:**
-- Physical monitor device binding.
-- Native PipeWire existing-port apply, verify, and rollback.
-- Explicit live backend apply consent in the desktop.
-- True per-edge mixing semantics.
-- Published release and VM proof.
+- Endpoint kind metadata (app/capture/system/pass-thru) flowing from enumeration into icons, menus, and options (SEED-005).
+- Bus creation with a chosen channel count (SEED-004).
+- Restored export/import UI, backend diagnostics surface, and manual host-binding fields (SEED-002).
+- DSP/JACK provider settings in the Settings dialog wired into restore and live apply (SEED-003).
+- Automated end-to-end harness that drives the real UI (SEED-001).
+
+**Carried forward:** v0.2 Phase 12 (published release + VM proof) stays open until signing/publishing infrastructure is available.
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? -> Move to Out of Scope with reason
+2. Requirements validated? -> Move to Validated with phase reference
+3. New requirements emerged? -> Add to Active
+4. Decisions to log? -> Add to Key Decisions
+5. "What This Is" still accurate? -> Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check - still the right priority?
+3. Audit Out of Scope - reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after starting v0.2 production routing*
+*Last updated: 2026-07-06 after starting v0.3 Seed Harvest*

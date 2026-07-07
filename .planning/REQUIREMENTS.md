@@ -105,6 +105,43 @@ Requirements for the next milestone.
 - Mapped to phases: 34
 - Unmapped: 0
 
+## v0.3 Requirements (Seed Harvest)
+
+### Endpoint Metadata
+
+- [ ] **META-01**: AudioEndpoint carries a kind (app, capture, system, pass-thru) populated by enumeration and persisted through schema migration.
+- [ ] **META-02**: Icons, add-menu grouping, and per-kind options (mute-when-capturing) derive from endpoint kind, not label heuristics.
+
+### Multichannel Buses
+
+- [ ] **BUS-01**: The Output Channels add control offers mono, stereo, and quad bus creation with correct channel labels and cabling.
+
+### Power-User Surfaces
+
+- [ ] **SURF-01**: Configurations can be exported and imported from the Settings dialog using the versioned JSON format.
+- [ ] **SURF-02**: A diagnostics surface shows backend capability reports and probe results on demand.
+- [ ] **SURF-03**: Sources, buses, and monitors expose a manual host-binding field in card Options for unlisted host ports.
+
+### Provider Settings
+
+- [ ] **PROV-01**: DSP provider command, mode, timeout, and frame count are configurable in Settings, persisted, and gate DSP backend availability.
+- [ ] **PROV-02**: JACK provider command, timeout, delegate mode, and readiness delay are configurable in Settings and feed live apply and preflight readiness.
+
+### End-to-End Harness
+
+- [ ] **E2E-01**: A repeatable harness drives the built UI (WebDriver or DOM-level automation) through create/add/cable/toggle/delete flows and asserts outcomes.
+- [ ] **E2E-02**: The harness runs from one documented command and is wired into the repo verification surface.
+
+### v0.3 Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| META-01..META-02 | Phase 13 | Pending |
+| BUS-01 | Phase 14 | Pending |
+| SURF-01..SURF-03 | Phase 15 | Pending |
+| PROV-01..PROV-02 | Phase 16 | Pending |
+| E2E-01..E2E-02 | Phase 17 | Pending |
+
 ---
 *Requirements defined: 2026-07-03*
 *Last updated: 2026-07-04 after support bundle backend summaries*
