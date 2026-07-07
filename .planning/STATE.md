@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.3
 milestone_name: Seed Harvest
-status: planning
+status: Complete
 last_updated: "2026-07-07T21:08:57.990Z"
 last_activity: 2026-07-07
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 5
+  completed_plans: 5
   percent: 0
 ---
 
@@ -24,10 +24,11 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 17 of 17 complete (milestone v0.3 shipped 2026-07-08)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-07 — Milestone v0.3 started
+Status: Milestone complete — run /gsd:new-milestone to start the next cycle
+Last activity: 2026-07-08 — v0.3 Seed Harvest archived
+
 
 ## Blockers / Concerns
 

@@ -17,6 +17,11 @@ verified against the host audio graph.
 
 ### Validated
 
+- [x] Endpoint kind metadata drives icons, menu grouping, and per-kind options (v0.3 Phase 13).
+- [x] Buses can be created as mono/stereo/quad (v0.3 Phase 14).
+- [x] Export/import, backend diagnostics, and manual host bindings restored in the UI (v0.3 Phase 15).
+- [x] DSP/JACK provider settings configurable in Settings and wired into restore/live apply (v0.3 Phase 16).
+- [x] Two-path end-to-end harness: browser suite + real-shell WebDriver smoke (v0.3 Phase 17).
 - [x] Production audio routing with native PipeWire graph support; device selection applies live with preflight and rollback (v0.2, phases 8-11 + UI rebuild).
 - [x] Monitors bind to physical output devices while keeping the reversible Loopwire-owned monitor path (v0.2 Phase 8).
 - [x] True per-edge mixing semantics rather than stream-level sink-input controls only (v0.2 Phase 11).
@@ -24,11 +29,6 @@ verified against the host audio graph.
 ### Active
 
 - [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
-- [ ] Endpoint kind metadata drives icons, menu grouping, and per-kind options instead of label heuristics (SEED-005).
-- [ ] Buses can be created with a chosen channel count, not only stereo pairs (SEED-004).
-- [ ] Export/import, backend diagnostics, and manual host bindings return to the rebuilt UI (SEED-002).
-- [ ] DSP/JACK provider settings are configurable from the desktop Settings dialog (SEED-003).
-- [ ] A repeatable end-to-end harness drives the real UI and asserts host behavior (SEED-001).
 
 ### Out of Scope
 
@@ -62,7 +62,13 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 | Use VitePress for docs/site | Explicit user requirement and strong static deployment path | Pending |
 | Keep PipeWire as reference backend | Modern Linux desktop audio graph and best first target | Pending |
 
-## Current Milestone: v0.3 Seed Harvest
+## Current State
+
+**Shipped:** v0.3 Seed Harvest (2026-07-08) — all five UI-rebuild seeds complete; `pnpm check`, `pnpm e2e:ui` (9/9),
+and `pnpm e2e:shell` (3/3) green. Open carry-over: v0.2 Phase 12 (published release + VM proof). Next milestone not
+yet defined — see `.planning/ROADMAP.md` Backlog (999.x) and remaining seeds for candidates.
+
+## Previous Milestone: v0.3 Seed Harvest
 
 **Goal:** Complete the five planted seeds from the UI rebuild: reliable endpoint metadata, multichannel buses, restored power-user surfaces, provider settings, and a real end-to-end test harness.
 
@@ -93,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-06 after starting v0.3 Seed Harvest*
+*Last updated: 2026-07-08 after shipping v0.3 Seed Harvest*

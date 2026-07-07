@@ -263,55 +263,9 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 *Roadmap defined: 2026-07-03*
 *Last updated: 2026-07-03 after desktop backend detection and Phase 12 evidence gating*
 
-## Milestone v0.3: Seed Harvest
+## Milestone v0.3: Seed Harvest (SHIPPED 2026-07-08)
 
-Completes the five seeds planted during the desktop UI rebuild. v0.2 Phase 12 (published release + VM proof) remains open in parallel, blocked on signing/publishing infrastructure.
-
-### Phase 13: Endpoint Kind Metadata (SEED-005)
-
-**Goal:** Endpoint kind (app, capture, system, pass-thru) flows from enumeration through the domain schema into icons, menu grouping, and per-kind options, replacing label heuristics.
-**Requirements:** META-01, META-02
-**Plans:** 1 plan
-
-Plans:
-- [x] 13.1 Add kind to AudioEndpoint (persisted, migrated), populate from hostCatalog enumeration, consume in DeviceCanvas/AppShell icon + option logic.
-
-### Phase 14: Multichannel Bus Creation (SEED-004)
-
-**Goal:** The Output Channels add control can create mono, stereo, and quad buses with correct labels and auto-cabling.
-**Requirements:** BUS-01
-**Plans:** 1 plan
-
-Plans:
-- [x] 14.1 Bus add menu (mono/stereo/quad), channel-count-aware bus labels/cabling, adapter layout coverage.
-
-### Phase 15: Power-User Surfaces (SEED-002)
-
-**Goal:** Export/import, backend diagnostics, and manual host-binding fields return to the rebuilt UI.
-**Requirements:** SURF-01, SURF-02, SURF-03
-**Plans:** 1 plan
-
-Plans:
-- [x] 15.1 Settings export/import card, diagnostics disclosure from capability reports, host-binding field in card Options.
-
-### Phase 16: Provider Settings UI (SEED-003)
-
-**Goal:** DSP and JACK provider settings are configurable in Settings, persisted, and wired into backend availability, preflight readiness, and live apply.
-**Requirements:** PROV-01, PROV-02
-**Plans:** 1 plan
-
-Plans:
-- [x] 16.1 Provider settings cards + persistence, DSP candidate gating, JACK provider wiring into adapter creation and preflight options.
-
-### Phase 17: End-to-End UI Harness (SEED-001)
-
-**Goal:** A documented, repeatable harness drives the real UI through core flows and asserts outcomes; wired into repo verification.
-**Requirements:** E2E-01, E2E-02
-**Plans:** 1 plan
-
-Plans:
-- [x] 17.1 E2E harness (WebDriver against the Tauri shell if available, DOM-level preview automation as documented fallback) + verify script + docs.
-
+Phases 13-17 complete (endpoint kind metadata, multichannel buses, power-user surfaces, provider settings, e2e harness). Details: [.planning/milestones/v0.3-ROADMAP.md](milestones/v0.3-ROADMAP.md)
 
 ## Backlog
 
