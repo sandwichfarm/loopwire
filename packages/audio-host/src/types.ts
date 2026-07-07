@@ -105,6 +105,9 @@ export interface AudioPlaybackDeviceReport {
   readonly commands: readonly CommandProbe[];
 }
 
+/** Source classification a probe can report: app stream, capture hardware, or system source. */
+export type AudioSourceKind = "app" | "capture" | "system";
+
 export interface AudioInputSource {
   readonly backend: AudioBackendKind;
   readonly sourceId: string;
@@ -112,6 +115,8 @@ export interface AudioInputSource {
   readonly label: string;
   readonly detail?: string;
   readonly channels: number;
+  /** Set only when the probe actually distinguishes the source kind; otherwise absent. */
+  readonly kind?: AudioSourceKind;
 }
 
 export interface AudioInputSourceReport {

@@ -22,6 +22,9 @@ These notes describe source-tree progress. They are not a public release announc
 - Explicit bus → monitor cables now drive native PipeWire monitor linking (unwired buses stay silent to that monitor);
   JACK/PulseAudio tolerate those routes and keep their implicit monitor behavior. Routes touching an Off card apply as
   muted (disconnected), Off devices switch in preview, and muted routes whose host ports are gone no longer fail apply.
+- Sources now carry a kind (app stream, capture hardware, system source, or pass-thru) recorded from host enumeration
+  and persisted as an optional schema v2 field; card and sidebar icons, add-menu grouping, and the mute-when-capturing
+  option derive from that kind, with the old label heuristics kept only as a fallback for pre-existing saved states.
 - Removed from the UI in this rebuild (domain/CLI paths remain): configuration export/import, the diagnostics panel,
   manual host-binding fields, custom window chrome mode, and DSP/JACK provider settings; meters render silence until a
   per-port level stream exists in the audio host layer.

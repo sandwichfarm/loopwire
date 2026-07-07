@@ -33,6 +33,10 @@ From the canvas you can:
 New devices start with a default graph: a stereo **Pass-Thru** source wired 1→1, 2→2 into a **Channels 1 & 2** bus.
 Devices are named `Loopwire Device N` by default.
 
+Each source carries a kind (app stream, capture hardware, system source, or pass-thru) recorded from host enumeration;
+icons, add-menu grouping, and the *Mute when capturing* option derive from that kind, with label heuristics only as a
+fallback for sources saved before kinds existed.
+
 Every mutation is saved to Loopwire state immediately. Host audio changes only through the explicit apply path
 described below. Meters render silent tracks until the audio host layer provides per-port levels — Loopwire does not
 simulate levels it cannot observe.

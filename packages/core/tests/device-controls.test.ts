@@ -241,3 +241,39 @@ describe("schema v2 migration", () => {
     expect(updated.configuration.routes).toEqual(configuration.routes);
   });
 });
+
+describe("endpoint kind", () => {
+  it("round-trips endpoint kind through serialize and restore", () => {
+    const { state } = createConfiguration(
+      createEmptyState(at),
+      {
+        name: "Kinds",
+        inputs: [
+          { id: "pass-thru", label: "Pass-Thru", role: "input", channels: 2, kind: "pass-thru" },
+          { id: "browser", label: "Browser", role: "input", channels: 2, kind: "app" },
+          { id: "mic", label: "Studio Mic", role: "input", channels: 2 }
+        ]
+      },
+      at
+    );
+
+    const restored = restoreState(serializeState(state));
+
+    expect(restored.ok).toBe(true);
+    const inputs = restored.state.configurations[0]?.inputs ?? [];
+    expect(inputs.map((input) => input.kind)).toEqual(["pass-thru", "app", undefined]);
+  });
+
+  it("drops unknown kind values instead of rejecting the state", () => {
+    const state = createDefaultState(at);
+    const payload = JSON.parse(serializeState(state)) as {
+      configurations: { inputs: Record<string, unknown>[] }[];
+    };
+    payload.configurations[0]!.inputs[0]!.kind = "bogus";
+
+    const restored = restoreState(JSON.stringify(payload));
+
+    expect(restored.ok).toBe(true);
+    expect(restored.state.configurations[0]?.inputs[0]?.kind).toBeUndefined();
+  });
+});

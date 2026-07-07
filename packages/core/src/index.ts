@@ -100,6 +100,7 @@ export {
 } from "./dsp-mix.js";
 export {
   audioBackendKinds,
+  endpointKinds,
   legacySchemaVersionV1,
   schemaVersion,
   type AudioBackendKind,
@@ -108,6 +109,7 @@ export {
   type BackendAvailability,
   type BackendCandidate,
   type BackendDecision,
+  type EndpointKind,
   type EndpointRole,
   type LoopwireConfiguration,
   type LoopwireState,

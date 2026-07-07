@@ -3,6 +3,7 @@
   import type { AudioEndpoint, LoopwireConfiguration } from "@loopwire/core";
   import { isEndpointEnabled } from "@loopwire/core";
   import { deviceStore, hostCatalog, levelStore, reapplySelectedDevice, uiStore } from "../app";
+  import type { SourceCatalogEntry } from "../services/hostCatalog";
   import {
     cablePath,
     channelCablesFor,
@@ -171,6 +172,11 @@
   });
 
   function sourceIcon(endpoint: AudioEndpoint): IconName {
+    if (endpoint.kind) {
+      return endpoint.kind === "pass-thru" ? "loop" : endpoint.kind === "capture" ? "mic" : "app";
+    }
+
+    // Legacy states without kind metadata fall back to id/label heuristics.
     if (endpoint.id === "pass-thru") {
       return "loop";
     }
@@ -180,6 +186,24 @@
     }
 
     return "app";
+  }
+
+  function isAppSource(endpoint: AudioEndpoint): boolean {
+    if (endpoint.kind) {
+      return endpoint.kind === "app";
+    }
+
+    // Legacy states without kind metadata fall back to the pass-thru id heuristic.
+    return endpoint.id !== "pass-thru";
+  }
+
+  function menuSourceIcon(candidate: SourceCatalogEntry): IconName {
+    if (candidate.kind) {
+      return candidate.kind === "capture" ? "mic" : "app";
+    }
+
+    // Unclassified candidates fall back to the category-name heuristic.
+    return /mic|capture/i.test(candidate.category) ? "mic" : "app";
   }
 
   function reportIfFailed(result: { readonly ok: boolean; readonly message?: string }): void {
@@ -204,7 +228,7 @@
           id: candidate.id,
           label: candidate.label,
           detail: candidate.detail,
-          icon: (/mic|capture/i.test(candidate.category) ? "mic" : "app") as IconName
+          icon: menuSourceIcon(candidate)
         }))
     }));
   });
@@ -423,7 +447,7 @@
           optionsExpanded={$expandedOptions.has(endpoint.id)}
           levels={$levelStore}
           volume={Math.round(deviceStore.sourceVolume(device, endpoint.id) * 100)}
-          isAppSource={endpoint.id !== "pass-thru"}
+          isAppSource={isAppSource(endpoint)}
           onSelect={() => uiStore.selectEndpoint(endpoint.id)}
           onToggleEnabled={(enabled) => {
             const result = deviceStore.setSourceEnabled(device.id, endpoint.id, enabled);

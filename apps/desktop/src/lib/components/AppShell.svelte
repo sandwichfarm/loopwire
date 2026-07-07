@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { isConfigurationEnabled, isConfigurationMuted, configurationVolume } from "@loopwire/core";
+  import { isConfigurationEnabled, isConfigurationMuted, configurationVolume, type AudioEndpoint } from "@loopwire/core";
   import { deviceStore, levelStore, reapplySelectedDevice, runtimeService, uiStore } from "../app";
   import { peakLevelFor } from "../stores/levelStore";
   import type { SidebarDevice } from "./Sidebar.svelte";
@@ -22,19 +22,24 @@
       muted: isConfigurationMuted(device),
       volume: Math.round(configurationVolume(device) * 100),
       sources: device.inputs.map((input) => ({
-        icon: sidebarSourceIcon(input.id, input.label, input.deviceName),
+        icon: sidebarSourceIcon(input),
         label: input.label
       })),
       level: Math.max(...device.outputs.map((output) => peakLevelFor($levelStore, output.id, output.channels)), 0)
     }))
   );
 
-  function sidebarSourceIcon(id: string, label: string, deviceName: string | undefined): IconName {
-    if (id === "pass-thru") {
+  function sidebarSourceIcon(endpoint: AudioEndpoint): IconName {
+    if (endpoint.kind) {
+      return endpoint.kind === "pass-thru" ? "loop" : endpoint.kind === "capture" ? "mic" : "app";
+    }
+
+    // Legacy states without kind metadata fall back to id/label heuristics.
+    if (endpoint.id === "pass-thru") {
       return "loop";
     }
 
-    if (/mic/i.test(label) || /mic|capture/i.test(deviceName ?? "")) {
+    if (/mic/i.test(endpoint.label) || /mic|capture/i.test(endpoint.deviceName ?? "")) {
       return "mic";
     }
 

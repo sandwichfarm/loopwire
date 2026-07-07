@@ -109,8 +109,8 @@ Requirements for the next milestone.
 
 ### Endpoint Metadata
 
-- [ ] **META-01**: AudioEndpoint carries a kind (app, capture, system, pass-thru) populated by enumeration and persisted through schema migration.
-- [ ] **META-02**: Icons, add-menu grouping, and per-kind options (mute-when-capturing) derive from endpoint kind, not label heuristics.
+- [x] **META-01**: AudioEndpoint carries a kind (app, capture, system, pass-thru) populated by enumeration and persisted through schema migration.
+- [x] **META-02**: Icons, add-menu grouping, and per-kind options (mute-when-capturing) derive from endpoint kind, not label heuristics.
 
 ### Multichannel Buses
 
@@ -136,7 +136,7 @@ Requirements for the next milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| META-01..META-02 | Phase 13 | Pending |
+| META-01..META-02 | Phase 13 | Complete |
 | BUS-01 | Phase 14 | Pending |
 | SURF-01..SURF-03 | Phase 15 | Pending |
 | PROV-01..PROV-02 | Phase 16 | Pending |

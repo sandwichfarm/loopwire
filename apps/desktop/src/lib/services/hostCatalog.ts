@@ -3,7 +3,8 @@ import {
   enumerateInputSources,
   enumeratePlaybackDevices,
   type AudioInputSource,
-  type AudioPlaybackDevice
+  type AudioPlaybackDevice,
+  type AudioSourceKind
 } from "@loopwire/audio-host/detectors";
 import type { AudioBackendKind } from "@loopwire/core";
 import { createTauriCommandRunner } from "./commandRunner";
@@ -15,6 +16,8 @@ export interface SourceCatalogEntry {
   readonly detail: string;
   readonly channels: number;
   readonly deviceName?: string;
+  /** Enumeration kind; absent when the probe could not classify the source. */
+  readonly kind?: AudioSourceKind;
   readonly category: string;
 }
 
@@ -28,10 +31,10 @@ export interface MonitorCatalogEntry {
 
 /** Browser-preview sample candidates; the desktop shell enumerates real hosts. */
 const sampleSources: readonly SourceCatalogEntry[] = [
-  { id: "browser", category: "Running Applications", label: "Browser", detail: "Sample stream", channels: 2 },
-  { id: "meeting-app", category: "Running Applications", label: "Meeting App", detail: "Sample stream", channels: 2 },
-  { id: "system", category: "System Sources", label: "System Sounds", detail: "Desktop events", channels: 2 },
-  { id: "mic", category: "Capture Devices", label: "Studio Microphone", detail: "Hardware input", channels: 2 }
+  { id: "browser", kind: "app", category: "Running Applications", label: "Browser", detail: "Sample stream", channels: 2 },
+  { id: "meeting-app", kind: "app", category: "Running Applications", label: "Meeting App", detail: "Sample stream", channels: 2 },
+  { id: "system", kind: "system", category: "System Sources", label: "System Sounds", detail: "Desktop events", channels: 2 },
+  { id: "mic", kind: "capture", category: "Capture Devices", label: "Studio Microphone", detail: "Hardware input", channels: 2 }
 ];
 
 const sampleMonitors: readonly MonitorCatalogEntry[] = [
@@ -101,7 +104,8 @@ function toSourceEntry(source: AudioInputSource): SourceCatalogEntry {
     detail: source.detail ?? source.sourceName,
     channels: source.channels,
     deviceName: source.sourceName,
-    category: sourceCategory(source.backend)
+    ...(source.kind ? { kind: source.kind } : {}),
+    category: sourceCategory(source)
   };
 }
 
@@ -115,12 +119,25 @@ function toMonitorEntry(device: AudioPlaybackDevice): MonitorCatalogEntry {
   };
 }
 
-function sourceCategory(backend: AudioBackendKind): string {
-  if (backend === "jack") {
+/** Category names derive from the enumeration kind; backend naming is only a fallback for unclassified sources. */
+function sourceCategory(source: AudioInputSource): string {
+  if (source.kind === "app") {
+    return "Running Applications";
+  }
+
+  if (source.kind === "capture") {
+    return "Capture Devices";
+  }
+
+  if (source.kind === "system") {
+    return "System Sources";
+  }
+
+  if (source.backend === "jack") {
     return "JACK Ports";
   }
 
-  if (backend === "alsa") {
+  if (source.backend === "alsa") {
     return "Capture Devices";
   }
 

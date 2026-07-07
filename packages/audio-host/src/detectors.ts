@@ -5,6 +5,7 @@ import type {
   AudioInputSourceReport,
   AudioPlaybackDevice,
   AudioPlaybackDeviceReport,
+  AudioSourceKind,
   BackendCapabilityReport,
   BackendCandidate,
   BackendDiagnostic,
@@ -21,6 +22,7 @@ export type {
   AudioInputSourceReport,
   AudioPlaybackDevice,
   AudioPlaybackDeviceReport,
+  AudioSourceKind,
   BackendCapabilityReport
 } from "./types.js";
 
@@ -705,15 +707,17 @@ function parsePipeWireInputSources(output: string, backend: AudioBackendKind): r
     sourceName: group.deviceName,
     label: labelFromDeviceName(group.deviceName),
     detail: `${group.portCount} output port(s)`,
-    channels: group.portCount
+    channels: group.portCount,
+    ...(group.kind ? { kind: group.kind } : {})
   }));
 }
 
 function parsePipeWirePortGroups(output: string): readonly {
   readonly deviceName: string;
   readonly portCount: number;
+  readonly kind?: AudioSourceKind;
 }[] {
-  const groups = new Map<string, number>();
+  const groups = new Map<string, { portCount: number; kind: AudioSourceKind | undefined }>();
 
   for (const line of output.split(/\r?\n/)) {
     const portName = line.trim();
@@ -733,10 +737,44 @@ function parsePipeWirePortGroups(output: string): readonly {
       continue;
     }
 
-    groups.set(deviceName, (groups.get(deviceName) ?? 0) + 1);
+    const kind = pipeWirePortSourceKind(deviceName, channelPort);
+    const group = groups.get(deviceName);
+
+    if (!group) {
+      groups.set(deviceName, { portCount: 1, kind });
+    } else {
+      group.portCount += 1;
+
+      if (group.kind !== kind) {
+        // Ports of one node disagree; the probe does not distinguish the kind.
+        group.kind = undefined;
+      }
+    }
   }
 
-  return Array.from(groups, ([deviceName, portCount]) => ({ deviceName, portCount }));
+  return Array.from(groups, ([deviceName, group]) => ({
+    deviceName,
+    portCount: group.portCount,
+    ...(group.kind ? { kind: group.kind } : {})
+  }));
+}
+
+/**
+ * Classifies a PipeWire output port conservatively: `capture_*` ports (and
+ * `alsa_input.*`/`bluez_input.*` nodes) are capture hardware; `output_*` ports
+ * belong to app playback streams; `monitor_*` ports stay unclassified because
+ * a sink monitor does not distinguish system audio from virtual sinks.
+ */
+function pipeWirePortSourceKind(deviceName: string, channelPort: string): AudioSourceKind | undefined {
+  if (/^(alsa|bluez)_input\./i.test(deviceName) || /^capture_/i.test(channelPort)) {
+    return "capture";
+  }
+
+  if (/^output_/i.test(channelPort)) {
+    return "app";
+  }
+
+  return undefined;
 }
 
 function isAudioChannelPort(portName: string): boolean {
@@ -811,13 +849,15 @@ function parseAlsaPlaybackDevices(output: string, backend: AudioBackendKind): re
 }
 
 function parseAlsaInputSources(output: string, backend: AudioBackendKind): readonly AudioInputSource[] {
+  // `arecord -l` lists capture hardware only, so every candidate is a capture device.
   return parseAlsaDeviceCards(output).map((device) => ({
     backend,
     sourceId: slugifySourceId(device.deviceName),
     sourceName: device.deviceName,
     label: device.label,
     detail: device.detail,
-    channels: 2
+    channels: 2,
+    kind: "capture" as const
   }));
 }
 
@@ -885,7 +925,9 @@ function parsePactlSinkInputSource(block: string, backend: AudioBackendKind): Au
     sourceName,
     label,
     ...(detail ? { detail } : {}),
-    channels: Number.isFinite(channels) ? channels : 2
+    channels: Number.isFinite(channels) ? channels : 2,
+    // `pactl list sink-inputs` enumerates running app playback streams only.
+    kind: "app"
   };
 }
 

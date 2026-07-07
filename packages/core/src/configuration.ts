@@ -3,6 +3,7 @@ import {
   type AudioBackendKind,
   type AudioEndpoint,
   type AudioRoute,
+  type EndpointKind,
   type LoopwireConfiguration,
   type LoopwireState
 } from "./types.js";
@@ -32,6 +33,7 @@ export interface AddInputSourceInput {
   readonly label: string;
   readonly channels?: number;
   readonly deviceName?: string;
+  readonly kind?: EndpointKind;
   readonly routeToOutputId?: string;
   readonly gain?: number;
 }
@@ -50,6 +52,7 @@ export interface AddMonitorInput {
   readonly label: string;
   readonly channels?: number;
   readonly deviceName?: string;
+  readonly kind?: EndpointKind;
 }
 
 export interface AddRouteInput {
@@ -173,7 +176,8 @@ export function addInputSourceToConfiguration(
     label,
     role: "input",
     channels: input.channels ?? output.channels,
-    ...(input.deviceName ? { deviceName: input.deviceName.trim() } : {})
+    ...(input.deviceName ? { deviceName: input.deviceName.trim() } : {}),
+    ...(input.kind ? { kind: input.kind } : {})
   };
   const route: AudioRoute = {
     id: makeUniqueRouteId(`${source.id}-${output.id}`, configuration.routes),
@@ -286,7 +290,8 @@ export function addMonitorToConfiguration(
     label,
     role: "monitor",
     channels: input.channels ?? fallbackChannels,
-    ...(input.deviceName ? { deviceName: input.deviceName.trim() } : {})
+    ...(input.deviceName ? { deviceName: input.deviceName.trim() } : {}),
+    ...(input.kind ? { kind: input.kind } : {})
   };
 
   return updateConfiguration(

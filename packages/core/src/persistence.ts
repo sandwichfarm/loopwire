@@ -1,10 +1,12 @@
 import { createDefaultState, insertConfiguration, validateConfigurationGraph } from "./configuration.js";
 import {
   audioBackendKinds,
+  endpointKinds,
   legacySchemaVersionV1,
   schemaVersion,
   type AudioEndpoint,
   type AudioRoute,
+  type EndpointKind,
   type LoopwireConfiguration,
   type LoopwireState,
   type PersistedStateV2
@@ -285,6 +287,7 @@ function parseEndpoint(value: unknown): AudioEndpoint | null {
   const enabled = parseOptionalBoolean(value.enabled);
   const volume = parseOptionalUnitNumber(value.volume);
   const muteWhenCapturing = parseOptionalBoolean(value.muteWhenCapturing);
+  const kind = parseOptionalEndpointKind(value.kind);
 
   if (!id || !label || (role !== "input" && role !== "output" && role !== "monitor") || !isPositiveInteger(channels)) {
     return null;
@@ -298,7 +301,8 @@ function parseEndpoint(value: unknown): AudioEndpoint | null {
     ...(deviceName ? { deviceName } : {}),
     ...(enabled !== undefined ? { enabled } : {}),
     ...(volume !== undefined ? { volume } : {}),
-    ...(muteWhenCapturing !== undefined ? { muteWhenCapturing } : {})
+    ...(muteWhenCapturing !== undefined ? { muteWhenCapturing } : {}),
+    ...(kind !== undefined ? { kind } : {})
   };
 }
 
@@ -360,6 +364,10 @@ function parseStringArray(value: unknown): readonly string[] {
 
 function parseOptionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function parseOptionalEndpointKind(value: unknown): EndpointKind | undefined {
+  return endpointKinds.some((kind) => kind === value) ? (value as EndpointKind) : undefined;
 }
 
 function parseOptionalBoolean(value: unknown): boolean | undefined {

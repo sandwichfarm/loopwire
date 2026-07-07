@@ -55,6 +55,13 @@ describe("createDevice", () => {
     expect(device?.routes[0]).toMatchObject({ from: "pass-thru", to: "channels-1-2" });
   });
 
+  it("stamps the default Pass-Thru source with kind pass-thru", () => {
+    const { store } = storeWithDevice();
+    const device = get(store.selectedDevice);
+
+    expect(device?.inputs[0]?.kind).toBe("pass-thru");
+  });
+
   it("numbers subsequent devices", () => {
     const { store } = storeWithDevice();
     store.createDevice();
@@ -113,6 +120,15 @@ describe("graph editing", () => {
     const device = get(store.selectedDevice);
     expect(device?.inputs.some((input) => input.label === "Browser")).toBe(true);
     expect(device?.routes.some((route) => route.from === "browser" && route.to === "channels-1-2")).toBe(true);
+  });
+
+  it("carries the candidate kind onto the added source", () => {
+    const { store, deviceId } = storeWithDevice();
+    const result = store.addSource(deviceId, { label: "Browser", channels: 2, kind: "app" });
+
+    expect(result.ok).toBe(true);
+    const device = get(store.selectedDevice);
+    expect(device?.inputs.find((input) => input.label === "Browser")?.kind).toBe("app");
   });
 
   it("returns a typed error instead of throwing on invalid edits", () => {

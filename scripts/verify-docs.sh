@@ -201,6 +201,7 @@ assert_contains "apps/docs/docs/guide/configurations.md" "ALSA route controls ar
 assert_contains "apps/docs/docs/guide/configurations.md" "detected backend mixing semantics"
 assert_contains "apps/docs/docs/guide/configurations.md" "switches are serialized by token"
 assert_contains "apps/docs/docs/guide/configurations.md" "stale async switch results cannot replace"
+assert_contains "apps/docs/docs/guide/configurations.md" "Each source carries a kind"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "pnpm detect:audio"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "pnpm collect:support"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "--include-dsp-provider-plan"
@@ -939,6 +940,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "opensuse-kde-pipew
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu target"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `screenshot.png` placeholders'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "Sources now carry a kind"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Settings"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Audio and startup behavior"

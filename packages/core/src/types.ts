@@ -33,12 +33,19 @@ export type BackendDecision =
 
 export type EndpointRole = "input" | "output" | "monitor";
 
+export const endpointKinds = ["app", "capture", "system", "pass-thru"] as const;
+
+/** Source classification: app stream, capture hardware, system source, or Loopwire pass-thru. */
+export type EndpointKind = (typeof endpointKinds)[number];
+
 export interface AudioEndpoint {
   readonly id: string;
   readonly label: string;
   readonly role: EndpointRole;
   readonly channels: number;
   readonly deviceName?: string;
+  /** Source kind from enumeration. Absent for legacy states and unclassified sources. */
+  readonly kind?: EndpointKind;
   /** Defaults to true when absent (schema v1 states have no per-endpoint switch). */
   readonly enabled?: boolean;
   /** 0–1 configured endpoint volume. Defaults to 1 when absent. */

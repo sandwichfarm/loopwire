@@ -253,7 +253,7 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 10. Live Apply Consent and Runtime Wiring | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 11. True Per-Edge Matrix Semantics | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 12. Published Release and VM Proof | v0.2 | 1/1 | In Progress | - |
-| 13. Endpoint Kind Metadata | v0.3 | 0/1 | Not started | - |
+| 13. Endpoint Kind Metadata | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 14. Multichannel Bus Creation | v0.3 | 0/1 | Not started | - |
 | 15. Power-User Surfaces | v0.3 | 0/1 | Not started | - |
 | 16. Provider Settings UI | v0.3 | 0/1 | Not started | - |
@@ -274,7 +274,7 @@ Completes the five seeds planted during the desktop UI rebuild. v0.2 Phase 12 (p
 **Plans:** 1 plan
 
 Plans:
-- [ ] 13.1 Add kind to AudioEndpoint (persisted, migrated), populate from hostCatalog enumeration, consume in DeviceCanvas/AppShell icon + option logic.
+- [x] 13.1 Add kind to AudioEndpoint (persisted, migrated), populate from hostCatalog enumeration, consume in DeviceCanvas/AppShell icon + option logic.
 
 ### Phase 14: Multichannel Bus Creation (SEED-004)
 

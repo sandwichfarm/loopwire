@@ -24,6 +24,7 @@ import {
   setRouteGain,
   updateConfiguration,
   type AudioEndpoint,
+  type EndpointKind,
   type LoopwireConfiguration,
   type LoopwireState
 } from "@loopwire/core";
@@ -40,6 +41,7 @@ export interface AddSourceInput {
   readonly label: string;
   readonly channels?: number;
   readonly deviceName?: string;
+  readonly kind?: EndpointKind;
 }
 
 export interface AddMonitorInput {
@@ -134,7 +136,7 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
         {
           name: nextDeviceName(current.configurations),
           description: "",
-          inputs: [{ id: "pass-thru", label: "Pass-Thru", role: "input", channels: 2 }],
+          inputs: [{ id: "pass-thru", label: "Pass-Thru", role: "input", channels: 2, kind: "pass-thru" }],
           outputs: [{ id: "channels-1-2", label: "Channels 1 & 2", role: "output", channels: 2 }],
           routes: [{ id: "pass-thru-channels-1-2", from: "pass-thru", to: "channels-1-2", gain: 1, muted: false }]
         },
@@ -198,7 +200,8 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
           label: input.label,
           ...(input.id ? { id: input.id } : {}),
           ...(input.channels ? { channels: input.channels } : {}),
-          ...(input.deviceName ? { deviceName: input.deviceName } : {})
+          ...(input.deviceName ? { deviceName: input.deviceName } : {}),
+          ...(input.kind ? { kind: input.kind } : {})
         },
         now
       ).state
