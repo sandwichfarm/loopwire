@@ -69,9 +69,23 @@ export function nextDeviceName(configurations: readonly LoopwireConfiguration[])
   return `Loopwire Device ${index}`;
 }
 
-export function nextBusLabel(outputs: readonly AudioEndpoint[]): { readonly label: string; readonly startChannel: number } {
+/**
+ * Labels the next appended bus by cumulative channel index: 1ch → `Channel N`,
+ * 2ch → `Channels N & M`, wider buses → `Channels N–M`.
+ */
+export function nextBusLabel(
+  outputs: readonly AudioEndpoint[],
+  channels = 2
+): { readonly label: string; readonly startChannel: number } {
   const startChannel = outputs.reduce((sum, output) => sum + output.channels, 0) + 1;
-  return { label: `Channels ${startChannel} & ${startChannel + 1}`, startChannel };
+  const endChannel = startChannel + channels - 1;
+  const label =
+    channels === 1
+      ? `Channel ${startChannel}`
+      : channels === 2
+        ? `Channels ${startChannel} & ${endChannel}`
+        : `Channels ${startChannel}–${endChannel}`;
+  return { label, startChannel };
 }
 
 export function channelLabel(index: number): string {
@@ -208,8 +222,8 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
     );
   }
 
-  /** Appends the next channel bus; no auto-routing of existing sources (drag or re-add wires them). */
-  function addBus(deviceId: string): DeviceActionResult {
+  /** Appends the next channel bus (default stereo); no auto-routing of existing sources (drag or re-add wires them). */
+  function addBus(deviceId: string, channels = 2): DeviceActionResult {
     return mutate((current, now) => {
       const configuration = current.configurations.find((candidate) => candidate.id === deviceId);
 
@@ -217,11 +231,11 @@ export function createDeviceStore(persistence: StatePersistencePort = noopPersis
         throw new Error(`Unknown Loopwire device: ${deviceId}`);
       }
 
-      const { label } = nextBusLabel(configuration.outputs);
+      const { label } = nextBusLabel(configuration.outputs, channels);
       return addOutputBusToConfiguration(
         current,
         deviceId,
-        { label, channels: 2, routeExistingInputs: false },
+        { label, channels, routeExistingInputs: false },
         now
       ).state;
     });

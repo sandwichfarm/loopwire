@@ -35,6 +35,31 @@ describe("nextBusLabel / channelLabel", () => {
     });
   });
 
+  it("labels mono buses with a single channel number", () => {
+    expect(nextBusLabel([], 1)).toEqual({ label: "Channel 1", startChannel: 1 });
+    expect(nextBusLabel([{ id: "a", label: "", role: "output", channels: 2 }], 1)).toEqual({
+      label: "Channel 3",
+      startChannel: 3
+    });
+  });
+
+  it("labels quad buses with a channel range", () => {
+    expect(nextBusLabel([], 4)).toEqual({ label: "Channels 1–4", startChannel: 1 });
+    expect(nextBusLabel([{ id: "a", label: "", role: "output", channels: 2 }], 4)).toEqual({
+      label: "Channels 3–6",
+      startChannel: 3
+    });
+  });
+
+  it("keeps the cumulative start channel across mixed-width buses", () => {
+    const outputs = [
+      { id: "a", label: "", role: "output" as const, channels: 1 },
+      { id: "b", label: "", role: "output" as const, channels: 4 }
+    ];
+
+    expect(nextBusLabel(outputs)).toEqual({ label: "Channels 6 & 7", startChannel: 6 });
+  });
+
   it("suffixes (L)/(R) only on the first stereo pair", () => {
     expect(channelLabel(1)).toBe("1 (L)");
     expect(channelLabel(2)).toBe("2 (R)");
@@ -98,6 +123,28 @@ describe("graph editing", () => {
     const device = get(store.selectedDevice);
     expect(device?.outputs.map((output) => output.label)).toEqual(["Channels 1 & 2", "Channels 3 & 4"]);
     expect(device?.routes).toHaveLength(1);
+  });
+
+  it("adds mono and quad buses with channel-count-aware labels and cumulative start channels", () => {
+    const { store, deviceId } = storeWithDevice();
+
+    expect(store.addBus(deviceId, 4).ok).toBe(true);
+    expect(store.addBus(deviceId, 1).ok).toBe(true);
+
+    const device = get(store.selectedDevice);
+    expect(device?.outputs.map((output) => output.label)).toEqual(["Channels 1 & 2", "Channels 3–6", "Channel 7"]);
+    expect(device?.outputs.map((output) => output.channels)).toEqual([2, 4, 1]);
+  });
+
+  it("appends the new bus last so the canvas can auto-select it", () => {
+    const { store, deviceId } = storeWithDevice();
+
+    expect(store.addBus(deviceId, 4).ok).toBe(true);
+
+    const device = get(store.selectedDevice);
+    const appended = device?.outputs.at(-1);
+    expect(appended?.label).toBe("Channels 3–6");
+    expect(appended?.channels).toBe(4);
   });
 
   it("adds a monitor auto-cabled from every bus", () => {

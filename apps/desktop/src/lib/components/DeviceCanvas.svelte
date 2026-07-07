@@ -34,7 +34,7 @@
 
   let graphElement: HTMLDivElement | undefined = $state();
   let anchors: ReadonlyMap<string, Point> = $state(new Map());
-  let openMenu: { readonly kind: "sources" | "monitors"; readonly anchor: HTMLElement } | null = $state(null);
+  let openMenu: { readonly kind: "sources" | "buses" | "monitors"; readonly anchor: HTMLElement } | null = $state(null);
   let drag: {
     readonly from: DragEndpointInfo;
     readonly fromPortKey: string;
@@ -304,8 +304,32 @@
     }
   }
 
-  function addBus(): void {
-    const result = deviceStore.addBus(device.id);
+  // Stereo first: it is the default/most common pick, mirroring the reference's stereo-only add.
+  const busMenuSections: readonly MenuSection[] = [
+    {
+      items: [
+        { id: "stereo", label: "Stereo Bus", detail: "2 channels" },
+        { id: "mono", label: "Mono Bus", detail: "1 channel" },
+        { id: "quad", label: "Quad Bus", detail: "4 channels" }
+      ]
+    }
+  ];
+
+  const busMenuChannels: Readonly<Record<string, number>> = { mono: 1, stereo: 2, quad: 4 };
+
+  function pickBus(menuId: string): void {
+    openMenu = null;
+    const channels = busMenuChannels[menuId];
+
+    if (!channels) {
+      return;
+    }
+
+    addBus(channels);
+  }
+
+  function addBus(channels: number): void {
+    const result = deviceStore.addBus(device.id, channels);
     reportIfFailed(result);
 
     if (result.ok) {
@@ -415,9 +439,9 @@
     <ColumnHeader
       title="Output Channels"
       subtitle={`${totalBusChannels} ${totalBusChannels === 1 ? "Channel" : "Channels"}`}
-      addAction="instant"
+      addAction="menu"
       addLabel="Add output channels"
-      onAdd={addBus}
+      onAdd={(anchor) => (openMenu = { kind: "buses", anchor })}
     />
     {#if !monitorsHidden}
       <ColumnHeader
@@ -504,11 +528,11 @@
 
 {#if openMenu}
   <PopupMenu
-    sections={openMenu.kind === "sources" ? sourceMenuSections : monitorMenuSections}
+    sections={openMenu.kind === "sources" ? sourceMenuSections : openMenu.kind === "buses" ? busMenuSections : monitorMenuSections}
     anchor={openMenu.anchor}
-    label={openMenu.kind === "sources" ? "Add source" : "Add monitor"}
+    label={openMenu.kind === "sources" ? "Add source" : openMenu.kind === "buses" ? "Add output channels" : "Add monitor"}
     emptyMessage={openMenu.kind === "sources" ? "Every detected source is already added." : "Every playback device is already added."}
-    onPick={openMenu.kind === "sources" ? pickSource : pickMonitor}
+    onPick={openMenu.kind === "sources" ? pickSource : openMenu.kind === "buses" ? pickBus : pickMonitor}
     onClose={() => (openMenu = null)}
   />
 {/if}

@@ -202,6 +202,8 @@ assert_contains "apps/docs/docs/guide/configurations.md" "detected backend mixin
 assert_contains "apps/docs/docs/guide/configurations.md" "switches are serialized by token"
 assert_contains "apps/docs/docs/guide/configurations.md" "stale async switch results cannot replace"
 assert_contains "apps/docs/docs/guide/configurations.md" "Each source carries a kind"
+assert_contains "apps/docs/docs/guide/configurations.md" "add an output channel bus from the ⊕ menu beside *Output Channels*"
+assert_contains "apps/docs/docs/guide/configurations.md" 'next cumulative channel numbers (`Channels 3 & 4`,'
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "pnpm detect:audio"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "pnpm collect:support"
 assert_contains "apps/docs/docs/guide/troubleshooting.md" "--include-dsp-provider-plan"
@@ -941,6 +943,8 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "AArch64 Ubuntu tar
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'CRC-corrupt `screenshot.png` placeholders'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "pnpm verify:tauri"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Sources now carry a kind"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "The Output Channels ⊕ now offers **Stereo Bus**, **Mono Bus**, and **Quad Bus**"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" "diverges from the reference's instant stereo-only add by one pick"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Loopwire desktop shell screenshot"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Settings"
 assert_contains "apps/docs/docs/public/product-screenshot.svg" "Audio and startup behavior"

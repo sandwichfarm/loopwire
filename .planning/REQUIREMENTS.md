@@ -114,7 +114,7 @@ Requirements for the next milestone.
 
 ### Multichannel Buses
 
-- [ ] **BUS-01**: The Output Channels add control offers mono, stereo, and quad bus creation with correct channel labels and cabling.
+- [x] **BUS-01**: The Output Channels add control offers mono, stereo, and quad bus creation with correct channel labels and cabling.
 
 ### Power-User Surfaces
 
@@ -137,7 +137,7 @@ Requirements for the next milestone.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | META-01..META-02 | Phase 13 | Complete |
-| BUS-01 | Phase 14 | Pending |
+| BUS-01 | Phase 14 | Complete |
 | SURF-01..SURF-03 | Phase 15 | Pending |
 | PROV-01..PROV-02 | Phase 16 | Pending |
 | E2E-01..E2E-02 | Phase 17 | Pending |

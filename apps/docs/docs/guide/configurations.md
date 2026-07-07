@@ -20,7 +20,9 @@ From the canvas you can:
 - rename the device (pencil button, or automatically right after creating it; Enter commits, Esc cancels),
 - add a source from the grouped ⊕ menu beside *Sources* (running app streams, system sources, and capture devices as
   the selected backend exposes them) — it is auto-cabled to the first bus and selected,
-- append an output channel bus instantly with the ⊕ beside *Output Channels*,
+- add an output channel bus from the ⊕ menu beside *Output Channels* — pick **Stereo Bus** (the default), **Mono
+  Bus**, or **Quad Bus** and it is appended instantly with the next cumulative channel numbers (`Channels 3 & 4`,
+  `Channel 5`, `Channels 3–6`),
 - add a monitor from the ⊕ menu beside *Monitors* (playback devices) — it is auto-cabled from every bus,
 - drag from an output port to a compatible input port to create a route (source → bus, or bus → monitor),
 - click a cable to select its route and press Delete (or use the footer **Delete** button) to remove it,

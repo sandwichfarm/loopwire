@@ -49,6 +49,27 @@ describe("channelCablesFor", () => {
     expect(appCables[1]).toMatchObject({ fromPort: portId("app", 2, "out"), toPort: portId("bus", 2, "in") });
   });
 
+  it("expands a 4-channel pair into four cables (1→1 … 4→4)", () => {
+    const quad: LoopwireConfiguration = {
+      ...configuration,
+      inputs: [{ id: "deck", label: "Deck", role: "input", channels: 4 }],
+      outputs: [{ id: "quad-bus", label: "Channels 3–6", role: "output", channels: 4 }],
+      monitors: [],
+      routes: [{ id: "deck-quad", from: "deck", to: "quad-bus", gain: 1, muted: false }]
+    };
+
+    const cables = channelCablesFor(quad);
+
+    expect(cables).toHaveLength(4);
+    cables.forEach((cable, index) => {
+      expect(cable).toMatchObject({
+        routeId: "deck-quad",
+        fromPort: portId("deck", index + 1, "out"),
+        toPort: portId("quad-bus", index + 1, "in")
+      });
+    });
+  });
+
   it("skips routes whose endpoints are missing", () => {
     const broken = { ...configuration, routes: [{ id: "x", from: "gone", to: "bus", gain: 1, muted: false }] };
     expect(channelCablesFor(broken)).toHaveLength(0);

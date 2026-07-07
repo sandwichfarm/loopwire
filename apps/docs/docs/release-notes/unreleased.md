@@ -8,8 +8,12 @@ These notes describe source-tree progress. They are not a public release announc
   columns with per-channel meters, port dots, and bezier cables between cards.
 - Devices carry On/Off, mute, and volume controls in the sidebar; device removal shows an undo toast instead of a
   confirmation dialog, and the device list may now be empty (persisted schema v2 with automatic v1 migration).
-- Sources and monitors are added from grouped menus backed by host enumeration; buses append instantly; new endpoints
-  auto-cable channel-to-channel, and port-to-port drags create routes.
+- Sources and monitors are added from grouped menus backed by host enumeration; buses are added from a small ⊕ menu;
+  new endpoints auto-cable channel-to-channel, and port-to-port drags create routes.
+- The Output Channels ⊕ now offers **Stereo Bus**, **Mono Bus**, and **Quad Bus**, each appended instantly on pick
+  with channel-count-aware labels (`Channels 3 & 4`, `Channel 5`, `Channels 3–6`) and cumulative start channels. This
+  diverges from the reference's instant stereo-only add by one pick: bus creation stays one-click-then-pick so wider
+  layouts do not need a separate editor.
 - Source/monitor cards expose On/Off pills and an Options strip (source volume drives outgoing route gains; app
   sources add mute-when-capturing; monitor volume is configured state applied on host apply).
 - App settings moved to a Settings dialog (`Ctrl+,`) with Appearance (Match System/Light/Dark), the audio backend

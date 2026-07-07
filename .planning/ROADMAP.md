@@ -254,7 +254,7 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 11. True Per-Edge Matrix Semantics | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 12. Published Release and VM Proof | v0.2 | 1/1 | In Progress | - |
 | 13. Endpoint Kind Metadata | v0.3 | 1/1 | Complete | 2026-07-06 |
-| 14. Multichannel Bus Creation | v0.3 | 0/1 | Not started | - |
+| 14. Multichannel Bus Creation | v0.3 | 1/1 | Complete | 2026-07-06 |
 | 15. Power-User Surfaces | v0.3 | 0/1 | Not started | - |
 | 16. Provider Settings UI | v0.3 | 0/1 | Not started | - |
 | 17. End-to-End UI Harness | v0.3 | 0/1 | Not started | - |
@@ -283,7 +283,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 14.1 Bus add menu (mono/stereo/quad), channel-count-aware bus labels/cabling, adapter layout coverage.
+- [x] 14.1 Bus add menu (mono/stereo/quad), channel-count-aware bus labels/cabling, adapter layout coverage.
 
 ### Phase 15: Power-User Surfaces (SEED-002)
 
