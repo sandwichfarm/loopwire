@@ -104,6 +104,9 @@
 
 <style>
   .bus {
+    /* channel-row edges -> card outer edges: list padding 8px + hairline */
+    --port-inset-left: 9px;
+    --port-inset-right: 9px;
     width: var(--lw-card-width);
     background: var(--lw-card-bg);
     border: 1px solid var(--lw-hairline);

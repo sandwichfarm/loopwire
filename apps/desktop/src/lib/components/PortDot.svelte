@@ -50,15 +50,20 @@
     inset: -6px;
   }
 
+  /*
+   * Ports center on the card's outer border, not the padded channel row:
+   * each card sets --port-inset-left/right to its row-edge → card-edge
+   * distance (body/list padding + 1px hairline).
+   */
   .port.out {
-    right: calc(var(--lw-port-size) / -2);
+    right: calc(-1 * var(--port-inset-right, 0px) - var(--lw-port-size) / 2);
   }
 
   .port.in {
-    left: calc(var(--lw-port-size) / -2);
+    left: calc(-1 * var(--port-inset-left, 0px) - var(--lw-port-size) / 2);
   }
 
   .port.active {
-    box-shadow: 0 0 0 1.5px var(--lw-accent);
+    box-shadow: 0 0 0 1px var(--lw-accent);
   }
 </style>
