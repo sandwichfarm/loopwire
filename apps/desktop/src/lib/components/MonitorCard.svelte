@@ -179,7 +179,8 @@
     align-items: center;
     gap: var(--lw-space-2);
     height: var(--lw-channel-row-height);
-    padding-left: 6px;
+    /* keep labels/meters clear of the edge terminals */
+    padding-left: 12px;
   }
 
   .channel-label {

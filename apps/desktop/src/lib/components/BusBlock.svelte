@@ -146,7 +146,8 @@
     align-items: center;
     gap: var(--lw-space-2);
     height: var(--lw-channel-row-height);
-    padding: 0 6px;
+    /* keep labels/meters clear of the edge terminals */
+    padding: 0 12px;
   }
 
   .channel-label {
