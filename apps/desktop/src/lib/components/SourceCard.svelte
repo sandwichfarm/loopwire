@@ -126,8 +126,6 @@
 
 <style>
   .card {
-    /* channel-row right edge -> card outer edge: body padding 10px + hairline */
-    --port-inset-right: 11px;
     width: var(--lw-card-width);
     background: var(--lw-card-bg);
     border: 1px solid var(--lw-hairline);

@@ -28,7 +28,16 @@
     event.preventDefault();
     onDragStart?.(event);
   }}
-></span>
+>
+  <!-- SVG instead of CSS border-radius/box-shadow: WebKitGTK aliases tiny CSS
+       circles into pixelated blobs; SVG circles stay smooth. -->
+  <svg class="glyph" viewBox="0 0 12 12" aria-hidden="true">
+    {#if active}
+      <circle cx="6" cy="6" r="4.75" fill="none" stroke="var(--lw-accent)" stroke-width="1.25" />
+    {/if}
+    <circle cx="6" cy="6" r="3.5" fill="var(--lw-track)" />
+  </svg>
+</span>
 
 <style>
   .port {
@@ -36,11 +45,20 @@
     top: 50%;
     width: var(--lw-port-size);
     height: var(--lw-port-size);
-    border-radius: 50%;
-    background: var(--lw-track);
     transform: translateY(-50%);
     cursor: crosshair;
     touch-action: none;
+  }
+
+  .glyph {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+    pointer-events: none;
   }
 
   .port::after {
@@ -50,20 +68,11 @@
     inset: -6px;
   }
 
-  /*
-   * Ports center on the card's outer border, not the padded channel row:
-   * each card sets --port-inset-left/right to its row-edge → card-edge
-   * distance (body/list padding + 1px hairline).
-   */
   .port.out {
-    right: calc(-1 * var(--port-inset-right, 0px) - var(--lw-port-size) / 2);
+    right: calc(var(--lw-port-size) / -2);
   }
 
   .port.in {
-    left: calc(-1 * var(--port-inset-left, 0px) - var(--lw-port-size) / 2);
-  }
-
-  .port.active {
-    box-shadow: 0 0 0 1px var(--lw-accent);
+    left: calc(var(--lw-port-size) / -2);
   }
 </style>
