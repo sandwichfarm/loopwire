@@ -662,6 +662,9 @@ bash scripts/setup-github-secrets.sh \
   --secret-list-file release-secret-names.tsv
 bash scripts/setup-github-secrets.sh \
   --repo sandwichfarm/loopwire \
+  --scope final
+bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
   --scope final \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
@@ -678,9 +681,14 @@ bash scripts/setup-github-secrets.sh \
 
 `--check` reads secret names only. The default `--scope final` checks all final-proof secrets. Use
 `--check --scope deploy` to verify only the Bunny.net upload pair before the final release-signing and live-docs
-secrets are available. Set mode uses the same scopes before any `gh secret set` call runs: `--scope deploy` requires
-`BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`; the default `--scope final` also requires
-`BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`.
+secrets are available. Set mode uses the same scopes before any `gh secret set` call runs. For operator use, run
+`bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final`; the helper prompts for one secret at a time,
+explains where to find it, and writes each value directly to GitHub with `gh secret set` without printing the value.
+The release-key prompt asks for a local PEM private-key path, validates it against the public key, and sends the file
+contents as `LOOPWIRE_RELEASE_PRIVATE_KEY`.
+For automation, `--scope deploy` requires `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`; the default `--scope final`
+also requires `BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and
+`LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`.
 When `--check --scope deploy` sees the optional `BUNNY_PULL_ZONE_HOSTNAME` secret, it also reports that the docs deploy
 workflow can run post-upload live smoke without requiring the release signing secret yet. Without that hostname,
 deploy-scope checks still pass for Bunny upload readiness but report that live docs smoke will be skipped.

@@ -7539,6 +7539,65 @@ grep -F "private-prefix-value" "$fake_secret_set_dir/BUNNY_REMOTE_PREFIX" >/dev/
   echo "verify-scripts: GitHub secret helper did not write the remote prefix through stdin" >&2
   exit 1
 }
+fake_secret_interactive_set_dir="$tmp_dir/fake-gh-secret-interactive-set"
+interactive_secret_set_output="$(
+  printf '%s\n' \
+    "interactive-loopwire-docs" \
+    "interactive-access-key" \
+    "docs.interactive.example.test" \
+    "$tmp_secret_file" \
+    "$tmp_secret_public_key" \
+    "" \
+    "" |
+    LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_interactive_set_dir" \
+      PATH="$fake_gh_dir:$PATH" \
+      bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final 2>&1
+)"
+printf '%s\n' "$interactive_secret_set_output" | grep -F "BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not prompt for storage zone" >&2
+  exit 1
+}
+printf '%s\n' "$interactive_secret_set_output" | grep -F "LOOPWIRE_RELEASE_PRIVATE_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not prompt for release private key" >&2
+  exit 1
+}
+if printf '%s\n' "$interactive_secret_set_output" | grep -F "interactive-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper interactive flow leaked the access key" >&2
+  exit 1
+fi
+if printf '%s\n' "$interactive_secret_set_output" | grep -F "BEGIN PRIVATE KEY" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper interactive flow leaked the release private key" >&2
+  exit 1
+fi
+printf '%s\n' "$interactive_secret_set_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not report successful interactive fake writes" >&2
+    exit 1
+  }
+grep -F "interactive-loopwire-docs" "$fake_secret_interactive_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write storage zone" >&2
+  exit 1
+}
+grep -F "interactive-access-key" "$fake_secret_interactive_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write access key" >&2
+  exit 1
+}
+grep -F "docs.interactive.example.test" "$fake_secret_interactive_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write pull-zone hostname" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_interactive_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write release private key" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_interactive_set_dir/BUNNY_STORAGE_ENDPOINT" ] || {
+  echo "verify-scripts: GitHub secret helper interactive flow wrote skipped storage endpoint" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_interactive_set_dir/BUNNY_REMOTE_PREFIX" ] || {
+  echo "verify-scripts: GitHub secret helper interactive flow wrote skipped remote prefix" >&2
+  exit 1
+}
 fake_secret_env_set_dir="$tmp_dir/fake-gh-secret-env-set"
 env_secret_set_output="$(
   LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_env_set_dir" \

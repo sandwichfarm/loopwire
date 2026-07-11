@@ -58,6 +58,13 @@ Env files:
   --print-env-template prints the committed no-value template accepted by --env-file.
   --write-env-template FILE writes that template with 0600 permissions and refuses overwrites.
 
+Interactive set mode:
+  When setting secrets for real and required values are missing, the helper prompts
+  for one secret at a time, explains where to find it, and sends each value to
+  `gh secret set` via stdin without printing the value. The release private-key
+  prompt asks for a local PEM file path; the file contents are sent as
+  LOOPWIRE_RELEASE_PRIVATE_KEY.
+
 Secret-list files:
   --secret-list-file accepts saved `gh secret list` output for offline check-mode rehearsal.
   The file contains names only plus optional metadata columns; values must never be included.
@@ -552,6 +559,148 @@ require_set_input() {
   [ -n "$value" ] || fail "${label} is required for ${scope}-scope secret setup; use ${hint} or --env-file"
 }
 
+has_explicit_or_env_input() {
+  [ -n "$storage_zone" ] ||
+    [ -n "$access_key" ] ||
+    [ -n "$storage_endpoint" ] ||
+    [ -n "$pull_zone_hostname" ] ||
+    [ -n "$remote_prefix" ] ||
+    [ -n "$release_private_key_file" ] ||
+    [ -n "$release_public_key_file" ] ||
+    [ "$storage_zone_explicit" = "true" ] ||
+    [ "$access_key_explicit" = "true" ] ||
+    [ "$storage_endpoint_explicit" = "true" ] ||
+    [ "$pull_zone_hostname_explicit" = "true" ] ||
+    [ "$remote_prefix_explicit" = "true" ] ||
+    [ "$release_private_key_file_explicit" = "true" ] ||
+    [ "$release_public_key_file_explicit" = "true" ]
+}
+
+prompt_line() {
+  secret_name="$1"
+  target_var="$2"
+  required="$3"
+  sensitive="$4"
+  default_value="$5"
+  instructions="$6"
+  current_value="${!target_var}"
+  answer=""
+
+  [ -z "$current_value" ] || return 0
+
+  printf '\n%s\n' "$secret_name" >&2
+  printf '%s\n' "$instructions" >&2
+  if [ -n "$default_value" ]; then
+    printf 'Press Enter to use: %s\n' "$default_value" >&2
+  elif [ "$required" != "true" ]; then
+    printf 'Press Enter to skip this optional secret.\n' >&2
+  fi
+
+  while :; do
+    if [ "$sensitive" = "true" ] && [ -t 0 ]; then
+      printf 'Value: ' >&2
+      if ! IFS= read -r -s answer; then
+        printf '\n' >&2
+        fail "missing input for ${secret_name}"
+      fi
+      printf '\n' >&2
+    else
+      printf 'Value: ' >&2
+      if ! IFS= read -r answer; then
+        fail "missing input for ${secret_name}"
+      fi
+    fi
+
+    if [ -z "$answer" ] && [ -n "$default_value" ]; then
+      answer="$default_value"
+    fi
+
+    if [ -n "$answer" ] || [ "$required" != "true" ]; then
+      break
+    fi
+
+    printf '%s is required for %s-scope secret setup.\n' "$secret_name" "$scope" >&2
+  done
+
+  printf -v "$target_var" '%s' "$answer"
+}
+
+prompt_missing_inputs_for_set_scope() {
+  local prompt_optional="false"
+
+  if [ -z "$env_file" ] && ! has_explicit_or_env_input; then
+    prompt_optional="true"
+  fi
+
+  prompt_line \
+    "BUNNY_STORAGE_ZONE" \
+    storage_zone \
+    true \
+    false \
+    "" \
+    "Bunny.net storage zone name used by the docs deploy workflow, for example loopwire-docs. This value is stored as the BUNNY_STORAGE_ZONE GitHub secret."
+
+  prompt_line \
+    "BUNNY_ACCESS_KEY" \
+    access_key \
+    true \
+    true \
+    "" \
+    "Bunny.net API/access key that can upload to the storage zone. Input is hidden when a TTY is available and is stored as the BUNNY_ACCESS_KEY GitHub secret."
+
+  if [ "$scope" = "final" ]; then
+    prompt_line \
+      "BUNNY_PULL_ZONE_HOSTNAME" \
+      pull_zone_hostname \
+      true \
+      false \
+      "" \
+      "Public Bunny pull-zone hostname used by live docs smoke and final release proof, for example docs.example.test. Do not include https:// or a path."
+
+    prompt_line \
+      "LOOPWIRE_RELEASE_PRIVATE_KEY" \
+      release_private_key_file \
+      true \
+      false \
+      "" \
+      "Path to the local PEM release private key. The helper validates it, then sends the file contents directly to the LOOPWIRE_RELEASE_PRIVATE_KEY GitHub secret."
+
+    prompt_line \
+      "LOOPWIRE_RELEASE_PUBLIC_KEY_FILE" \
+      release_public_key_file \
+      true \
+      false \
+      "packaging/release-signing-public.pem" \
+      "Path to the public key used only to validate the private key before any secret is written. This is not stored as a GitHub secret."
+  elif [ "$prompt_optional" = "true" ]; then
+    prompt_line \
+      "BUNNY_PULL_ZONE_HOSTNAME" \
+      pull_zone_hostname \
+      false \
+      false \
+      "" \
+      "Optional live-docs hostname for deploy-scope smoke. Do not include https:// or a path."
+  fi
+
+  if [ "$prompt_optional" = "true" ]; then
+    prompt_line \
+      "BUNNY_STORAGE_ENDPOINT" \
+      storage_endpoint \
+      false \
+      false \
+      "" \
+      "Optional Bunny storage endpoint override, for example ny.storage.bunnycdn.com."
+
+    prompt_line \
+      "BUNNY_REMOTE_PREFIX" \
+      remote_prefix \
+      false \
+      false \
+      "" \
+      "Optional remote path prefix for docs deployment, without leading slash or traversal segments."
+  fi
+}
+
 validate_required_inputs_for_set_scope() {
   require_set_input "$storage_zone" "BUNNY_STORAGE_ZONE" "--storage-zone"
   require_set_input "$access_key" "BUNNY_ACCESS_KEY" "--access-key"
@@ -796,6 +945,10 @@ resolve_repo
 if [ "$check_mode" = "true" ]; then
   check_secret_presence
   exit 0
+fi
+
+if [ "$dry_run" != "true" ]; then
+  prompt_missing_inputs_for_set_scope
 fi
 
 validate_requested_secret_set
