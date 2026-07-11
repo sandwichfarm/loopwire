@@ -17,14 +17,18 @@ verified against the host audio graph.
 
 ### Validated
 
-(None yet. The project is greenfield.)
+- [x] Endpoint kind metadata drives icons, menu grouping, and per-kind options (v0.3 Phase 13).
+- [x] Buses can be created as mono/stereo/quad (v0.3 Phase 14).
+- [x] Export/import, backend diagnostics, and manual host bindings restored in the UI (v0.3 Phase 15).
+- [x] DSP/JACK provider settings configurable in Settings and wired into restore/live apply (v0.3 Phase 16).
+- [x] Two-path end-to-end harness: browser suite + real-shell WebDriver smoke (v0.3 Phase 17).
+- [x] Production audio routing with native PipeWire graph support; device selection applies live with preflight and rollback (v0.2, phases 8-11 + UI rebuild).
+- [x] Monitors bind to physical output devices while keeping the reversible Loopwire-owned monitor path (v0.2 Phase 8).
+- [x] True per-edge mixing semantics rather than stream-level sink-input controls only (v0.2 Phase 11).
 
 ### Active
 
-- [ ] Ship production audio routing with native PipeWire graph support and explicit live-apply consent.
-- [ ] Bind monitors to physical output devices without losing the reversible Loopwire-owned monitor path.
-- [ ] Support true per-edge mixing semantics rather than stream-level sink-input controls only.
-- [ ] Prove release artifacts through published install smoke and VM evidence.
+- [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
 
 ### Out of Scope
 
@@ -58,16 +62,41 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 | Use VitePress for docs/site | Explicit user requirement and strong static deployment path | Pending |
 | Keep PipeWire as reference backend | Modern Linux desktop audio graph and best first target | Pending |
 
-## Current Milestone: v0.2 Production Audio Routing
+## Current State
 
-**Goal:** Move from a verified foundation to credible production audio routing by closing the remaining backend gaps.
+**Shipped:** v0.3 Seed Harvest (2026-07-08) — all five UI-rebuild seeds complete; `pnpm check`, `pnpm e2e:ui` (9/9),
+and `pnpm e2e:shell` (3/3) green. Open carry-over: v0.2 Phase 12 (published release + VM proof). Next milestone not
+yet defined — see `.planning/ROADMAP.md` Backlog (999.x) and remaining seeds for candidates.
+
+## Previous Milestone: v0.3 Seed Harvest
+
+**Goal:** Complete the five planted seeds from the UI rebuild: reliable endpoint metadata, multichannel buses, restored power-user surfaces, provider settings, and a real end-to-end test harness.
 
 **Target features:**
-- Physical monitor device binding.
-- Native PipeWire existing-port apply, verify, and rollback.
-- Explicit live backend apply consent in the desktop.
-- True per-edge mixing semantics.
-- Published release and VM proof.
+- Endpoint kind metadata (app/capture/system/pass-thru) flowing from enumeration into icons, menus, and options (SEED-005).
+- Bus creation with a chosen channel count (SEED-004).
+- Restored export/import UI, backend diagnostics surface, and manual host-binding fields (SEED-002).
+- DSP/JACK provider settings in the Settings dialog wired into restore and live apply (SEED-003).
+- Automated end-to-end harness that drives the real UI (SEED-001).
+
+**Carried forward:** v0.2 Phase 12 (published release + VM proof) stays open until signing/publishing infrastructure is available.
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? -> Move to Out of Scope with reason
+2. Requirements validated? -> Move to Validated with phase reference
+3. New requirements emerged? -> Add to Active
+4. Decisions to log? -> Add to Key Decisions
+5. "What This Is" still accurate? -> Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check - still the right priority?
+3. Audit Out of Scope - reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after starting v0.2 production routing*
+*Last updated: 2026-07-08 after shipping v0.3 Seed Harvest*

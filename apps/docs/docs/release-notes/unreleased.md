@@ -2,6 +2,50 @@
 
 These notes describe source-tree progress. They are not a public release announcement.
 
+## Desktop UI Rebuild
+
+- The desktop shell was rebuilt as a device sidebar plus patch-bay canvas: Sources / Output Channels / Monitors
+  columns with per-channel meters, port dots, and bezier cables between cards.
+- Devices carry On/Off, mute, and volume controls in the sidebar; device removal shows an undo toast instead of a
+  confirmation dialog, and the device list may now be empty (persisted schema v2 with automatic v1 migration).
+- Sources and monitors are added from grouped menus backed by host enumeration; buses are added from a small ⊕ menu;
+  new endpoints auto-cable channel-to-channel, and port-to-port drags create routes.
+- The Output Channels ⊕ now offers **Stereo Bus**, **Mono Bus**, and **Quad Bus**, each appended instantly on pick
+  with channel-count-aware labels (`Channels 3 & 4`, `Channel 5`, `Channels 3–6`) and cumulative start channels. This
+  diverges from the reference's instant stereo-only add by one pick: bus creation stays one-click-then-pick so wider
+  layouts do not need a separate editor.
+- Source/monitor cards expose On/Off pills and an Options strip (source volume drives outgoing route gains; app
+  sources add mute-when-capturing; monitor volume is configured state applied on host apply).
+- App settings moved to a Settings dialog (`Ctrl+,`) with Appearance (Match System/Light/Dark), the audio backend
+  picker with runtime activity ledger, automatic host-apply status, startup integration, and update policy.
+- Selecting a device now applies its configuration through the saved backend immediately (with preflight and
+  rollback); when live apply cannot run, the switch happens in preview and the reason is reported. Sidebar devices
+  reorder with click-and-drag, UI text is unselectable, and card selection no longer clears itself.
+- Native PipeWire now creates Loopwire-owned virtual source nodes for sources without a host binding, so the default
+  Pass-Thru → Channels 1 & 2 device applies live end to end instead of being blocked by preflight.
+- Explicit bus → monitor cables now drive native PipeWire monitor linking (unwired buses stay silent to that monitor);
+  JACK/PulseAudio tolerate those routes and keep their implicit monitor behavior. Routes touching an Off card apply as
+  muted (disconnected), Off devices switch in preview, and muted routes whose host ports are gone no longer fail apply.
+- Sources now carry a kind (app stream, capture hardware, system source, or pass-thru) recorded from host enumeration
+  and persisted as an optional schema v2 field; card and sidebar icons, add-menu grouping, and the mute-when-capturing
+  option derive from that kind, with the old label heuristics kept only as a fallback for pre-existing saved states.
+- Removed from the UI in this rebuild (domain/CLI paths remain): custom window chrome mode; meters render silence
+  until a per-port level stream exists in the audio host layer. Configuration export/import, the diagnostics panel,
+  and manual host-binding fields returned in a later power-user slice (see the Settings Transfer/Diagnostics and
+  host-binding entries below).
+- DSP and JACK provider settings are back in the rebuilt desktop UI: a Settings → Providers section persists the DSP
+  provider command, trust mode, timeout, and frame count plus the JACK provider command, timeout, delegate mode, and
+  readiness delay under the pre-rebuild storage keys. Saving a live DSP provider command makes DSP Provider selectable
+  in the backend picker, live apply re-verifies the DSP provider `capabilities` contract before provider-backed host
+  transactions, saved JACK provider settings feed native JACK live apply and preflight readiness, and enabling
+  background restore writes the matching provider flags into the user-scoped systemd unit.
+
+- An end-to-end UI harness now drives the rebuilt shell through its core flows: `pnpm e2e:ui` builds the frontend,
+  serves it locally, and walks create/rename, add-source cabling, On/Off dimming, select/Delete, Hide Monitors,
+  reload persistence, and sidebar drag-reorder in headless Chromium, asserting DOM outcomes with honest preview-mode
+  scope (no host-apply claims). `pnpm e2e:shell` adds a read-only WebDriver smoke of the real Tauri binary via
+  `tauri-driver` + `WebKitWebDriver` where the host provides them.
+
 ## Supported In Source
 
 - Contributor source install with `pnpm install` and `pnpm check`.
@@ -207,8 +251,13 @@ These notes describe source-tree progress. They are not a public release announc
   source/output pair and independent per-edge gain/mute state.
 - Desktop source, output, and monitor cards now support endpoint removal. Source/output removal prunes dependent routes,
   monitor removal clears hidden-monitor state, and the last output remains protected.
-- Desktop source and output cards now support manual host binding fields for PipeWire/JACK ports or PulseAudio stream
-  tokens that are not listed by backend enumeration.
+- Desktop source, output, and monitor cards now support manual host binding fields for PipeWire/JACK ports or
+  PulseAudio stream tokens that are not listed by backend enumeration; a successful binding edit re-applies the
+  selected device so the host graph tracks the override.
+- Settings now includes a Transfer section that exports the selected device's versioned configuration JSON (copying it
+  to the clipboard when available) and imports a pasted export as a new selected device, plus a Diagnostics disclosure
+  under Audio Backend listing each backend capability report: availability, mixing scope, per-operation states, and
+  probe diagnostics.
 - Monitor visibility is now scoped per configuration, so hiding a monitor in one workspace does not hide same-id
   monitors in other workspaces.
 - Hidden monitor cards now move into a compact recovery tray with `Show` actions instead of staying dimmed in the main
@@ -726,3 +775,4 @@ These notes describe source-tree progress. They are not a public release announc
 - `pnpm verify:docs`
 - `pnpm verify:vm`
 - `pnpm verify:tauri`
+- `pnpm e2e:ui` (host-dependent manual validation; see the developer e2e guide)

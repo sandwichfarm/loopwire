@@ -517,6 +517,18 @@ export function sinkNameForMonitor(
   return [sanitizeName(sinkPrefix), sanitizeName(configuration.id), "monitor", sanitizeName(monitor.id)].join("_").slice(0, 80);
 }
 
+/**
+ * Loopwire-owned virtual source node (e.g. Pass-Thru): a sink applications
+ * play into whose monitor ports feed the configuration's buses.
+ */
+export function sinkNameForInput(
+  sinkPrefix: string,
+  configuration: HostRuntimeConfiguration,
+  input: HostRuntimeEndpoint
+): string {
+  return [sanitizeName(sinkPrefix), sanitizeName(configuration.id), "source", sanitizeName(input.id)].join("_").slice(0, 80);
+}
+
 interface SinkInputRoutePlan {
   readonly routeId: string;
   readonly sourceTokens: readonly string[];

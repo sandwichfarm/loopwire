@@ -199,7 +199,9 @@ function liveApplyBlockers(
     );
   }
 
-  if (backend === "pipewire" && missingSourceRoutes.length > 0) {
+  // Backends that create virtual devices (native PipeWire) turn unbound
+  // sources into Loopwire-owned virtual nodes, so they are not blockers there.
+  if (backend === "pipewire" && !backendCreatesVirtualDevices(backend, capability) && missingSourceRoutes.length > 0) {
     blockers.push(
       `${displayBackendName(backend)} live apply needs host source ports for ${formatEndpointList(missingSources)}.`
     );

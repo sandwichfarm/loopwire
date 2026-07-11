@@ -253,7 +253,99 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 | 10. Live Apply Consent and Runtime Wiring | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 11. True Per-Edge Matrix Semantics | v0.2 | 1/1 | Complete | 2026-07-03 |
 | 12. Published Release and VM Proof | v0.2 | 1/1 | In Progress | - |
+| 13. Endpoint Kind Metadata | v0.3 | 1/1 | Complete | 2026-07-06 |
+| 14. Multichannel Bus Creation | v0.3 | 1/1 | Complete | 2026-07-06 |
+| 15. Power-User Surfaces | v0.3 | 1/1 | Complete | 2026-07-06 |
+| 16. Provider Settings UI | v0.3 | 1/1 | Complete | 2026-07-06 |
+| 17. End-to-End UI Harness | v0.3 | 1/1 | Complete | 2026-07-08 |
 
 ---
 *Roadmap defined: 2026-07-03*
 *Last updated: 2026-07-03 after desktop backend detection and Phase 12 evidence gating*
+
+## Milestone v0.3: Seed Harvest (SHIPPED 2026-07-08)
+
+Phases 13-17 complete (endpoint kind metadata, multichannel buses, power-user surfaces, provider settings, e2e harness). Details: [.planning/milestones/v0.3-ROADMAP.md](milestones/v0.3-ROADMAP.md)
+
+## Backlog
+
+### Phase 999.1: Apply device and source volume/mute on the host (BACKLOG)
+
+**Goal:** [Captured for future planning] Source volume (route gains), device volume, and device mute are configured-only today; non-unity gains even block native live apply. Apply volume on Loopwire-owned nodes (pw-cli set-param / wpctl on virtual sinks) and hot-apply volume edits, then drop the unity-gain preflight blocker for backends that support it. Needs a Tauri bridge allowlist addition.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.2: Per-port level stream and live meters (BACKLOG)
+
+**Goal:** [Captured for future planning] All meters render silence because no adapter provides per-port levels. Add a PipeWire level-monitoring path feeding the desktop levelStore (cards, buses, monitors, sidebar mini-meter) with rAF-throttled smooth decay.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.3: Enforce mute-when-capturing on the host (BACKLOG)
+
+**Goal:** [Captured for future planning] The app-source "Mute when capturing" checkbox stores domain state but no adapter mutes the app's normal output while Loopwire captures it.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.4: Re-apply host state when device removal is undone (BACKLOG)
+
+**Goal:** [Captured for future planning] The undo toast restores Loopwire state but not the host graph; the device must be re-selected/toggled to bring its nodes back. Undo should re-run the apply transaction for the restored device when it was live.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.5: PipeWire pending-stream retry for absent app sources (BACKLOG)
+
+**Goal:** [Captured for future planning] Cabling an app that is not currently playing skips/fails its links with no retry when the stream appears. Mirror the PulseAudio pending-stream refresh for native PipeWire so late-starting apps get linked.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.6: Honor explicit monitor cables on JACK and PulseAudio (BACKLOG)
+
+**Goal:** [Captured for future planning] Native PipeWire plans monitor links from explicit bus-to-monitor routes; JACK still connects all output-monitor pairs and PulseAudio tolerates but ignores per-cable monitor routing. Bring both to parity or document a hard capability gap per backend contract.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.7: Startup sweep for orphaned Loopwire host nodes (BACKLOG)
+
+**Goal:** [Captured for future planning] Live-device tracking is session-local; a crash without unload leaves loopwire_* nodes lingering (object.linger). On startup, detect Loopwire-owned nodes that do not match the applied device and offer/perform cleanup.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.8: Keyboard-selectable cables (BACKLOG)
+
+**Goal:** [Captured for future planning] Cables can only be selected by mouse click; keyboard users cannot select or delete a route without deleting an endpoint. Add focusable cable selection (or a route list surface) per the accessibility bar in vnc-ux-spec section 6.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.9: Refresh docs product screenshot to the rebuilt UI (BACKLOG)
+
+**Goal:** [Captured for future planning] apps/docs/docs/public/product-screenshot.svg still shows the pre-rebuild stacked-panel UI; regenerate from the sidebar + patch-bay shell.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)

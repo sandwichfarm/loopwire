@@ -417,7 +417,8 @@ describe("enumerateInputSources", () => {
         sourceName: "alsa_input.usb.Focusrite_Scarlett.analog-stereo",
         label: "usb Focusrite Scarlett analog stereo",
         detail: "2 output port(s)",
-        channels: 2
+        channels: 2,
+        kind: "capture"
       },
       {
         backend: "pipewire",
@@ -425,7 +426,8 @@ describe("enumerateInputSources", () => {
         sourceName: "Firefox",
         label: "Firefox",
         detail: "1 output port(s)",
-        channels: 1
+        channels: 1,
+        kind: "app"
       }
     ]);
     expect(report.diagnostics[0]).toMatchObject({ level: "info", code: "INPUT_SOURCES_AVAILABLE" });
@@ -468,7 +470,8 @@ describe("enumerateInputSources", () => {
         sourceName: "firefox",
         label: "Firefox",
         detail: "AudioStream - Sink 32",
-        channels: 2
+        channels: 2,
+        kind: "app"
       },
       {
         backend: "pulseaudio",
@@ -476,7 +479,8 @@ describe("enumerateInputSources", () => {
         sourceName: "meeting-app",
         label: "Meeting App",
         detail: "Call Audio - meeting-app - Sink 47",
-        channels: 1
+        channels: 1,
+        kind: "app"
       }
     ]);
     expect(report.diagnostics[0]).toMatchObject({ level: "info", code: "INPUT_SOURCES_AVAILABLE" });
@@ -599,7 +603,8 @@ describe("enumerateInputSources", () => {
         sourceName: "hw:1,0",
         label: "Saffire Pro40 DICE",
         detail: "card 1 Pro40; device 0 DICE",
-        channels: 2
+        channels: 2,
+        kind: "capture"
       },
       {
         backend: "alsa",
@@ -607,7 +612,8 @@ describe("enumerateInputSources", () => {
         sourceName: "hw:2,0",
         label: "Q802USB USB Audio",
         detail: "card 2 Q802USB; device 0 USB Audio",
-        channels: 2
+        channels: 2,
+        kind: "capture"
       }
     ]);
     expect(report.diagnostics[0]).toMatchObject({ level: "info", code: "INPUT_SOURCES_AVAILABLE" });

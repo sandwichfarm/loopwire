@@ -147,7 +147,7 @@ systemctl --user status loopwire.service
 journalctl --user -u loopwire.service --no-pager
 ```
 
-If the desktop **Restore on boot** action reports that it cannot locate the background restore launcher, the app is
+If the desktop **Restore audio in background** action reports that it cannot locate the background restore launcher, the app is
 running from a GUI binary that does not own `--background`. Install the packaged `loopwire` launcher, set
 `LOOPWIRE_BACKGROUND_BINARY` to a compatible launcher, or use the source-checkout systemd path documented in
 [Start on Boot](/guide/start-on-boot).

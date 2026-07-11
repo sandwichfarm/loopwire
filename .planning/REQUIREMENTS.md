@@ -8,7 +8,7 @@
 ### Product UX
 
 - [x] **UX-01**: User sees a polished desktop app shell with app title, backend state, configurations, routes, and monitors.
-- [x] **UX-02**: App uses native window chrome when available and provides custom titlebar controls when not available.
+- [x] **UX-02**: App uses native window chrome; missing decorations are treated as environment bugs to report, not a mode to switch (custom-chrome fallback removed in the UI rebuild).
 - [x] **UX-03**: User can hide and reveal monitors without deleting the underlying monitor.
 - [x] **UX-04**: User-facing copy avoids raw backend jargon outside diagnostics and advanced settings.
 
@@ -105,6 +105,12 @@ Requirements for the next milestone.
 - Mapped to phases: 34
 - Unmapped: 0
 
+## v0.3 Requirements (Seed Harvest) — SHIPPED 2026-07-08
+
+All 10 requirements (META-01..02, BUS-01, SURF-01..03, PROV-01..02, E2E-01..02) complete.
+Archived: [milestones/v0.3-REQUIREMENTS.md](milestones/v0.3-REQUIREMENTS.md)
+
+
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-07-04 after support bundle backend summaries*
+*Last updated: 2026-07-08 after Phase 17 end-to-end UI harness*

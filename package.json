@@ -28,6 +28,8 @@
     "dsp:plan": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/describe-dsp-provider.mjs",
     "dsp:verify": "pnpm dsp:plan -- --execute",
     "deploy:docs:bunny": "bash scripts/deploy-docs-bunny.sh",
+    "e2e:ui": "node scripts/e2e-desktop-ui.mjs",
+    "e2e:shell": "node scripts/e2e-desktop-shell.mjs",
     "detect:audio": "pnpm --filter @loopwire/audio-host build && node scripts/detect-audio-backends.mjs --pretty",
     "restore:background": "pnpm --filter @loopwire/core build && pnpm --filter @loopwire/audio-host build && node scripts/restore-background.mjs",
     "lint": "pnpm typecheck",

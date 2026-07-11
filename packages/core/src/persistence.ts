@@ -1,12 +1,15 @@
 import { createDefaultState, insertConfiguration, validateConfigurationGraph } from "./configuration.js";
 import {
   audioBackendKinds,
+  endpointKinds,
+  legacySchemaVersionV1,
   schemaVersion,
   type AudioEndpoint,
   type AudioRoute,
+  type EndpointKind,
   type LoopwireConfiguration,
   type LoopwireState,
-  type PersistedStateV1
+  type PersistedStateV2
 } from "./types.js";
 
 export const configurationExportKind = "loopwire.configuration" as const;
@@ -42,7 +45,7 @@ export type RestoreResult =
     };
 
 export function serializeState(state: LoopwireState): string {
-  const persisted: PersistedStateV1 = {
+  const persisted: PersistedStateV2 = {
     version: schemaVersion,
     configurations: state.configurations,
     hiddenMonitorIds: state.hiddenMonitorIds,
@@ -118,8 +121,8 @@ function parsePersistedState(value: unknown): LoopwireState | null {
     return null;
   }
 
-  if (value.version === schemaVersion) {
-    return parseStateV1(value);
+  if (value.version === schemaVersion || value.version === legacySchemaVersionV1) {
+    return parseModernState(value);
   }
 
   if (value.version === 0) {
@@ -129,8 +132,13 @@ function parsePersistedState(value: unknown): LoopwireState | null {
   return null;
 }
 
-function parseStateV1(value: unknown): LoopwireState | null {
-  if (!isRecord(value) || value.version !== schemaVersion || !Array.isArray(value.configurations)) {
+/**
+ * Parses schema v2 payloads and migrates v1 payloads in place: v2 only adds
+ * optional device/endpoint control fields, so a v1 payload parses cleanly and
+ * is re-stamped with the current schema version.
+ */
+function parseModernState(value: unknown): LoopwireState | null {
+  if (!isRecord(value) || !Array.isArray(value.configurations)) {
     return null;
   }
 
@@ -217,12 +225,27 @@ function parseConfiguration(value: unknown): LoopwireConfiguration | null {
   const outputs = parseEndpointArray(value.outputs);
   const monitors = parseEndpointArray(value.monitors);
   const routes = parseRouteArray(value.routes);
+  const enabled = parseOptionalBoolean(value.enabled);
+  const muted = parseOptionalBoolean(value.muted);
+  const volume = parseOptionalUnitNumber(value.volume);
 
   if (!id || !name || description === null || !updatedAt || !inputs || !outputs || !monitors || !routes) {
     return null;
   }
 
-  const configuration = { id, name, description, inputs, outputs, monitors, routes, updatedAt };
+  const configuration = {
+    id,
+    name,
+    description,
+    inputs,
+    outputs,
+    monitors,
+    routes,
+    updatedAt,
+    ...(enabled !== undefined ? { enabled } : {}),
+    ...(muted !== undefined ? { muted } : {}),
+    ...(volume !== undefined ? { volume } : {})
+  };
 
   try {
     validateConfigurationGraph(configuration);
@@ -261,6 +284,10 @@ function parseEndpoint(value: unknown): AudioEndpoint | null {
   const role = value.role;
   const channels = value.channels;
   const deviceName = parseOptionalString(value.deviceName);
+  const enabled = parseOptionalBoolean(value.enabled);
+  const volume = parseOptionalUnitNumber(value.volume);
+  const muteWhenCapturing = parseOptionalBoolean(value.muteWhenCapturing);
+  const kind = parseOptionalEndpointKind(value.kind);
 
   if (!id || !label || (role !== "input" && role !== "output" && role !== "monitor") || !isPositiveInteger(channels)) {
     return null;
@@ -271,7 +298,11 @@ function parseEndpoint(value: unknown): AudioEndpoint | null {
     label,
     role,
     channels,
-    ...(deviceName ? { deviceName } : {})
+    ...(deviceName ? { deviceName } : {}),
+    ...(enabled !== undefined ? { enabled } : {}),
+    ...(volume !== undefined ? { volume } : {}),
+    ...(muteWhenCapturing !== undefined ? { muteWhenCapturing } : {}),
+    ...(kind !== undefined ? { kind } : {})
   };
 }
 
@@ -333,6 +364,18 @@ function parseStringArray(value: unknown): readonly string[] {
 
 function parseOptionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function parseOptionalEndpointKind(value: unknown): EndpointKind | undefined {
+  return endpointKinds.some((kind) => kind === value) ? (value as EndpointKind) : undefined;
+}
+
+function parseOptionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function parseOptionalUnitNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : undefined;
 }
 
 function parseString(value: unknown): string | null {

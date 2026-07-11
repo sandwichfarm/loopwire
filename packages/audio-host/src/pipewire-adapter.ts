@@ -1,5 +1,5 @@
 import type { CommandResult, CommandRunner } from "./types.js";
-import { sinkNameForMonitor, sinkNameForOutput } from "./runtime-adapter.js";
+import { sinkNameForInput, sinkNameForMonitor, sinkNameForOutput } from "./runtime-adapter.js";
 import type { HostRuntimeConfiguration, HostRuntimeEndpoint, HostRuntimeOperationResult } from "./runtime-adapter.js";
 
 export type PipeWireRuntimeMode = "dry-run" | "apply";
@@ -53,6 +53,8 @@ interface PipeWireLinkPair {
 interface PipeWireRoutePlanResult {
   readonly ok: true;
   readonly plans: readonly PipeWireRoutePlan[];
+  /** Host-bound endpoints whose ports are absent; their links were skipped. */
+  readonly skippedEndpoints: readonly string[];
 }
 
 interface PreparedPipeWireRoutePlans extends PipeWireRoutePlanResult {
@@ -65,7 +67,7 @@ interface PipeWireNode {
 }
 
 interface PipeWireVirtualSinkEndpoint {
-  readonly kind: "output" | "monitor";
+  readonly kind: "input" | "output" | "monitor";
   readonly endpoint: HostRuntimeEndpoint;
 }
 
@@ -77,6 +79,16 @@ function isPipeWireNodeList(
 
 const defaultTimeoutMs = 5000;
 const defaultSinkPrefix = "loopwire";
+const portRegistrationRetries = 12;
+const portRegistrationDelayMs = 150;
+
+function delay(durationMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+function isMissingPortsFailure(result: HostRuntimeOperationResult): boolean {
+  return result.ok === false && /Missing PipeWire .*ports for /.test(result.message ?? "");
+}
 
 export function createPipeWireGraphRuntimeAdapter(
   runner: CommandRunner,
@@ -151,7 +163,18 @@ async function applyPipeWireLinks(
   }
 
   const effectiveConfiguration = withVirtualEndpointDeviceNames(context, configuration);
-  const prepared = await preparePipeWireRoutePlans(context, effectiveConfiguration, "apply");
+  let prepared = await preparePipeWireRoutePlans(context, effectiveConfiguration, "apply");
+
+  // Freshly created virtual nodes register their ports asynchronously; retry
+  // planning briefly instead of failing the whole apply on the race.
+  for (let attempt = 0; !isPreparedPipeWireRoutePlans(prepared) && attempt < portRegistrationRetries; attempt += 1) {
+    if (createdNodes.length === 0 || !isMissingPortsFailure(prepared)) {
+      break;
+    }
+
+    await delay(portRegistrationDelayMs);
+    prepared = await preparePipeWireRoutePlans(context, effectiveConfiguration, "apply");
+  }
 
   if (!isPreparedPipeWireRoutePlans(prepared)) {
     await destroyPipeWireNodes(context, "rollback", createdNodes);
@@ -200,7 +223,10 @@ async function applyPipeWireLinks(
     message: [
       createdNodes.length > 0 ? `Created ${createdNodes.length} PipeWire virtual sink node(s)` : undefined,
       unlinkedMuted > 0 ? `Unlinked ${unlinkedMuted} muted PipeWire link pair(s)` : undefined,
-      `Linked ${createdPairs.length} PipeWire port pair(s); ${alreadyLinked} already linked`
+      `Linked ${createdPairs.length} PipeWire port pair(s); ${alreadyLinked} already linked`,
+      prepared.skippedEndpoints.length > 0
+        ? `Skipped absent endpoint(s): ${prepared.skippedEndpoints.join(", ")}`
+        : undefined
     ].filter((item): item is string => item !== undefined).join("; ")
   };
 }
@@ -248,7 +274,15 @@ async function verifyPipeWireLinks(
     return { ok: false, message: `Muted PipeWire link(s) still connected: ${muted.join(", ")}` };
   }
 
-  return { ok: true, message: `Verified ${prepared.plans.filter((plan) => plan.active).length} PipeWire link plan(s)` };
+  return {
+    ok: true,
+    message: [
+      `Verified ${prepared.plans.filter((plan) => plan.active).length} PipeWire link plan(s)`,
+      prepared.skippedEndpoints.length > 0
+        ? `absent endpoint(s) skipped: ${prepared.skippedEndpoints.join(", ")}`
+        : undefined
+    ].filter((item): item is string => item !== undefined).join("; ")
+  };
 }
 
 async function unloadPipeWireLinks(
@@ -303,6 +337,10 @@ async function preparePipeWireRoutePlans(
   configuration: HostRuntimeConfiguration,
   operation: PipeWireRuntimeCommandLogEntry["operation"]
 ): Promise<PreparedPipeWireRoutePlans | HostRuntimeOperationResult> {
+  // Unload/rollback tear down whatever exists: endpoints whose host ports are
+  // absent (never applied, app exited) have nothing to unlink and must not
+  // fail the transaction.
+  const missingPortMode: MissingPortMode = operation === "unload" || operation === "rollback" ? "skip" : "fail";
   const outputPorts = await context.runPwLink(operation, ["-o"]);
   if (outputPorts.exitCode !== 0) {
     return failed("Could not list PipeWire output ports", outputPorts);
@@ -318,7 +356,13 @@ async function preparePipeWireRoutePlans(
     return failed("Could not list PipeWire links", links);
   }
 
-  const planResult = createPipeWireRoutePlans(configuration, parsePorts(outputPorts.stdout), parsePorts(inputPorts.stdout));
+  const planResult = createPipeWireRoutePlans(
+    configuration,
+    parsePorts(outputPorts.stdout),
+    parsePorts(inputPorts.stdout),
+    missingPortMode,
+    (deviceName) => deviceName.startsWith(`${context.sinkPrefix}_`)
+  );
 
   if (!isPipeWireRoutePlanResult(planResult)) {
     return planResult;
@@ -327,6 +371,7 @@ async function preparePipeWireRoutePlans(
   return {
     ok: true,
     plans: planResult.plans,
+    skippedEndpoints: planResult.skippedEndpoints,
     existingPairs: parsePipeWireLinks(links.stdout)
   };
 }
@@ -466,6 +511,13 @@ function withVirtualEndpointDeviceNames(
 ): HostRuntimeConfiguration {
   return {
     ...configuration,
+    // Unbound sources (Pass-Thru) become Loopwire-owned virtual sinks whose
+    // monitor ports feed the buses, so link plans resolve against them.
+    inputs: (configuration.inputs ?? []).map((input) => (
+      normalizedDeviceName(input)
+        ? input
+        : { ...input, deviceName: virtualSinkNodeName(context, configuration, { kind: "input", endpoint: input }) }
+    )),
     outputs: configuration.outputs.map((output) => (
       normalizedDeviceName(output)
         ? output
@@ -480,6 +532,9 @@ function withVirtualEndpointDeviceNames(
 }
 
 function virtualSinkEndpoints(configuration: HostRuntimeConfiguration): readonly PipeWireVirtualSinkEndpoint[] {
+  const inputs = (configuration.inputs ?? [])
+    .filter((input) => !normalizedDeviceName(input))
+    .map((endpoint): PipeWireVirtualSinkEndpoint => ({ kind: "input", endpoint }));
   const outputs = configuration.outputs
     .filter((output) => !normalizedDeviceName(output))
     .map((endpoint): PipeWireVirtualSinkEndpoint => ({ kind: "output", endpoint }));
@@ -487,7 +542,7 @@ function virtualSinkEndpoints(configuration: HostRuntimeConfiguration): readonly
     .filter((monitor) => !normalizedDeviceName(monitor))
     .map((endpoint): PipeWireVirtualSinkEndpoint => ({ kind: "monitor", endpoint }));
 
-  return [...outputs, ...monitors];
+  return [...inputs, ...outputs, ...monitors];
 }
 
 function virtualSinkNodeName(
@@ -495,6 +550,10 @@ function virtualSinkNodeName(
   configuration: HostRuntimeConfiguration,
   target: PipeWireVirtualSinkEndpoint
 ): string {
+  if (target.kind === "input") {
+    return sinkNameForInput(context.sinkPrefix, configuration, target.endpoint);
+  }
+
   return target.kind === "output"
     ? sinkNameForOutput(context.sinkPrefix, configuration, target.endpoint)
     : sinkNameForMonitor(context.sinkPrefix, configuration, target.endpoint);
@@ -534,20 +593,48 @@ function activePipeWirePlanCount(configuration: HostRuntimeConfiguration): numbe
     (configuration.monitors ?? []).length;
 }
 
+interface PipeWireMonitorRoute {
+  readonly routeId: string;
+  readonly output: HostRuntimeEndpoint;
+  readonly monitor: HostRuntimeEndpoint;
+  readonly active: boolean;
+}
+
+type MissingPortMode = "fail" | "skip";
+
 function createPipeWireRoutePlans(
   configuration: HostRuntimeConfiguration,
   outputPorts: readonly string[],
-  inputPorts: readonly string[]
+  inputPorts: readonly string[],
+  missingPortMode: MissingPortMode = "fail",
+  isLoopwireOwned: (deviceName: string) => boolean = () => true
 ): PipeWireRoutePlanResult | HostRuntimeOperationResult {
   const inputs = new Map((configuration.inputs ?? []).map((input) => [input.id, input]));
   const outputs = new Map(configuration.outputs.map((output) => [output.id, output]));
+  const monitorsById = new Map((configuration.monitors ?? []).map((monitor) => [monitor.id, monitor]));
   const plans: PipeWireRoutePlan[] = [];
+  const skippedEndpoints: string[] = [];
+  const explicitMonitorRoutes: PipeWireMonitorRoute[] = [];
 
   for (const route of configuration.routes ?? []) {
     const source = inputs.get(route.from);
     const target = outputs.get(route.to);
 
     if (!source || !target) {
+      // Explicit bus → monitor cables are planned in the monitor stage below.
+      const monitorSource = outputs.get(route.from);
+      const monitorTarget = monitorsById.get(route.to);
+
+      if (monitorSource && monitorTarget) {
+        explicitMonitorRoutes.push({
+          routeId: route.id,
+          output: monitorSource,
+          monitor: monitorTarget,
+          active: !route.muted
+        });
+        continue;
+      }
+
       return { ok: false, message: `Route ${route.id} references an unknown endpoint` };
     }
 
@@ -562,12 +649,29 @@ function createPipeWireRoutePlans(
     const targetPorts = selectEndpointPorts(inputPorts, target, targetDeviceName);
     const channelCount = Math.min(source.channels, target.channels);
 
-    if (sourcePorts.length < channelCount) {
-      return { ok: false, message: `Missing PipeWire output ports for ${source.label} (${sourceDeviceName})` };
-    }
+    if (sourcePorts.length < channelCount || targetPorts.length < channelCount) {
+      // A muted route with absent host ports has nothing to unlink, and
+      // unload/rollback skip absent endpoints entirely.
+      if (route.muted || missingPortMode === "skip") {
+        continue;
+      }
 
-    if (targetPorts.length < channelCount) {
-      return { ok: false, message: `Missing PipeWire input ports for ${target.label} (${targetDeviceName})` };
+      const missing = sourcePorts.length < channelCount
+        ? { endpoint: source, deviceName: sourceDeviceName, side: "output" as const }
+        : { endpoint: target, deviceName: targetDeviceName, side: "input" as const };
+
+      // Loopwire-owned nodes were just created and must expose ports; an
+      // absent host endpoint (app exited, wrong node kind) only skips its
+      // links so the rest of the device still applies.
+      if (!isLoopwireOwned(missing.deviceName)) {
+        skippedEndpoints.push(`${missing.endpoint.label} (${missing.deviceName})`);
+        continue;
+      }
+
+      return {
+        ok: false,
+        message: `Missing PipeWire ${missing.side} ports for ${missing.endpoint.label} (${missing.deviceName})`
+      };
     }
 
     plans.push({
@@ -581,49 +685,76 @@ function createPipeWireRoutePlans(
     });
   }
 
-  for (const output of configuration.outputs) {
-    const outputDeviceName = normalizedDeviceName(output);
+  // Explicit bus → monitor cables win; without any, every bus feeds every
+  // monitor (the pre-cable legacy behavior).
+  const monitorPairs: readonly PipeWireMonitorRoute[] =
+    explicitMonitorRoutes.length > 0
+      ? explicitMonitorRoutes
+      : configuration.outputs.flatMap((output) =>
+          (configuration.monitors ?? []).map((monitor) => ({
+            routeId: `${output.id}->${monitor.id}`,
+            output,
+            monitor,
+            active: true
+          }))
+        );
+
+  for (const pair of monitorPairs) {
+    const outputDeviceName = normalizedDeviceName(pair.output);
 
     if (!outputDeviceName) {
       continue;
     }
 
-    const outputMonitorPorts = selectMonitorSourcePorts(outputPorts, output, outputDeviceName);
+    const outputMonitorPorts = selectMonitorSourcePorts(outputPorts, pair.output, outputDeviceName);
+    const monitorDeviceName = normalizedDeviceName(pair.monitor);
 
-    for (const monitor of configuration.monitors ?? []) {
-      const monitorDeviceName = normalizedDeviceName(monitor);
-
-      if (!monitorDeviceName) {
-        return {
-          ok: false,
-          message: `Monitor ${monitor.id} needs a deviceName; native PipeWire monitor routing requires an existing sink`
-        };
-      }
-
-      const monitorTargetPorts = selectEndpointPorts(inputPorts, monitor, monitorDeviceName);
-      const channelCount = Math.min(output.channels, monitor.channels);
-
-      if (outputMonitorPorts.length < channelCount) {
-        return { ok: false, message: `Missing PipeWire monitor output ports for ${output.label} (${outputDeviceName})` };
-      }
-
-      if (monitorTargetPorts.length < channelCount) {
-        return { ok: false, message: `Missing PipeWire input ports for ${monitor.label} (${monitorDeviceName})` };
-      }
-
-      plans.push({
-        routeId: `${output.id}->${monitor.id}`,
-        label: `${output.label} monitor -> ${monitor.label}`,
-        active: true,
-        pairs: outputMonitorPorts.slice(0, channelCount).map((outputPort, index) => ({
-          outputPort,
-          inputPort: monitorTargetPorts[index] ?? monitorTargetPorts[0] ?? monitorDeviceName
-        }))
-      });
+    if (!monitorDeviceName) {
+      return {
+        ok: false,
+        message: `Monitor ${pair.monitor.id} needs a deviceName; native PipeWire monitor routing requires an existing sink`
+      };
     }
+
+    const monitorTargetPorts = selectEndpointPorts(inputPorts, pair.monitor, monitorDeviceName);
+    const channelCount = Math.min(pair.output.channels, pair.monitor.channels);
+
+    if (outputMonitorPorts.length < channelCount || monitorTargetPorts.length < channelCount) {
+      if (!pair.active || missingPortMode === "skip") {
+        continue;
+      }
+
+      const missing = outputMonitorPorts.length < channelCount
+        ? { endpoint: pair.output, deviceName: outputDeviceName, side: "monitor output" as const }
+        : { endpoint: pair.monitor, deviceName: monitorDeviceName, side: "input" as const };
+
+      if (!isLoopwireOwned(missing.deviceName)) {
+        skippedEndpoints.push(`${missing.endpoint.label} (${missing.deviceName})`);
+        continue;
+      }
+
+      return {
+        ok: false,
+        message: `Missing PipeWire ${missing.side} ports for ${missing.endpoint.label} (${missing.deviceName})`
+      };
+    }
+
+    plans.push({
+      routeId: pair.routeId,
+      label: `${pair.output.label} monitor -> ${pair.monitor.label}`,
+      active: pair.active,
+      pairs: outputMonitorPorts.slice(0, channelCount).map((outputPort, index) => ({
+        outputPort,
+        inputPort: monitorTargetPorts[index] ?? monitorTargetPorts[0] ?? monitorDeviceName
+      }))
+    });
   }
 
-  return { ok: true, plans };
+  return { ok: true, plans, skippedEndpoints: dedupe(skippedEndpoints) };
+}
+
+function dedupe(values: readonly string[]): readonly string[] {
+  return [...new Set(values)];
 }
 
 function isPreparedPipeWireRoutePlans(
@@ -643,8 +774,16 @@ function selectEndpointPorts(
   endpoint: HostRuntimeEndpoint,
   deviceName: string
 ): readonly string[] {
-  const matches = ports.filter((port) => port === deviceName || port.startsWith(`${deviceName}:`));
+  // Only audio channel ports are linkable; MIDI ports on the same node
+  // (Midi-Bridge exposes "Midi Through: Port-0") must never enter link plans.
+  const matches = ports.filter(
+    (port) => port.startsWith(`${deviceName}:`) && isAudioChannelPortName(port.slice(deviceName.length + 1))
+  );
   return matches.slice(0, Math.max(1, endpoint.channels));
+}
+
+function isAudioChannelPortName(portName: string): boolean {
+  return /(^|_)(FL|FR|FC|LFE|RL|RR|SL|SR|MONO|UNK|AUX\d*)$/i.test(portName) || /_\d+$/.test(portName);
 }
 
 function selectMonitorSourcePorts(

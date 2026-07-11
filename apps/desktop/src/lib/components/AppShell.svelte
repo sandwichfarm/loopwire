@@ -1,0 +1,228 @@
+<script lang="ts">
+  import { isConfigurationEnabled, isConfigurationMuted, configurationVolume, type AudioEndpoint } from "@loopwire/core";
+  import { deviceStore, levelStore, reapplySelectedDevice, runtimeService, uiStore } from "../app";
+  import { peakLevelFor } from "../stores/levelStore";
+  import type { SidebarDevice } from "./Sidebar.svelte";
+  import type { IconName } from "./Icon.svelte";
+  import CanvasFooter from "./CanvasFooter.svelte";
+  import DeviceCanvas from "./DeviceCanvas.svelte";
+  import EmptyState from "./EmptyState.svelte";
+  import SettingsWindow from "./SettingsWindow.svelte";
+  import Sidebar from "./Sidebar.svelte";
+  import Toasts from "./Toasts.svelte";
+
+  const { devices, selectedDevice } = deviceStore;
+  const { canvasSelection, monitorsHiddenDevices, settingsOpen, toasts } = uiStore;
+
+  const sidebarDevices = $derived.by((): readonly SidebarDevice[] =>
+    $devices.map((device) => ({
+      id: device.id,
+      name: device.name,
+      enabled: isConfigurationEnabled(device),
+      muted: isConfigurationMuted(device),
+      volume: Math.round(configurationVolume(device) * 100),
+      sources: device.inputs.map((input) => ({
+        icon: sidebarSourceIcon(input),
+        label: input.label
+      })),
+      level: Math.max(...device.outputs.map((output) => peakLevelFor($levelStore, output.id, output.channels)), 0)
+    }))
+  );
+
+  function sidebarSourceIcon(endpoint: AudioEndpoint): IconName {
+    if (endpoint.kind) {
+      return endpoint.kind === "pass-thru" ? "loop" : endpoint.kind === "capture" ? "mic" : "app";
+    }
+
+    // Legacy states without kind metadata fall back to id/label heuristics.
+    if (endpoint.id === "pass-thru") {
+      return "loop";
+    }
+
+    if (/mic/i.test(endpoint.label) || /mic|capture/i.test(endpoint.deviceName ?? "")) {
+      return "mic";
+    }
+
+    return "app";
+  }
+
+  function reportIfFailed(result: { readonly ok: boolean; readonly message?: string }): void {
+    if (!result.ok && result.message) {
+      uiStore.pushToast("error", result.message);
+    }
+  }
+
+  function createDevice(): void {
+    const { result } = deviceStore.createDevice();
+    reportIfFailed(result);
+
+    if (result.ok) {
+      uiStore.clearSelection();
+      uiStore.beginRename();
+    }
+  }
+
+  function removeDevice(deviceId: string): void {
+    const snapshot = deviceStore.snapshot();
+    // Take the device's Loopwire-owned host state down before dropping it.
+    void runtimeService.unloadDevice(deviceId);
+    const { result, removed } = deviceStore.removeDevice(deviceId);
+    reportIfFailed(result);
+
+    if (result.ok && removed) {
+      uiStore.clearSelection();
+      uiStore.pushToast("undo", `Removed ${removed.name}.`, () => deviceStore.restoreSnapshot(snapshot));
+    }
+  }
+
+  // Highlights the clicked row immediately; the transaction confirms it.
+  let pendingDeviceId: string | null = $state(null);
+
+  function selectDevice(deviceId: string): void {
+    if (deviceId === $selectedDevice?.id) {
+      return;
+    }
+
+    uiStore.clearSelection();
+    uiStore.endRename();
+    pendingDeviceId = deviceId;
+    void runtimeService.switchDevice(deviceId).finally(() => {
+      if (pendingDeviceId === deviceId) {
+        pendingDeviceId = null;
+      }
+    });
+  }
+
+  function deleteCanvasSelection(): void {
+    const device = $selectedDevice;
+    const selection = $canvasSelection;
+
+    if (!device || !selection) {
+      return;
+    }
+
+    if (selection.kind === "route") {
+      const removed = deviceStore.removeRoute(device.id, selection.routeId);
+      reportIfFailed(removed);
+      uiStore.clearSelection();
+
+      if (removed.ok) {
+        reapplySelectedDevice();
+      }
+
+      return;
+    }
+
+    const endpointId = selection.endpointId;
+    const result = device.inputs.some((input) => input.id === endpointId)
+      ? deviceStore.removeSource(device.id, endpointId)
+      : device.outputs.some((output) => output.id === endpointId)
+        ? deviceStore.removeBus(device.id, endpointId)
+        : deviceStore.removeMonitor(device.id, endpointId);
+
+    reportIfFailed(result);
+
+    if (result.ok) {
+      uiStore.clearSelection();
+      reapplySelectedDevice();
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const inField =
+      target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable === true;
+
+    if ((event.key === "Delete" || event.key === "Backspace") && !inField && $canvasSelection) {
+      event.preventDefault();
+      deleteCanvasSelection();
+    }
+  }
+</script>
+
+<svelte:window onkeydown={handleKeydown} />
+
+<div class="shell">
+  <Sidebar
+    devices={sidebarDevices}
+    selectedId={pendingDeviceId ?? $selectedDevice?.id}
+    onSelect={selectDevice}
+    onCreate={createDevice}
+    onRemove={removeDevice}
+    onReorder={(deviceId, toIndex) => reportIfFailed(deviceStore.moveDevice(deviceId, toIndex))}
+    onToggleEnabled={(deviceId, enabled) => {
+      const result = deviceStore.setDeviceEnabled(deviceId, enabled);
+      reportIfFailed(result);
+
+      // The On/Off pill is live for the selected device: On applies it,
+      // Off takes its Loopwire-owned state off the host.
+      if (result.ok && deviceId === $selectedDevice?.id) {
+        void (enabled ? runtimeService.switchDevice(deviceId) : runtimeService.unloadDevice(deviceId));
+      }
+    }}
+    onToggleMuted={(deviceId) => {
+      const device = $devices.find((candidate) => candidate.id === deviceId);
+      if (device) {
+        reportIfFailed(deviceStore.setDeviceMuted(deviceId, !isConfigurationMuted(device)));
+      }
+    }}
+    onVolume={(deviceId, volume) => reportIfFailed(deviceStore.setDeviceVolume(deviceId, volume / 100))}
+    onOpenSettings={() => settingsOpen.set(true)}
+  />
+
+  <main class="canvas-area">
+    {#if $selectedDevice}
+      <DeviceCanvas device={$selectedDevice} />
+      <CanvasFooter
+        canDelete={$canvasSelection !== null}
+        monitorsHidden={$monitorsHiddenDevices.has($selectedDevice.id)}
+        onDelete={deleteCanvasSelection}
+        onToggleMonitors={() => {
+          const device = $selectedDevice;
+
+          if (!device) {
+            return;
+          }
+
+          const hidingNow = !$monitorsHiddenDevices.has(device.id);
+          const selection = $canvasSelection;
+
+          if (
+            hidingNow &&
+            selection?.kind === "endpoint" &&
+            device.monitors.some((monitor) => monitor.id === selection.endpointId)
+          ) {
+            uiStore.clearSelection();
+          }
+
+          uiStore.toggleMonitorsHidden(device.id);
+        }}
+      />
+    {:else}
+      <EmptyState />
+    {/if}
+  </main>
+</div>
+
+{#if $settingsOpen}
+  <SettingsWindow onClose={() => settingsOpen.set(false)} />
+{/if}
+
+<Toasts toasts={$toasts} onDismiss={(id) => uiStore.dismissToast(id)} />
+
+<style>
+  .shell {
+    display: flex;
+    height: 100%;
+    min-width: 0;
+    background: var(--lw-canvas-bg);
+  }
+
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+</style>

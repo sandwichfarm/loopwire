@@ -60,6 +60,8 @@ node --check scripts/promote-vm-evidence.mjs
 node --check scripts/restore-background.mjs
 node --check scripts/verify-docs-deployment-manifest.mjs
 node --check scripts/verify-desktop-preview.mjs
+node --check scripts/e2e-desktop-ui.mjs
+node --check scripts/e2e-desktop-shell.mjs
 node --check scripts/verify-support-matrix.mjs
 node --check scripts/verify-vm-evidence-archive-manifest.mjs
 node -e '

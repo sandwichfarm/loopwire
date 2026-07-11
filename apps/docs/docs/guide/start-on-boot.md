@@ -14,16 +14,15 @@ restore. They are dry-run friendly and keep startup files user-scoped.
 For today's GUI app, use XDG desktop autostart. This starts Loopwire when the graphical session starts on desktops and
 WMs that honor `~/.config/autostart/*.desktop`.
 
-In the desktop shell, use the sidebar startup cards:
+In the desktop shell, open Settings (`Ctrl+,`) and use the Startup section:
 
-- **Open on boot** manages the XDG autostart entry that launches the GUI.
-- **Restore on boot** manages a user systemd unit that runs the packaged `loopwire --background --mode live` launcher
-  against the persisted state file.
+- **Start with desktop session** manages the XDG autostart entry that launches the GUI.
+- **Restore audio in background** manages a user systemd unit that runs the packaged
+  `loopwire --background --mode live` launcher against the persisted state file.
 
-The restore card names the active configuration and saved backend before enablement. If the packaged background
-launcher is unavailable, no backend is selected, or the saved backend is no longer detected, the card keeps the saved
-configuration visible and blocks the unsafe enable path instead of writing a unit that cannot restore audio. Existing
-restore units can still be disabled from that blocked state.
+If the packaged background launcher is unavailable, no backend is selected, or the
+saved backend is no longer detected, the enable path is blocked instead of writing a unit that cannot restore
+audio. Existing restore units can still be disabled from that blocked state.
 
 Browser preview does not write startup files. It shows the paths and asks you to use the desktop shell.
 Source-checkout Tauri runs do not install a background-capable GUI binary; use the source checkout CLI path below until
@@ -96,7 +95,7 @@ RestartSec=2
 
 Packaged background restore requires `node` on `PATH` because the release artifact bundles the same JavaScript
 core/audio-host restore engine used by source checkouts. The curl installer reports that dependency after installing
-the tarball. If it warns that Node.js is missing, install the distro `nodejs` package before enabling Restore on boot.
+the tarball. If it warns that Node.js is missing, install the distro `nodejs` package before enabling background restore.
 AUR and Nix package paths declare or wrap Node.js for the packaged launchers.
 
 The desktop shell resolves the packaged launcher from the installed GUI path before writing this service. It refuses to
@@ -118,8 +117,8 @@ The Tauri desktop shell writes the same serialized state to:
 ${XDG_CONFIG_HOME:-$HOME/.config}/loopwire/state.json
 ```
 
-If that file is missing, unreadable, corrupt, or incompatible, open Loopwire once, choose the configuration you want
-restored at login, and enable **Restore on boot** again. The background runner will not invent a startup configuration
+If that file is missing, unreadable, corrupt, or incompatible, open Loopwire once, choose the device you want
+restored at login, and enable **Restore audio in background** again. The background runner will not invent a startup configuration
 from an empty or incompatible state file.
 
 Preview the background restore transaction:
@@ -135,7 +134,7 @@ pnpm restore:background -- \
 mutation path and should only be used after the selected backend and routes are correct.
 
 If background restore reports multiple available backends, or that the saved backend is unavailable, open Loopwire and
-use **Settings > Audio backend** to save a verified backend before enabling Restore on boot again. Boot restore is
+use **Settings > Audio Backend** to save a verified backend before enabling background restore again. Boot restore is
 intentionally fail-closed instead of guessing between audio systems at login.
 
 For PulseAudio compatibility routes, background restore keeps normal switch verification strict but reports missing app
@@ -182,10 +181,10 @@ wrapper. The first-class restore flags `--jack-provider-delegate-mode detached` 
 append those wrapper options for packaged and source-checkout services; the background restore still verifies the
 resulting ports with `jack_lsp` before connecting routes.
 
-The desktop Settings panel exposes the same optional JACK provider command, timeout, delegate mode, and readiness delay
-for Restore on boot and session-local Host apply. Leave the command blank when your saved configuration targets
-pre-existing JACK ports. Set it when boot restore or live apply must ask an operator-owned provider to prepare
-deterministic Loopwire-owned ports before Loopwire connects routes.
+The desktop Settings → Providers section now persists the JACK provider command, timeout, delegate mode, and
+readiness delay, and enabling Restore audio in background with JACK selected writes the matching `--jack-provider-*`
+flags into the user-scoped restore unit. The CLI/systemd flags above remain for headless setups. Leave the command
+blank when your saved configuration targets pre-existing JACK ports.
 
 For graph-edge DSP restore, a provider command can own source capture and output injection while Loopwire owns the
 configuration transaction, per-edge gain/mute math, and verification sequence:
@@ -212,10 +211,9 @@ clears those outputs so the provider cleanup path is tested before startup resto
 seeded source buffers and configuration-scoped rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
 provider. Persisted `selectedBackend: "dsp"` state is honored for startup restore, but it still requires an explicit
-`--dsp-provider-command` after the persisted backend is resolved. The desktop settings panel can save a DSP provider
-command, timeout, frame count, and provider mode for Restore on boot and desktop Host apply. When DSP Provider is
-selected and Host apply is armed, the desktop verifies provider capabilities before running provider read/write/verify
-operations through the allowlisted Tauri bridge. `--mode live --backend dsp` or persisted DSP live restore requires
+`--dsp-provider-command` after the persisted backend is resolved. The rebuilt desktop UI does not expose DSP provider
+settings yet (documented gap), so DSP stays preview-only in the desktop shell; configure providers through the CLI and
+systemd flags in this section. `--mode live --backend dsp` or persisted DSP live restore requires
 `--dsp-provider-mode live` and a provider `capabilities` result with
 `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and `clear-output` in its `operations`
 list; the provider `capabilities.operations` field is the `operations` list checked by restore preflight. The bundled
