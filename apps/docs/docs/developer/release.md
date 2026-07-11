@@ -686,8 +686,9 @@ secrets are available. Set mode uses the same scopes before any `gh secret set` 
 explains where to find it, and writes each value directly to GitHub with `gh secret set` without printing the value.
 The `LOOPWIRE_RELEASE_PRIVATE_KEY` prompt is final-release signing material, not a Bunny.net or GitHub token. The
 private-key and public-key prompts both accept a local PEM path or a pasted PEM block. The helper reads pasted blocks
-through their matching `END ... KEY` line before continuing, validates the pair, and sends the private-key file contents
-so the release workflow can sign `SHA256SUMS` and installers can verify published artifacts.
+through their matching `END ... KEY` line before continuing, expands literal `$HOME/...`, `${HOME}/...`, and `~/...`
+paths, validates the pair, and sends the private-key file contents so the release workflow can sign `SHA256SUMS` and
+installers can verify published artifacts.
 For automation, `--scope deploy` requires `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`; the default `--scope final`
 also requires `BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`.

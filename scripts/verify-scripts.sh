@@ -7714,6 +7714,63 @@ cmp -s "$tmp_secret_file" "$fake_secret_pasted_public_key_set_dir/LOOPWIRE_RELEA
   echo "verify-scripts: GitHub secret helper pasted-public-key flow wrote skipped remote prefix" >&2
   exit 1
 }
+fake_home_dir="$tmp_dir/fake-home"
+fake_home_key_dir="$fake_home_dir/.local/share/loopwire-release"
+mkdir -p "$fake_home_key_dir"
+cp "$tmp_secret_file" "$fake_home_key_dir/home-release-key.pem"
+cp "$tmp_secret_public_key" "$fake_home_key_dir/home-release-key-public.pem"
+fake_secret_home_path_set_dir="$tmp_dir/fake-gh-secret-home-path-set"
+home_path_secret_set_output="$(
+  printf '%s\n' \
+    "home-loopwire-docs" \
+    "home-access-key" \
+    "docs.home.example.test" \
+    '$HOME/.local/share/loopwire-release/home-release-key.pem' \
+    '${HOME}/.local/share/loopwire-release/home-release-key-public.pem' \
+    "" \
+    "" |
+    HOME="$fake_home_dir" \
+      LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_home_path_set_dir" \
+      PATH="$fake_gh_dir:$PATH" \
+      bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final 2>&1
+)"
+printf '%s\n' "$home_path_secret_set_output" | grep -F 'Literal $HOME/..., ${HOME}/..., and ~/... paths are accepted' >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not document literal home path expansion" >&2
+  exit 1
+}
+printf '%s\n' "$home_path_secret_set_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper home-path flow did not report successful fake writes" >&2
+    exit 1
+  }
+if printf '%s\n' "$home_path_secret_set_output" | grep -F "home-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper home-path flow leaked the access key" >&2
+  exit 1
+fi
+grep -F "home-loopwire-docs" "$fake_secret_home_path_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not write storage zone" >&2
+  exit 1
+}
+grep -F "home-access-key" "$fake_secret_home_path_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not write access key" >&2
+  exit 1
+}
+grep -F "docs.home.example.test" "$fake_secret_home_path_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not write pull-zone hostname" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_home_path_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not expand literal HOME private-key path" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_home_path_set_dir/BUNNY_STORAGE_ENDPOINT" ] || {
+  echo "verify-scripts: GitHub secret helper home-path flow wrote skipped storage endpoint" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_home_path_set_dir/BUNNY_REMOTE_PREFIX" ] || {
+  echo "verify-scripts: GitHub secret helper home-path flow wrote skipped remote prefix" >&2
+  exit 1
+}
 fake_secret_env_set_dir="$tmp_dir/fake-gh-secret-env-set"
 env_secret_set_output="$(
   LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_env_set_dir" \
