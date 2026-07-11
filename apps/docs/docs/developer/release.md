@@ -684,9 +684,10 @@ bash scripts/setup-github-secrets.sh \
 secrets are available. Set mode uses the same scopes before any `gh secret set` call runs. For operator use, run
 `bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final`; the helper prompts for one secret at a time,
 explains where to find it, and writes each value directly to GitHub with `gh secret set` without printing the value.
-The `LOOPWIRE_RELEASE_PRIVATE_KEY` prompt is final-release signing material, not a Bunny.net or GitHub token. It asks
-for a local PEM private-key path, validates it against the public key, and sends the file contents so the release
-workflow can sign `SHA256SUMS` and installers can verify published artifacts.
+The `LOOPWIRE_RELEASE_PRIVATE_KEY` prompt is final-release signing material, not a Bunny.net or GitHub token. It accepts
+a local PEM private-key path or a pasted PEM block, validates it against the public key, and sends the file contents so
+the release workflow can sign `SHA256SUMS` and installers can verify published artifacts. If a PEM block is pasted, the
+helper reads through the matching `END PRIVATE KEY` line before continuing to the next prompt.
 For automation, `--scope deploy` requires `BUNNY_STORAGE_ZONE` and `BUNNY_ACCESS_KEY`; the default `--scope final`
 also requires `BUNNY_PULL_ZONE_HOSTNAME`, `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and
 `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`.
