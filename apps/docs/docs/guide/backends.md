@@ -206,14 +206,17 @@ output from verifying another configuration that reuses the same output id. `ver
 an exit-0 command with empty stdout is treated as failed verification. Release artifacts ship
 `loopwire-dsp-provider`, a bundled file-backed provider that can seed source buffers, persist rendered outputs, verify
 stored outputs, and clear outputs. Its `capabilities` operation declares `supportsLiveGraph:false`, so it can be used
-for contract smoke and restore preflight but not for live graph restore. Persisted `selectedBackend: "dsp"` state is
+for contract smoke and restore preflight but not for live graph restore. When `LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1` is
+set, the bundled provider declares `supportsLiveGraph:true` for isolated shell/provider contract proof only; it remains
+file-backed and still does not capture or play real PipeWire/JACK audio. Persisted `selectedBackend: "dsp"` state is
 accepted for startup restore only when the restore command also supplies the explicit DSP provider command. The
 desktop Settings → Providers section persists the DSP provider command, trust mode, timeout, and frame count: saving
 a live provider command makes DSP Provider selectable in the backend picker, and desktop live apply re-verifies the
 provider's `capabilities` (`supportsLiveGraph:true` plus the required read/write/verify/clear operations) before any
 provider-backed host transaction. The CLI/systemd flags remain for headless restore. This is still provider-backed
-host DSP: the live provider must own real PipeWire/JACK capture and injection before the result affects host audio. The live backend DSP still needs a real provider with host capture and injection proof before
-release docs can claim bundled live host DSP.
+host DSP: the live provider must own real PipeWire/JACK capture and injection before the result affects host audio.
+The live backend DSP still needs real provider host capture and injection proof before release docs can claim bundled
+live host DSP.
 
 Before enabling a DSP provider for boot restore, inspect and smoke-test its bounded contract:
 

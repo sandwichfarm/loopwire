@@ -3312,6 +3312,30 @@ printf '%s\n' "$dsp_plan_tsv" | grep -F $'read-source\tmic\tStudio Mic\t2\t2' >/
   echo "verify-scripts: DSP provider plan TSV output is missing source rows" >&2
   exit 1
 }
+bundled_dsp_capabilities="$(node packages/audio-host/dist/dsp-provider-cli.js capabilities)"
+printf '%s\n' "$bundled_dsp_capabilities" | node -e '
+const fs = require("node:fs");
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+if (payload.providerKind !== "file-backed") process.exit(1);
+if (payload.supportsLiveGraph !== false) process.exit(1);
+if ("proofScope" in payload) process.exit(1);
+' || {
+  echo "verify-scripts: bundled DSP provider default capabilities are not file-backed" >&2
+  exit 1
+}
+bundled_dsp_live_smoke_capabilities="$(
+  LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1 node packages/audio-host/dist/dsp-provider-cli.js capabilities
+)"
+printf '%s\n' "$bundled_dsp_live_smoke_capabilities" | node -e '
+const fs = require("node:fs");
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+if (payload.providerKind !== "file-backed-live-smoke") process.exit(1);
+if (payload.supportsLiveGraph !== true) process.exit(1);
+if (!String(payload.proofScope || "").includes("isolated file-backed provider smoke")) process.exit(1);
+' || {
+  echo "verify-scripts: bundled DSP provider live-smoke capabilities are not explicit" >&2
+  exit 1
+}
 dsp_provider="$tmp_dir/dsp-provider.js"
 dsp_provider_log="$tmp_dir/dsp-provider.log"
 cat >"$dsp_provider" <<'EOF'

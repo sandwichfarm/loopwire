@@ -42,6 +42,7 @@ Chromium, or any environment where `require("playwright")` resolves.
 ```sh
 pnpm --filter @loopwire/desktop tauri:build   # once, to produce the binary
 pnpm e2e:shell
+pnpm e2e:shell -- --dsp-provider-smoke        # optional isolated live-provider transaction
 ```
 
 `scripts/e2e-desktop-shell.mjs` launches the built Tauri binary through
@@ -50,6 +51,18 @@ Tauri bridge is live (proving this is the real shell, not the preview), and
 that the app shell DOM rendered. The smoke is deliberately read-only: the real
 shell applies configuration to the live PipeWire graph and mutates persisted
 app state, so interactive flows stay in the browser harness.
+
+The optional `--dsp-provider-smoke` mode keeps the same real-shell proof but
+runs the app with temporary `XDG_CONFIG_HOME` / `XDG_STATE_HOME` directories,
+seeds a DSP-backed state file, and points provider settings at a temporary
+wrapper around the bundled `loopwire-dsp-provider`. That wrapper enables the
+provider's explicit `LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1` capability mode and
+stores rendered output in a temp directory. This proves the desktop shell,
+Tauri command bridge, provider `capabilities`, `read-source`, `write-output`,
+and `verify-output` path can run one provider-backed transaction without
+touching the operator's persisted Loopwire state or real PipeWire/JACK graph.
+It is still file-backed proof, not a claim that the bundled provider captures
+or plays live host audio.
 
 ### Host requirements (the WebKitWebDriver gap)
 
