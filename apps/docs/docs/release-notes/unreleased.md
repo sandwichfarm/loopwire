@@ -4,6 +4,9 @@ These notes describe source-tree progress. They are not a public release announc
 
 ## Desktop UI Rebuild
 
+- The public web surface now splits cleanly: an Astro homepage at `/` and VitePress docs below `/docs/`, assembled
+  into one Bunny deployment artifact so the homepage, installer endpoint, and docs stay aligned.
+
 - The desktop shell was rebuilt as a device sidebar plus patch-bay canvas: Sources / Output Channels / Monitors
   columns with per-channel meters, port dots, and bezier cables between cards.
 - Devices carry On/Off, mute, and volume controls in the sidebar; device removal shows an undo toast instead of a

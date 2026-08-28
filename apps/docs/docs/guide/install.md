@@ -20,9 +20,9 @@ exist, the public entry point will follow this shape:
 curl -fsSL https://loopwire.app/install.sh | bash
 ```
 
-The VitePress public asset at `/install.sh` is a byte-for-byte copy of `scripts/install.sh`, so the docs site can serve
-the same installer once Bunny.net deployment is enabled. It is not a release claim until signed GitHub Release assets,
-`SHA256SUMS`, `SHA256SUMS.sig`, and the release public key exist.
+The VitePress public asset is a byte-for-byte copy of `scripts/install.sh`, and the combined Astro + VitePress build
+also copies that installer to the site root at `/install.sh`. It is not a release claim until signed GitHub Release
+assets, `SHA256SUMS`, `SHA256SUMS.sig`, and the release public key exist.
 
 The installer must detect OS and architecture, download a release artifact, verify signed checksums, and avoid
 persistent system changes unless the user explicitly opts in.

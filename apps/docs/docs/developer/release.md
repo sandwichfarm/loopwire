@@ -351,7 +351,7 @@ target set are blockers. Empty, failed, cancelled, or still-running
 workflow lists are release blockers, even when the GitHub API call itself succeeds. The workflow run
 `headSha` and docs deployment manifest source commit must match `--git-head`, which defaults to the current checkout
 when omitted, so a successful CI, docs, or proof run for an older commit cannot satisfy final status. The docs deployment
-manifest must be non-dry-run proof for the built docs dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
+manifest must be non-dry-run proof for the built combined site dist; pass `--docs-deployment-manifest` and `--docs-dist` if you
 downloaded the workflow artifact to a non-default path. Use `--secret-list-file release-secret-names.tsv` to replay a
 saved names-only secret audit, `--docs-deployment-run-id 123456` to pin the Deploy Docs run audited for final proof,
 `--release-evidence-asset NAME` or `--vm-evidence-asset NAME` to audit the same tag-bound evidence archive names passed
@@ -771,15 +771,15 @@ Before pushing a release tag:
 1. Move the user-facing notes from `/release-notes/unreleased` into a versioned release-note page.
 2. Start a fresh `/release-notes/unreleased` page with known follow-up work and unsupported claims.
 3. Update support matrix rows when VM evidence changes.
-4. Refresh `product-screenshot.svg` only from a current app build or a reviewed visual mock that matches the app.
-5. Run `pnpm verify:docs` and `pnpm build:docs`.
+4. Refresh `assets/product-screenshot.png` and the docs public copy only from a current app build or a reviewed visual mock that matches the app.
+5. Run `pnpm verify:docs` and `pnpm build:web`.
 
 Release notes must describe what is supported, what remains experimental, and which install channels were smoke-tested.
 
 ## Docs Deployment
 
-The docs deployment workflow builds VitePress, uploads a docs artifact, and deploys to Bunny.net only on explicit
-workflow dispatch, `main`, `master`, or `v*` tags. The deploy job is assigned to the `docs-production` GitHub
+The docs deployment workflow builds the Astro homepage plus the VitePress docs tree, uploads one combined site
+artifact, and deploys to Bunny.net only on explicit workflow dispatch, `main`, `master`, or `v*` tags. The deploy job is assigned to the `docs-production` GitHub
 environment so repository protection rules can require manual review or protected branches.
 
 If Bunny.net secrets are missing, the deploy job emits a notice and skips upload instead of failing unrelated CI. The
@@ -803,9 +803,9 @@ remote-prefix segments before upload planning.
 Preview the upload plan without contacting Bunny.net:
 
 ```bash
-pnpm build:docs
+pnpm build:web
 bash scripts/deploy-docs-bunny.sh \
-  --dist apps/docs/docs/.vitepress/dist \
+  --dist dist/site \
   --storage-zone loopwire-docs \
   --storage-endpoint ny.storage.bunnycdn.com \
   --remote-prefix loopwire \
@@ -813,8 +813,9 @@ bash scripts/deploy-docs-bunny.sh \
   --dry-run
 ```
 
-The deploy helper fails closed if the built dist omits `index.html` or `install.sh`; the dry-run should include
-`install.sh`, which is the public curl installer endpoint once the docs site is deployed. When a deployment manifest is
+The deploy helper fails closed if the built dist omits `index.html` or `install.sh`; the dry-run should include the
+Astro homepage, the VitePress `/docs/` tree, and `install.sh`, which is the public curl installer endpoint once the
+site is deployed. When a deployment manifest is
 requested, the helper writes a non-secret `loopwire.docs-deployment.v1` JSON file listing the deployed relative paths,
 remote paths, SHA-256 checksums, storage endpoint, storage zone, remote prefix, dry-run/live mode, source git head, and
 file count. The docs workflow verifies the manifest with `pnpm verify:docs-deployment` before uploading it as the
@@ -823,12 +824,13 @@ inventory, rejects checksum drift, checks the remote-prefix mapping, rejects sou
 secret-like manifest keys.
 When `BUNNY_PULL_ZONE_HOSTNAME` is configured, the deploy workflow also runs
 `scripts/verify-docs-live.sh --hostname "$BUNNY_PULL_ZONE_HOSTNAME" --remote-prefix "$BUNNY_REMOTE_PREFIX"` after
-upload. That smoke fetches the deployed homepage and `/install.sh` from the same pull-zone prefix used for upload,
-checks the installer parses as shell, and compares it with the local public installer.
+upload. The smoke uses the same pull-zone prefix used for upload. It fetches the deployed homepage, `/docs/`, the
+basic-usage guide, and `/install.sh`, then checks the installer parses as shell and matches the local public installer.
 
 Final release proof must be tied to the same deployment run. Pass the deploy-docs workflow run id that uploaded
-`loopwire-docs-deployment`; the proof workflow downloads that artifact, rebuilds docs from the release commit, and
-verifies `deployment-manifest.json` against the rebuilt VitePress dist and the requested release git head before
+`loopwire-docs-deployment`; the proof workflow downloads that artifact, rebuilds the combined Astro homepage plus
+VitePress `/docs/` artifact from the release commit, and verifies `deployment-manifest.json` against the rebuilt
+`dist/site` output and the requested release git head before
 accepting the live-docs smoke:
 
 ```bash

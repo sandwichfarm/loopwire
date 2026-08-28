@@ -4,7 +4,7 @@ set -euo pipefail
 base_url="${LOOPWIRE_DOCS_BASE_URL:-}"
 pull_zone_hostname="${BUNNY_PULL_ZONE_HOSTNAME:-}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
-expected_installer="${LOOPWIRE_PUBLIC_INSTALLER:-apps/docs/docs/public/install.sh}"
+expected_installer="${LOOPWIRE_PUBLIC_INSTALLER:-scripts/install.sh}"
 tmp_dir=""
 
 usage() {
@@ -19,10 +19,10 @@ Environment:
   LOOPWIRE_DOCS_BASE_URL    Full deployed docs URL
   BUNNY_PULL_ZONE_HOSTNAME  Bunny pull-zone hostname used when --base-url is omitted
   BUNNY_REMOTE_PREFIX       Optional remote path prefix inside the pull zone
-  LOOPWIRE_PUBLIC_INSTALLER Local public installer to compare, default apps/docs/docs/public/install.sh
+  LOOPWIRE_PUBLIC_INSTALLER Local public installer to compare, default scripts/install.sh
 
 Checks:
-  - deployed homepage is reachable and contains Loopwire,
+  - deployed homepage, docs index, and docs basic-usage routes are reachable,
   - deployed /install.sh is reachable,
   - deployed installer parses as shell,
   - deployed installer matches the local public installer byte-for-byte.
@@ -129,12 +129,18 @@ tmp_dir="$(mktemp -d)"
 trap cleanup EXIT
 
 homepage="$tmp_dir/index.html"
+docs_index="$tmp_dir/docs-index.html"
+docs_basic_usage="$tmp_dir/basic-usage.html"
 installer="$tmp_dir/install.sh"
 
 curl -fsSL --max-time 20 "${base_url}/" -o "$homepage"
+curl -fsSL --max-time 20 "${base_url}/docs/" -o "$docs_index"
+curl -fsSL --max-time 20 "${base_url}/docs/guide/basic-usage.html" -o "$docs_basic_usage"
 curl -fsSL --max-time 20 "${base_url}/install.sh" -o "$installer"
 
 grep -Fq "Loopwire" "$homepage" || fail "deployed homepage does not contain Loopwire"
+grep -Fq "Loopwire" "$docs_index" || fail "deployed docs index does not contain Loopwire"
+grep -Fq "Loopwire" "$docs_basic_usage" || fail "deployed basic usage page does not contain Loopwire"
 bash -n "$installer" || fail "deployed install.sh has shell syntax errors"
 
 if cmp -s "$expected_installer" "$installer"; then

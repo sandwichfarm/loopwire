@@ -28,6 +28,10 @@ verified against the host audio graph.
 
 ### Active
 
+- [ ] Present Loopwire through a concise README, Astro homepage, and VitePress guides mounted at `/docs/` (v0.4
+  Phase 18).
+- [ ] Build and verify one combined static artifact for protected Bunny deployment with CI/CT/CD evidence (v0.4
+  Phase 18).
 - [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
 
 ### Out of Scope
@@ -39,7 +43,7 @@ verified against the host audio graph.
 ## Context
 
 The project starts as a pnpm TypeScript workspace with a pure core package, a Svelte desktop UI surface, a Tauri 2 shell
-path for native Linux integration, and a VitePress docs/site app.
+path for native Linux integration, a focused Astro public homepage, and a VitePress documentation app.
 
 PipeWire is the reference backend. PulseAudio, JACK, and ALSA remain first-class compatibility concerns, but backend
 claims require detection, apply, verify, diagnostics, and rollback evidence.
@@ -59,14 +63,13 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 | Use pnpm workspace | Fast reproducible TypeScript monorepo with lockfile support | Pending |
 | Use Svelte for app UI | Small reactive UI layer suitable for desktop surfaces | Pending |
 | Use Tauri 2 shell path | Native Linux desktop integration without bundling a full browser runtime | Pending |
-| Use VitePress for docs/site | Explicit user requirement and strong static deployment path | Pending |
+| Use Astro for `/` and VitePress for `/docs/` | Keeps the public homepage minimal while preserving a dedicated guide system | Active |
 | Keep PipeWire as reference backend | Modern Linux desktop audio graph and best first target | Pending |
 
 ## Current State
 
-**Shipped:** v0.3 Seed Harvest (2026-07-08) — all five UI-rebuild seeds complete; `pnpm check`, `pnpm e2e:ui` (9/9),
-and `pnpm e2e:shell` (3/3) green. Open carry-over: v0.2 Phase 12 (published release + VM proof). Next milestone not
-yet defined — see `.planning/ROADMAP.md` Backlog (999.x) and remaining seeds for candidates.
+**Active:** v0.4 Public Surface Polish — issue #3 tracks the concise README, Astro homepage, VitePress `/docs/`,
+combined static artifact, and CI/CT/CD proof. Open carry-over: v0.2 Phase 12 (published release + VM proof).
 
 ## Previous Milestone: v0.3 Seed Harvest
 
@@ -99,4 +102,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 after shipping v0.3 Seed Harvest*
+*Last updated: 2026-08-28 for v0.4 Public Surface Polish*

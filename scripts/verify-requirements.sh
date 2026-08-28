@@ -99,28 +99,32 @@ for requirement in DOCS-01 DOCS-02 DOCS-03 DOCS-04; do
 done
 
 assert_script "package.json" "build:docs" "pnpm --filter @loopwire/docs docs:build"
+assert_script "package.json" "build:site" "pnpm --filter @loopwire/site build"
+assert_script "package.json" "build:web" "pnpm build:site && pnpm build:docs && node scripts/build-static-site.mjs"
 assert_contains "apps/docs/docs/index.md" "product-screenshot"
-assert_contains "apps/docs/docs/index.md" "git clone https://github.com/sandwichfarm/loopwire"
-assert_contains "apps/docs/docs/index.md" "curl -fsSL https://&lt;docs-host&gt;/install.sh \\"
-assert_contains "apps/docs/docs/index.md" "  | sh"
-assert_contains "apps/docs/docs/index.md" "loopwire --background --mode preview"
+assert_contains "apps/docs/docs/index.md" "Loopwire Docs"
+assert_contains "apps/docs/docs/guide/basic-usage.md" "This is the shortest honest Loopwire walkthrough"
 assert_contains "apps/docs/docs/guide/backends.md" "Loopwire is designed around a backend contract"
 assert_contains "apps/docs/docs/guide/start-on-boot.md" "background restore"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release evidence verification"
+assert_file "apps/site/package.json"
+assert_contains "apps/site/src/pages/index.astro" "Linux virtual audio routing"
 
 for requirement in QUAL-01 QUAL-02 QUAL-03 QUAL-04 QUAL-05; do
   assert_requirement_checked "$requirement"
 done
 
-assert_script "package.json" "check" "pnpm check:verify && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+assert_script "package.json" "check" "pnpm check:verify && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm verify:site"
 assert_script "package.json" "check:verify" \
-  "pnpm verify:requirements && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri"
+  "pnpm verify:requirements && pnpm verify:docs && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri"
 assert_script "package.json" "verify:requirements" "bash scripts/verify-requirements.sh"
 assert_contains "packages/core/tests/configuration.test.ts" "keeps independent route controls"
 assert_contains ".github/workflows/ci.yml" "pnpm check"
 assert_contains ".github/workflows/continuous-tests.yml" "Linux host audio diagnostics"
 assert_contains ".github/workflows/vm-matrix.yml" "Validate VM target matrix"
 assert_contains ".github/workflows/deploy-docs.yml" "Deploy to Bunny.net"
+assert_contains ".github/workflows/deploy-docs.yml" "pnpm build:web"
+assert_contains ".github/workflows/deploy-docs.yml" "dist/site"
 assert_contains "scripts/setup-github-secrets.sh" "BUNNY_STORAGE_ZONE"
 assert_contains "scripts/setup-github-secrets.sh" "LOOPWIRE_RELEASE_PRIVATE_KEY"
 

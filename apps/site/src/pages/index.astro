@@ -1,0 +1,383 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import screenshot from "../../../../assets/product-screenshot.png";
+
+const title = "Loopwire | Linux virtual audio routing";
+const description =
+  "PipeWire-first virtual audio routing for Linux with named devices, honest backend limits, and a desktop UI that keeps the graph visible.";
+const siteUrl = Astro.site ?? new URL("https://loopwire.app");
+const canonical = new URL("/", siteUrl).toString();
+const ogImage = new URL(screenshot.src, siteUrl).toString();
+const sourceInstall = `git clone https://github.com/sandwichfarm/loopwire
+cd loopwire
+pnpm install
+pnpm check`;
+const capabilities = [
+  ["PipeWire", "First-class routing path"],
+  ["PulseAudio", "Compatibility adapter"],
+  ["JACK", "Existing-port bridge"],
+  ["ALSA", "Diagnostics and hardware discovery"]
+];
+const applicationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Loopwire",
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Linux",
+  description,
+  url: canonical,
+  image: ogImage,
+  screenshot: ogImage,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD"
+  }
+};
+---
+
+<SiteLayout title={title} description={description} canonical={canonical} ogImage={ogImage}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(applicationJsonLd)} />
+  </Fragment>
+
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">Linux virtual audio routing</p>
+      <h1>Loopwire</h1>
+      <p class="summary">
+        PipeWire-first virtual audio routing with named devices, saved mixes, and startup restore for Linux desktops
+        that need the routing graph visible instead of hidden in terminal state.
+      </p>
+
+      <nav class="links" aria-label="Primary links">
+        <a class="link primary" href="/docs/">Docs</a>
+        <a class="link" href="https://github.com/sandwichfarm/loopwire">GitHub</a>
+        <a class="link" href="https://github.com/sandwichfarm/loopwire/releases">Releases</a>
+      </nav>
+
+      <div class="install-card" aria-labelledby="source-install-heading">
+        <div class="install-copy">
+          <div>
+            <p id="source-install-heading" class="install-label">Current source install</p>
+            <p class="install-note">Pre-release today. Signed public artifacts and the curl installer stay gated until the release workflow, Bunny deploy, and VM proof pass.</p>
+          </div>
+          <button type="button" class="copy-button" data-copy-install>
+            Copy command
+          </button>
+        </div>
+        <pre><code id="source-install-command">{sourceInstall}</code></pre>
+        <p id="copy-status" class="sr-only" aria-live="polite"></p>
+      </div>
+
+      <ul class="capability-row" aria-label="Current capability status">
+        {
+          capabilities.map(([label, value]) => (
+            <li>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <figure class="shot">
+      <img
+        src={screenshot.src}
+        width={screenshot.width}
+        height={screenshot.height}
+        alt="Loopwire desktop shell showing one saved device, browser and microphone sources, output channels, and monitor destinations connected by visible routes."
+      />
+      <figcaption>Current desktop shell: saved device, visible routes, source cards, outputs, and monitors.</figcaption>
+    </figure>
+  </main>
+
+  <script is:inline>
+    const copyButton = document.querySelector("[data-copy-install]");
+    const copyStatus = document.querySelector("#copy-status");
+    const copyCommand = document.querySelector("#source-install-command");
+
+    if (copyButton instanceof HTMLButtonElement && copyStatus instanceof HTMLElement && copyCommand instanceof HTMLElement) {
+      copyButton.addEventListener("click", async () => {
+        const text = copyCommand.textContent?.trim() ?? "";
+
+        try {
+          await navigator.clipboard.writeText(text);
+          copyButton.textContent = "Copied";
+          copyStatus.textContent = "Source install command copied to clipboard.";
+          window.setTimeout(() => {
+            copyButton.textContent = "Copy command";
+          }, 1800);
+        } catch {
+          copyStatus.textContent = "Clipboard copy is unavailable in this browser.";
+        }
+      });
+    }
+  </script>
+</SiteLayout>
+
+<style>
+  .shell {
+    width: min(1180px, calc(100vw - 32px));
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 32px 0 40px;
+    display: grid;
+    align-content: center;
+    gap: 22px;
+  }
+
+  .hero,
+  .shot {
+    animation: rise 520ms ease both;
+  }
+
+  .hero {
+    display: grid;
+    justify-items: center;
+    gap: 0;
+    padding: clamp(32px, 6vw, 72px) clamp(18px, 4vw, 42px);
+    text-align: center;
+    border: 1px solid var(--panel-border);
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, rgba(10, 25, 30, 0.92), rgba(8, 17, 22, 0.86)),
+      radial-gradient(circle at top center, rgba(215, 255, 112, 0.08), transparent 36%);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .eyebrow {
+    margin: 0 0 18px;
+    padding: 7px 12px;
+    color: var(--accent-warm);
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border: 1px solid rgba(215, 255, 112, 0.24);
+    border-radius: 999px;
+    background: rgba(215, 255, 112, 0.06);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--display-font);
+    font-size: clamp(4.5rem, 17vw, 9.8rem);
+    font-weight: 700;
+    line-height: 0.88;
+    letter-spacing: -0.06em;
+  }
+
+  .summary {
+    width: min(66ch, 100%);
+    margin: 18px 0 0;
+    color: var(--text-soft);
+    font-size: clamp(1.02rem, 2vw, 1.22rem);
+    line-height: 1.65;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin: 30px 0 0;
+  }
+
+  .link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    color: var(--text-main);
+    text-decoration: none;
+    border: 1px solid var(--panel-border-strong);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .link:hover {
+    border-color: rgba(127, 227, 231, 0.58);
+    transform: translateY(-1px);
+  }
+
+  .link.primary {
+    color: #051014;
+    font-weight: 700;
+    background: var(--accent);
+    border-color: transparent;
+  }
+
+  .install-card {
+    width: min(780px, 100%);
+    margin: 28px 0 0;
+    padding: 18px;
+    text-align: left;
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    background: var(--panel-bg);
+  }
+
+  .install-copy {
+    display: flex;
+    gap: 16px;
+    align-items: start;
+    justify-content: space-between;
+  }
+
+  .install-label {
+    margin: 0;
+    color: var(--accent-warm);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .install-note {
+    margin: 8px 0 0;
+    color: var(--text-faint);
+    line-height: 1.45;
+  }
+
+  .copy-button {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 14px;
+    color: var(--text-main);
+    font: inherit;
+    border: 1px solid var(--panel-border-strong);
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .copy-button:hover {
+    border-color: rgba(127, 227, 231, 0.58);
+    background: rgba(127, 227, 231, 0.08);
+  }
+
+  pre {
+    margin: 18px 0 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    color: var(--accent);
+    font-family: var(--mono-font);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.28);
+  }
+
+  code {
+    font-family: inherit;
+  }
+
+  .capability-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    margin: 22px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .capability-row li {
+    display: grid;
+    gap: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .capability-row span {
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .capability-row strong {
+    font-size: 0.98rem;
+    line-height: 1.35;
+  }
+
+  .shot {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 18px;
+    border: 1px solid var(--panel-border);
+    border-radius: 28px;
+    background: rgba(6, 12, 16, 0.84);
+    box-shadow: var(--shadow);
+  }
+
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .shot figcaption {
+    color: var(--text-faint);
+    font-size: 0.92rem;
+    text-align: center;
+  }
+
+  @media (max-width: 920px) {
+    .shell {
+      width: min(100vw - 20px, 1180px);
+      padding: 10px 0 20px;
+      gap: 14px;
+    }
+
+    .hero,
+    .shot {
+      border-radius: 22px;
+    }
+
+    .install-copy {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .copy-button {
+      width: 100%;
+    }
+
+    .capability-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      letter-spacing: -0.04em;
+    }
+
+    .links {
+      width: 100%;
+    }
+
+    .link {
+      flex: 1 1 calc(50% - 6px);
+    }
+
+    .capability-row {
+      grid-template-columns: 1fr;
+    }
+
+    pre {
+      padding: 14px;
+      font-size: 0.88rem;
+    }
+  }
+</style>

@@ -9,7 +9,7 @@ Release notes are part of the release ceremony, not an afterthought.
 3. Include install-channel evidence, backend support changes, VM evidence, and known limitations.
 4. Remove claims that are not backed by tests, VM evidence, package smoke, or release artifacts.
 5. Start a fresh unreleased page immediately after tagging.
-6. Run `pnpm verify:docs` and `pnpm build:docs`.
+6. Run `pnpm verify:docs` and `pnpm build:web`.
 
 Versioned pages created before a GitHub Release must say they are release-candidate notes. Remove that qualifier only
 when intentionally publishing the tag: `pnpm verify:release-readiness` and the GitHub release workflow reject

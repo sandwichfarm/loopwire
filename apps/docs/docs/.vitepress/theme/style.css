@@ -1,331 +1,90 @@
 :root {
-  --vp-c-brand-1: #bde84f;
-  --vp-c-brand-2: #e85b36;
-  --vp-c-brand-3: #42cfc2;
-  --vp-c-bg: #101113;
-  --vp-c-bg-alt: #171817;
-  --vp-c-bg-soft: #20201d;
-  --vp-c-text-1: #f4efe2;
-  --vp-c-text-2: #d8d0bf;
-  --vp-c-text-3: #9b9183;
-  --vp-font-family-base: Avenir Next, Avenir, Segoe UI, sans-serif;
-  --vp-font-family-mono: Berkeley Mono, ui-monospace, SFMono-Regular, Consolas, monospace;
+  --vp-c-brand-1: #7fe3e7;
+  --vp-c-brand-2: #d7ff70;
+  --vp-c-brand-3: #9ff0f2;
+  --vp-c-bg: #071014;
+  --vp-c-bg-alt: #0a171d;
+  --vp-c-bg-soft: #112129;
+  --vp-c-bg-elv: #0f1d25;
+  --vp-c-text-1: #eef8fa;
+  --vp-c-text-2: rgba(238, 248, 250, 0.78);
+  --vp-c-text-3: rgba(238, 248, 250, 0.56);
+  --vp-font-family-base: "Avenir Next", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif;
+  --vp-font-family-mono: "Berkeley Mono", "Cascadia Code", "SFMono-Regular", monospace;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #eef8fa 0%, #7fe3e7 70%, #d7ff70 100%);
+}
+
+.Layout {
+  background:
+    radial-gradient(circle at top center, rgba(127, 227, 231, 0.1), transparent 24%),
+    linear-gradient(180deg, #071014 0%, #081319 42%, #050b0e 100%);
 }
 
 .VPNav {
-  border-bottom: 1px solid rgba(244, 239, 226, 0.12);
+  border-bottom: 1px solid rgba(127, 227, 231, 0.14);
+  background: rgba(7, 16, 20, 0.82);
+  backdrop-filter: blur(18px);
 }
 
-.VPContent.is-home {
-  padding-top: 0;
-}
-
-.lw-hero {
+.VPHome {
   position: relative;
-  display: grid;
-  align-items: end;
-  width: 100%;
-  min-height: clamp(560px, calc(100vh - 116px), 760px);
-  margin: 0 0 22px;
-  padding: 64px 24px 38px;
-  overflow: hidden;
-  isolation: isolate;
-  border-bottom: 1px solid rgba(244, 239, 226, 0.12);
 }
 
-.lw-hero::before {
+.VPHome::before {
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  inset: 0 0 auto;
+  height: 560px;
   content: "";
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(16, 17, 19, 0.94) 0%, rgba(16, 17, 19, 0.82) 38%, rgba(16, 17, 19, 0.04) 100%),
-    linear-gradient(0deg, #101113 0%, rgba(16, 17, 19, 0.2) 38%, rgba(16, 17, 19, 0.88) 100%);
+    linear-gradient(180deg, rgba(127, 227, 231, 0.08), transparent 62%),
+    radial-gradient(circle at top center, rgba(215, 255, 112, 0.09), transparent 30%);
 }
 
-.lw-hero-media {
-  position: absolute;
-  inset: 70px 24px auto 52%;
-  z-index: 0;
-  margin: 0;
-  height: min(560px, calc(100% - 116px));
-  padding: 10px;
-  opacity: 1;
-  background: rgba(23, 24, 23, 0.88);
-  border: 1px solid rgba(244, 239, 226, 0.16);
-  border-radius: 14px;
-  filter: drop-shadow(0 34px 90px rgba(0, 0, 0, 0.56));
+.VPHomeHero .container {
+  padding-top: 48px;
 }
 
-.lw-hero-media img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center right;
-  border-radius: 8px;
+.VPHomeHero .name,
+.VPHomeHero .text {
+  font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+  letter-spacing: -0.04em;
 }
 
-.lw-hero-copy {
-  position: relative;
-  z-index: 2;
-  width: min(680px, 100%);
+.VPHomeHero .tagline {
+  max-width: 42rem;
+  color: var(--vp-c-text-2);
 }
 
-.lw-kicker {
-  width: max-content;
-  margin: 0 0 18px;
-  padding: 6px 10px;
-  color: #101113;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  background: #bde84f;
-  border-radius: 999px;
+.VPHomeHero .image-container {
+  border: 1px solid rgba(127, 227, 231, 0.18);
+  border-radius: 24px;
+  background: rgba(8, 18, 24, 0.82);
+  box-shadow: 0 30px 120px rgba(0, 0, 0, 0.34);
 }
 
-.lw-hero h1 {
-  margin: 0;
-  max-width: 10ch;
-  color: #f4efe2;
-  font-family: Georgia, Times New Roman, serif;
-  font-size: clamp(56px, 9vw, 104px);
-  line-height: 0.94;
-  letter-spacing: 0;
+.VPHomeHero .image-src {
+  border-radius: 18px;
 }
 
-.lw-subline {
-  max-width: 58ch;
-  margin: 22px 0 26px;
-  color: #d8d0bf;
-  font-size: 20px;
-  line-height: 1.55;
+.VPButton.brand {
+  color: #071014;
+  border-color: transparent;
+  background: #7fe3e7;
 }
 
-.lw-hero-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(260px, 1fr));
-  gap: 12px;
-  align-items: stretch;
+.VPButton.alt {
+  border-color: rgba(127, 227, 231, 0.24);
 }
 
-.lw-hero-row > *,
-.lw-terminal-band > * {
-  min-width: 0;
+.VPFeature {
+  border: 1px solid rgba(127, 227, 231, 0.14);
+  background: rgba(8, 18, 24, 0.82);
 }
 
-.lw-install {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  background: rgba(16, 17, 19, 0.82);
-  border: 1px solid rgba(244, 239, 226, 0.18);
-  border-radius: 8px;
-  backdrop-filter: blur(12px);
-}
-
-.lw-install figcaption {
-  color: #f7b74a;
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.lw-install pre {
-  max-width: 100%;
-  margin: 0;
-  overflow: hidden;
-  color: #bde84f;
-  background: rgba(0, 0, 0, 0.44);
-  border-radius: 6px;
-}
-
-.lw-install code {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.lw-release-status {
-  display: grid;
-  grid-column: 1 / -1;
-  align-content: center;
-  gap: 8px;
-  padding: 14px;
-  color: #101113;
-  background: #bde84f;
-  border-radius: 8px;
-}
-
-.lw-release-status strong {
-  font-size: 16px;
-}
-
-.lw-release-status span {
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.lw-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.lw-actions a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 42px;
-  padding: 0 16px;
-  color: #101113;
-  font-weight: 800;
-  background: #f7b74a;
-  border-radius: 8px;
-  text-decoration: none;
-}
-
-.lw-actions a.secondary {
-  color: #f4efe2;
-  background: transparent;
-  border: 1px solid rgba(244, 239, 226, 0.2);
-}
-
-.lw-proof-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0 0 26px;
-}
-
-.lw-proof-strip article {
-  display: grid;
-  gap: 7px;
-  min-height: 118px;
-  padding: 16px;
-  background: #171817;
-  border: 1px solid rgba(244, 239, 226, 0.13);
-  border-left: 4px solid #42cfc2;
-  border-radius: 8px;
-}
-
-.lw-proof-strip span {
-  color: #f7b74a;
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.lw-proof-strip strong {
-  color: #f4efe2;
-  font-size: 18px;
-}
-
-.lw-proof-strip p {
-  margin: 0;
-  color: #d8d0bf;
-}
-
-.lw-terminal-band {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1.2fr);
-  gap: 20px;
-  align-items: center;
-  margin: 0 0 18px;
-  padding: 24px;
-  background: #20201d;
-  border: 1px solid rgba(244, 239, 226, 0.13);
-  border-radius: 8px;
-}
-
-.lw-terminal-band h2 {
-  margin: 0;
-  max-width: 14ch;
-  color: #f4efe2;
-  font-family: Georgia, Times New Roman, serif;
-  font-size: clamp(30px, 4vw, 48px);
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-.lw-install.wide {
-  width: 100%;
-}
-
-.lw-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin: 0 0 54px;
-}
-
-.lw-grid article {
-  padding: 18px;
-  background: #171817;
-  border: 1px solid rgba(244, 239, 226, 0.13);
-  border-radius: 8px;
-}
-
-.lw-grid h2 {
-  margin: 0 0 8px;
-  color: #f4efe2;
-  font-size: 21px;
-  letter-spacing: 0;
-}
-
-.lw-grid p {
-  margin: 0;
-  color: #d8d0bf;
-}
-
-@media (max-width: 920px) {
-  .lw-hero {
-    min-height: auto;
-    margin: 0 0 18px;
-    padding: 28px 14px 20px;
-  }
-
-  .lw-hero::before {
-    background:
-      linear-gradient(0deg, #101113 0%, rgba(16, 17, 19, 0.76) 40%, rgba(16, 17, 19, 0.84) 100%),
-      linear-gradient(90deg, rgba(16, 17, 19, 0.86), rgba(16, 17, 19, 0.36));
-  }
-
-  .lw-hero-media {
-    inset: 18px 0 auto 8vw;
-    height: 280px;
-    opacity: 0.48;
-  }
-
-  .lw-hero-row,
-  .lw-proof-strip,
-  .lw-terminal-band,
-  .lw-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .lw-hero h1 {
-    max-width: 10ch;
-    font-size: 52px;
-  }
-
-  .lw-subline {
-    margin: 16px 0 18px;
-    font-size: 18px;
-    line-height: 1.42;
-  }
-
-  .lw-install,
-  .lw-release-status {
-    padding: 10px;
-  }
-
-  .lw-actions {
-    margin-top: 14px;
-  }
-
-  .lw-terminal-band {
-    padding: 18px;
+@media (max-width: 768px) {
+  .VPHomeHero .container {
+    padding-top: 24px;
   }
 }

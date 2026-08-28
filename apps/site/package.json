@@ -1,0 +1,16 @@
+{
+  "name": "@loopwire/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev --host 127.0.0.1",
+    "preview": "astro preview --host 127.0.0.1",
+    "typecheck": "astro sync && tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "astro": "7.2.9",
+    "typescript": "6.0.3"
+  }
+}

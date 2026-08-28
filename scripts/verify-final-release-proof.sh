@@ -459,11 +459,11 @@ else
 fi
 run_step "live docs" "${docs_live[@]}"
 
-run_step "docs build" pnpm build:docs
+run_step "site build" pnpm build:web
 run_step "docs deployment manifest" \
   node scripts/verify-docs-deployment-manifest.mjs \
   --manifest "$docs_deployment_manifest" \
-  --dist apps/docs/docs/.vitepress/dist \
+  --dist dist/site \
   --git-head "$git_head" \
   --expected-dry-run false
 

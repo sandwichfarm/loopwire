@@ -36,7 +36,7 @@
 
 ### Documentation and Website
 
-- [x] **DOCS-01**: VitePress builds docs and the public website.
+- [x] **DOCS-01**: VitePress builds the public documentation.
 - [x] **DOCS-02**: Website includes above-the-fold title, subline, product screenshot, and installation instructions.
 - [x] **DOCS-03**: Docs include backend support, architecture, install, troubleshooting, and start-on-boot guidance.
 - [x] **DOCS-04**: Release notes and docs update with every user-visible release.
@@ -46,7 +46,7 @@
 - [x] **QUAL-01**: Domain behavior has unit and property-style tests.
 - [x] **QUAL-02**: CI runs install, typecheck, tests, builds, docs build, and script syntax checks.
 - [x] **QUAL-03**: Continuous testing covers heavier Linux/audio checks where host runners are available.
-- [x] **QUAL-04**: CD can deploy the VitePress website to Bunny.net from protected workflows.
+- [x] **QUAL-04**: CD can deploy the combined Astro and VitePress static artifact to Bunny.net from protected workflows.
 - [x] **QUAL-05**: Helper script sets required GitHub secrets for Bunny.net deployment.
 
 ## v2 Requirements
@@ -110,7 +110,18 @@ Requirements for the next milestone.
 All 10 requirements (META-01..02, BUS-01, SURF-01..03, PROV-01..02, E2E-01..02) complete.
 Archived: [milestones/v0.3-REQUIREMENTS.md](milestones/v0.3-REQUIREMENTS.md)
 
+## v0.4 Requirements (Public Surface Polish)
+
+- [ ] **WEB-01**: README prominently presents the Loopwire name, concise description, current screenshot,
+  installation, basic usage, and guide links.
+- [ ] **WEB-02**: Astro builds a static, accessible, SEO-complete homepage at `/` without replacing VitePress.
+- [ ] **WEB-03**: VitePress builds complete user and developer guides beneath `/docs/`.
+- [ ] **WEB-04**: One deterministic artifact contains the homepage, docs, installer, robots, and sitemap surfaces.
+- [ ] **WEB-05**: CI and scheduled/manual CT validate the source and artifact while protected CD deploys it to Bunny.
+
+**Traceability:** WEB-01..WEB-05 map to Phase 18 and issue #3.
+
 
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-07-08 after Phase 17 end-to-end UI harness*
+*Last updated: 2026-08-28 for Phase 18 public surface polish*

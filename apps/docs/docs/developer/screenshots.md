@@ -1,11 +1,12 @@
 # Screenshots
 
-The docs home page uses `apps/docs/docs/public/product-screenshot.svg`.
+The public site hero and docs home page use the current desktop capture from `assets/product-screenshot.png`. The
+docs build serves a public copy at `/product-screenshot.png`.
 
 ## Contract
 
 - The screenshot must show the current Loopwire desktop shell, not generic marketing art.
-- The image must include configurations, backend status, routes, outputs, and monitors.
+- The image must include the device sidebar, sources, visible routes, output channels, and monitors.
 - Text must fit within the rendered image at desktop and mobile docs breakpoints.
 - Alt text on the home page must describe the visible product state; do not hide the product screenshot from assistive
   technology.
@@ -13,20 +14,18 @@ The docs home page uses `apps/docs/docs/public/product-screenshot.svg`.
 
 ## Refresh Procedure
 
-1. Build or run the current desktop UI.
-2. Capture a clean first-screen product state at a desktop viewport.
+1. Run the desktop browser preview and create a representative device with app, microphone, pass-through, output, and
+   monitor cards.
+2. Capture the full app at a 1440 by 900 desktop viewport as `assets/product-screenshot.png`.
 3. Compare the image against the app for stale labels, removed controls, and unsupported backend claims.
-4. Replace `product-screenshot.svg` only after the image reflects current UI behavior.
+4. Copy the approved bytes to the docs public screenshot path.
 5. Run:
 
 ```bash
-pnpm verify:desktop-preview
+pnpm e2e:ui
 pnpm verify:docs
-pnpm build:docs
+pnpm build:web
 ```
-
-`pnpm verify:desktop-preview` uses a system Chromium through the Chrome DevTools Protocol. Pass
-`--skip-if-missing` on hosts where Chromium is not installed and use the build/docs checks as the minimum fallback.
 
 ## Acceptance
 
