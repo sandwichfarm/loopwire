@@ -4,7 +4,7 @@
 
 - [x] **v0.1: Walking Skeleton and Product Contract** - 7 phases, 26 requirements
 - [ ] **v0.2: Production Audio Routing** - 5 phases, 8 requirements
-- [ ] **v0.4: Public Surface Polish** - 1 phase, tracked by issue #3
+- [x] **v0.4: Public Surface Polish** - 1 phase, tracked by issue #3 and PR #4
 
 ---
 
@@ -268,12 +268,12 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 
 Phases 13-17 complete (endpoint kind metadata, multichannel buses, power-user surfaces, provider settings, e2e harness). Details: [.planning/milestones/v0.3-ROADMAP.md](milestones/v0.3-ROADMAP.md)
 
-## Milestone v0.4: Public Surface Polish (ACTIVE)
+## Milestone v0.4: Public Surface Polish (READY FOR REVIEW)
 
 **Goal:** Present Loopwire clearly to Linux users and ship one static website artifact with Astro at `/` and VitePress
 at `/docs/` through the existing verified Bunny delivery path.
 
-- [ ] **Phase 18: Public Surface Polish** — concise README, user-first guides, Astro homepage, VitePress `/docs/`,
+- [x] **Phase 18: Public Surface Polish** — concise README, user-first guides, Astro homepage, VitePress `/docs/`,
   combined artifact verification, and CI/CT/CD updates.
 
 ### Phase 18: Public Surface Polish
@@ -288,7 +288,7 @@ at `/docs/` through the existing verified Bunny delivery path.
   5. CI, scheduled/manual CT, and protected Bunny CD validate and publish the combined artifact.
   6. A PR links issue #3 and reports fresh local plus hosted validation evidence.
 **Plans:** 1 plan
-  - [ ] 18.1-PLAN.md — public docs, website, artifact assembly, delivery, and end-to-end verification
+  - [x] 18.1-PLAN.md — public docs, website, artifact assembly, delivery, and end-to-end verification
 
 ## Backlog
 

@@ -17,6 +17,8 @@ verified against the host audio graph.
 
 ### Validated
 
+- [x] Concise README, Astro homepage, and VitePress guides mounted at `/docs/` (v0.4 Phase 18).
+- [x] Combined static artifact with protected Bunny CI/CT/CD verification (v0.4 Phase 18).
 - [x] Endpoint kind metadata drives icons, menu grouping, and per-kind options (v0.3 Phase 13).
 - [x] Buses can be created as mono/stereo/quad (v0.3 Phase 14).
 - [x] Export/import, backend diagnostics, and manual host bindings restored in the UI (v0.3 Phase 15).
@@ -28,10 +30,6 @@ verified against the host audio graph.
 
 ### Active
 
-- [ ] Present Loopwire through a concise README, Astro homepage, and VitePress guides mounted at `/docs/` (v0.4
-  Phase 18).
-- [ ] Build and verify one combined static artifact for protected Bunny deployment with CI/CT/CD evidence (v0.4
-  Phase 18).
 - [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
 
 ### Out of Scope
@@ -68,8 +66,9 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 
 ## Current State
 
-**Active:** v0.4 Public Surface Polish — issue #3 tracks the concise README, Astro homepage, VitePress `/docs/`,
-combined static artifact, and CI/CT/CD proof. Open carry-over: v0.2 Phase 12 (published release + VM proof).
+**Ready for review:** v0.4 Public Surface Polish is implemented in PR #4 with the concise README, Astro homepage,
+VitePress `/docs/`, combined static artifact, and CI/CT/CD proof. Open carry-over: v0.2 Phase 12 (published release +
+VM proof).
 
 ## Previous Milestone: v0.3 Seed Harvest
 

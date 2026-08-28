@@ -112,12 +112,12 @@ Archived: [milestones/v0.3-REQUIREMENTS.md](milestones/v0.3-REQUIREMENTS.md)
 
 ## v0.4 Requirements (Public Surface Polish)
 
-- [ ] **WEB-01**: README prominently presents the Loopwire name, concise description, current screenshot,
+- [x] **WEB-01**: README prominently presents the Loopwire name, concise description, current screenshot,
   installation, basic usage, and guide links.
-- [ ] **WEB-02**: Astro builds a static, accessible, SEO-complete homepage at `/` without replacing VitePress.
-- [ ] **WEB-03**: VitePress builds complete user and developer guides beneath `/docs/`.
-- [ ] **WEB-04**: One deterministic artifact contains the homepage, docs, installer, robots, and sitemap surfaces.
-- [ ] **WEB-05**: CI and scheduled/manual CT validate the source and artifact while protected CD deploys it to Bunny.
+- [x] **WEB-02**: Astro builds a static, accessible, SEO-complete homepage at `/` without replacing VitePress.
+- [x] **WEB-03**: VitePress builds complete user and developer guides beneath `/docs/`.
+- [x] **WEB-04**: One deterministic artifact contains the homepage, docs, installer, robots, and sitemap surfaces.
+- [x] **WEB-05**: CI and scheduled/manual CT validate the source and artifact while protected CD deploys it to Bunny.
 
 **Traceability:** WEB-01..WEB-05 map to Phase 18 and issue #3.
 
