@@ -4,6 +4,7 @@
 
 - [x] **v0.1: Walking Skeleton and Product Contract** - 7 phases, 26 requirements
 - [ ] **v0.2: Production Audio Routing** - 5 phases, 8 requirements
+- [x] **v0.4: Public Surface Polish** - 1 phase, tracked by issue #3 and PR #4
 
 ---
 
@@ -267,6 +268,28 @@ QUAL-01, QUAL-02, QUAL-04, QUAL-05
 
 Phases 13-17 complete (endpoint kind metadata, multichannel buses, power-user surfaces, provider settings, e2e harness). Details: [.planning/milestones/v0.3-ROADMAP.md](milestones/v0.3-ROADMAP.md)
 
+## Milestone v0.4: Public Surface Polish (READY FOR REVIEW)
+
+**Goal:** Present Loopwire clearly to Linux users and ship one static website artifact with Astro at `/` and VitePress
+at `/docs/` through the existing verified Bunny delivery path.
+
+- [x] **Phase 18: Public Surface Polish** — concise README, user-first guides, Astro homepage, VitePress `/docs/`,
+  combined artifact verification, and CI/CT/CD updates.
+
+### Phase 18: Public Surface Polish
+
+**Depends on:** Phase 17
+**Issue:** #3
+**Success Criteria:**
+  1. README prominently presents the name, concise product description, screenshot, install, basic usage, and guides.
+  2. Astro statically builds the homepage at `/` with SEO metadata, structured data, robots, and sitemap.
+  3. VitePress statically builds complete user/developer docs beneath `/docs/`.
+  4. One deterministic artifact contains both surfaces and passes route/link/content verification.
+  5. CI, scheduled/manual CT, and protected Bunny CD validate and publish the combined artifact.
+  6. A PR links issue #3 and reports fresh local plus hosted validation evidence.
+**Plans:** 1 plan
+  - [x] 18.1-PLAN.md — public docs, website, artifact assembly, delivery, and end-to-end verification
+
 ## Backlog
 
 ### Phase 999.1: Apply device and source volume/mute on the host (BACKLOG)
@@ -335,15 +358,6 @@ Plans:
 ### Phase 999.8: Keyboard-selectable cables (BACKLOG)
 
 **Goal:** [Captured for future planning] Cables can only be selected by mouse click; keyboard users cannot select or delete a route without deleting an endpoint. Add focusable cable selection (or a route list surface) per the accessibility bar in vnc-ux-spec section 6.
-**Requirements:** TBD
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (promote with /gsd:review-backlog when ready)
-
-### Phase 999.9: Refresh docs product screenshot to the rebuilt UI (BACKLOG)
-
-**Goal:** [Captured for future planning] apps/docs/docs/public/product-screenshot.svg still shows the pre-rebuild stacked-panel UI; regenerate from the sidebar + patch-bay shell.
 **Requirements:** TBD
 **Plans:** 0 plans
 

@@ -5,7 +5,7 @@ import { isAbsolute, join, relative, sep } from "node:path";
 
 const args = process.argv.slice(2);
 const manifestPath = readOption("--manifest");
-const distDir = readOption("--dist") ?? "apps/docs/docs/.vitepress/dist";
+const distDir = readOption("--dist") ?? process.env.LOOPWIRE_SITE_DIST ?? process.env.LOOPWIRE_DOCS_DIST ?? "dist/site";
 const expectedStorageZone = readOption("--storage-zone");
 const expectedStorageEndpoint = readOption("--storage-endpoint");
 const expectedRemotePrefix = readOption("--remote-prefix");
@@ -25,7 +25,7 @@ if (!manifestPath) {
 }
 
 if (!existsSync(distDir) || !statSync(distDir).isDirectory()) {
-  fail(`docs dist directory does not exist: ${distDir}`);
+  fail(`site dist directory does not exist: ${distDir}`);
 }
 
 const manifest = readJson(manifestPath);
@@ -78,8 +78,20 @@ for (const requiredFile of ["index.html", "install.sh"]) {
 
   const filePath = join(distDir, requiredFile);
   if (!existsSync(filePath) || statSync(filePath).size === 0) {
-    fail(`docs dist is missing required file: ${requiredFile}`);
+    fail(`site dist is missing required file: ${requiredFile}`);
   }
+}
+
+for (const requiredDocsPath of ["docs/index.html"]) {
+  const filePath = join(distDir, requiredDocsPath);
+  if (!existsSync(filePath) || statSync(filePath).size === 0) {
+    fail(`site dist is missing required docs file: ${requiredDocsPath}`);
+  }
+}
+
+const basicUsagePath = join(distDir, "docs/guide/basic-usage.html");
+if (!existsSync(basicUsagePath) || statSync(basicUsagePath).size === 0) {
+  fail("site dist is missing required docs file: docs/guide/basic-usage.html");
 }
 
 rejectSecretLikeKeys(manifest);
@@ -87,7 +99,7 @@ rejectSecretLikeKeys(manifest);
 console.log(`Docs deployment manifest verified: ${manifestPath} (${uploads.length} files).`);
 
 function usage() {
-  console.log(`Verify a Loopwire docs deployment manifest against a built VitePress dist.
+  console.log(`Verify a Loopwire docs deployment manifest against the combined static site dist.
 
 Usage:
   verify-docs-deployment-manifest.mjs --manifest FILE [--dist DIR]
@@ -98,7 +110,7 @@ Checks:
   - manifest schema and generated timestamp,
   - source git commit binding,
   - storage zone, endpoint, and remote prefix path safety,
-  - required index.html and install.sh entries,
+  - required homepage, docs routes, and install.sh entries,
   - every dist file appears exactly once,
   - every SHA-256 checksum matches current dist bytes,
   - every remote path matches the configured prefix,
@@ -339,7 +351,7 @@ function walk(dir) {
     const path = join(dir, entry.name);
     const stat = lstatSync(path);
     if (stat.isSymbolicLink()) {
-      fail(`docs dist must not contain symlinks: ${path}`);
+      fail(`site dist must not contain symlinks: ${path}`);
     }
 
     if (entry.isDirectory()) {

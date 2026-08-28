@@ -1,0 +1,145 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  ogImage: string;
+}
+
+const { title, description, canonical, ogImage } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/loopwire-mark.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#071014" />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --page-bg: #071014;
+    --page-bg-soft: rgba(10, 24, 30, 0.86);
+    --panel-bg: rgba(8, 18, 24, 0.82);
+    --panel-border: rgba(136, 224, 225, 0.18);
+    --panel-border-strong: rgba(136, 224, 225, 0.36);
+    --text-main: #eef8fa;
+    --text-soft: rgba(238, 248, 250, 0.72);
+    --text-faint: rgba(238, 248, 250, 0.54);
+    --accent: #7fe3e7;
+    --accent-warm: #d7ff70;
+    --focus: #f6f097;
+    --shadow: 0 34px 120px rgba(0, 0, 0, 0.38);
+    --display-font: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+    --body-font: "Avenir Next", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif;
+    --mono-font: "Berkeley Mono", "Cascadia Code", "SFMono-Regular", "Liberation Mono", monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    background: var(--page-bg);
+    color: var(--text-main);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    font-family: var(--body-font);
+    background:
+      radial-gradient(circle at top center, rgba(127, 227, 231, 0.14), transparent 36%),
+      linear-gradient(180deg, #081218 0%, #071014 56%, #050b0e 100%);
+  }
+
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 82%);
+  }
+
+  a,
+  button {
+    transition:
+      border-color 180ms ease,
+      background-color 180ms ease,
+      color 180ms ease,
+      transform 180ms ease;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>

@@ -10,7 +10,7 @@ env_file=""
 secret_list_file=""
 docs_deployment_run_id=""
 docs_deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-dist/docs-deployment/deployment-manifest.json}"
-docs_dist="${LOOPWIRE_DOCS_DIST:-apps/docs/docs/.vitepress/dist}"
+docs_dist="${LOOPWIRE_SITE_DIST:-${LOOPWIRE_DOCS_DIST:-dist/site}}"
 vm_evidence_root=".vm/evidence"
 vm_start_port="2600"
 support_matrix="apps/docs/docs/guide/support-matrix.md"
@@ -36,7 +36,7 @@ Options:
   --docs-deployment-run-id ID Verify this Deploy Docs run instead of the latest run
   --docs-deployment-manifest FILE
                               Docs deployment manifest, default dist/docs-deployment/deployment-manifest.json
-  --docs-dist DIR             Built docs dist directory, default apps/docs/docs/.vitepress/dist
+  --docs-dist DIR             Built combined site dist directory, default dist/site
   --vm-evidence-root DIR      VM evidence root, default .vm/evidence
   --vm-start-port PORT        SSH start port for VM evidence collection handoffs, default 2600
   --support-matrix FILE       Support matrix path, default apps/docs/docs/guide/support-matrix.md

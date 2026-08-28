@@ -82,4 +82,4 @@ The flake package output is `packages.<system>.loopwire-bin`; it uses fake hashe
 | Window chrome | Native chrome by default; custom mode persists and requests an undecorated Tauri window with Loopwire controls. |
 | Autostart | XDG desktop autostart can be installed and removed with `scripts/manage-autostart.sh`. |
 | Background restore | Source checkout and packaged user-scoped systemd restore paths are verified locally. |
-| Screenshots | `product-screenshot.svg` is the current docs asset and must be refreshed through the screenshot procedure. |
+| Screenshots | `assets/product-screenshot.png` is the canonical desktop capture; refresh the docs public copy through the screenshot procedure. |

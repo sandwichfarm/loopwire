@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build-docs:
-    name: Build VitePress site
+    name: Build static site artifact
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -42,14 +42,17 @@ jobs:
       - name: Verify docs contract
         run: pnpm verify:docs
 
-      - name: Build docs
-        run: pnpm build:docs
+      - name: Build web artifact
+        run: pnpm build:web
+
+      - name: Verify static site artifact
+        run: pnpm verify:site
 
       - name: Upload docs artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: loopwire-docs
-          path: apps/docs/docs/.vitepress/dist
+          path: dist/site
 
   deploy-bunny:
     name: Deploy to Bunny.net
@@ -82,11 +85,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify docs contract
-        run: pnpm verify:docs
+      - name: Download docs artifact
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: loopwire-docs
+          path: dist/site
 
-      - name: Build docs
-        run: pnpm build:docs
+      - name: Verify downloaded static site artifact
+        run: pnpm verify:site
 
       - name: Check Bunny.net secrets
         id: bunny
@@ -121,7 +127,7 @@ jobs:
           BUNNY_STORAGE_ENDPOINT: ${{ secrets.BUNNY_STORAGE_ENDPOINT }}
           BUNNY_REMOTE_PREFIX: ${{ secrets.BUNNY_REMOTE_PREFIX }}
           LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST: dist/docs-deployment/deployment-manifest.json
-        run: bash scripts/deploy-docs-bunny.sh --dist apps/docs/docs/.vitepress/dist
+        run: bash scripts/deploy-docs-bunny.sh --dist dist/site
 
       - name: Verify docs deployment manifest
         if: ${{ steps.bunny.outputs.deploy == 'true' }}
@@ -132,7 +138,7 @@ jobs:
         run: |
           pnpm verify:docs-deployment -- \
             --manifest dist/docs-deployment/deployment-manifest.json \
-            --dist apps/docs/docs/.vitepress/dist \
+            --dist dist/site \
             --storage-zone "$BUNNY_STORAGE_ZONE" \
             --storage-endpoint "${BUNNY_STORAGE_ENDPOINT:-https://storage.bunnycdn.com}" \
             --remote-prefix "$BUNNY_REMOTE_PREFIX" \

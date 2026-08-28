@@ -6,7 +6,7 @@ run_id=""
 git_head=""
 docs_artifact="loopwire-docs"
 manifest_artifact="loopwire-docs-deployment"
-docs_dist="apps/docs/docs/.vitepress/dist"
+docs_dist="dist/site"
 manifest_path="dist/docs-deployment/deployment-manifest.json"
 env_file=""
 
@@ -20,7 +20,7 @@ Usage:
 Options:
   --docs-artifact NAME        Docs dist artifact, default loopwire-docs
   --manifest-artifact NAME    Docs deployment manifest artifact, default loopwire-docs-deployment
-  --docs-dist DIR             Output docs dist directory, default apps/docs/docs/.vitepress/dist
+  --docs-dist DIR             Output combined site dist directory, default dist/site
   --manifest FILE             Output deployment manifest, default dist/docs-deployment/deployment-manifest.json
   --env-file FILE             Local release secret env file to preserve in Bunny secret recovery hints
 

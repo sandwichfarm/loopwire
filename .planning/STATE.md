@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.3
-milestone_name: Seed Harvest
-status: Complete
-last_updated: "2026-07-07T21:08:57.990Z"
-last_activity: 2026-07-07
+milestone: v0.4
+milestone_name: Public Surface Polish
+status: Ready for Review
+last_updated: "2026-08-28T00:00:00.000Z"
+last_activity: 2026-08-28
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 0
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 100
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** World-class UX for real Linux audio routing.
-**Current focus:** v0.2 production audio routing.
+**Current focus:** v0.4 public surface polish.
 
 ## Current Position
 
-Phase: 17 of 17 complete (milestone v0.3 shipped 2026-07-08)
-Plan: —
-Status: Milestone complete — run /gsd:new-milestone to start the next cycle
-Last activity: 2026-07-08 — v0.3 Seed Harvest archived
+Phase: 18 of 18 complete
+Plan: 18.1 — Public Surface Polish
+Status: Ready for review in PR #4
+Last activity: 2026-08-28 — implementation verified and PR #4 opened
 
 
 ## Blockers / Concerns

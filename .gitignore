@@ -9,6 +9,7 @@ dist-ssr/
 coverage/
 .vitepress/cache/
 .vitepress/dist/
+.astro/
 
 target/
 apps/desktop/src-tauri/target/

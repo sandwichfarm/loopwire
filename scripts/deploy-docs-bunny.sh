@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-dist_dir="${LOOPWIRE_DOCS_DIST:-apps/docs/docs/.vitepress/dist}"
+dist_dir="${LOOPWIRE_SITE_DIST:-${LOOPWIRE_DOCS_DIST:-dist/site}}"
 storage_zone="${BUNNY_STORAGE_ZONE:-}"
 access_key="${BUNNY_ACCESS_KEY:-}"
 storage_endpoint="${BUNNY_STORAGE_ENDPOINT:-https://storage.bunnycdn.com}"
@@ -13,7 +13,7 @@ repo_root="$(cd "$script_dir/.." && pwd)"
 
 usage() {
   cat <<'USAGE'
-Deploy the built VitePress docs directory to Bunny.net Edge Storage.
+Deploy the built Loopwire static site directory to Bunny.net Edge Storage.
 
 Usage:
   deploy-docs-bunny.sh [--dist DIR] [--storage-zone ZONE] [--access-key KEY]
@@ -21,7 +21,8 @@ Usage:
                        [--deployment-manifest FILE] [--dry-run]
 
 Environment:
-  LOOPWIRE_DOCS_DIST      Built docs directory, default apps/docs/docs/.vitepress/dist
+  LOOPWIRE_SITE_DIST      Built combined site directory, default dist/site
+  LOOPWIRE_DOCS_DIST      Legacy fallback for the built site directory
   BUNNY_STORAGE_ZONE      Bunny Edge Storage zone name
   BUNNY_ACCESS_KEY        Storage zone password from Bunny's FTP & API Access panel
   BUNNY_STORAGE_ENDPOINT  Regional storage endpoint, default https://storage.bunnycdn.com
@@ -123,7 +124,7 @@ require_dist_file() {
   label="$2"
   path="${dist_dir}/${relative_path}"
 
-  [ -s "$path" ] || fail "docs dist is missing ${label}: ${relative_path}"
+  [ -s "$path" ] || fail "site dist is missing ${label}: ${relative_path}"
 }
 
 remote_path_for_file() {
@@ -225,12 +226,14 @@ if [ "$dry_run" != "true" ]; then
 fi
 
 command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
-[ -d "$dist_dir" ] || fail "docs dist directory does not exist: $dist_dir"
+[ -d "$dist_dir" ] || fail "site dist directory does not exist: $dist_dir"
 
 storage_endpoint="$(normalize_endpoint "$storage_endpoint")"
 remote_prefix="$(normalize_prefix "$remote_prefix")"
 
 require_dist_file "index.html" "homepage"
+require_dist_file "docs/index.html" "docs homepage"
+require_dist_file "docs/guide/basic-usage.html" "basic usage page"
 require_dist_file "install.sh" "public installer"
 bash -n "${dist_dir}/install.sh" || fail "public installer has shell syntax errors: install.sh"
 
@@ -255,14 +258,14 @@ while IFS= read -r -d '' file; do
   fi
 done < <(find "$dist_dir" -type f -print0 | sort -z)
 
-[ "$file_count" -gt 0 ] || fail "docs dist directory has no files: $dist_dir"
+[ "$file_count" -gt 0 ] || fail "site dist directory has no files: $dist_dir"
 
 if [ -n "$deployment_manifest" ]; then
   write_deployment_manifest "$deployment_manifest" "$uploads_tsv"
 fi
 
 if [ "$dry_run" = "true" ]; then
-  echo "Dry run complete; ${file_count} docs file(s) would be uploaded to ${storage_endpoint}/${storage_zone}."
+  echo "Dry run complete; ${file_count} site file(s) would be uploaded to ${storage_endpoint}/${storage_zone}."
 else
-  echo "Uploaded ${file_count} docs file(s) to ${storage_endpoint}/${storage_zone}."
+  echo "Uploaded ${file_count} site file(s) to ${storage_endpoint}/${storage_zone}."
 fi

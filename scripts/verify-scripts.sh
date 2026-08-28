@@ -1723,8 +1723,8 @@ printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-docs-deployment
   echo "verify-scripts: final release dry-run is missing docs deployment manifest verification" >&2
   exit 1
 }
-printf '%s\n' "$final_release_dry_run" | grep -F "pnpm build:docs" >/dev/null || {
-  echo "verify-scripts: final release dry-run is missing docs build before manifest verification" >&2
+printf '%s\n' "$final_release_dry_run" | grep -F "pnpm build:web" >/dev/null || {
+  echo "verify-scripts: final release dry-run is missing site build before manifest verification" >&2
   exit 1
 }
 printf '%s\n' "$final_release_dry_run" | grep -F "scripts/verify-release-evidence.mjs" >/dev/null || {
@@ -5217,8 +5217,10 @@ openssl pkey -in "$tmp_secret_file" -pubout -out "$tmp_secret_public_key" >/dev/
 tmp_secret_private_key_body="$(sed -n '2p' "$tmp_secret_file")"
 tmp_secret_public_key_body="$(sed -n '2p' "$tmp_secret_public_key")"
 docs_dist="$tmp_dir/docs-dist"
-mkdir -p "$docs_dist/assets"
+mkdir -p "$docs_dist/assets" "$docs_dist/docs/guide"
 printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$docs_dist/index.html"
+printf '%s\n' "<!doctype html><title>Loopwire Docs</title><main>Loopwire</main>" >"$docs_dist/docs/index.html"
+printf '%s\n' "<!doctype html><title>Basic Usage</title><main>Loopwire</main>" >"$docs_dist/docs/guide/basic-usage.html"
 printf '%s\n' "body{color:#111}" >"$docs_dist/assets/site.css"
 cp apps/docs/docs/public/install.sh "$docs_dist/install.sh"
 bunny_manifest="$tmp_dir/docs-deployment-manifest.json"
@@ -5240,7 +5242,15 @@ printf '%s\n' "$bunny_dry_run" | grep -F "would upload install.sh -> https://ny.
   echo "verify-scripts: Bunny docs deploy dry-run did not upload the public installer" >&2
   exit 1
 }
-printf '%s\n' "$bunny_dry_run" | grep -F "Dry run complete; 3 docs file(s) would be uploaded" >/dev/null || {
+printf '%s\n' "$bunny_dry_run" | grep -F "would upload docs/index.html -> https://ny.storage.bunnycdn.com/loopwire-docs/preview/docs/index.html" >/dev/null || {
+  echo "verify-scripts: Bunny docs deploy dry-run did not upload the docs index" >&2
+  exit 1
+}
+printf '%s\n' "$bunny_dry_run" | grep -F "would upload docs/guide/basic-usage.html -> https://ny.storage.bunnycdn.com/loopwire-docs/preview/docs/guide/basic-usage.html" >/dev/null || {
+  echo "verify-scripts: Bunny docs deploy dry-run did not upload the basic-usage page" >&2
+  exit 1
+}
+printf '%s\n' "$bunny_dry_run" | grep -F "Dry run complete; 5 site file(s) would be uploaded" >/dev/null || {
   echo "verify-scripts: Bunny docs deploy dry-run did not count files" >&2
   exit 1
 }
@@ -5262,13 +5272,15 @@ const uploads = new Map(manifest.uploads.map((upload) => [upload.relativePath, u
 if (manifest.schema !== "loopwire.docs-deployment.v1") process.exit(1);
 if (manifest.source?.gitHead !== expectedGitHead) process.exit(1);
 if (manifest.dryRun !== true) process.exit(1);
-if (manifest.fileCount !== 3) process.exit(1);
+if (manifest.fileCount !== 5) process.exit(1);
 if (manifest.storage.zone !== "loopwire-docs") process.exit(1);
 if (manifest.storage.endpoint !== "https://ny.storage.bunnycdn.com") process.exit(1);
 if (manifest.storage.remotePrefix !== "preview") process.exit(1);
 if (!manifest.requiredFiles.includes("index.html")) process.exit(1);
 if (!manifest.requiredFiles.includes("install.sh")) process.exit(1);
 if (uploads.get("install.sh")?.remotePath !== "preview/install.sh") process.exit(1);
+if (uploads.get("docs/index.html")?.remotePath !== "preview/docs/index.html") process.exit(1);
+if (uploads.get("docs/guide/basic-usage.html")?.remotePath !== "preview/docs/guide/basic-usage.html") process.exit(1);
 if (uploads.get("assets/site.css")?.remotePath !== "preview/assets/site.css") process.exit(1);
 if (JSON.stringify(manifest).includes("accessKey")) process.exit(1);
 NODE
@@ -5359,6 +5371,12 @@ case "$url" in
   */install.sh)
     cp "${LOOPWIRE_FAKE_INSTALLER:?}" "$output"
     ;;
+  */docs/guide/basic-usage.html)
+    printf '%s\n' "<!doctype html><title>Basic Usage</title><main>Loopwire</main>" >"$output"
+    ;;
+  */docs/)
+    printf '%s\n' "<!doctype html><title>Loopwire Docs</title><main>Loopwire</main>" >"$output"
+    ;;
   */ | */preview)
     printf '%s\n' "<!doctype html><title>Loopwire</title><main>Loopwire</main>" >"$output"
     ;;
@@ -5371,7 +5389,7 @@ EOF
 chmod +x "$docs_live_bin/curl"
 docs_live_output="$(
   PATH="$docs_live_bin:$PATH" \
-    LOOPWIRE_FAKE_INSTALLER="apps/docs/docs/public/install.sh" \
+    LOOPWIRE_FAKE_INSTALLER="scripts/install.sh" \
     bash scripts/verify-docs-live.sh --hostname docs.example.test --remote-prefix preview
 )"
 printf '%s\n' "$docs_live_output" | grep -F "Live docs smoke passed for https://docs.example.test/preview." >/dev/null || {
@@ -5387,7 +5405,7 @@ if PATH="$docs_live_bin:$PATH" \
   exit 1
 fi
 if PATH="$docs_live_bin:$PATH" \
-  LOOPWIRE_FAKE_INSTALLER="apps/docs/docs/public/install.sh" \
+  LOOPWIRE_FAKE_INSTALLER="scripts/install.sh" \
   bash scripts/verify-docs-live.sh --hostname docs.example.test --remote-prefix "../escape" >/dev/null 2>&1; then
   echo "verify-scripts: live docs smoke accepted an unsafe remote prefix" >&2
   exit 1
@@ -6126,20 +6144,31 @@ JSON
       loopwire-docs)
         printf '%s\n' '<!doctype html><title>Loopwire</title>' >"$output_dir/index.html"
         printf '%s\n' '#!/usr/bin/env bash' 'echo install loopwire' >"$output_dir/install.sh"
+        mkdir -p "$output_dir/docs/guide"
+        printf '%s\n' '<!doctype html><title>Loopwire Docs</title><main>Loopwire</main>' >"$output_dir/docs/index.html"
+        printf '%s\n' '<!doctype html><title>Basic Usage</title><main>Loopwire</main>' >"$output_dir/docs/guide/basic-usage.html"
         ;;
       loopwire-docs-deployment)
         node - "$output_dir" "${LOOPWIRE_FAKE_DOCS_DIST:-}" <<'NODE'
 const { createHash } = require("node:crypto");
 const { existsSync, readdirSync, readFileSync, writeFileSync } = require("node:fs");
-const { dirname, join } = require("node:path");
+const { dirname, join, relative } = require("node:path");
 
 const [outputDir, docsDistArg] = process.argv.slice(2);
 const stagedDocsDist = join(dirname(outputDir), "docs-dist");
 const docsDist = docsDistArg && existsSync(docsDistArg) ? docsDistArg : stagedDocsDist;
-const uploads = readdirSync(docsDist)
-  .sort()
-  .map((relativePath) => {
-    const bytes = readFileSync(join(docsDist, relativePath));
+function walk(dir) {
+  return readdirSync(dir, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const entryPath = join(dir, entry.name);
+      return entry.isDirectory() ? walk(entryPath) : [entryPath];
+    });
+}
+
+const uploads = walk(docsDist).map((filePath) => {
+    const relativePath = relative(docsDist, filePath).split("\\\\").join("/");
+    const bytes = readFileSync(filePath);
     return {
       relativePath,
       remotePath: relativePath,
@@ -6430,19 +6459,29 @@ release_status_docs_manifest="$tmp_dir/release-status-docs-manifest.json"
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$release_status_private_key" >/dev/null 2>&1
 openssl pkey -in "$release_status_private_key" -pubout -out "$release_status_public_key" >/dev/null 2>&1
 printf '%s\n' "not a public key" >"$release_status_bad_public_key"
-mkdir -p "$release_status_docs_dist"
+mkdir -p "$release_status_docs_dist/docs/guide"
 printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$release_status_docs_dist/index.html"
 printf '%s\n' "#!/usr/bin/env bash" "echo install loopwire" >"$release_status_docs_dist/install.sh"
+printf '%s\n' "<!doctype html><title>Loopwire Docs</title><main>Loopwire</main>" >"$release_status_docs_dist/docs/index.html"
+printf '%s\n' "<!doctype html><title>Basic Usage</title><main>Loopwire</main>" >"$release_status_docs_dist/docs/guide/basic-usage.html"
 node - "$release_status_docs_dist" "$release_status_docs_manifest" <<'NODE'
 const { createHash } = require("node:crypto");
 const { readdirSync, readFileSync, writeFileSync } = require("node:fs");
-const { join } = require("node:path");
+const { join, relative } = require("node:path");
 
 const [distDir, manifestPath] = process.argv.slice(2);
-const uploads = readdirSync(distDir)
-  .sort()
-  .map((relativePath) => {
-    const bytes = readFileSync(join(distDir, relativePath));
+function walk(dir) {
+  return readdirSync(dir, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const entryPath = join(dir, entry.name);
+      return entry.isDirectory() ? walk(entryPath) : [entryPath];
+    });
+}
+
+const uploads = walk(distDir).map((filePath) => {
+    const relativePath = relative(distDir, filePath).split("\\\\").join("/");
+    const bytes = readFileSync(filePath);
     return {
       relativePath,
       remotePath: relativePath,

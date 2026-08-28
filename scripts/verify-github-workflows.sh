@@ -123,7 +123,8 @@ assert_contains ".github/workflows/continuous-tests.yml" "scripts/ct-host-check.
 assert_contains ".github/workflows/continuous-tests.yml" "loopwire-host-audio-diagnostics"
 
 assert_contains ".github/workflows/deploy-docs.yml" "pnpm verify:docs"
-assert_contains ".github/workflows/deploy-docs.yml" "pnpm build:docs"
+assert_contains ".github/workflows/deploy-docs.yml" "pnpm build:web"
+assert_contains ".github/workflows/deploy-docs.yml" "pnpm verify:site"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_STORAGE_ZONE"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_ACCESS_KEY"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_STORAGE_ENDPOINT"
@@ -132,6 +133,7 @@ assert_contains ".github/workflows/deploy-docs.yml" "Bunny.net secrets are not c
 assert_contains ".github/workflows/deploy-docs.yml" "--write-env-template /secure/loopwire-release-secrets.env"
 assert_contains ".github/workflows/deploy-docs.yml" '--repo ${GITHUB_REPOSITORY} --scope deploy --env-file /secure/loopwire-release-secrets.env'
 assert_contains ".github/workflows/deploy-docs.yml" "For final proof, include BUNNY_PULL_ZONE_HOSTNAME"
+assert_contains ".github/workflows/deploy-docs.yml" "actions/download-artifact@v8.0.1"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/deploy-docs-bunny.sh"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/verify-docs-live.sh"
 assert_contains ".github/workflows/deploy-docs.yml" '--remote-prefix "$BUNNY_REMOTE_PREFIX"'
@@ -143,6 +145,8 @@ assert_contains ".github/workflows/deploy-docs.yml" "--expected-dry-run false"
 assert_contains ".github/workflows/deploy-docs.yml" "Upload docs deployment manifest"
 assert_contains ".github/workflows/deploy-docs.yml" "loopwire-docs-deployment"
 assert_contains ".github/workflows/deploy-docs.yml" "dist/docs-deployment/deployment-manifest.json"
+assert_contains ".github/workflows/deploy-docs.yml" "path: dist/site"
+assert_contains ".github/workflows/deploy-docs.yml" "--dist dist/site"
 assert_contains "package.json" '"verify:docs-deployment": "node scripts/verify-docs-deployment-manifest.mjs"'
 assert_contains "package.json" '"verify:docs-live": "bash scripts/verify-docs-live.sh"'
 
