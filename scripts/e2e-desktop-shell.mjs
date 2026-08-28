@@ -22,18 +22,23 @@
  * toggle, delete, reorder, persistence) lives in scripts/e2e-desktop-ui.mjs
  * against the browser preview, which is side-effect free.
  *
- * Usage: node scripts/e2e-desktop-shell.mjs [--binary PATH] [--port N]
+ * Usage: node scripts/e2e-desktop-shell.mjs [--binary PATH] [--port N] [--dsp-provider-smoke]
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
 const port = Number(readOption("--port") ?? "4444");
 const nativePort = port + 1;
 const binary = resolve(readOption("--binary") ?? "apps/desktop/src-tauri/target/release/loopwire");
+const dspProviderSmoke = args.includes("--dsp-provider-smoke");
+const keepTemp = args.includes("--keep-temp");
 const base = `http://127.0.0.1:${port}`;
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function readOption(name) {
   const index = args.indexOf(name);
@@ -78,6 +83,122 @@ async function webdriver(method, path, body) {
   return payload.value;
 }
 
+function runChecked(command, commandArgs, options = {}) {
+  const result = spawnSync(command, commandArgs, { stdio: "inherit", ...options });
+  if (result.status !== 0) {
+    fail(`${command} ${commandArgs.join(" ")} failed`);
+  }
+}
+
+async function prepareDspProviderSmoke() {
+  runChecked("pnpm", ["--filter", "@loopwire/core", "build"]);
+  runChecked("pnpm", ["--filter", "@loopwire/audio-host", "build"]);
+
+  const root = await mkdtemp(join(tmpdir(), "loopwire-e2e-shell-"));
+  const configHome = join(root, "config");
+  const stateHome = join(root, "state");
+  const providerStore = join(root, "provider-store");
+  const stateFile = join(configHome, "loopwire", "state.json");
+  const providerCli = join(repoRoot, "packages/audio-host/dist/dsp-provider-cli.js");
+  const providerCommand = join(root, "loopwire-dsp-provider-live-smoke");
+
+  if (!existsSync(providerCli)) {
+    fail(`DSP provider CLI not found at ${providerCli}`);
+  }
+
+  await mkdir(dirname(stateFile), { recursive: true });
+  await mkdir(providerStore, { recursive: true });
+
+  const core = await import(new URL("../packages/core/dist/index.js", import.meta.url));
+  const now = "2026-07-08T00:00:00.000Z";
+  const state = core.setSelectedBackend(core.createDefaultState(now), "dsp");
+  await writeFile(stateFile, core.serializeState(state), "utf8");
+  await writeFile(
+    providerCommand,
+    `#!/usr/bin/env sh
+export LOOPWIRE_DSP_PROVIDER_DIR=${shellQuote(providerStore)}
+export LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1
+exec node ${shellQuote(providerCli)} "$@"
+`,
+    "utf8"
+  );
+  await chmod(providerCommand, 0o755);
+
+  const providerEnv = {
+    ...process.env,
+    LOOPWIRE_DSP_PROVIDER_DIR: providerStore,
+    LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE: "1"
+  };
+  for (const sourceId of ["mic", "browser"]) {
+    runChecked(
+      providerCommand,
+      ["seed-source", "--source-id", sourceId, "--channels", "2", "--frames", "16", "--value", sourceId === "mic" ? "1" : "0.25"],
+      { env: providerEnv }
+    );
+  }
+
+  return {
+    root,
+    providerCommand,
+    providerStore,
+    outputFile: join(providerStore, "outputs", "studio", "recorder.json"),
+    env: {
+      ...providerEnv,
+      XDG_CONFIG_HOME: configHome,
+      XDG_STATE_HOME: stateHome
+    }
+  };
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+async function runDspProviderShellSmoke(sessionId, smoke) {
+  await webdriver("POST", `/session/${sessionId}/execute/sync`, {
+    script: `
+      localStorage.setItem("loopwire.dsp-restore.v1", JSON.stringify({
+        command: arguments[0],
+        mode: "live",
+        timeoutMs: "5000",
+        frameCount: "16"
+      }));
+      location.reload();
+      return true;
+    `,
+    args: [smoke.providerCommand]
+  });
+
+  let output;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (existsSync(smoke.outputFile)) {
+      try {
+        output = JSON.parse(readFileSync(smoke.outputFile, "utf8"));
+        break;
+      } catch {
+        // The provider may have created the file before the JSON write is fully visible.
+      }
+    }
+    await delay(200);
+  }
+
+  if (!output) {
+    const body = await webdriver("POST", `/session/${sessionId}/execute/sync`, {
+      script: "return document.body?.innerText || ''",
+      args: []
+    }).catch(() => "");
+    throw new Error(
+      `DSP provider smoke did not write ${smoke.outputFile}${body ? `; shell text: ${body.slice(0, 500)}` : ""}`
+    );
+  }
+
+  if (output.configurationId !== "studio" || output.outputId !== "recorder" || !Array.isArray(output.channels)) {
+    throw new Error(`DSP provider output is malformed: ${JSON.stringify(output)}`);
+  }
+
+  return output;
+}
+
 async function main() {
   const preconditions = [
     ["WebKitWebDriver", spawnSync("sh", ["-c", "command -v WebKitWebDriver || true"], { encoding: "utf8" }).stdout.trim()],
@@ -93,7 +214,9 @@ async function main() {
     fail(`binary not found at ${binary} — build it with: pnpm --filter @loopwire/desktop tauri:build`);
   }
 
+  const smoke = dspProviderSmoke ? await prepareDspProviderSmoke() : undefined;
   const driver = spawn(findTauriDriver(), ["--port", String(port), "--native-port", String(nativePort)], {
+    env: smoke?.env ?? process.env,
     stdio: ["ignore", "pipe", "pipe"]
   });
   let sessionId;
@@ -144,17 +267,32 @@ async function main() {
       throw new Error("app shell DOM did not render (New Virtual Device button missing)");
     }
     results.push(["app shell DOM rendered", "pass"]);
+
+    if (smoke) {
+      const output = await runDspProviderShellSmoke(sessionId, smoke);
+      results.push([`DSP provider live-smoke wrote ${output.outputId} in isolated temp store`, "pass"]);
+    }
+
   } finally {
     if (sessionId) {
       await webdriver("DELETE", `/session/${sessionId}`).catch(() => {});
     }
     driver.kill("SIGTERM");
+    if (smoke && !keepTemp) {
+      await rm(smoke.root, { recursive: true, force: true });
+    } else if (smoke) {
+      console.error(`e2e-desktop-shell: kept temp proof directory: ${smoke.root}`);
+    }
   }
 
   for (const [name, status] of results) {
     console.log(`${name}: ${status}`);
   }
-  console.log("e2e-desktop-shell: smoke passed (read-only; interactive flows covered by e2e-desktop-ui.mjs)");
+  console.log(
+    dspProviderSmoke
+      ? "e2e-desktop-shell: smoke passed (real shell + isolated DSP provider live-smoke)"
+      : "e2e-desktop-shell: smoke passed (read-only; interactive flows covered by e2e-desktop-ui.mjs)"
+  );
 }
 
 await main();

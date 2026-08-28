@@ -68,15 +68,26 @@ export async function runDspProviderCli(argv: readonly string[], io: DspProvider
 }
 
 function capabilities(io: DspProviderCliIo): number {
+  const supportsLiveGraph = liveSmokeEnabled(io.env ?? process.env);
   const payload = {
     ok: true,
-    providerKind: "file-backed",
-    supportsLiveGraph: false,
+    providerKind: supportsLiveGraph ? "file-backed-live-smoke" : "file-backed",
+    supportsLiveGraph,
+    ...(supportsLiveGraph
+      ? {
+          proofScope:
+            "isolated file-backed provider smoke; proves the command-backed live contract, not real PipeWire/JACK capture or playback"
+        }
+      : {}),
     operations: ["read-source", "write-output", "verify-output", "clear-output", "seed-source"]
   };
 
   io.stdout(`${JSON.stringify(payload)}\n`);
   return 0;
+}
+
+function liveSmokeEnabled(env: NodeJS.ProcessEnv): boolean {
+  return env.LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE === "1" || env.LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE === "true";
 }
 
 function parseArgs(argv: readonly string[], env: NodeJS.ProcessEnv): ParsedArgs {
@@ -415,6 +426,8 @@ Usage:
 
 State defaults to LOOPWIRE_DSP_PROVIDER_DIR or XDG_STATE_HOME/loopwire/dsp-provider.
 capabilities prints provider metadata and declares supportsLiveGraph:false for this bundled file-backed provider.
+Set LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1 only for isolated command-contract proof; it still does not capture or play
+real PipeWire/JACK audio.
 read-source prints {"missing":true} until a source is seeded.
 write-output and verify-output read Loopwire rendered-output JSON on stdin.
 `;

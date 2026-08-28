@@ -8,7 +8,9 @@ storage_endpoint="${BUNNY_STORAGE_ENDPOINT:-}"
 pull_zone_hostname="${BUNNY_PULL_ZONE_HOSTNAME:-}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 release_private_key_file=""
+release_private_key_temp_file=""
 release_public_key_file="${LOOPWIRE_RELEASE_PUBLIC_KEY_FILE:-}"
+release_public_key_temp_file=""
 env_file=""
 secret_list_file=""
 write_env_template_file=""
@@ -57,6 +59,15 @@ Env files:
   Command-line flags override env-file values.
   --print-env-template prints the committed no-value template accepted by --env-file.
   --write-env-template FILE writes that template with 0600 permissions and refuses overwrites.
+
+Interactive set mode:
+  When setting secrets for real and required values are missing, the helper prompts
+  for one secret at a time, explains where to find it, and sends each value to
+  `gh secret set` via stdin without printing the value. The release private-key
+  and public-key prompts accept local PEM file paths or pasted PEM blocks; the
+  release workflow uses the private key to sign SHA256SUMS so installers can
+  verify published artifacts, then the private-key contents are sent as
+  LOOPWIRE_RELEASE_PRIVATE_KEY.
 
 Secret-list files:
   --secret-list-file accepts saved `gh secret list` output for offline check-mode rehearsal.
@@ -134,6 +145,17 @@ fail() {
   exit 1
 }
 
+cleanup_release_private_key_temp() {
+  if [ -n "$release_private_key_temp_file" ]; then
+    rm -f "$release_private_key_temp_file"
+  fi
+  if [ -n "$release_public_key_temp_file" ]; then
+    rm -f "$release_public_key_temp_file"
+  fi
+}
+
+trap cleanup_release_private_key_temp EXIT
+
 reject_unsafe_value() {
   value="$1"
   label="$2"
@@ -165,8 +187,42 @@ validate_local_file_path() {
       ;;
   esac
 
-  [ ! -L "$value" ] || fail "$label must not be a symlink"
-  [ -f "$value" ] || fail "$label must be a file"
+  [ ! -L "$value" ] || fail "$label must not be a symlink: $value"
+  [ -f "$value" ] || fail "$label must be a file: $value"
+}
+
+expand_operator_file_path() {
+  value="$1"
+
+  case "$value" in
+    '$HOME')
+      [ -n "${HOME:-}" ] || fail "HOME is not set"
+      printf '%s\n' "$HOME"
+      ;;
+    '$HOME'/*)
+      [ -n "${HOME:-}" ] || fail "HOME is not set"
+      printf '%s/%s\n' "$HOME" "${value#'$HOME'/}"
+      ;;
+    '${HOME}')
+      [ -n "${HOME:-}" ] || fail "HOME is not set"
+      printf '%s\n' "$HOME"
+      ;;
+    '${HOME}'/*)
+      [ -n "${HOME:-}" ] || fail "HOME is not set"
+      printf '%s/%s\n' "$HOME" "${value#'${HOME}'/}"
+      ;;
+    "~")
+      [ -n "${HOME:-}" ] || fail "HOME is not set"
+      printf '%s\n' "$HOME"
+      ;;
+    "~"/*)
+      [ -n "${HOME:-}" ] || fail "HOME is not set"
+      printf '%s/%s\n' "$HOME" "${value#"~/"}"
+      ;;
+    *)
+      printf '%s\n' "$value"
+      ;;
+  esac
 }
 
 validate_local_output_file_path() {
@@ -552,6 +608,317 @@ require_set_input() {
   [ -n "$value" ] || fail "${label} is required for ${scope}-scope secret setup; use ${hint} or --env-file"
 }
 
+has_explicit_or_env_input() {
+  [ -n "$storage_zone" ] ||
+    [ -n "$access_key" ] ||
+    [ -n "$storage_endpoint" ] ||
+    [ -n "$pull_zone_hostname" ] ||
+    [ -n "$remote_prefix" ] ||
+    [ -n "$release_private_key_file" ] ||
+    [ -n "$release_public_key_file" ] ||
+    [ "$storage_zone_explicit" = "true" ] ||
+    [ "$access_key_explicit" = "true" ] ||
+    [ "$storage_endpoint_explicit" = "true" ] ||
+    [ "$pull_zone_hostname_explicit" = "true" ] ||
+    [ "$remote_prefix_explicit" = "true" ] ||
+    [ "$release_private_key_file_explicit" = "true" ] ||
+    [ "$release_public_key_file_explicit" = "true" ]
+}
+
+prompt_line() {
+  secret_name="$1"
+  target_var="$2"
+  required="$3"
+  sensitive="$4"
+  default_value="$5"
+  instructions="$6"
+  current_value="${!target_var}"
+  answer=""
+
+  [ -z "$current_value" ] || return 0
+
+  printf '\n%s\n' "$secret_name" >&2
+  printf '%s\n' "$instructions" >&2
+  if [ -n "$default_value" ]; then
+    printf 'Press Enter to use: %s\n' "$default_value" >&2
+  elif [ "$required" != "true" ]; then
+    printf 'Press Enter to skip this optional secret.\n' >&2
+  fi
+
+  while :; do
+    if [ "$sensitive" = "true" ] && [ -t 0 ]; then
+      printf 'Value: ' >&2
+      if ! IFS= read -r -s answer; then
+        printf '\n' >&2
+        fail "missing input for ${secret_name}"
+      fi
+      printf '\n' >&2
+    else
+      printf 'Value: ' >&2
+      if ! IFS= read -r answer; then
+        fail "missing input for ${secret_name}"
+      fi
+    fi
+
+    if [ -z "$answer" ] && [ -n "$default_value" ]; then
+      answer="$default_value"
+    fi
+
+    if [ -n "$answer" ] || [ "$required" != "true" ]; then
+      break
+    fi
+
+    printf '%s is required for %s-scope secret setup.\n' "$secret_name" "$scope" >&2
+  done
+
+  printf -v "$target_var" '%s' "$answer"
+}
+
+is_private_key_begin_line() {
+  case "$1" in
+    "-----BEGIN PRIVATE KEY-----" | "-----BEGIN RSA PRIVATE KEY-----" | "-----BEGIN EC PRIVATE KEY-----")
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+is_private_key_end_line() {
+  case "$1" in
+    "-----END PRIVATE KEY-----" | "-----END RSA PRIVATE KEY-----" | "-----END EC PRIVATE KEY-----")
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+is_public_key_begin_line() {
+  case "$1" in
+    "-----BEGIN PUBLIC KEY-----" | "-----BEGIN RSA PUBLIC KEY-----" | "-----BEGIN EC PUBLIC KEY-----")
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+is_public_key_end_line() {
+  case "$1" in
+    "-----END PUBLIC KEY-----" | "-----END RSA PUBLIC KEY-----" | "-----END EC PUBLIC KEY-----")
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+read_private_key_prompt_line() {
+  answer_var="$1"
+  prompt_label="${2:-LOOPWIRE_RELEASE_PRIVATE_KEY}"
+  answer=""
+
+  printf 'Value: ' >&2
+  if [ -t 0 ]; then
+    if ! IFS= read -r -s answer; then
+      printf '\n' >&2
+      fail "missing input for ${prompt_label}"
+    fi
+    printf '\n' >&2
+  else
+    if ! IFS= read -r answer; then
+      fail "missing input for ${prompt_label}"
+    fi
+  fi
+
+  printf -v "$answer_var" '%s' "$answer"
+}
+
+capture_pasted_release_private_key() {
+  first_line="$1"
+  line=""
+
+  release_private_key_temp_file="$(mktemp "${TMPDIR:-/tmp}/loopwire-release-private-key.XXXXXX")" ||
+    fail "unable to create temporary release private key file"
+  chmod 600 "$release_private_key_temp_file"
+  printf '%s\n' "$first_line" >"$release_private_key_temp_file"
+
+  printf 'Reading pasted PEM block until the matching END PRIVATE KEY line.\n' >&2
+  while :; do
+    if [ -t 0 ]; then
+      if ! IFS= read -r -s line; then
+        fail "pasted release private key ended before an END PRIVATE KEY line"
+      fi
+    else
+      if ! IFS= read -r line; then
+        fail "pasted release private key ended before an END PRIVATE KEY line"
+      fi
+    fi
+
+    printf '%s\n' "$line" >>"$release_private_key_temp_file"
+    if is_private_key_end_line "$line"; then
+      break
+    fi
+  done
+  if [ -t 0 ]; then
+    printf '\n' >&2
+  fi
+
+  release_private_key_file="$release_private_key_temp_file"
+  printf 'Captured pasted release private key block for validation.\n' >&2
+}
+
+capture_pasted_release_public_key() {
+  first_line="$1"
+  line=""
+
+  release_public_key_temp_file="$(mktemp "${TMPDIR:-/tmp}/loopwire-release-public-key.XXXXXX")" ||
+    fail "unable to create temporary release public key file"
+  chmod 600 "$release_public_key_temp_file"
+  printf '%s\n' "$first_line" >"$release_public_key_temp_file"
+
+  printf 'Reading pasted public PEM block until the matching END PUBLIC KEY line.\n' >&2
+  while :; do
+    if [ -t 0 ]; then
+      if ! IFS= read -r -s line; then
+        fail "pasted release public key ended before an END PUBLIC KEY line"
+      fi
+    else
+      if ! IFS= read -r line; then
+        fail "pasted release public key ended before an END PUBLIC KEY line"
+      fi
+    fi
+
+    printf '%s\n' "$line" >>"$release_public_key_temp_file"
+    if is_public_key_end_line "$line"; then
+      break
+    fi
+  done
+  if [ -t 0 ]; then
+    printf '\n' >&2
+  fi
+
+  release_public_key_file="$release_public_key_temp_file"
+  printf 'Captured pasted release public key block for validation.\n' >&2
+}
+
+prompt_release_private_key() {
+  answer=""
+
+  [ -z "$release_private_key_file" ] || return 0
+
+  printf '\nLOOPWIRE_RELEASE_PRIVATE_KEY\n' >&2
+  printf '%s\n' "Final-release signing key, not a Bunny.net or GitHub token. Enter the local PEM private-key path generated by pnpm release:prepare-key, or paste the full PEM block starting with BEGIN PRIVATE KEY and ending with END PRIVATE KEY. Literal \$HOME/..., \${HOME}/..., and ~/... paths are accepted. The release workflow uses this key to sign SHA256SUMS so installers can verify published artifacts; the helper validates the key pair, then sends the private-key file contents directly to the LOOPWIRE_RELEASE_PRIVATE_KEY GitHub secret." >&2
+
+  while :; do
+    read_private_key_prompt_line answer LOOPWIRE_RELEASE_PRIVATE_KEY
+
+    if is_private_key_begin_line "$answer"; then
+      capture_pasted_release_private_key "$answer"
+      return
+    fi
+
+    if [ -n "$answer" ]; then
+      release_private_key_file="$(expand_operator_file_path "$answer")"
+      return
+    fi
+
+    printf 'LOOPWIRE_RELEASE_PRIVATE_KEY is required for %s-scope secret setup.\n' "$scope" >&2
+  done
+}
+
+prompt_release_public_key() {
+  answer=""
+  default_value="packaging/release-signing-public.pem"
+
+  [ -z "$release_public_key_file" ] || return 0
+
+  printf '\nLOOPWIRE_RELEASE_PUBLIC_KEY_FILE\n' >&2
+  printf '%s\n' "Public key used only to validate LOOPWIRE_RELEASE_PRIVATE_KEY before any secret is written. Enter a local public-key PEM path, paste the full public PEM block from BEGIN PUBLIC KEY through END PUBLIC KEY, or press Enter to use: ${default_value}. Literal \$HOME/..., \${HOME}/..., and ~/... paths are accepted." >&2
+
+  while :; do
+    read_private_key_prompt_line answer LOOPWIRE_RELEASE_PUBLIC_KEY_FILE
+
+    if [ -z "$answer" ]; then
+      release_public_key_file="$default_value"
+      return
+    fi
+
+    if is_public_key_begin_line "$answer"; then
+      capture_pasted_release_public_key "$answer"
+      return
+    fi
+
+    release_public_key_file="$(expand_operator_file_path "$answer")"
+    return
+  done
+}
+
+prompt_missing_inputs_for_set_scope() {
+  local prompt_optional="false"
+
+  if [ -z "$env_file" ] && ! has_explicit_or_env_input; then
+    prompt_optional="true"
+  fi
+
+  prompt_line \
+    "BUNNY_STORAGE_ZONE" \
+    storage_zone \
+    true \
+    false \
+    "" \
+    "Bunny.net storage zone name used by the docs deploy workflow, for example loopwire-docs. This value is stored as the BUNNY_STORAGE_ZONE GitHub secret."
+
+  prompt_line \
+    "BUNNY_ACCESS_KEY" \
+    access_key \
+    true \
+    true \
+    "" \
+    "Bunny.net API/access key that can upload to the storage zone. Input is hidden when a TTY is available and is stored as the BUNNY_ACCESS_KEY GitHub secret."
+
+  if [ "$scope" = "final" ]; then
+    prompt_line \
+      "BUNNY_PULL_ZONE_HOSTNAME" \
+      pull_zone_hostname \
+      true \
+      false \
+      "" \
+      "Public Bunny pull-zone hostname used by live docs smoke and final release proof, for example docs.example.test. Do not include https:// or a path."
+
+    prompt_release_private_key
+
+    prompt_release_public_key
+  elif [ "$prompt_optional" = "true" ]; then
+    prompt_line \
+      "BUNNY_PULL_ZONE_HOSTNAME" \
+      pull_zone_hostname \
+      false \
+      false \
+      "" \
+      "Optional live-docs hostname for deploy-scope smoke. Do not include https:// or a path."
+  fi
+
+  if [ "$prompt_optional" = "true" ]; then
+    prompt_line \
+      "BUNNY_STORAGE_ENDPOINT" \
+      storage_endpoint \
+      false \
+      false \
+      "" \
+      "Optional Bunny storage endpoint override, for example ny.storage.bunnycdn.com."
+
+    prompt_line \
+      "BUNNY_REMOTE_PREFIX" \
+      remote_prefix \
+      false \
+      false \
+      "" \
+      "Optional remote path prefix for docs deployment, without leading slash or traversal segments."
+  fi
+}
+
 validate_required_inputs_for_set_scope() {
   require_set_input "$storage_zone" "BUNNY_STORAGE_ZONE" "--storage-zone"
   require_set_input "$access_key" "BUNNY_ACCESS_KEY" "--access-key"
@@ -576,10 +943,12 @@ validate_requested_secret_set() {
   fi
 
   if [ -n "$release_private_key_file" ]; then
+    release_private_key_file="$(expand_operator_file_path "$release_private_key_file")"
     validate_local_file_path "$release_private_key_file" "release private key file"
   fi
 
   if [ -n "$release_public_key_file" ]; then
+    release_public_key_file="$(expand_operator_file_path "$release_public_key_file")"
     validate_local_file_path "$release_public_key_file" "release public key file"
   fi
 
@@ -796,6 +1165,10 @@ resolve_repo
 if [ "$check_mode" = "true" ]; then
   check_secret_presence
   exit 0
+fi
+
+if [ "$dry_run" != "true" ]; then
+  prompt_missing_inputs_for_set_scope
 fi
 
 validate_requested_secret_set

@@ -45,6 +45,11 @@ These notes describe source-tree progress. They are not a public release announc
   reload persistence, and sidebar drag-reorder in headless Chromium, asserting DOM outcomes with honest preview-mode
   scope (no host-apply claims). `pnpm e2e:shell` adds a read-only WebDriver smoke of the real Tauri binary via
   `tauri-driver` + `WebKitWebDriver` where the host provides them.
+- `pnpm e2e:shell -- --dsp-provider-smoke` now adds an opt-in real-shell proof for provider-backed DSP live apply:
+  the app runs under temporary `XDG_CONFIG_HOME` / `XDG_STATE_HOME`, uses a temp wrapper around the bundled
+  `loopwire-dsp-provider`, enables its explicit `LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1` contract mode, and verifies a
+  rendered output in a temp provider store without touching the operator's saved Loopwire state or real
+  PipeWire/JACK graph.
 
 ## Supported In Source
 

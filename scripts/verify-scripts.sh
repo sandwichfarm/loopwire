@@ -3312,6 +3312,30 @@ printf '%s\n' "$dsp_plan_tsv" | grep -F $'read-source\tmic\tStudio Mic\t2\t2' >/
   echo "verify-scripts: DSP provider plan TSV output is missing source rows" >&2
   exit 1
 }
+bundled_dsp_capabilities="$(node packages/audio-host/dist/dsp-provider-cli.js capabilities)"
+printf '%s\n' "$bundled_dsp_capabilities" | node -e '
+const fs = require("node:fs");
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+if (payload.providerKind !== "file-backed") process.exit(1);
+if (payload.supportsLiveGraph !== false) process.exit(1);
+if ("proofScope" in payload) process.exit(1);
+' || {
+  echo "verify-scripts: bundled DSP provider default capabilities are not file-backed" >&2
+  exit 1
+}
+bundled_dsp_live_smoke_capabilities="$(
+  LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1 node packages/audio-host/dist/dsp-provider-cli.js capabilities
+)"
+printf '%s\n' "$bundled_dsp_live_smoke_capabilities" | node -e '
+const fs = require("node:fs");
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+if (payload.providerKind !== "file-backed-live-smoke") process.exit(1);
+if (payload.supportsLiveGraph !== true) process.exit(1);
+if (!String(payload.proofScope || "").includes("isolated file-backed provider smoke")) process.exit(1);
+' || {
+  echo "verify-scripts: bundled DSP provider live-smoke capabilities are not explicit" >&2
+  exit 1
+}
 dsp_provider="$tmp_dir/dsp-provider.js"
 dsp_provider_log="$tmp_dir/dsp-provider.log"
 cat >"$dsp_provider" <<'EOF'
@@ -5190,6 +5214,8 @@ tmp_secret_file="$tmp_dir/release-key.pem"
 tmp_secret_public_key="$tmp_dir/release-key-public.pem"
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$tmp_secret_file" >/dev/null 2>&1
 openssl pkey -in "$tmp_secret_file" -pubout -out "$tmp_secret_public_key" >/dev/null 2>&1
+tmp_secret_private_key_body="$(sed -n '2p' "$tmp_secret_file")"
+tmp_secret_public_key_body="$(sed -n '2p' "$tmp_secret_public_key")"
 docs_dist="$tmp_dir/docs-dist"
 mkdir -p "$docs_dist/assets"
 printf '%s\n' "<!doctype html><title>Loopwire</title>" >"$docs_dist/index.html"
@@ -7513,6 +7539,236 @@ grep -F "https://ny.storage.bunnycdn.com" "$fake_secret_set_dir/BUNNY_STORAGE_EN
 }
 grep -F "private-prefix-value" "$fake_secret_set_dir/BUNNY_REMOTE_PREFIX" >/dev/null || {
   echo "verify-scripts: GitHub secret helper did not write the remote prefix through stdin" >&2
+  exit 1
+}
+fake_secret_interactive_set_dir="$tmp_dir/fake-gh-secret-interactive-set"
+interactive_secret_set_output="$(
+  printf '%s\n' \
+    "interactive-loopwire-docs" \
+    "interactive-access-key" \
+    "docs.interactive.example.test" \
+    "$tmp_secret_file" \
+    "$tmp_secret_public_key" \
+    "" \
+    "" |
+    LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_interactive_set_dir" \
+      PATH="$fake_gh_dir:$PATH" \
+      bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final 2>&1
+)"
+printf '%s\n' "$interactive_secret_set_output" | grep -F "BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not prompt for storage zone" >&2
+  exit 1
+}
+printf '%s\n' "$interactive_secret_set_output" | grep -F "LOOPWIRE_RELEASE_PRIVATE_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not prompt for release private key" >&2
+  exit 1
+}
+if printf '%s\n' "$interactive_secret_set_output" | grep -F "interactive-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper interactive flow leaked the access key" >&2
+  exit 1
+fi
+if printf '%s\n' "$interactive_secret_set_output" | grep -F "$tmp_secret_private_key_body" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper interactive flow leaked the release private key" >&2
+  exit 1
+fi
+printf '%s\n' "$interactive_secret_set_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not report successful interactive fake writes" >&2
+    exit 1
+  }
+grep -F "interactive-loopwire-docs" "$fake_secret_interactive_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write storage zone" >&2
+  exit 1
+}
+grep -F "interactive-access-key" "$fake_secret_interactive_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write access key" >&2
+  exit 1
+}
+grep -F "docs.interactive.example.test" "$fake_secret_interactive_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write pull-zone hostname" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_interactive_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper interactive flow did not write release private key" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_interactive_set_dir/BUNNY_STORAGE_ENDPOINT" ] || {
+  echo "verify-scripts: GitHub secret helper interactive flow wrote skipped storage endpoint" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_interactive_set_dir/BUNNY_REMOTE_PREFIX" ] || {
+  echo "verify-scripts: GitHub secret helper interactive flow wrote skipped remote prefix" >&2
+  exit 1
+}
+fake_secret_pasted_key_set_dir="$tmp_dir/fake-gh-secret-pasted-key-set"
+pasted_key_secret_set_output="$(
+  {
+    printf '%s\n' \
+      "pasted-loopwire-docs" \
+      "pasted-access-key" \
+      "docs.pasted.example.test"
+    cat "$tmp_secret_file"
+    printf '%s\n' \
+      "$tmp_secret_public_key" \
+      "" \
+      ""
+  } |
+    LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_pasted_key_set_dir" \
+      PATH="$fake_gh_dir:$PATH" \
+      bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final 2>&1
+)"
+printf '%s\n' "$pasted_key_secret_set_output" | grep -F "paste the full PEM block" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow did not explain PEM paste support" >&2
+  exit 1
+}
+printf '%s\n' "$pasted_key_secret_set_output" | grep -F "Captured pasted release private key block for validation." >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow did not capture the pasted PEM block" >&2
+  exit 1
+}
+if printf '%s\n' "$pasted_key_secret_set_output" | grep -F "pasted-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper pasted-key flow leaked the access key" >&2
+  exit 1
+fi
+if printf '%s\n' "$pasted_key_secret_set_output" | grep -F "$tmp_secret_private_key_body" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper pasted-key flow leaked the release private key" >&2
+  exit 1
+fi
+grep -F "pasted-loopwire-docs" "$fake_secret_pasted_key_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow did not write storage zone" >&2
+  exit 1
+}
+grep -F "pasted-access-key" "$fake_secret_pasted_key_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow did not write access key" >&2
+  exit 1
+}
+grep -F "docs.pasted.example.test" "$fake_secret_pasted_key_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow did not write pull-zone hostname" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_pasted_key_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow did not write the pasted release private key" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_pasted_key_set_dir/BUNNY_STORAGE_ENDPOINT" ] || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow wrote skipped storage endpoint" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_pasted_key_set_dir/BUNNY_REMOTE_PREFIX" ] || {
+  echo "verify-scripts: GitHub secret helper pasted-key flow wrote skipped remote prefix" >&2
+  exit 1
+}
+fake_secret_pasted_public_key_set_dir="$tmp_dir/fake-gh-secret-pasted-public-key-set"
+pasted_public_key_secret_set_output="$(
+  {
+    printf '%s\n' \
+      "pasted-public-loopwire-docs" \
+      "pasted-public-access-key" \
+      "docs.pasted-public.example.test" \
+      "$tmp_secret_file"
+    cat "$tmp_secret_public_key"
+    printf '%s\n' \
+      "" \
+      ""
+  } |
+    LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_pasted_public_key_set_dir" \
+      PATH="$fake_gh_dir:$PATH" \
+      bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final 2>&1
+)"
+printf '%s\n' "$pasted_public_key_secret_set_output" | grep -F "paste the full public PEM block" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow did not explain PEM paste support" >&2
+  exit 1
+}
+printf '%s\n' "$pasted_public_key_secret_set_output" | grep -F "Captured pasted release public key block for validation." >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow did not capture the pasted PEM block" >&2
+  exit 1
+}
+if printf '%s\n' "$pasted_public_key_secret_set_output" | grep -F "pasted-public-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow leaked the access key" >&2
+  exit 1
+fi
+if printf '%s\n' "$pasted_public_key_secret_set_output" | grep -F "$tmp_secret_public_key_body" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow leaked the release public key body" >&2
+  exit 1
+fi
+grep -F "pasted-public-loopwire-docs" "$fake_secret_pasted_public_key_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow did not write storage zone" >&2
+  exit 1
+}
+grep -F "pasted-public-access-key" "$fake_secret_pasted_public_key_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow did not write access key" >&2
+  exit 1
+}
+grep -F "docs.pasted-public.example.test" "$fake_secret_pasted_public_key_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow did not write pull-zone hostname" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_pasted_public_key_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow did not write the release private key" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_pasted_public_key_set_dir/BUNNY_STORAGE_ENDPOINT" ] || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow wrote skipped storage endpoint" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_pasted_public_key_set_dir/BUNNY_REMOTE_PREFIX" ] || {
+  echo "verify-scripts: GitHub secret helper pasted-public-key flow wrote skipped remote prefix" >&2
+  exit 1
+}
+fake_home_dir="$tmp_dir/fake-home"
+fake_home_key_dir="$fake_home_dir/.local/share/loopwire-release"
+mkdir -p "$fake_home_key_dir"
+cp "$tmp_secret_file" "$fake_home_key_dir/home-release-key.pem"
+cp "$tmp_secret_public_key" "$fake_home_key_dir/home-release-key-public.pem"
+fake_secret_home_path_set_dir="$tmp_dir/fake-gh-secret-home-path-set"
+home_path_secret_set_output="$(
+  printf '%s\n' \
+    "home-loopwire-docs" \
+    "home-access-key" \
+    "docs.home.example.test" \
+    '$HOME/.local/share/loopwire-release/home-release-key.pem' \
+    '${HOME}/.local/share/loopwire-release/home-release-key-public.pem' \
+    "" \
+    "" |
+    HOME="$fake_home_dir" \
+      LOOPWIRE_FAKE_GH_SET_DIR="$fake_secret_home_path_set_dir" \
+      PATH="$fake_gh_dir:$PATH" \
+      bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final 2>&1
+)"
+printf '%s\n' "$home_path_secret_set_output" | grep -F 'Literal $HOME/..., ${HOME}/..., and ~/... paths are accepted' >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not document literal home path expansion" >&2
+  exit 1
+}
+printf '%s\n' "$home_path_secret_set_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper home-path flow did not report successful fake writes" >&2
+    exit 1
+  }
+if printf '%s\n' "$home_path_secret_set_output" | grep -F "home-access-key" >/dev/null; then
+  echo "verify-scripts: GitHub secret helper home-path flow leaked the access key" >&2
+  exit 1
+fi
+grep -F "home-loopwire-docs" "$fake_secret_home_path_set_dir/BUNNY_STORAGE_ZONE" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not write storage zone" >&2
+  exit 1
+}
+grep -F "home-access-key" "$fake_secret_home_path_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not write access key" >&2
+  exit 1
+}
+grep -F "docs.home.example.test" "$fake_secret_home_path_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not write pull-zone hostname" >&2
+  exit 1
+}
+cmp -s "$tmp_secret_file" "$fake_secret_home_path_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
+  echo "verify-scripts: GitHub secret helper home-path flow did not expand literal HOME private-key path" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_home_path_set_dir/BUNNY_STORAGE_ENDPOINT" ] || {
+  echo "verify-scripts: GitHub secret helper home-path flow wrote skipped storage endpoint" >&2
+  exit 1
+}
+[ ! -e "$fake_secret_home_path_set_dir/BUNNY_REMOTE_PREFIX" ] || {
+  echo "verify-scripts: GitHub secret helper home-path flow wrote skipped remote prefix" >&2
   exit 1
 }
 fake_secret_env_set_dir="$tmp_dir/fake-gh-secret-env-set"

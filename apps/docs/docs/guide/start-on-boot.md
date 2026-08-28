@@ -211,13 +211,14 @@ clears those outputs so the provider cleanup path is tested before startup resto
 seeded source buffers and configuration-scoped rendered output buffers under `LOOPWIRE_DSP_PROVIDER_DIR` or
 `${XDG_STATE_HOME:-$HOME/.local/state}/loopwire/dsp-provider`; it is not a live PipeWire/JACK capture or playback
 provider. Persisted `selectedBackend: "dsp"` state is honored for startup restore, but it still requires an explicit
-`--dsp-provider-command` after the persisted backend is resolved. The rebuilt desktop UI does not expose DSP provider
-settings yet (documented gap), so DSP stays preview-only in the desktop shell; configure providers through the CLI and
-systemd flags in this section. `--mode live --backend dsp` or persisted DSP live restore requires
+`--dsp-provider-command` after the persisted backend is resolved. The desktop Settings → Providers card can persist
+the DSP command, mode, timeout, and frame count, while these CLI/systemd flags remain the headless restore surface.
+`--mode live --backend dsp` or persisted DSP live restore requires
 `--dsp-provider-mode live` and a provider `capabilities` result with
 `supportsLiveGraph:true` plus `read-source`, `write-output`, `verify-output`, and `clear-output` in its `operations`
 list; the provider `capabilities.operations` field is the `operations` list checked by restore preflight. The bundled
-file-backed provider declares `supportsLiveGraph:false` and is rejected for live restore. Use live
+file-backed provider declares `supportsLiveGraph:false` by default and is rejected for live restore. Its
+`LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1` mode is reserved for isolated shell/provider contract proof; use production live
 mode only with a real provider that captures from and writes to the host audio graph.
 
 Seed every source your configuration routes before running execute-mode preflight:

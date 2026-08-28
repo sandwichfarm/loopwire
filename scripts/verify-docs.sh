@@ -748,6 +748,10 @@ assert_contains "apps/docs/docs/developer/release.md" "reviewed annotated tag co
 assert_contains "apps/docs/docs/developer/release.md" "exact tag push ref"
 assert_contains "apps/docs/docs/developer/release.md" "docs deployment run selection"
 assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env"
+assert_contains "apps/docs/docs/developer/release.md" "the helper prompts for one secret at a time"
+assert_contains "apps/docs/docs/developer/release.md" "not a Bunny.net or GitHub token"
+assert_contains "apps/docs/docs/developer/release.md" "private-key and public-key prompts both accept"
+assert_contains "apps/docs/docs/developer/release.md" 'expands literal `$HOME/...`, `${HOME}/...`, and `~/...`'
 assert_contains "apps/docs/docs/developer/release.md" 'docs_deployment_run_id="$('
 assert_contains "apps/docs/docs/developer/release.md" "pnpm --silent release:select-docs-run"
 assert_contains "apps/docs/docs/developer/release.md" 'exposes both `loopwire-docs` and'
