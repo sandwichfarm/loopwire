@@ -251,6 +251,8 @@ while IFS=$'\t' read -r target distro package_target format image_url algorithm 
   printf 'ID=%s\nVERSION_ID="%s"\nPRETTY_NAME="Fixture %s"\n' "$os_id" "$version_id" "$distro" >"$proof/os-release"
   printf 'Linux fixture 6.0 x86_64 GNU/Linux\n' >"$proof/uname.txt"
   printf 'kvm\n' >"$proof/virtualization.txt"
+  printf 'fixture guest package transcript\n' >"$proof/commands.log"
+  printf 'fixture KVM serial console\n' >"$proof/console.log"
   printf '%s\n' "$metadata" >"$proof/package-metadata.tsv"
   printf '%s\n' \
     /usr/bin/loopwire \
