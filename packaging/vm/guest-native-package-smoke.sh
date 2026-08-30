@@ -119,7 +119,7 @@ timeout 30s sh -c '
   }
   trap cleanup EXIT
   sleep 1
-  DISPLAY=:99 WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+  DISPLAY=:99 GDK_BACKEND=x11 WEBKIT_DISABLE_DMABUF_RENDERER=1 \
     /usr/lib/loopwire/loopwire-gui >"$proof_dir/gui-launch.log" 2>&1 &
   app_pid=$!
   attempt=1
@@ -128,8 +128,11 @@ timeout 30s sh -c '
       wait "$app_pid"
       exit $?
     fi
-    if DISPLAY=:99 xdotool search --onlyvisible --name "Loopwire" \
+    if DISPLAY=:99 xdotool search --name "^(Loopwire|loopwire-gui)$" \
       >"$proof_dir/gui-window-ids.txt" 2>/dev/null; then
+      while read -r window_id; do
+        DISPLAY=:99 xdotool getwindowname "$window_id"
+      done <"$proof_dir/gui-window-ids.txt" >"$proof_dir/gui-window-names.txt"
       exit 0
     fi
     sleep 1

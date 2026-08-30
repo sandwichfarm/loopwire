@@ -192,7 +192,11 @@ try {
 if ((await textFile(evidenceDir, "gui-ldd.txt")).includes("not found")) fail("GUI has unresolved shared libraries");
 if ((await textFile(evidenceDir, "gui-launch-status.txt")).trim() !== "0") fail("GUI launch did not exit successfully");
 if (!/^\d+(?:\n\d+)*\n?$/.test(await textFile(evidenceDir, "gui-window-ids.txt"))) {
-  fail("GUI proof does not contain a visible Loopwire X11 window id");
+  fail("GUI proof does not contain a Loopwire X11 window id");
+}
+const windowNames = (await textFile(evidenceDir, "gui-window-names.txt")).trim().split("\n");
+if (windowNames.length === 0 || windowNames.some((name) => !/^(Loopwire|loopwire-gui)$/.test(name))) {
+  fail("GUI proof does not contain an application-specific Loopwire X11 window name");
 }
 const guiLog = await textFile(evidenceDir, "gui-launch.log");
 if (/error while loading shared libraries|panic|protocol error|missing acquire timeline/i.test(guiLog)) {

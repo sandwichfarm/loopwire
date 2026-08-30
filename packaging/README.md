@@ -155,7 +155,7 @@ pnpm vm:native-packages -- run-all \
 
 `packaging/vm/native-package-targets.tsv` pins each official cloud-image URL and checksum. The runner verifies that
 checksum, boots a separate KVM guest, binds SSH to loopback, builds and installs through the guest package manager,
-requires a visible Loopwire window under Xvfb, runs packaged CLI/backend smokes, uninstalls, and stores raw proof under
+requires a Loopwire-named X11 window under Xvfb, runs packaged CLI/backend smokes, uninstalls, and stores raw proof under
 ignored `.vm/native-packages/evidence/<target>/<commit>/`. Containers provide QEMU binaries only; they do not count as
 guest proof. `pnpm verify:native-vm-proof -- --git-head <commit>` rechecks all four proof directories.
 

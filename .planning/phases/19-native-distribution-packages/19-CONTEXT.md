@@ -28,13 +28,14 @@ Arch/AUR and Nix remain existing package paths. This slice does not redefine the
   `qemu` from a separately booted guest.
 - Official image URLs and immutable checksums live in a target manifest and are rechecked before every launch.
 - Guest evidence is bound to the target, image checksum, package checksum, package metadata, and exact git commit.
-- GUI launch proof requires a visible Loopwire window, not merely a process that survives until timeout.
+- GUI launch proof requires an application-specific Loopwire X11 window, not merely a process that survives until
+  timeout. Xvfb does not run a window manager, so mapped/visible classification is not used as the proof predicate.
 
 ## Proof Boundary
 
 Each guest must build the target package from the canonical release tarball, install it through the native package
 manager, prove installed metadata/files, run background/provider/backend-detection smokes, verify GUI linkage and a
-visible X11 window under Xvfb, uninstall the package, and prove all owned paths are removed.
+Loopwire-named X11 window under Xvfb, uninstall the package, and prove all owned paths are removed.
 
 The repository verifier must reject missing files, mismatched guest identity/version, image checksum drift, a stale or
 extra package, wrong version/architecture, unresolved GUI libraries, absent window evidence, and incomplete uninstall.

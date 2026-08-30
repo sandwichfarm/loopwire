@@ -268,6 +268,7 @@ while IFS=$'\t' read -r target distro package_target format image_url algorithm 
   : >"$proof/gui-launch.log"
   printf '0\n' >"$proof/gui-launch-status.txt"
   printf '4194305\n' >"$proof/gui-window-ids.txt"
+  printf 'loopwire-gui\n' >"$proof/gui-window-names.txt"
   printf 'removed\n' >"$proof/uninstall-status.txt"
   node scripts/verify-native-package-vm-proof.mjs \
     --target "$target" --evidence-dir "$proof" --git-head "$git_head" >/dev/null
