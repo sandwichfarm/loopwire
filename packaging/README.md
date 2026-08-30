@@ -140,8 +140,10 @@ pnpm package:rpm -- --target opensuse-tumbleweed --version 0.1.0 --arch x86_64 \
 ```
 
 `pnpm verify:native-packaging` builds every recipe twice, requires byte-identical output, checks package metadata, and
-proves duplicate checksum entries and tampered package evidence are rejected. It uses local `dpkg-deb`/`rpmbuild`
-when available and isolated Ubuntu/Fedora builder containers otherwise.
+proves duplicate checksum entries and tampered package evidence are rejected. It uses local `dpkg-deb` when available
+and always runs RPM reproducibility through the matching Fedora/openSUSE toolchain. Use
+`pnpm package:native` to build all four release attachments through those same target containers; this avoids
+host-RPM-version differences in release output.
 
 Matching-guest proof is a separate, stronger gate:
 

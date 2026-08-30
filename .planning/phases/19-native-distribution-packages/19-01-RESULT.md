@@ -9,7 +9,8 @@
 
 - Target-specific deb controls for Ubuntu 24.04 and Debian 13.
 - Target-specific RPM specs for Fedora 44 and openSUSE Tumbleweed.
-- Deterministic checksum-bound deb/RPM builders and a Debian 12 portable GUI build.
+- Deterministic checksum-bound deb/RPM builders, target-container release orchestration, and a Debian 12 portable GUI
+  build.
 - Full package payload: GUI, background restore, DSP provider, JACK provider, backend detector, desktop entry, and icon.
 - Release staging which replaces GUI-only Tauri deb/RPM attachments with the full x86_64 packages.
 - Official-image manifest, Docker-contained QEMU tooling, KVM runner, loopback-only pinned SSH, guest smoke, strict raw

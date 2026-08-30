@@ -92,8 +92,7 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev \
-            rpm
+            librsvg2-dev
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6.0.9
@@ -111,8 +110,7 @@ jobs:
         run: |
           set -euo pipefail
           command -v dpkg-deb
-          command -v rpm
-          command -v rpmbuild
+          docker version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -84,33 +84,31 @@ else
     '
 fi
 
-if command -v rpm >/dev/null 2>&1 && command -v rpmbuild >/dev/null 2>&1; then
-  for pass in first second; do
-    output="$tmp_dir/$pass"
-    SOURCE_DATE_EPOCH=1700000000 bash scripts/build-rpm-package.sh \
-      --target fedora-44 --version 0.1.0 --arch x86_64 \
-      --release-dir "$release_dir" --output-dir "$output" >/dev/null
-    SOURCE_DATE_EPOCH=1700000000 bash scripts/build-rpm-package.sh \
-      --target opensuse-tumbleweed --version 0.1.0 --arch x86_64 \
-      --release-dir "$release_dir" --output-dir "$output" >/dev/null
-  done
-else
-  command -v docker >/dev/null 2>&1 || fail "rpmbuild/rpm or docker is required"
-  docker run --rm \
-    -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
-    -v "$root:/src:ro" -v "$tmp_dir:/work" -w /src fedora:44 bash -lc '
-      set -euo pipefail
-      dnf install -y rpm-build tar gzip findutils >/dev/null
-      for pass in first second; do
-        for target in fedora-44 opensuse-tumbleweed; do
-          SOURCE_DATE_EPOCH=1700000000 bash scripts/build-rpm-package.sh \
-            --target "$target" --version 0.1.0 --arch x86_64 \
-            --release-dir /work/release --output-dir "/work/$pass" >/dev/null
-        done
-      done
-      chown -R "$HOST_UID:$HOST_GID" /work
-    '
-fi
+command -v docker >/dev/null 2>&1 || fail "docker is required for target-native RPM reproducibility proof"
+docker run --rm \
+  -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
+  -v "$root:/src:ro" -v "$tmp_dir:/work" -w /src fedora:44 bash -lc '
+    set -euo pipefail
+    dnf install -y rpm-build tar gzip findutils >/dev/null
+    for pass in first second; do
+      SOURCE_DATE_EPOCH=1700000000 bash scripts/build-rpm-package.sh \
+        --target fedora-44 --version 0.1.0 --arch x86_64 \
+        --release-dir /work/release --output-dir "/work/$pass" >/dev/null
+    done
+    chown -R "$HOST_UID:$HOST_GID" /work
+  '
+docker run --rm \
+  -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
+  -v "$root:/src:ro" -v "$tmp_dir:/work" -w /src opensuse/tumbleweed bash -lc '
+    set -euo pipefail
+    zypper --non-interactive install rpm-build tar gzip findutils >/dev/null
+    for pass in first second; do
+      SOURCE_DATE_EPOCH=1700000000 bash scripts/build-rpm-package.sh \
+        --target opensuse-tumbleweed --version 0.1.0 --arch x86_64 \
+        --release-dir /work/release --output-dir "/work/$pass" >/dev/null
+    done
+    chown -R "$HOST_UID:$HOST_GID" /work
+  '
 
 for package in \
   loopwire_0.1.0-1ubuntu24.04_amd64.deb \

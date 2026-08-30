@@ -123,22 +123,11 @@ if [ "$native_packages" = "true" ]; then
     exit 1
   fi
   node scripts/verify-native-package-proof-snapshot.mjs >/dev/null
-  for target in ubuntu-24.04 debian-13; do
-    bash scripts/build-deb-package.sh \
-      --target "$target" \
-      --version "$version" \
-      --arch "$arch" \
-      --release-dir "$output_dir" \
-      --output-dir "$output_dir" >/dev/null
-  done
-  for target in fedora-44 opensuse-tumbleweed; do
-    bash scripts/build-rpm-package.sh \
-      --target "$target" \
-      --version "$version" \
-      --arch "$arch" \
-      --release-dir "$output_dir" \
-      --output-dir "$output_dir" >/dev/null
-  done
+  bash scripts/build-native-packages.sh \
+    --version "$version" \
+    --arch "$arch" \
+    --release-dir "$output_dir" \
+    --output-dir "$output_dir" >/dev/null
 fi
 
 (

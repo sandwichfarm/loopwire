@@ -50,6 +50,7 @@ bash -n \
   scripts/verify-native-packaging.sh \
   scripts/build-deb-package.sh \
   scripts/build-rpm-package.sh \
+  scripts/build-native-packages.sh \
   scripts/build-portable-linux-binary.sh \
   scripts/native-package-vm.sh \
   scripts/promote-native-package-vm-proof.sh \
@@ -83,6 +84,10 @@ bash scripts/build-deb-package.sh -- --help | grep -Fq -- "--target ubuntu-24.04
 }
 bash scripts/build-rpm-package.sh -- --help | grep -Fq -- "--target fedora-44|opensuse-tumbleweed" || {
   echo "verify-scripts: RPM builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/build-native-packages.sh -- --help | grep -Fq -- "Targets: ubuntu-24.04" || {
+  echo "verify-scripts: native package builder does not accept the package-script separator" >&2
   exit 1
 }
 bash scripts/native-package-vm.sh -- list | grep -Fq -- "opensuse-tumbleweed" || {

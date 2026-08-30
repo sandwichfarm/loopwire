@@ -11,6 +11,7 @@
 | Package scripts/config for each distro | `packaging/deb/`, `packaging/rpm/`, `scripts/build-*-package.sh` | Passed |
 | Canonical payload/checksum binding | Builders validate one exact `SHA256SUMS` entry and safe extraction | Passed |
 | Reproducible packages | `pnpm verify:native-packaging` builds every recipe twice and compares bytes | Passed |
+| Release toolchain parity | `package:native` builds each attachment in its Ubuntu/Debian/Fedora/openSUSE container | Passed |
 | Ubuntu matching VM | `vm/native-package-proof/ubuntu-24.04/` | Passed |
 | Debian matching VM | `vm/native-package-proof/debian-13/` | Passed |
 | Fedora matching VM | `vm/native-package-proof/fedora-44/` | Passed |

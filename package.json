@@ -62,6 +62,7 @@
     "build:portable-linux": "bash scripts/build-portable-linux-binary.sh",
     "package:deb": "bash scripts/build-deb-package.sh",
     "package:rpm": "bash scripts/build-rpm-package.sh",
+    "package:native": "bash scripts/build-native-packages.sh",
     "vm:native-packages": "bash scripts/native-package-vm.sh",
     "verify:native-vm-proof": "bash scripts/native-package-vm.sh verify-all",
     "vm:promote-native-package-proof": "bash scripts/promote-native-package-vm-proof.sh",
