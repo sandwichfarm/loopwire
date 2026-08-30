@@ -451,6 +451,10 @@ The curl installer and binary package templates expect these files in each GitHu
 
 - `loopwire-linux-x86_64.tar.gz`
 - `loopwire-linux-aarch64.tar.gz`
+- version-matched x86_64 and AArch64 AppImages
+- Ubuntu 24.04 and Debian 13 deb packages on x86_64
+- Fedora 44 and openSUSE Tumbleweed RPM packages on x86_64
+- `release-assets.json`
 - `SHA256SUMS`
 - `SHA256SUMS.sig`
 - `loopwire-release-evidence-<tag>.tar.gz` for completed tag releases
@@ -459,6 +463,14 @@ The Tauri AppImage is a release attachment. On x86_64, repository-owned Ubuntu, 
 packages are built from the canonical tarball and replace Tauri's GUI-only deb/rpm outputs. Their recipes and KVM proof
 contract are documented in `packaging/README.md`; the four-target proof snapshot is under
 `vm/native-package-proof/`.
+The AArch64 release deliberately excludes Tauri's GUI-only deb/RPM bundles until native AArch64 package recipes have
+matching proof. Tauri receives the resolved tag version through an ephemeral build config, so published AppImage names
+cannot retain the source tree's `0.0.0` development version.
+
+`release-assets.json` is a deterministic machine-readable inventory bound to the tag and commit. It records every
+payload's role, target, architecture, byte size, and SHA-256. The verifier requires two portable archives, two
+AppImages, and the four native x86_64 packages; after evidence collection it also requires the tag-bound evidence
+archive. Unknown, extra, missing, duplicated, linked, mis-versioned, or tampered artifacts fail before upload.
 
 The public docs asset `apps/docs/docs/public/install.sh` is kept byte-for-byte synchronized with `scripts/install.sh`.
 That makes `https://loopwire.app/install.sh` deployable through the VitePress/Bunny.net docs pipeline without creating a
@@ -489,21 +501,24 @@ workflow:
 3. Uses Ubuntu 22.04-family runners so Linux builds keep an older supported glibc baseline.
 4. Installs the current Tauri v2 Linux prerequisites, including WebKitGTK 4.1 development packages.
 5. Runs `pnpm check`, including `pnpm verify:tauri`, on each architecture.
-6. Builds Tauri Linux bundles on each architecture.
+6. Builds Tauri Linux bundles on each architecture with the resolved tag version; AArch64 stages only its AppImage.
 7. Requires versioned release notes for the tag, checks the tag points at the detached checkout, and rejects
    release-candidate/not-published wording.
 8. Stages architecture-specific release attachments with `scripts/stage-release-artifacts.sh`; the x86_64 job adds
    all four native distro packages from the canonical tarball.
 9. Installs each generated architecture tarball from its local release directory with signature verification.
 10. Uploads the architecture artifacts to the publish job.
-11. Regenerates one combined `SHA256SUMS` and `SHA256SUMS.sig` covering every staged release attachment.
+11. Writes `release-assets.json`, then regenerates one combined `SHA256SUMS` and `SHA256SUMS.sig` covering the
+    inventory and every staged payload.
 12. Installs the generated host tarball from the combined local release directory with signature verification.
-13. Creates or updates the GitHub Release with the generated artifacts and versioned release notes.
-14. Downloads the published GitHub Release assets and runs a post-publish installer smoke.
+13. Creates or updates the GitHub Release with the generated artifacts and versioned release notes, then removes stale
+    assets so reruns expose exactly the current signed inventory.
+14. Downloads every published GitHub Release asset, verifies the remote inventory/checksums, and runs a post-publish
+    installer smoke.
 15. Collects and verifies published-release evidence.
-16. Regenerates and re-signs `SHA256SUMS` so `loopwire-release-evidence-<tag>.tar.gz` is part of the signed manifest.
-17. Uploads the evidence archive plus updated `SHA256SUMS` and `SHA256SUMS.sig`, then verifies the published release
-    with `--require-release-evidence`.
+16. Regenerates the inventory and signature so `loopwire-release-evidence-<tag>.tar.gz` is part of the signed contract.
+17. Uploads the evidence archive, `release-assets.json`, and updated checksums/signature, downloads the final remote
+    inventory, then verifies the published release with `--require-release-evidence`.
 
 The baseline follows Tauri's current Linux distribution guidance: build on the oldest supported base that provides
 WebKitGTK 4.1, with Ubuntu 22.04 or Debian 12 as suitable examples.

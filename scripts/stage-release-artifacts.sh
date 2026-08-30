@@ -8,17 +8,19 @@ bundle_dir=""
 output_dir="dist/release"
 private_key_file=""
 native_packages="false"
+appimage_only="false"
 
 usage() {
   cat <<'USAGE'
 Stage Loopwire release artifacts into one directory and write SHA256SUMS for every attachment.
 
 Usage:
-  stage-release-artifacts.sh --binary PATH --version VERSION --bundle-dir DIR [--arch x86_64|aarch64] [--output-dir DIR] [--private-key FILE] [--native-packages]
+  stage-release-artifacts.sh --binary PATH --version VERSION --bundle-dir DIR [--arch x86_64|aarch64] [--output-dir DIR] [--private-key FILE] [--native-packages|--appimage-only]
 
 With --native-packages on x86_64, Tauri's GUI-only deb/rpm outputs are replaced by the repository-owned Ubuntu,
 Debian, Fedora, and openSUSE packages built from the canonical release tarball. The bundle directory must contain an
-AppImage; without --native-packages, legacy Tauri deb/rpm bundles are staged unchanged.
+AppImage. Use --appimage-only for architectures without verified native package recipes. Without either flag, legacy
+Tauri deb/rpm bundles are staged unchanged for local compatibility tests only.
 USAGE
 }
 
@@ -67,6 +69,10 @@ while [ "$#" -gt 0 ]; do
       native_packages="true"
       shift
       ;;
+    --appimage-only)
+      appimage_only="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -81,6 +87,11 @@ done
 
 if [ -z "$binary_path" ] || [ -z "$version" ] || [ -z "$bundle_dir" ]; then
   usage >&2
+  exit 2
+fi
+
+if [ "$native_packages" = "true" ] && [ "$appimage_only" = "true" ]; then
+  echo "Use only one of --native-packages or --appimage-only." >&2
   exit 2
 fi
 
@@ -101,16 +112,30 @@ bash scripts/package-release.sh \
   --output-dir "$output_dir" >/dev/null
 
 bundle_count=0
-while IFS= read -r -d '' bundle_file; do
-  cp "$bundle_file" "$output_dir/"
-  bundle_count=$((bundle_count + 1))
-done < <(
-  if [ "$native_packages" = "true" ]; then
-    find "$bundle_dir" -type f -name "*.AppImage" -print0
-  else
-    find "$bundle_dir" -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -print0
+if [ "$native_packages" = "true" ] || [ "$appimage_only" = "true" ]; then
+  case "$arch" in
+    x86_64) appimage_arch_primary="amd64"; appimage_arch_alias="x86_64" ;;
+    aarch64) appimage_arch_primary="aarch64"; appimage_arch_alias="arm64" ;;
+  esac
+  mapfile -d '' -t appimages < <(
+    find "$bundle_dir" -type f \
+      \( -name "Loopwire_${version}_${appimage_arch_primary}.AppImage" \
+      -o -name "Loopwire_${version}_${appimage_arch_alias}.AppImage" \) -print0
+  )
+  if [ "${#appimages[@]}" -ne 1 ]; then
+    echo "Expected exactly one versioned ${arch} AppImage, found ${#appimages[@]}." >&2
+    exit 1
   fi
-)
+  cp "${appimages[0]}" "$output_dir/"
+  bundle_count=1
+else
+  while IFS= read -r -d '' bundle_file; do
+    cp "$bundle_file" "$output_dir/"
+    bundle_count=$((bundle_count + 1))
+  done < <(
+    find "$bundle_dir" -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -print0
+  )
+fi
 
 if [ "$bundle_count" -eq 0 ]; then
   echo "No Tauri bundle artifacts were found in $bundle_dir." >&2
@@ -132,6 +157,7 @@ fi
 
 (
   cd "$output_dir"
+  rm -f SHA256SUMS SHA256SUMS.sig
   find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' \
     | sort \
     | xargs sha256sum >SHA256SUMS

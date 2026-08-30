@@ -215,6 +215,8 @@ assert_contains "scripts/audit-final-release-state.sh" 'Final Release Proof ${ex
 
 assert_contains ".github/workflows/release.yml" "tags:"
 assert_contains ".github/workflows/release.yml" "v*"
+assert_contains ".github/workflows/release.yml" 'run-name: Release ${{ inputs.tag || github.ref_name }}'
+assert_contains ".github/workflows/release.yml" 'group: release-${{ inputs.tag || github.ref_name }}'
 assert_contains ".github/workflows/release.yml" "build-linux:"
 assert_contains ".github/workflows/release.yml" "publish-release:"
 assert_contains ".github/workflows/release.yml" "needs: build-linux"
@@ -241,8 +243,17 @@ assert_occurrences ".github/workflows/release.yml" 'git checkout --detach "$rele
 assert_occurrences ".github/workflows/release.yml" 'LOOPWIRE_RELEASE_COMMIT=%s' "2"
 assert_contains ".github/workflows/release.yml" "scripts/stage-release-artifacts.sh"
 assert_contains ".github/workflows/release.yml" "stage_args+=(--native-packages)"
+assert_contains ".github/workflows/release.yml" "stage_args+=(--appimage-only)"
 assert_contains ".github/workflows/release.yml" "docker version"
 assert_contains "scripts/stage-release-artifacts.sh" "scripts/build-native-packages.sh"
+assert_contains "scripts/stage-release-artifacts.sh" "--appimage-only"
+assert_contains ".github/workflows/release.yml" 'tauri:build --config "$release_config"'
+assert_contains ".github/workflows/release.yml" "scripts/release-asset-manifest.mjs write"
+assert_contains ".github/workflows/release.yml" "scripts/release-asset-manifest.mjs verify"
+assert_contains ".github/workflows/release.yml" "dist/release/release-assets.json"
+assert_contains ".github/workflows/release.yml" "--require-evidence"
+assert_contains ".github/workflows/release.yml" "gh release delete-asset"
+assert_contains ".github/workflows/release.yml" "--json assets --jq '.assets[].name'"
 assert_contains ".github/workflows/release.yml" "Sign combined release manifest"
 assert_contains ".github/workflows/release.yml" "Smoke install generated tarball"
 assert_contains ".github/workflows/release.yml" "Smoke install published release"

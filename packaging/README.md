@@ -21,7 +21,8 @@ restore/provider assets under `libexec/loopwire/scripts` and `libexec/loopwire/p
 `scripts/stage-release-artifacts.sh` is the canonical release attachment staging command. It packages the binary
 tarball, copies the Tauri AppImage, and on x86_64 `--native-packages` replaces Tauri's GUI-only deb/rpm bundles with
 the repository-owned packages described below. It rewrites `SHA256SUMS` for every staged attachment and signs the
-manifest when a private key is provided.
+manifest when a private key is provided. Release AArch64 jobs use `--appimage-only`, because no AArch64 deb/RPM path
+has matching package proof yet.
 
 `scripts/sign-release-artifacts.sh` signs `SHA256SUMS`; `scripts/verify-release-signature.sh` verifies
 `SHA256SUMS.sig`. Keep the private key out of the repository. Commit only the public key once the real release key is

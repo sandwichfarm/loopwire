@@ -72,6 +72,7 @@ node --check scripts/e2e-desktop-ui.mjs
 node --check scripts/e2e-desktop-shell.mjs
 node --check scripts/verify-support-matrix.mjs
 node --check scripts/verify-vm-evidence-archive-manifest.mjs
+node --check scripts/release-asset-manifest.mjs
 node --check scripts/verify-native-package-vm-proof.mjs
 node --check scripts/verify-native-package-proof-snapshot.mjs
 bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
@@ -122,6 +123,14 @@ if (root.scripts["verify:desktop-binary-launch"] !== "bash scripts/verify-deskto
 }
 if (root.scripts["release:handoff"] !== "bash scripts/plan-final-release-handoff.sh") {
   console.error("verify-scripts: root package is missing release:handoff");
+  process.exit(1);
+}
+if (root.scripts["release:write-asset-manifest"] !== "node scripts/release-asset-manifest.mjs write") {
+  console.error("verify-scripts: root package is missing release:write-asset-manifest");
+  process.exit(1);
+}
+if (root.scripts["verify:release-asset-manifest"] !== "node scripts/release-asset-manifest.mjs verify") {
+  console.error("verify-scripts: root package is missing verify:release-asset-manifest");
   process.exit(1);
 }
 if (root.scripts["release:agent-ready"] !== "bash scripts/verify-agent-release-ready.sh") {
