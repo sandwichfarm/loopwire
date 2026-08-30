@@ -45,6 +45,7 @@ stdenv.mkDerivation {
     install -Dm755 loopwire "$out/bin/loopwire"
     install -Dm755 loopwire-dsp-provider "$out/bin/loopwire-dsp-provider"
     install -Dm755 loopwire-jack-ports "$out/bin/loopwire-jack-ports"
+    install -Dm755 loopwire-detect-audio "$out/bin/loopwire-detect-audio"
     mkdir -p "$out/lib/loopwire"
     cp -R libexec/loopwire/. "$out/lib/loopwire/"
     find "$out/lib/loopwire" -type d -exec chmod 0755 {} +
@@ -56,6 +57,8 @@ stdenv.mkDerivation {
       --prefix PATH : ${lib.makeBinPath [ nodejs ]}
     wrapProgram "$out/bin/loopwire-jack-ports" \
       --prefix PATH : ${lib.makeBinPath [ nodejs ]}
+    wrapProgram "$out/bin/loopwire-detect-audio" \
+      --prefix PATH : ${lib.makeBinPath [ nodejs pipewire wireplumber alsa-utils ]}
     runHook postInstall
   '';
 

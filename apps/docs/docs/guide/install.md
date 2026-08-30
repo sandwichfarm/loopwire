@@ -33,6 +33,7 @@ Current installer verification:
 pnpm verify:install
 pnpm verify:release
 pnpm verify:aur
+pnpm verify:native-packaging
 ```
 
 `verify:install` creates a local fake release, signs `SHA256SUMS`, verifies `SHA256SUMS.sig`, installs into a temporary
@@ -65,7 +66,8 @@ restore, add `--jack-provider-command` so the generated service can create deter
 connecting them.
 
 The curl installer reports whether `node` is available after installation. The GUI launcher can start without Node.js,
-but packaged `loopwire --background`, `loopwire-dsp-provider`, and `loopwire-jack-ports` require `node` on `PATH`.
+but packaged `loopwire --background`, `loopwire-dsp-provider`, `loopwire-jack-ports`, and `loopwire-detect-audio`
+require `node` on `PATH`.
 Install the distro `nodejs` package before enabling Restore on boot from a raw tarball install. AUR and Nix package
 paths declare or wrap that dependency for you.
 
@@ -76,13 +78,24 @@ Package metadata templates now exist under `packaging/`:
 - `packaging/aur/PKGBUILD.in` for future AUR `loopwire-bin`.
 - `flake.nix` exposes `packages.<system>.loopwire-bin` from `packaging/nix/loopwire-bin.nix`, currently with fake
   hashes until the first public release provides real artifact hashes.
-- AppImage, deb, and rpm artifacts through Tauri bundling.
+- Repository-owned deb recipes for Ubuntu 24.04 and Debian 13, plus RPM recipes for Fedora 44 and openSUSE
+  Tumbleweed. They package the full canonical release payload rather than Tauri's GUI-only bundle.
+- AppImage through Tauri bundling.
 
 Run the metadata smoke:
 
 ```bash
 pnpm verify:packaging
 ```
+
+The native package recipes are not yet a public install channel. Their matching-guest proof command boots official,
+checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
+
+```bash
+pnpm vm:native-packages -- run-all --version 0.1.0 --release-dir .vm/native-packages/release
+```
+
+See `packaging/README.md` for release-tarball creation, host prerequisites, exact target names, and evidence paths.
 
 After signed release artifacts exist, render the concrete Nix package expression from the published checksum manifest:
 

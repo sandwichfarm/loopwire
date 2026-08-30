@@ -237,6 +237,8 @@ assert_occurrences ".github/workflows/release.yml" 'git rev-parse -q --verify "$
 assert_occurrences ".github/workflows/release.yml" 'git checkout --detach "$release_commit"' "2"
 assert_occurrences ".github/workflows/release.yml" 'LOOPWIRE_RELEASE_COMMIT=%s' "2"
 assert_contains ".github/workflows/release.yml" "scripts/stage-release-artifacts.sh"
+assert_contains ".github/workflows/release.yml" "stage_args+=(--native-packages)"
+assert_contains ".github/workflows/release.yml" "rpm"
 assert_contains ".github/workflows/release.yml" "Sign combined release manifest"
 assert_contains ".github/workflows/release.yml" "Smoke install generated tarball"
 assert_contains ".github/workflows/release.yml" "Smoke install published release"

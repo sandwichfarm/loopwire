@@ -1,0 +1,51 @@
+Name:           loopwire
+Version:        @VERSION@
+Release:        1
+Summary:        Linux virtual audio routing workspace
+License:        MIT AND Apache-2.0
+URL:            https://github.com/sandwichfarm/loopwire
+Source0:        loopwire-linux-@RELEASE_ARCH@.tar.gz
+Source1:        loopwire.desktop
+Source2:        loopwire.svg
+BuildArch:      @RPM_ARCH@
+AutoReqProv:    yes
+Requires:       nodejs
+Recommends:     pipewire
+Recommends:     wireplumber
+Recommends:     pipewire-tools
+
+%description
+Loopwire creates and manages virtual devices, app capture routes,
+monitor paths, presets, and backend diagnostics on Linux desktops.
+
+%prep
+mkdir -p payload
+tar -xzf %{SOURCE0} -C payload
+
+%build
+
+%install
+install -Dm0755 payload/loopwire %{buildroot}%{_bindir}/loopwire
+install -Dm0755 payload/loopwire-dsp-provider %{buildroot}%{_bindir}/loopwire-dsp-provider
+install -Dm0755 payload/loopwire-jack-ports %{buildroot}%{_bindir}/loopwire-jack-ports
+install -Dm0755 payload/loopwire-detect-audio %{buildroot}%{_bindir}/loopwire-detect-audio
+install -d -m0755 %{buildroot}/usr/lib/loopwire
+cp -a payload/libexec/loopwire/. %{buildroot}/usr/lib/loopwire/
+find %{buildroot}/usr/lib/loopwire -type d -exec chmod 0755 {} +
+find %{buildroot}/usr/lib/loopwire -type f -exec chmod 0644 {} +
+chmod 0755 %{buildroot}/usr/lib/loopwire/loopwire-gui
+install -Dm0644 %{SOURCE1} %{buildroot}%{_datadir}/applications/loopwire.desktop
+install -Dm0644 %{SOURCE2} %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/loopwire.svg
+
+%files
+%{_bindir}/loopwire
+%{_bindir}/loopwire-dsp-provider
+%{_bindir}/loopwire-jack-ports
+%{_bindir}/loopwire-detect-audio
+/usr/lib/loopwire
+%{_datadir}/applications/loopwire.desktop
+%{_datadir}/icons/hicolor/scalable/apps/loopwire.svg
+
+%changelog
+* Sun Aug 30 2026 Loopwire contributors <dskvr@users.noreply.github.com> - @VERSION@-1
+- Native package generated from the canonical Loopwire release artifact.

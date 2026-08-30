@@ -69,7 +69,9 @@ the Tauri shell command bridge.
 |---------|--------------------|---------------|
 | Source checkout | `pnpm check` | Supported for contributors. |
 | Signed curl installer | `pnpm verify:install`, `pnpm verify:release` | Blocked on tagged artifacts and public key. |
-| AppImage, deb, rpm | Local Tauri bundle smoke | Blocked on release publishing. |
+| AppImage | Local Tauri bundle smoke | Blocked on release publishing. |
+| Ubuntu 24.04 / Debian 13 deb | Deterministic native builder; matching-guest KVM proof pending | Blocked on release publishing. |
+| Fedora 44 / openSUSE Tumbleweed RPM | Deterministic native builder; matching-guest KVM proof pending | Blocked on release publishing. |
 | AUR `loopwire-bin` | `pnpm verify:aur` on Arch with `makepkg` | Blocked on tagged artifacts. |
 | Nix flake package template | `pnpm verify:packaging` | Blocked on real release hashes and Nix build proof. |
 

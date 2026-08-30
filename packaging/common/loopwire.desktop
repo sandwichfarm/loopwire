@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Loopwire
+Comment=Linux virtual audio routing workspace
+Exec=loopwire --gui
+Icon=loopwire
+Categories=AudioVideo;Audio;Utility;
+Terminal=false
+StartupNotify=true

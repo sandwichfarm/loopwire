@@ -47,6 +47,12 @@ bash -n \
   scripts/collect-vm-matrix-evidence.sh \
   scripts/verify-aur-package.sh \
   scripts/verify-packaging.sh \
+  scripts/verify-native-packaging.sh \
+  scripts/build-deb-package.sh \
+  scripts/build-rpm-package.sh \
+  scripts/build-portable-linux-binary.sh \
+  scripts/native-package-vm.sh \
+  packaging/vm/guest-native-package-smoke.sh \
   scripts/verify-requirements.sh \
   scripts/verify-docs.sh
 
@@ -64,6 +70,7 @@ node --check scripts/e2e-desktop-ui.mjs
 node --check scripts/e2e-desktop-shell.mjs
 node --check scripts/verify-support-matrix.mjs
 node --check scripts/verify-vm-evidence-archive-manifest.mjs
+node --check scripts/verify-native-package-vm-proof.mjs
 node -e '
 const root = require("./package.json");
 const audioHost = require("./packages/audio-host/package.json");

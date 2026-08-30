@@ -32,7 +32,7 @@ The installer expects release assets named:
 
 It also expects SHA256SUMS and SHA256SUMS.sig in the release assets.
 The GUI launcher can start without Node.js, but loopwire --background,
-loopwire-dsp-provider, and loopwire-jack-ports require node on PATH.
+loopwire-dsp-provider, loopwire-jack-ports, and loopwire-detect-audio require node on PATH.
 USAGE
 }
 
@@ -224,6 +224,7 @@ curl -fsSL "${base_url}/${asset}" -o "$tmp_dir/${asset}"
 binary_path="$(find "$tmp_dir" -type f -name loopwire -perm -111 | head -n 1)"
 provider_path="$(find "$tmp_dir" -type f -name loopwire-dsp-provider -perm -111 | head -n 1)"
 jack_provider_path="$(find "$tmp_dir" -type f -name loopwire-jack-ports -perm -111 | head -n 1)"
+detector_path="$(find "$tmp_dir" -type f -name loopwire-detect-audio -perm -111 | head -n 1)"
 
 if [ -z "$binary_path" ]; then
   echo "Release artifact did not contain an executable named loopwire." >&2
@@ -237,6 +238,9 @@ if [ -n "$provider_path" ]; then
 fi
 if [ -n "$jack_provider_path" ]; then
   install -m 0755 "$jack_provider_path" "$prefix/loopwire-jack-ports"
+fi
+if [ -n "$detector_path" ]; then
+  install -m 0755 "$detector_path" "$prefix/loopwire-detect-audio"
 fi
 
 libexec_source="$tmp_dir/libexec/loopwire"
@@ -258,5 +262,8 @@ if [ -n "$provider_path" ]; then
 fi
 if [ -n "$jack_provider_path" ]; then
   echo "Loopwire JACK ports provider installed to ${prefix}/loopwire-jack-ports"
+fi
+if [ -n "$detector_path" ]; then
+  echo "Loopwire backend detector installed to ${prefix}/loopwire-detect-audio"
 fi
 report_background_dependency

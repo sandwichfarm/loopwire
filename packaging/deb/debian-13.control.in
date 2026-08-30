@@ -1,0 +1,13 @@
+Package: loopwire
+Version: @PACKAGE_VERSION@
+Architecture: @DEB_ARCH@
+Maintainer: Loopwire contributors <dskvr@users.noreply.github.com>
+Installed-Size: @INSTALLED_SIZE@
+Section: sound
+Priority: optional
+Depends: nodejs, libwebkit2gtk-4.1-0, libgtk-3-0t64 | libgtk-3-0
+Recommends: pipewire, wireplumber, pipewire-pulse, pulseaudio-utils, alsa-utils, jackd2
+Homepage: https://github.com/sandwichfarm/loopwire
+Description: Linux virtual audio routing workspace
+ Loopwire creates and manages virtual devices, app capture routes,
+ monitor paths, presets, and backend diagnostics on Linux desktops.

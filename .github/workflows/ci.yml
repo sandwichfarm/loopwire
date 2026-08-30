@@ -36,7 +36,8 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            rpm
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6.0.9

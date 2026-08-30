@@ -23,6 +23,7 @@ The tarball includes:
   loopwire                         Launcher for GUI and background restore
   loopwire-dsp-provider            File-backed command DSP provider
   loopwire-jack-ports              JACK virtual-port provider wrapper
+  loopwire-detect-audio            Read-only installed backend detector
   libexec/loopwire/loopwire-gui    Tauri desktop binary
   libexec/loopwire/scripts         Background restore runner
   libexec/loopwire/packages        Compiled core/audio-host runtime assets
@@ -123,11 +124,17 @@ if [ ! -x "$binary_path" ]; then
 fi
 
 restore_script="$root/scripts/restore-background.mjs"
+detect_script="$root/scripts/detect-audio-backends.mjs"
 core_dist="$root/packages/core/dist"
 audio_host_dist="$root/packages/audio-host/dist"
 
 if [ ! -f "$restore_script" ]; then
   echo "Missing background restore script: $restore_script" >&2
+  exit 1
+fi
+
+if [ ! -f "$detect_script" ]; then
+  echo "Missing backend detection script: $detect_script" >&2
   exit 1
 fi
 
@@ -167,6 +174,7 @@ mkdir -p \
 
 install -m 0755 "$binary_path" "$tmp_dir/payload/libexec/$name/${name}-gui"
 install -m 0644 "$restore_script" "$tmp_dir/payload/libexec/$name/scripts/restore-background.mjs"
+install -m 0644 "$detect_script" "$tmp_dir/payload/libexec/$name/scripts/detect-audio-backends.mjs"
 cp -R "$core_dist" "$tmp_dir/payload/libexec/$name/packages/core/dist"
 cp -R "$audio_host_dist" "$tmp_dir/payload/libexec/$name/packages/audio-host/dist"
 
@@ -277,6 +285,36 @@ EOF
 sed -i "s/@LOOPWIRE_NAME@/$name/g" "$tmp_dir/payload/${name}-jack-ports"
 chmod 0755 "$tmp_dir/payload/${name}-jack-ports"
 
+cat >"$tmp_dir/payload/${name}-detect-audio" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+script_dir="$(CDPATH= cd "$(dirname "$0")" && pwd -P)"
+archive_libexec="$script_dir/libexec/@LOOPWIRE_NAME@"
+installed_libexec="$script_dir/../lib/@LOOPWIRE_NAME@"
+
+if [ -f "$archive_libexec/scripts/detect-audio-backends.mjs" ]; then
+  libexec_dir="${LOOPWIRE_LIBEXEC_DIR:-$archive_libexec}"
+else
+  libexec_dir="${LOOPWIRE_LIBEXEC_DIR:-$installed_libexec}"
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "@LOOPWIRE_NAME@-detect-audio: node is required on PATH" >&2
+  exit 127
+fi
+
+detector="$libexec_dir/scripts/detect-audio-backends.mjs"
+if [ ! -f "$detector" ]; then
+  echo "@LOOPWIRE_NAME@-detect-audio: bundled detector is missing: $detector" >&2
+  exit 1
+fi
+
+exec node "$detector" "$@"
+EOF
+sed -i "s/@LOOPWIRE_NAME@/$name/g" "$tmp_dir/payload/${name}-detect-audio"
+chmod 0755 "$tmp_dir/payload/${name}-detect-audio"
+
 cat >"$tmp_dir/payload/RELEASE" <<EOF
 name=$name
 version=$version
@@ -292,7 +330,8 @@ tar \
   --numeric-owner \
   -C "$tmp_dir/payload" \
   -cf - \
-  RELEASE "$name" "${name}-dsp-provider" "${name}-jack-ports" libexec | gzip -n >"$artifact_path"
+  RELEASE "$name" "${name}-dsp-provider" "${name}-jack-ports" "${name}-detect-audio" libexec \
+  | gzip -n >"$artifact_path"
 
 mkdir -p "$tmp_dir/check"
 tar -xzf "$artifact_path" -C "$tmp_dir/check"
@@ -309,6 +348,11 @@ fi
 
 if [ ! -x "$tmp_dir/check/${name}-jack-ports" ]; then
   echo "Generated artifact does not contain executable ${name}-jack-ports." >&2
+  exit 1
+fi
+
+if [ ! -x "$tmp_dir/check/${name}-detect-audio" ]; then
+  echo "Generated artifact does not contain executable ${name}-detect-audio." >&2
   exit 1
 fi
 

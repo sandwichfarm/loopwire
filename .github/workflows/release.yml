@@ -92,7 +92,8 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            rpm
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6.0.9
@@ -131,13 +132,18 @@ jobs:
           openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null
           printf 'LOOPWIRE_RELEASE_PUBLIC_KEY_FILE=%s\n' "$public_key_file" >>"$GITHUB_ENV"
           source_epoch="$(git log -1 --format=%ct "$LOOPWIRE_RELEASE_TAG")"
-          SOURCE_DATE_EPOCH="$source_epoch" bash scripts/stage-release-artifacts.sh \
-            --binary apps/desktop/src-tauri/target/release/loopwire \
-            --version "$LOOPWIRE_RELEASE_VERSION" \
-            --arch "$LOOPWIRE_RELEASE_ARCH" \
-            --bundle-dir apps/desktop/src-tauri/target/release/bundle \
-            --private-key "$private_key_file" \
+          stage_args=(
+            --binary apps/desktop/src-tauri/target/release/loopwire
+            --version "$LOOPWIRE_RELEASE_VERSION"
+            --arch "$LOOPWIRE_RELEASE_ARCH"
+            --bundle-dir apps/desktop/src-tauri/target/release/bundle
+            --private-key "$private_key_file"
             --output-dir "dist/release-${LOOPWIRE_RELEASE_ARCH}"
+          )
+          if [ "$LOOPWIRE_RELEASE_ARCH" = "x86_64" ]; then
+            stage_args+=(--native-packages)
+          fi
+          SOURCE_DATE_EPOCH="$source_epoch" bash scripts/stage-release-artifacts.sh "${stage_args[@]}"
 
       - name: Smoke install generated tarball
         run: >
