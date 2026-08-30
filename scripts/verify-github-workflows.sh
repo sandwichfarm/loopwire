@@ -114,6 +114,7 @@ done
 ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path); puts path }' "${ruby_paths[@]}" >/dev/null
 
 assert_contains ".github/workflows/ci.yml" "pnpm check"
+assert_contains ".github/workflows/ci.yml" "fetch-depth: 0"
 assert_contains ".github/workflows/ci.yml" "libwebkit2gtk-4.1-dev"
 assert_contains "package.json" '"verify:tauri": "bash scripts/verify-tauri.sh"'
 assert_contains "package.json" "pnpm verify:tauri"
