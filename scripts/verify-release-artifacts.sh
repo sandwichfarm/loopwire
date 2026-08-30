@@ -125,6 +125,10 @@ if [ ! -f "$check_dir/libexec/loopwire/scripts/restore-background.mjs" ]; then
   echo "Packaged Loopwire artifact is missing the background restore runner." >&2
   exit 1
 fi
+grep -Fq '"type":"module"' "$check_dir/libexec/loopwire/package.json" || {
+  echo "Packaged Loopwire artifact is missing the ES module runtime marker." >&2
+  exit 1
+}
 "$check_dir/loopwire" --background --help | grep -F -- "--state-file" >/dev/null || {
   echo "Packaged Loopwire background restore help did not run." >&2
   exit 1

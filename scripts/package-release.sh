@@ -177,6 +177,7 @@ install -m 0644 "$restore_script" "$tmp_dir/payload/libexec/$name/scripts/restor
 install -m 0644 "$detect_script" "$tmp_dir/payload/libexec/$name/scripts/detect-audio-backends.mjs"
 cp -R "$core_dist" "$tmp_dir/payload/libexec/$name/packages/core/dist"
 cp -R "$audio_host_dist" "$tmp_dir/payload/libexec/$name/packages/audio-host/dist"
+printf '%s\n' '{"private":true,"type":"module"}' >"$tmp_dir/payload/libexec/$name/package.json"
 
 cat >"$tmp_dir/payload/$name" <<'EOF'
 #!/usr/bin/env sh
@@ -363,6 +364,11 @@ fi
 
 if [ ! -f "$tmp_dir/check/libexec/$name/scripts/restore-background.mjs" ]; then
   echo "Generated artifact does not contain bundled background restore script." >&2
+  exit 1
+fi
+
+if ! grep -Fq '"type":"module"' "$tmp_dir/check/libexec/$name/package.json"; then
+  echo "Generated artifact does not declare bundled JavaScript as ES modules." >&2
   exit 1
 fi
 

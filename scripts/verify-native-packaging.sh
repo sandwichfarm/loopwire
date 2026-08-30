@@ -44,6 +44,7 @@ printf 'export {};\n' >"$payload/libexec/loopwire/scripts/restore-background.mjs
 printf 'export {};\n' >"$payload/libexec/loopwire/scripts/detect-audio-backends.mjs"
 printf 'export {};\n' >"$payload/libexec/loopwire/packages/core/dist/index.js"
 printf 'export {};\n' >"$payload/libexec/loopwire/packages/audio-host/dist/index.js"
+printf '%s\n' '{"private":true,"type":"module"}' >"$payload/libexec/loopwire/package.json"
 printf 'name=loopwire\nversion=0.1.0\narchitecture=x86_64\n' >"$payload/RELEASE"
 find "$payload" -print0 | xargs -0 touch -h -d '@1700000000'
 tar --sort=name --mtime='@1700000000' --owner=0 --group=0 --numeric-owner \

@@ -6,6 +6,8 @@ manifest="${LOOPWIRE_NATIVE_VM_TARGETS:-packaging/vm/native-package-targets.tsv}
 vm_root="${LOOPWIRE_NATIVE_VM_ROOT:-.vm/native-packages}"
 qemu_image="${LOOPWIRE_QEMU_IMAGE:-loopwire-native-package-qemu:ubuntu-24.04}"
 ssh_user="loopwire"
+active_vm_container=""
+active_vm_console=""
 
 usage() {
   cat <<'USAGE'
@@ -34,6 +36,15 @@ USAGE
 fail() {
   echo "native-package-vm: $*" >&2
   exit 1
+}
+
+cleanup_active_vm() {
+  if [ -n "$active_vm_container" ]; then
+    if [ -n "$active_vm_console" ]; then
+      docker logs "$active_vm_container" >"$active_vm_console" 2>&1 || true
+    fi
+    docker rm -f "$active_vm_container" >/dev/null 2>&1 || true
+  fi
 }
 
 rows() {
@@ -284,11 +295,9 @@ run_target() {
       -netdev "user,id=net0,hostfwd=tcp:127.0.0.1:${port}-:22" \
       -device virtio-net-pci,netdev=net0 >/dev/null
 
-  cleanup_vm() {
-    docker logs "$container" >"$target_dir/console.log" 2>&1 || true
-    docker rm -f "$container" >/dev/null 2>&1 || true
-  }
-  trap cleanup_vm EXIT INT TERM
+  active_vm_container="$container"
+  active_vm_console="$target_dir/console.log"
+  trap cleanup_active_vm EXIT INT TERM
 
   if ! wait_for_guest "$key" "$port" "$known_hosts" "$container"; then
     fail "$id guest did not become ready; inspect $target_dir/console.log"
@@ -315,7 +324,9 @@ run_target() {
     firmware "$firmware" >"$evidence_dir/image.tsv"
   node scripts/verify-native-package-vm-proof.mjs \
     --target "$id" --evidence-dir "$evidence_dir" --git-head "$git_head"
-  cleanup_vm
+  cleanup_active_vm
+  active_vm_container=""
+  active_vm_console=""
   trap - EXIT INT TERM
   echo "Verified native package in matching KVM guest: $id"
   echo "Evidence: $evidence_dir"
