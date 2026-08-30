@@ -181,33 +181,21 @@ print_next_steps() {
   if [ "$missing_bunny_secret" -ne 0 ]; then
     cat >&2 <<EOF
 next: set Bunny.net deployment and live-docs secrets without printing values:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
-    --storage-zone <zone> --access-key <key> --pull-zone-hostname <host>
-  # Or create, fill, and load a local uncommitted env file:
-  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  pnpm setup:github -- --repo ${repo} --scope final
 EOF
   fi
 
   if [ "$missing_bunny_secret" -eq 0 ] && [ "$missing_docs_live_secret" -ne 0 ]; then
     cat >&2 <<EOF
 next: set the Bunny.net pull-zone hostname needed for live docs smoke and final proof:
-  bash scripts/setup-github-secrets.sh --repo ${repo} --pull-zone-hostname <host>
-  # Or create, fill, and load a local uncommitted env file:
-  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  pnpm setup:github -- --repo ${repo} --scope final
 EOF
   fi
 
   if [ "$missing_release_secret" -ne 0 ]; then
     cat >&2 <<EOF
 next: set release signing secret from a local private key:
-  bash scripts/setup-github-secrets.sh --repo ${repo} \\
-    --release-private-key-file <private-key> \\
-    --release-public-key-file packaging/release-signing-public.pem
-  # Or create, fill, and load LOOPWIRE_RELEASE_PRIVATE_KEY_FILE from a local uncommitted env file:
-  bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>
-  bash scripts/setup-github-secrets.sh --repo ${repo} --env-file <secret-env-file>
+  pnpm setup:github -- --repo ${repo} --scope final
 EOF
   fi
 
@@ -383,7 +371,7 @@ if [ -s ".github/workflows/final-release-proof.yml" ]; then
     grep -F -- "scripts/verify-workflow-run.sh" "$final_proof_workflow" >/dev/null &&
     grep -F -- "gh run download" "$final_proof_workflow" >/dev/null &&
     grep -F -- "loopwire-docs-deployment" "$final_proof_workflow" >/dev/null &&
-    grep -F -- 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}' "$final_proof_workflow" \
+    grep -F -- 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME }}' "$final_proof_workflow" \
       >/dev/null &&
     grep -F -- "LOOPWIRE_FINAL_DOCS_HOSTNAME" "$final_proof_workflow" >/dev/null &&
     grep -F -- "--docs-deployment-manifest" "$final_proof_workflow" >/dev/null &&
@@ -505,43 +493,67 @@ if [ "$require_gh" = "true" ]; then
   command -v gh >/dev/null 2>&1 || fail "gh is required"
   gh repo view "$repo" >/dev/null
 
-  if [ -n "$secret_list_file" ]; then
+  if [ -z "$secret_list_file" ]; then
+    if actions_check_output="$(node scripts/setup-github-actions.mjs --repo "$repo" --scope final --check 2>&1)"; then
+      printf '%s\n' "$actions_check_output"
+      echo "ok: GitHub Actions variables and secrets passed the guarded setup check"
+    else
+      printf '%s\n' "$actions_check_output" >&2
+      echo "error: GitHub Actions variables or secrets are incomplete for ${repo}" >&2
+      failed=1
+      missing_classified="false"
+      if printf '%s\n' "$actions_check_output" |
+        grep -Eq 'missing: GitHub Actions (variable: BUNNY_STORAGE_(ZONE|ENDPOINT)|secret: BUNNY_ACCESS_KEY)'; then
+        missing_bunny_secret=1
+        missing_classified="true"
+      fi
+      if printf '%s\n' "$actions_check_output" |
+        grep -Fq 'missing: GitHub Actions variable: BUNNY_PULL_ZONE_HOSTNAME'; then
+        missing_docs_live_secret=1
+        missing_classified="true"
+      fi
+      if printf '%s\n' "$actions_check_output" |
+        grep -Fq 'missing: GitHub Actions secret: LOOPWIRE_RELEASE_PRIVATE_KEY'; then
+        missing_release_secret=1
+        missing_classified="true"
+      fi
+      if [ "$missing_classified" = "false" ]; then
+        missing_bunny_secret=1
+        missing_docs_live_secret=1
+        missing_release_secret=1
+      fi
+    fi
+  else
     if secret_list_output="$(cat "$secret_list_file" 2>&1)"; then
-      echo "ok: GitHub secret names loaded from artifact: $secret_list_file"
+      echo "ok: legacy GitHub secret names loaded from artifact: $secret_list_file"
     else
       echo "error: unable to read GitHub secret names from ${secret_list_file}: ${secret_list_output}" >&2
       failed=1
       secret_list_output=""
     fi
-  elif secret_list_output="$(gh secret list --repo "$repo" 2>&1)"; then
-    echo "ok: GitHub secret names loaded from repository"
-  else
-    echo "error: unable to read GitHub secret names for ${repo}: ${secret_list_output}" >&2
-    failed=1
-    secret_list_output=""
-  fi
 
-  if [ -n "$secret_list_output" ]; then
-    secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
-    for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY; do
-      if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
-        echo "ok: GitHub secret present: $secret"
-      else
-        echo "missing: GitHub secret: $secret" >&2
-        failed=1
-        case "$secret" in
-          BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
-            missing_bunny_secret=1
-            ;;
-          BUNNY_PULL_ZONE_HOSTNAME)
-            missing_docs_live_secret=1
-            ;;
-          LOOPWIRE_RELEASE_PRIVATE_KEY)
-            missing_release_secret=1
-            ;;
-        esac
-      fi
-    done
+    if [ -n "$secret_list_output" ]; then
+      secret_names="$(printf '%s\n' "$secret_list_output" | awk '{ print $1 }')"
+      for secret in BUNNY_STORAGE_ZONE BUNNY_ACCESS_KEY BUNNY_PULL_ZONE_HOSTNAME LOOPWIRE_RELEASE_PRIVATE_KEY; do
+        if printf '%s\n' "$secret_names" | grep -Fxq "$secret"; then
+          echo "ok: legacy GitHub secret present: $secret"
+        else
+          echo "missing: legacy GitHub secret: $secret" >&2
+          failed=1
+          case "$secret" in
+            BUNNY_STORAGE_ZONE | BUNNY_ACCESS_KEY)
+              missing_bunny_secret=1
+              ;;
+            BUNNY_PULL_ZONE_HOSTNAME)
+              missing_docs_live_secret=1
+              ;;
+            LOOPWIRE_RELEASE_PRIVATE_KEY)
+              missing_release_secret=1
+              ;;
+          esac
+        fi
+      done
+    fi
   fi
 
   if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then

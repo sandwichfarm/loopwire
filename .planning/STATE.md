@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.4
-milestone_name: Public Surface Polish
+milestone: v0.5
+milestone_name: GitHub Operator Setup
 status: Ready for Review
-last_updated: "2026-08-28T00:00:00.000Z"
-last_activity: 2026-08-28
+last_updated: "2026-08-30T00:00:00.000Z"
+last_activity: 2026-08-30
 progress:
   total_phases: 1
   completed_phases: 1
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** World-class UX for real Linux audio routing.
-**Current focus:** v0.4 public surface polish.
+**Current focus:** v0.5 hardened GitHub Actions setup.
 
 ## Current Position
 
-Phase: 18 of 18 complete
-Plan: 18.1 — Public Surface Polish
-Status: Ready for review in PR #4
-Last activity: 2026-08-28 — implementation verified and PR #4 opened
+Phase: 19 of 19 complete
+Plan: 19.1 — Hardened GitHub Actions Setup
+Status: Ready for review in PR #9
+Last activity: 2026-08-30 — implementation/security validation complete and PR #9 opened
 
 
 ## Blockers / Concerns

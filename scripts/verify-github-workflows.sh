@@ -131,9 +131,11 @@ assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_ACCESS_KEY"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_STORAGE_ENDPOINT"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_REMOTE_PREFIX"
 assert_contains ".github/workflows/deploy-docs.yml" "Bunny.net secrets are not configured; skipping deployment."
-assert_contains ".github/workflows/deploy-docs.yml" "--write-env-template /secure/loopwire-release-secrets.env"
-assert_contains ".github/workflows/deploy-docs.yml" '--repo ${GITHUB_REPOSITORY} --scope deploy --env-file /secure/loopwire-release-secrets.env'
-assert_contains ".github/workflows/deploy-docs.yml" "For final proof, include BUNNY_PULL_ZONE_HOSTNAME"
+assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE'
+assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_STORAGE_ENDPOINT || secrets.BUNNY_STORAGE_ENDPOINT'
+assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME'
+assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_REMOTE_PREFIX || secrets.BUNNY_REMOTE_PREFIX'
+assert_contains ".github/workflows/deploy-docs.yml" 'pnpm setup:github -- --repo ${GITHUB_REPOSITORY} --scope deploy'
 assert_contains ".github/workflows/deploy-docs.yml" "actions/download-artifact@v8.0.1"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/deploy-docs-bunny.sh"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/verify-docs-live.sh"
@@ -160,8 +162,8 @@ assert_contains ".github/workflows/final-release-proof.yml" "DeterminateSystems/
 assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_hostname"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_deployment_run_id"
-assert_contains ".github/workflows/final-release-proof.yml" 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}'
-assert_contains ".github/workflows/final-release-proof.yml" 'LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET: ${{ secrets.BUNNY_REMOTE_PREFIX }}'
+assert_contains ".github/workflows/final-release-proof.yml" 'LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME }}'
+assert_contains ".github/workflows/final-release-proof.yml" 'LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET: ${{ vars.BUNNY_REMOTE_PREFIX || secrets.BUNNY_REMOTE_PREFIX }}'
 assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_DOCS_HOSTNAME"
 assert_contains ".github/workflows/final-release-proof.yml" "LOOPWIRE_FINAL_DOCS_REMOTE_PREFIX"
 assert_contains ".github/workflows/final-release-proof.yml" "docs_base_url, docs_hostname, or BUNNY_PULL_ZONE_HOSTNAME"

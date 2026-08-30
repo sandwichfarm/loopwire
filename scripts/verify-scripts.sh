@@ -94,6 +94,9 @@ bash scripts/native-package-vm.sh -- list | grep -Fq -- "opensuse-tumbleweed" ||
   echo "verify-scripts: native VM runner does not accept the package-script separator" >&2
   exit 1
 }
+node --check scripts/setup-github-actions.mjs
+node --check scripts/fixtures/fake-gh.mjs
+node --check scripts/test-setup-github-actions.mjs
 node -e '
 const root = require("./package.json");
 const audioHost = require("./packages/audio-host/package.json");
@@ -298,27 +301,21 @@ prepare_key_output="$(
     --public-key-out "$prepare_key_tmp/public.pem"
 )"
 printf '%s\n' "$prepare_key_output" |
-  grep -F "bash scripts/setup-github-secrets.sh --repo OWNER/REPO --scope final" >/dev/null || {
+  grep -F "pnpm setup:github -- --repo OWNER/REPO --scope final" >/dev/null || {
     rm -rf "$prepare_key_tmp"
     echo "verify-scripts: release signing key helper is missing explicit final-scope secret setup" >&2
     exit 1
   }
 printf '%s\n' "$prepare_key_output" |
-  grep -F -- "--release-private-key-file \"$prepare_key_tmp/private.pem\"" >/dev/null || {
+  grep -F -- "When prompted for LOOPWIRE_RELEASE_PRIVATE_KEY, enter: $prepare_key_tmp/private.pem" >/dev/null || {
     rm -rf "$prepare_key_tmp"
     echo "verify-scripts: release signing key helper is missing generated private-key path" >&2
     exit 1
   }
 printf '%s\n' "$prepare_key_output" |
-  grep -F -- "--release-public-key-file \"$prepare_key_tmp/public.pem\"" >/dev/null || {
+  grep -F -- "--public-key-file \"$prepare_key_tmp/public.pem\"" >/dev/null || {
     rm -rf "$prepare_key_tmp"
     echo "verify-scripts: release signing key helper is missing generated public-key path" >&2
-    exit 1
-  }
-printf '%s\n' "$prepare_key_output" |
-  grep -F "bash scripts/setup-github-secrets.sh --write-env-template <secret-env-file>" >/dev/null || {
-    rm -rf "$prepare_key_tmp"
-    echo "verify-scripts: release signing key helper is missing env-template handoff" >&2
     exit 1
   }
 rm -rf "$prepare_key_tmp"
@@ -436,7 +433,7 @@ release_handoff_env_file="$(mktemp)"
 cat >"$release_handoff_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
-BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-preview
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
@@ -476,7 +473,7 @@ release_handoff_env_override_plan="$(
     --docs-remote-prefix cli-preview
 )"
 rm -f "$release_handoff_env_file"
-printf '%s\n' "$release_handoff_plan" | grep -F "bash scripts/setup-github-secrets.sh" >/dev/null || {
+printf '%s\n' "$release_handoff_plan" | grep -F "pnpm setup:github" >/dev/null || {
   echo "verify-scripts: release handoff plan is missing secret check" >&2
   exit 1
 }
@@ -485,14 +482,8 @@ printf '%s\n' "$release_handoff_plan" | grep -F "Operator-deferred after agent d
   exit 1
 }
 printf '%s\n' "$release_handoff_plan" |
-  grep -F "bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env" >/dev/null || {
-    echo "verify-scripts: release handoff plan is missing secret env-template setup" >&2
-    exit 1
-  }
-printf '%s\n' "$release_handoff_plan" |
-  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final" |
-  grep -F -- "--env-file /secure/loopwire-release-secrets.env" >/dev/null || {
-    echo "verify-scripts: release handoff plan is missing filled env-file secret setup" >&2
+  grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope final" >/dev/null || {
+    echo "verify-scripts: release handoff plan is missing guided GitHub setup" >&2
     exit 1
   }
 printf '%s\n' "$release_handoff_plan" |
@@ -514,22 +505,14 @@ printf '%s\n' "$release_handoff_plan" | grep -F "git push origin refs/tags/v0.1.
   echo "verify-scripts: release handoff plan is missing tag push" >&2
   exit 1
 }
-printf '%s\n' "$release_handoff_env_plan" | grep -F "bash scripts/setup-github-secrets.sh" |
-  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
-    echo "verify-scripts: release handoff env-file plan did not preserve the secret setup env-file" >&2
+printf '%s\n' "$release_handoff_env_plan" |
+  grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope final" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan is missing guided GitHub setup" >&2
     exit 1
   }
 printf '%s\n' "$release_handoff_env_plan" |
-  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --scope final" |
-  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
-    echo "verify-scripts: release handoff env-file plan did not print the secret-setting command" >&2
-    exit 1
-  }
-printf '%s\n' "$release_handoff_env_plan" |
-  grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire --check" |
-  grep -F -- "--scope final" |
-  grep -F -- "--env-file $release_handoff_env_file" >/dev/null || {
-    echo "verify-scripts: release handoff env-file plan did not print the final-scope secret check" >&2
+  grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope final --check" >/dev/null || {
+    echo "verify-scripts: release handoff env-file plan is missing guided GitHub check" >&2
     exit 1
   }
 printf '%s\n' "$release_handoff_env_plan" | grep -F "pnpm release:fetch-docs-proof" |
@@ -2941,7 +2924,7 @@ prepare_vm_release_env_file="$(mktemp)"
 cat >"$prepare_vm_release_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
-BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-preview
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
@@ -5446,7 +5429,7 @@ github_secret_dry_run="$(
     --storage-zone loopwire-docs \
     --access-key dry-run-access-key \
     --pull-zone-hostname docs.example.test \
-    --storage-endpoint ny.storage.bunnycdn.com \
+    --storage-endpoint https://ny.storage.bunnycdn.com \
     --remote-prefix private-prefix-value \
     --release-private-key-file "$tmp_secret_file" \
     --release-public-key-file "$tmp_secret_public_key" \
@@ -5466,7 +5449,7 @@ cat >"$github_secret_env_file" <<EOF
 # Local release-secret inputs. Values must never be committed.
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key
-BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-private-prefix
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$tmp_secret_file
@@ -5697,13 +5680,59 @@ cat >"$fake_gh_dir/gh" <<'EOF'
 set -euo pipefail
 
 case "$1 ${2:-}" in
+  "auth status")
+    exit 0
+    ;;
   "repo view")
+    printf '%s\n' '{"nameWithOwner":"sandwichfarm/loopwire"}'
+    exit 0
+    ;;
+  "variable list")
+    case "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" in
+      missing-required)
+        printf '%s\n' '[{"name":"BUNNY_STORAGE_ENDPOINT"},{"name":"BUNNY_PULL_ZONE_HOSTNAME"},{"name":"BUNNY_REMOTE_PREFIX"}]'
+        ;;
+      missing-live-docs)
+        printf '%s\n' '[{"name":"BUNNY_STORAGE_ZONE"},{"name":"BUNNY_STORAGE_ENDPOINT"},{"name":"BUNNY_REMOTE_PREFIX"}]'
+        ;;
+      *)
+        printf '%s\n' '[{"name":"BUNNY_STORAGE_ZONE"},{"name":"BUNNY_STORAGE_ENDPOINT"},{"name":"BUNNY_PULL_ZONE_HOSTNAME"},{"name":"BUNNY_REMOTE_PREFIX"}]'
+        ;;
+    esac
+    exit 0
+    ;;
+  "variable get")
+    variable_name="${3:?missing fake variable name}"
+    case "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}:$variable_name" in
+      missing-required:BUNNY_STORAGE_ZONE | missing-live-docs:BUNNY_PULL_ZONE_HOSTNAME)
+        exit 1
+        ;;
+    esac
+    printf '{"name":"%s","value":"fixture-%s"}\n' "$variable_name" "$variable_name"
     exit 0
     ;;
   "secret list")
     if [ "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" = "fail" ]; then
       echo "api denied" >&2
       exit 42
+    fi
+    wants_json="false"
+    for arg in "$@"; do
+      [ "$arg" = "--json" ] && wants_json="true"
+    done
+    if [ "$wants_json" = "true" ]; then
+      case "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" in
+        missing-required)
+          printf '%s\n' '[{"name":"LOOPWIRE_RELEASE_PRIVATE_KEY"}]'
+          ;;
+        missing-release-key)
+          printf '%s\n' '[{"name":"BUNNY_ACCESS_KEY"}]'
+          ;;
+        *)
+          printf '%s\n' '[{"name":"BUNNY_ACCESS_KEY"},{"name":"LOOPWIRE_RELEASE_PRIVATE_KEY"}]'
+          ;;
+      esac
+      exit 0
     fi
     if [ "${LOOPWIRE_FAKE_GH_SECRET_MODE:-ok}" = "missing-required" ]; then
       printf '%s\t%s\n' "LOOPWIRE_RELEASE_PRIVATE_KEY" "2026-07-04T00:00:00Z"
@@ -6454,15 +6483,11 @@ grep -F "loopwire-docs" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/n
   echo "verify-scripts: docs deployment proof helper did not print the available docs artifact" >&2
   exit 1
 }
-grep -F "bash scripts/setup-github-secrets.sh --repo sandwichfarm/loopwire" \
+grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope deploy" \
   "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
     echo "verify-scripts: docs deployment proof helper did not print the Bunny secret recovery command" >&2
     exit 1
   }
-grep -F -- "--env-file $fetch_docs_missing_env_file" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null || {
-  echo "verify-scripts: docs deployment proof helper did not preserve the env-file recovery route" >&2
-  exit 1
-}
 if grep -F "env-access-key-that-must-not-print" "$tmp_dir/fetch-docs-proof-missing-artifact.log" >/dev/null; then
   echo "verify-scripts: docs deployment proof helper leaked the env-file Bunny access key" >&2
   exit 1
@@ -6765,7 +6790,7 @@ grep -F "Final release status for sandwichfarm/loopwire@v0.1.0" "$release_status
   echo "verify-scripts: release status output is missing heading" >&2
   exit 1
 }
-grep -F "blocked: required GitHub secrets" "$release_status_log" >/dev/null || {
+grep -F "blocked: required GitHub Actions variables and secrets" "$release_status_log" >/dev/null || {
   echo "verify-scripts: release status did not report blocked secrets" >&2
   exit 1
 }
@@ -7576,7 +7601,7 @@ secret_set_output="$(
       --storage-zone loopwire-docs \
       --access-key dry-run-access-key \
       --pull-zone-hostname docs.example.test \
-      --storage-endpoint ny.storage.bunnycdn.com \
+      --storage-endpoint https://ny.storage.bunnycdn.com \
       --remote-prefix private-prefix-value \
       --release-private-key-file "$tmp_secret_file" \
       --release-public-key-file "$tmp_secret_public_key"
@@ -7603,7 +7628,7 @@ grep -F "docs.example.test" "$fake_secret_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/de
   exit 1
 }
 grep -F "https://ny.storage.bunnycdn.com" "$fake_secret_set_dir/BUNNY_STORAGE_ENDPOINT" >/dev/null || {
-  echo "verify-scripts: GitHub secret helper did not normalize and write the storage endpoint" >&2
+  echo "verify-scripts: GitHub secret helper did not preserve and write the storage endpoint" >&2
   exit 1
 }
 grep -F "private-prefix-value" "$fake_secret_set_dir/BUNNY_REMOTE_PREFIX" >/dev/null || {
@@ -7874,6 +7899,57 @@ cmp -s "$tmp_secret_file" "$fake_secret_env_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY
   echo "verify-scripts: GitHub secret helper did not write env-file release private key through stdin" >&2
   exit 1
 }
+quoted_env_secret_file="$tmp_dir/setup-github-secrets-quoted.env"
+cat >"$quoted_env_secret_file" <<EOF
+BUNNY_STORAGE_ZONE=quoted-loopwire-docs
+BUNNY_ACCESS_KEY="quoted-access-key"
+EOF
+quoted_env_secret_set_dir="$tmp_dir/fake-gh-secret-quoted-env-set"
+quoted_env_secret_output="$(
+  LOOPWIRE_FAKE_GH_SET_DIR="$quoted_env_secret_set_dir" \
+    PATH="$fake_gh_dir:$PATH" \
+    bash scripts/setup-github-secrets.sh \
+      --repo sandwichfarm/loopwire \
+      --scope deploy \
+      --env-file "$quoted_env_secret_file"
+)"
+printf '%s\n' "$quoted_env_secret_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
+  >/dev/null || {
+    echo "verify-scripts: GitHub secret helper did not report successful quoted env-file fake writes" >&2
+    exit 1
+  }
+grep -F '"quoted-access-key"' "$quoted_env_secret_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper stripped literal quotes from env-file input" >&2
+  exit 1
+}
+invalid_endpoint_secret_log="$tmp_dir/setup-github-secrets-invalid-endpoint.log"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --scope deploy \
+  --storage-zone loopwire-docs \
+  --access-key access-key \
+  --storage-endpoint ny.storage.bunnycdn.com >"$invalid_endpoint_secret_log" 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a storage endpoint without https://" >&2
+  exit 1
+fi
+grep -F "storage endpoint must start with https://" "$invalid_endpoint_secret_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not explain the exact storage endpoint requirement" >&2
+  exit 1
+}
+invalid_prefix_secret_log="$tmp_dir/setup-github-secrets-invalid-prefix.log"
+if bash scripts/setup-github-secrets.sh \
+  --repo sandwichfarm/loopwire \
+  --scope deploy \
+  --storage-zone loopwire-docs \
+  --access-key access-key \
+  --remote-prefix /leading/slash >"$invalid_prefix_secret_log" 2>&1; then
+  echo "verify-scripts: GitHub secret helper accepted a slash-prefixed remote prefix" >&2
+  exit 1
+fi
+grep -F "remote prefix must not start or end with a slash" "$invalid_prefix_secret_log" >/dev/null || {
+  echo "verify-scripts: GitHub secret helper did not explain the exact remote prefix requirement" >&2
+  exit 1
+}
 release_readiness_secret_failure_log="$tmp_dir/release-readiness-secret-failure.log"
 if LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
   PATH="$fake_gh_dir:$PATH" \
@@ -7887,9 +7963,9 @@ if LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
   echo "verify-scripts: release readiness accepted a gh secret list failure" >&2
   exit 1
 fi
-grep -F "error: unable to read GitHub secret names for sandwichfarm/loopwire: api denied" \
+grep -F "Actions secret preflight failed with gh exit code 42" \
   "$release_readiness_secret_failure_log" >/dev/null || {
-    echo "verify-scripts: release readiness did not preserve gh secret-list failure details" >&2
+    echo "verify-scripts: release readiness did not report the sanitized gh secret-list failure" >&2
     exit 1
   }
 release_readiness_secret_artifact_log="$tmp_dir/release-readiness-secret-artifact.log"
@@ -7903,7 +7979,7 @@ LOOPWIRE_FAKE_GH_SECRET_MODE=fail \
     --skip-public-key \
     --skip-clean-git \
     --allow-candidate-notes >"$release_readiness_secret_artifact_log" 2>&1
-grep -F "ok: GitHub secret names loaded from artifact: $secret_list_all_final" \
+grep -F "ok: legacy GitHub secret names loaded from artifact: $secret_list_all_final" \
   "$release_readiness_secret_artifact_log" >/dev/null || {
     echo "verify-scripts: release readiness did not use the secret-list artifact" >&2
     exit 1
@@ -7929,16 +8005,9 @@ grep -F "next: set Bunny.net deployment and live-docs secrets without printing v
     echo "verify-scripts: release readiness did not print Bunny next step" >&2
     exit 1
   }
-grep -F -- "--pull-zone-hostname <host>" "$release_readiness_next_steps_log" >/dev/null || {
-  echo "verify-scripts: release readiness Bunny next step is missing pull-zone hostname" >&2
-  exit 1
-}
-grep -F -- "--write-env-template <secret-env-file>" "$release_readiness_next_steps_log" >/dev/null || {
-  echo "verify-scripts: release readiness Bunny next step is missing env-template write command" >&2
-  exit 1
-}
-grep -F -- "--env-file <secret-env-file>" "$release_readiness_next_steps_log" >/dev/null || {
-  echo "verify-scripts: release readiness Bunny next step is missing env-file load command" >&2
+grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope final" \
+  "$release_readiness_next_steps_log" >/dev/null || {
+  echo "verify-scripts: release readiness Bunny next step is missing guided GitHub setup" >&2
   exit 1
 }
 grep -F "next: after required secrets are configured and readiness passes, create and push the release tag" \
@@ -7962,7 +8031,7 @@ if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-live-docs \
   echo "verify-scripts: release readiness accepted missing pull-zone hostname" >&2
   exit 1
 fi
-grep -F "missing: GitHub secret: BUNNY_PULL_ZONE_HOSTNAME" "$release_readiness_live_docs_log" >/dev/null || {
+grep -F "missing: GitHub Actions variable: BUNNY_PULL_ZONE_HOSTNAME" "$release_readiness_live_docs_log" >/dev/null || {
   echo "verify-scripts: release readiness did not report missing pull-zone hostname" >&2
   exit 1
 }
@@ -7971,12 +8040,9 @@ grep -F "next: set the Bunny.net pull-zone hostname needed for live docs smoke a
     echo "verify-scripts: release readiness did not print pull-zone hostname next step" >&2
     exit 1
   }
-grep -F -- "--write-env-template <secret-env-file>" "$release_readiness_live_docs_log" >/dev/null || {
-  echo "verify-scripts: release readiness live-docs next step is missing env-template write command" >&2
-  exit 1
-}
-grep -F -- "--env-file <secret-env-file>" "$release_readiness_live_docs_log" >/dev/null || {
-  echo "verify-scripts: release readiness live-docs next step is missing env-file load command" >&2
+grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope final" \
+  "$release_readiness_live_docs_log" >/dev/null || {
+  echo "verify-scripts: release readiness live-docs next step is missing guided GitHub setup" >&2
   exit 1
 }
 
@@ -9210,7 +9276,7 @@ vm_release_env_file="$tmp_dir/vm-evidence-release.env"
 cat >"$vm_release_env_file" <<EOF
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
-BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-preview
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$private_key_file
