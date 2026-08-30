@@ -1,0 +1,37 @@
+Restore the persisted Loopwire configuration without opening the UI.
+
+Usage:
+  restore-background.mjs [--state-file FILE] [--backend pipewire|pulseaudio|jack|dsp] [--mode preview|live]
+                         [--jack-provider-command COMMAND] [--jack-provider-timeout-ms MS]
+                         [--jack-provider-delegate-mode foreground|detached] [--jack-provider-ready-delay-ms MS]
+                         [--dsp-provider-command COMMAND] [--dsp-provider-timeout-ms MS]
+                         [--dsp-provider-mode file-backed|live] [--dsp-frame-count FRAMES]
+                         [--retry-pending-ms MS] [--retry-interval-ms MS] [--pretty]
+
+Defaults:
+  --state-file  $XDG_CONFIG_HOME/loopwire/state.json or ~/.config/loopwire/state.json
+  --mode        preview
+  --retry-pending-ms
+                Live PulseAudio-only window for refreshing pending app-stream routes, default 0
+  --retry-interval-ms
+                PulseAudio pending refresh interval, default 1000
+  --jack-provider-command
+                Optional command that creates missing Loopwire-owned JACK ports during JACK live restore
+  --jack-provider-timeout-ms
+                Timeout for the JACK provider command, default 5000
+  --jack-provider-delegate-mode
+                How loopwire-jack-ports handles its live delegate, foreground or detached, default foreground
+  --jack-provider-ready-delay-ms
+                Detached JACK delegate readiness delay before re-probing jack_lsp, default provider behavior
+  --dsp-provider-command
+                Command-backed DSP provider used when --backend dsp is selected
+  --dsp-provider-timeout-ms
+                Timeout for DSP provider operations, default 5000
+  --dsp-provider-mode
+                DSP provider trust mode. Use file-backed for bundled preflight providers and live for real capture
+                and playback providers. Live DSP restore requires live, default file-backed
+  --dsp-frame-count
+                Optional source frame count requested from the DSP provider
+
+Preview mode runs the same startup plan through dry-run host adapters. Live mode mutates host audio through the
+selected backend adapter and should only be used from an explicit user startup decision.

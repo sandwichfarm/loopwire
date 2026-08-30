@@ -455,8 +455,10 @@ The curl installer and binary package templates expect these files in each GitHu
 - `SHA256SUMS.sig`
 - `loopwire-release-evidence-<tag>.tar.gz` for completed tag releases
 
-Tauri bundle outputs for AppImage, deb, and rpm are release attachments too, but package managers should still anchor on
-the canonical tarballs unless a channel-specific package requires a native format.
+The Tauri AppImage is a release attachment. On x86_64, repository-owned Ubuntu, Debian, Fedora, and openSUSE native
+packages are built from the canonical tarball and replace Tauri's GUI-only deb/rpm outputs. Their recipes and KVM proof
+contract are documented in `packaging/README.md`; the four-target proof snapshot is under
+`vm/native-package-proof/`.
 
 The public docs asset `apps/docs/docs/public/install.sh` is kept byte-for-byte synchronized with `scripts/install.sh`.
 That makes `https://loopwire.app/install.sh` deployable through the VitePress/Bunny.net docs pipeline without creating a
@@ -490,7 +492,8 @@ workflow:
 6. Builds Tauri Linux bundles on each architecture.
 7. Requires versioned release notes for the tag, checks the tag points at the detached checkout, and rejects
    release-candidate/not-published wording.
-8. Stages architecture-specific release attachments with `scripts/stage-release-artifacts.sh`.
+8. Stages architecture-specific release attachments with `scripts/stage-release-artifacts.sh`; the x86_64 job adds
+   all four native distro packages from the canonical tarball.
 9. Installs each generated architecture tarball from its local release directory with signature verification.
 10. Uploads the architecture artifacts to the publish job.
 11. Regenerates one combined `SHA256SUMS` and `SHA256SUMS.sig` covering every staged release attachment.

@@ -47,6 +47,14 @@ bash -n \
   scripts/collect-vm-matrix-evidence.sh \
   scripts/verify-aur-package.sh \
   scripts/verify-packaging.sh \
+  scripts/verify-native-packaging.sh \
+  scripts/build-deb-package.sh \
+  scripts/build-rpm-package.sh \
+  scripts/build-native-packages.sh \
+  scripts/build-portable-linux-binary.sh \
+  scripts/native-package-vm.sh \
+  scripts/promote-native-package-vm-proof.sh \
+  packaging/vm/guest-native-package-smoke.sh \
   scripts/verify-requirements.sh \
   scripts/verify-docs.sh
 
@@ -64,6 +72,28 @@ node --check scripts/e2e-desktop-ui.mjs
 node --check scripts/e2e-desktop-shell.mjs
 node --check scripts/verify-support-matrix.mjs
 node --check scripts/verify-vm-evidence-archive-manifest.mjs
+node --check scripts/verify-native-package-vm-proof.mjs
+node --check scripts/verify-native-package-proof-snapshot.mjs
+bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
+  echo "verify-scripts: portable builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/build-deb-package.sh -- --help | grep -Fq -- "--target ubuntu-24.04|debian-13" || {
+  echo "verify-scripts: deb builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/build-rpm-package.sh -- --help | grep -Fq -- "--target fedora-44|opensuse-tumbleweed" || {
+  echo "verify-scripts: RPM builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/build-native-packages.sh -- --help | grep -Fq -- "Targets: ubuntu-24.04" || {
+  echo "verify-scripts: native package builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/native-package-vm.sh -- list | grep -Fq -- "opensuse-tumbleweed" || {
+  echo "verify-scripts: native VM runner does not accept the package-script separator" >&2
+  exit 1
+}
 node --check scripts/setup-github-actions.mjs
 node --check scripts/fixtures/fake-gh.mjs
 node --check scripts/test-setup-github-actions.mjs

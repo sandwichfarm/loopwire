@@ -3,7 +3,8 @@
 const pretty = process.argv.includes("--pretty");
 
 try {
-  const { createNodeCommandRunner, detectAudioBackends } = await import("../packages/audio-host/dist/index.js");
+  const { createNodeCommandRunner } = await import("../packages/audio-host/dist/command-runner.js");
+  const { detectAudioBackends } = await import("../packages/audio-host/dist/detectors.js");
   const report = await detectAudioBackends(createNodeCommandRunner());
 
   process.stdout.write(`${JSON.stringify(report, null, pretty ? 2 : 0)}\n`);

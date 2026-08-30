@@ -114,6 +114,7 @@ done
 ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path); puts path }' "${ruby_paths[@]}" >/dev/null
 
 assert_contains ".github/workflows/ci.yml" "pnpm check"
+assert_contains ".github/workflows/ci.yml" "fetch-depth: 0"
 assert_contains ".github/workflows/ci.yml" "libwebkit2gtk-4.1-dev"
 assert_contains "package.json" '"verify:tauri": "bash scripts/verify-tauri.sh"'
 assert_contains "package.json" "pnpm verify:tauri"
@@ -239,6 +240,9 @@ assert_occurrences ".github/workflows/release.yml" 'git rev-parse -q --verify "$
 assert_occurrences ".github/workflows/release.yml" 'git checkout --detach "$release_commit"' "2"
 assert_occurrences ".github/workflows/release.yml" 'LOOPWIRE_RELEASE_COMMIT=%s' "2"
 assert_contains ".github/workflows/release.yml" "scripts/stage-release-artifacts.sh"
+assert_contains ".github/workflows/release.yml" "stage_args+=(--native-packages)"
+assert_contains ".github/workflows/release.yml" "docker version"
+assert_contains "scripts/stage-release-artifacts.sh" "scripts/build-native-packages.sh"
 assert_contains ".github/workflows/release.yml" "Sign combined release manifest"
 assert_contains ".github/workflows/release.yml" "Smoke install generated tarball"
 assert_contains ".github/workflows/release.yml" "Smoke install published release"

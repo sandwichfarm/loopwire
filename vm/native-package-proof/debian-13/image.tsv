@@ -1,0 +1,8 @@
+schema	loopwire.native-package-image.v1
+target	debian-13
+distro	Debian 13 stable
+url	https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+checksum_algorithm	sha512
+checksum	184761b0dad0f9ace02f9298050ca96ce3caa39a461a47706d47ff9698b59933918b91b40177fbd4d392f6446af8b4d18ecb94caca988169b19641606bf34003
+actual_checksum	184761b0dad0f9ace02f9298050ca96ce3caa39a461a47706d47ff9698b59933918b91b40177fbd4d392f6446af8b4d18ecb94caca988169b19641606bf34003
+firmware	bios

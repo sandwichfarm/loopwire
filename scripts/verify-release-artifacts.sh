@@ -113,6 +113,10 @@ if [ ! -x "$check_dir/loopwire-jack-ports" ]; then
   echo "Packaged Loopwire artifact is missing loopwire-jack-ports." >&2
   exit 1
 fi
+if [ ! -x "$check_dir/loopwire-detect-audio" ]; then
+  echo "Packaged Loopwire artifact is missing loopwire-detect-audio." >&2
+  exit 1
+fi
 if [ ! -x "$check_dir/libexec/loopwire/loopwire-gui" ]; then
   echo "Packaged Loopwire artifact is missing libexec/loopwire/loopwire-gui." >&2
   exit 1
@@ -121,6 +125,10 @@ if [ ! -f "$check_dir/libexec/loopwire/scripts/restore-background.mjs" ]; then
   echo "Packaged Loopwire artifact is missing the background restore runner." >&2
   exit 1
 fi
+grep -Fq '"type":"module"' "$check_dir/libexec/loopwire/package.json" || {
+  echo "Packaged Loopwire artifact is missing the ES module runtime marker." >&2
+  exit 1
+}
 "$check_dir/loopwire" --background --help | grep -F -- "--state-file" >/dev/null || {
   echo "Packaged Loopwire background restore help did not run." >&2
   exit 1
@@ -135,6 +143,17 @@ fi
 }
 "$check_dir/loopwire-jack-ports" --help | grep -F -- "LOOPWIRE_JACK_PORTS_DELEGATE" >/dev/null || {
   echo "Packaged Loopwire JACK ports provider help did not run." >&2
+  exit 1
+}
+"$check_dir/loopwire-detect-audio" --pretty | node -e '
+  let input = "";
+  process.stdin.on("data", (chunk) => input += chunk);
+  process.stdin.on("end", () => {
+    const value = JSON.parse(input);
+    if (!value || typeof value !== "object") process.exit(1);
+  });
+' || {
+  echo "Packaged Loopwire backend detector did not return JSON." >&2
   exit 1
 }
 if "$check_dir/loopwire-jack-ports" \
@@ -180,6 +199,10 @@ if [ ! -x "$prefix/loopwire-jack-ports" ]; then
   echo "Installer did not install loopwire-jack-ports." >&2
   exit 1
 fi
+if [ ! -x "$prefix/loopwire-detect-audio" ]; then
+  echo "Installer did not install loopwire-detect-audio." >&2
+  exit 1
+fi
 if [ ! -x "$(dirname "$prefix")/lib/loopwire/loopwire-gui" ]; then
   echo "Installer did not install libexec GUI support files." >&2
   exit 1
@@ -198,6 +221,14 @@ fi
 }
 "$prefix/loopwire-jack-ports" --help | grep -F -- "LOOPWIRE_JACK_PORTS_DELEGATE" >/dev/null || {
   echo "Installed Loopwire JACK ports provider help did not run." >&2
+  exit 1
+}
+"$prefix/loopwire-detect-audio" --pretty | node -e '
+  let input = "";
+  process.stdin.on("data", (chunk) => input += chunk);
+  process.stdin.on("end", () => JSON.parse(input));
+' || {
+  echo "Installed Loopwire backend detector did not return JSON." >&2
   exit 1
 }
 if "$prefix/loopwire-jack-ports" \

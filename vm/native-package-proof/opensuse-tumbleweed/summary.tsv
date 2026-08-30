@@ -1,0 +1,14 @@
+schema	loopwire.native-package-vm-proof.v1
+target	opensuse-tumbleweed
+package_target	opensuse-tumbleweed
+format	rpm
+version	0.1.0
+git_head	70eee4ec433bb7d967931357cf77bd0c28056a35
+package	loopwire-0.1.0-1.x86_64.rpm
+package_sha256	c346be372708a23e4de7eb8d0e3eda3d482deed1dcc9bba4bad727bb9fe680f0
+virtualization	kvm
+background_help	pass
+backend_detection	pass
+gui_linkage	pass
+gui_launch	pass
+uninstall	pass

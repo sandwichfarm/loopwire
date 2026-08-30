@@ -78,6 +78,7 @@ require_package_member() {
 require_package_member "usr/bin/loopwire"
 require_package_member "usr/bin/loopwire-dsp-provider"
 require_package_member "usr/bin/loopwire-jack-ports"
+require_package_member "usr/bin/loopwire-detect-audio"
 require_package_member "usr/lib/loopwire/loopwire-gui"
 require_package_member "usr/lib/loopwire/scripts/restore-background.mjs"
 

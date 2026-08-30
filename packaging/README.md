@@ -1,6 +1,6 @@
 # Packaging
 
-Loopwire package metadata is release-artifact-first. AUR, Nix, curl installer, and future distro packages must consume
+Loopwire package metadata is release-artifact-first. AUR, Nix, curl installer, and native distro packages consume
 the same release artifacts:
 
 - `loopwire-linux-x86_64.tar.gz`
@@ -14,11 +14,13 @@ workflow emits real artifacts.
 `scripts/package-release.sh` is the canonical tarball producer. It writes `loopwire-linux-${arch}.tar.gz` and updates
 `SHA256SUMS` with reproducible tar metadata controlled by `SOURCE_DATE_EPOCH`. The tarball contains a launcher at
 `loopwire`, a file-backed DSP provider launcher at `loopwire-dsp-provider`, a fail-closed JACK virtual-port provider
-wrapper at `loopwire-jack-ports`, the Tauri GUI binary at `libexec/loopwire/loopwire-gui`, and bundled background
+wrapper at `loopwire-jack-ports`, a read-only backend detector at `loopwire-detect-audio`, the Tauri GUI binary at
+`libexec/loopwire/loopwire-gui`, and bundled background
 restore/provider assets under `libexec/loopwire/scripts` and `libexec/loopwire/packages`.
 
 `scripts/stage-release-artifacts.sh` is the canonical release attachment staging command. It packages the binary
-tarball, copies Tauri AppImage/deb/rpm bundle files, rewrites `SHA256SUMS` for every staged attachment, and signs the
+tarball, copies the Tauri AppImage, and on x86_64 `--native-packages` replaces Tauri's GUI-only deb/rpm bundles with
+the repository-owned packages described below. It rewrites `SHA256SUMS` for every staged attachment and signs the
 manifest when a private key is provided.
 
 `scripts/sign-release-artifacts.sh` signs `SHA256SUMS`; `scripts/verify-release-signature.sh` verifies
@@ -112,6 +114,68 @@ pnpm verify:nix-release -- \
 
 Render-only mode proves manifest parsing and expression generation. It never proves the package builds.
 
+## Native deb and RPM packages
+
+The native package recipes install the complete canonical payload: GUI, background restore, DSP and JACK provider
+wrappers, backend detector, desktop entry, and icon.
+
+| Target | Recipe | Output |
+|--------|--------|--------|
+| Ubuntu 24.04 LTS x86_64 | `packaging/deb/ubuntu-24.04.control.in` | `loopwire_<version>-1ubuntu24.04_amd64.deb` |
+| Debian 13 stable x86_64 | `packaging/deb/debian-13.control.in` | `loopwire_<version>-1debian13_amd64.deb` |
+| Fedora 44 x86_64 | `packaging/rpm/fedora-44.spec.in` | `loopwire-<version>-1.fc44.x86_64.rpm` |
+| openSUSE Tumbleweed x86_64 | `packaging/rpm/opensuse-tumbleweed.spec.in` | `loopwire-<version>-1.x86_64.rpm` |
+
+Build from an already generated canonical release directory:
+
+```bash
+pnpm package:deb -- --target ubuntu-24.04 --version 0.1.0 --arch x86_64 \
+  --release-dir dist/release --output-dir dist/native-packages
+pnpm package:deb -- --target debian-13 --version 0.1.0 --arch x86_64 \
+  --release-dir dist/release --output-dir dist/native-packages
+pnpm package:rpm -- --target fedora-44 --version 0.1.0 --arch x86_64 \
+  --release-dir dist/release --output-dir dist/native-packages
+pnpm package:rpm -- --target opensuse-tumbleweed --version 0.1.0 --arch x86_64 \
+  --release-dir dist/release --output-dir dist/native-packages
+```
+
+`pnpm verify:native-packaging` builds every recipe twice, requires byte-identical output, checks package metadata, and
+proves duplicate checksum entries and tampered package evidence are rejected. It uses local `dpkg-deb` when available
+and always runs RPM reproducibility through the matching Fedora/openSUSE toolchain. Use
+`pnpm package:native` to build all four release attachments through those same target containers; this avoids
+host-RPM-version differences in release output.
+
+Matching-guest proof is a separate, stronger gate:
+
+```bash
+pnpm build:portable-linux -- --output .vm/native-packages/release/loopwire
+# Generate the canonical tarball/checksum with scripts/package-release.sh, then:
+pnpm vm:native-packages -- run-all \
+  --version 0.1.0 \
+  --release-dir .vm/native-packages/release
+```
+
+`packaging/vm/native-package-targets.tsv` pins each official cloud-image URL and checksum. The runner verifies that
+checksum, boots a separate KVM guest, binds SSH to loopback, builds and installs through the guest package manager,
+requires a Loopwire-named X11 window under Xvfb, runs packaged CLI/backend smokes, uninstalls, and stores raw proof under
+ignored `.vm/native-packages/evidence/<target>/<commit>/`. Containers provide QEMU binaries only; they do not count as
+guest proof. `pnpm verify:native-vm-proof -- --git-head <commit>` rechecks all four proof directories.
+
+The first complete matrix passed at commit `70eee4ec433bb7d967931357cf77bd0c28056a35`. A review-safe, CI-checked subset
+is committed under `vm/native-package-proof/`; the raw packages, VM disks, console output, and full command logs remain
+ignored beneath `.vm/`. Recreate the snapshot only from fully verified raw evidence:
+
+```bash
+pnpm vm:promote-native-package-proof -- \
+  --git-head 70eee4ec433bb7d967931357cf77bd0c28056a35
+pnpm verify:native-package-proof-snapshot
+```
+
+The snapshot verifier also compares every package/runtime/proof-critical path against the tested commit. The release
+stager calls it before building native attachments, so a later package, desktop runtime, release payload, image
+manifest, guest smoke, or raw-verifier change blocks release until the four-guest proof is refreshed. Documentation and
+snapshot-promotion tooling may advance independently because they do not change the package exercised by the guests.
+
 ## Smoke
 
 Run:
@@ -140,4 +204,5 @@ checks the package archive contains `usr/bin/loopwire`, `usr/bin/loopwire-dsp-pr
 and that the flake exposes the binary package template without replacing fake hashes with unverified values. It also
 renders a temporary Nix release package expression from checksum-bound fake artifacts and proves duplicate manifest
 entries are rejected. It invokes the Nix verifier with `--render-only` against fake local artifacts, so it does not
-replace real release-time `nix build` evidence.
+replace real release-time `nix build` evidence. It also runs the native package reproducibility and proof-verifier
+regressions; this still does not substitute for the matching-guest KVM run.

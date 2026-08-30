@@ -7,15 +7,18 @@ arch=""
 bundle_dir=""
 output_dir="dist/release"
 private_key_file=""
+native_packages="false"
 
 usage() {
   cat <<'USAGE'
 Stage Loopwire release artifacts into one directory and write SHA256SUMS for every attachment.
 
 Usage:
-  stage-release-artifacts.sh --binary PATH --version VERSION --bundle-dir DIR [--arch x86_64|aarch64] [--output-dir DIR] [--private-key FILE]
+  stage-release-artifacts.sh --binary PATH --version VERSION --bundle-dir DIR [--arch x86_64|aarch64] [--output-dir DIR] [--private-key FILE] [--native-packages]
 
-The bundle directory must contain at least one AppImage, deb, or rpm file.
+With --native-packages on x86_64, Tauri's GUI-only deb/rpm outputs are replaced by the repository-owned Ubuntu,
+Debian, Fedora, and openSUSE packages built from the canonical release tarball. The bundle directory must contain an
+AppImage; without --native-packages, legacy Tauri deb/rpm bundles are staged unchanged.
 USAGE
 }
 
@@ -60,6 +63,10 @@ while [ "$#" -gt 0 ]; do
       private_key_file="${2:?missing value for --private-key}"
       shift 2
       ;;
+    --native-packages)
+      native_packages="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -97,11 +104,30 @@ bundle_count=0
 while IFS= read -r -d '' bundle_file; do
   cp "$bundle_file" "$output_dir/"
   bundle_count=$((bundle_count + 1))
-done < <(find "$bundle_dir" -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -print0)
+done < <(
+  if [ "$native_packages" = "true" ]; then
+    find "$bundle_dir" -type f -name "*.AppImage" -print0
+  else
+    find "$bundle_dir" -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -print0
+  fi
+)
 
 if [ "$bundle_count" -eq 0 ]; then
   echo "No Tauri bundle artifacts were found in $bundle_dir." >&2
   exit 1
+fi
+
+if [ "$native_packages" = "true" ]; then
+  if [ "$arch" != "x86_64" ]; then
+    echo "Native distro packages are currently verified only for x86_64." >&2
+    exit 1
+  fi
+  node scripts/verify-native-package-proof-snapshot.mjs >/dev/null
+  bash scripts/build-native-packages.sh \
+    --version "$version" \
+    --arch "$arch" \
+    --release-dir "$output_dir" \
+    --output-dir "$output_dir" >/dev/null
 fi
 
 (

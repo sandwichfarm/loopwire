@@ -60,6 +60,12 @@ These notes describe source-tree progress. They are not a public release announc
 
 ## Supported In Source
 
+- Native x86_64 package recipes now cover Ubuntu 24.04, Debian 13, Fedora 44, and openSUSE Tumbleweed from the same
+  checksum-bound release tarball. A checksum-pinned QEMU/KVM harness verifies package metadata, installed files,
+  packaged background/provider/backend commands, a Loopwire X11 application window, and clean uninstall in matching
+  guests. All four guests passed at commit `70eee4e`; a review-safe proof snapshot is committed under
+  `vm/native-package-proof/` without promoting unrelated audio-backend support claims.
+
 - Contributor source install with `pnpm install` and `pnpm check`.
 - Backend detection for PipeWire, PulseAudio compatibility, JACK availability, and ALSA playback/capture visibility.
 - ALSA capability detection now probes both `aplay -l` and `arecord -l`, keeps partial playback/capture visibility
