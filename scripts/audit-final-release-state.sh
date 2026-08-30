@@ -861,11 +861,13 @@ echo "Final release status for ${repo}@${tag}"
 echo "Expected release commit: ${expected_git_head}"
 echo
 
-secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
 if [ -n "$secret_list_file" ]; then
+  secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
   secret_check+=(--secret-list-file "$secret_list_file")
+else
+  secret_check=(node scripts/setup-github-actions.mjs --repo "$repo" --scope final --check)
 fi
-run_gate "required GitHub secrets" "${secret_check[@]}" || failed=1
+run_gate "required GitHub Actions variables and secrets" "${secret_check[@]}" || failed=1
 
 run_gate "release signing public key" check_public_key || failed=1
 

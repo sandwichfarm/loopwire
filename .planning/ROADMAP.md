@@ -5,6 +5,7 @@
 - [x] **v0.1: Walking Skeleton and Product Contract** - 7 phases, 26 requirements
 - [ ] **v0.2: Production Audio Routing** - 5 phases, 8 requirements
 - [x] **v0.4: Public Surface Polish** - 1 phase, tracked by issue #3 and PR #4
+- [ ] **v0.5: GitHub Operator Setup** - 1 phase, tracked by issue #5
 
 ---
 
@@ -289,6 +290,27 @@ at `/docs/` through the existing verified Bunny delivery path.
   6. A PR links issue #3 and reports fresh local plus hosted validation evidence.
 **Plans:** 1 plan
   - [x] 18.1-PLAN.md — public docs, website, artifact assembly, delivery, and end-to-end verification
+
+## Milestone v0.5: GitHub Operator Setup (ACTIVE)
+
+**Goal:** Configure Loopwire's GitHub Actions variables and secrets safely from any supported developer system.
+
+- [ ] **Phase 19: Hardened GitHub Actions Setup** — cross-platform prompts, exact-byte transport, source instructions,
+  workflow variable migration, adversarial tests, and security review.
+
+### Phase 19: Hardened GitHub Actions Setup
+
+**Depends on:** Phase 18
+**Issue:** #5
+**Success Criteria:**
+  1. A Node command runs on Windows, macOS, and Linux and prompts for every required setting.
+  2. Every prompt explains where the value is found and whether GitHub stores it as a variable or secret.
+  3. Tests prove entered values and PEM bytes are not truncated, appended, concatenated, normalized, or leaked.
+  4. All inputs and remote access are preflighted before any write, with explicit confirmation and safe failure reports.
+  5. Workflows use Actions variables for public configuration and secrets for sensitive material.
+  6. PR validation is green and documents the remaining operator-only production setup step.
+**Plans:** 1 plan
+  - [ ] 19.1-PLAN.md — portable prompt helper, workflow integration, adversarial tests, docs, and review
 
 ## Backlog
 

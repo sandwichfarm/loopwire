@@ -59,9 +59,9 @@ jobs:
       LOOPWIRE_RELEASE_COMMIT_INPUT: ${{ inputs.git_head }}
       LOOPWIRE_DOCS_BASE_URL_INPUT: ${{ inputs.docs_base_url }}
       LOOPWIRE_DOCS_HOSTNAME_INPUT: ${{ inputs.docs_hostname }}
-      LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ secrets.BUNNY_PULL_ZONE_HOSTNAME }}
+      LOOPWIRE_DOCS_HOSTNAME_SECRET: ${{ vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME }}
       LOOPWIRE_DOCS_REMOTE_PREFIX_INPUT: ${{ inputs.docs_remote_prefix }}
-      LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET: ${{ secrets.BUNNY_REMOTE_PREFIX }}
+      LOOPWIRE_DOCS_REMOTE_PREFIX_SECRET: ${{ vars.BUNNY_REMOTE_PREFIX || secrets.BUNNY_REMOTE_PREFIX }}
       LOOPWIRE_DOCS_DEPLOYMENT_RUN_ID_INPUT: ${{ inputs.docs_deployment_run_id }}
       LOOPWIRE_DOCS_DEPLOYMENT_ARTIFACT_INPUT: ${{ inputs.docs_deployment_artifact }}
       LOOPWIRE_RELEASE_EVIDENCE_ASSET_INPUT: ${{ inputs.release_evidence_asset }}

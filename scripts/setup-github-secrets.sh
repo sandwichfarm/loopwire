@@ -31,6 +31,10 @@ usage() {
   cat <<'USAGE'
 Set GitHub Actions secrets needed for Loopwire Bunny.net docs deployment.
 
+This is the legacy Unix-only env-file/flag helper retained for offline release rehearsal.
+For guarded cross-platform prompts and Actions variables plus secrets, use:
+  pnpm setup:github -- --repo owner/name --scope final
+
 Usage:
   setup-github-secrets.sh --repo owner/name [--scope deploy|final]
                           [--storage-zone ZONE --access-key KEY]

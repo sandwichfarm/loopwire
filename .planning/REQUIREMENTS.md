@@ -121,7 +121,19 @@ Archived: [milestones/v0.3-REQUIREMENTS.md](milestones/v0.3-REQUIREMENTS.md)
 
 **Traceability:** WEB-01..WEB-05 map to Phase 18 and issue #3.
 
+## v0.5 Requirements (GitHub Operator Setup)
+
+- [ ] **OPS-01**: Operator can configure GitHub Actions variables and secrets through guided prompts on Windows,
+  macOS, and Linux.
+- [ ] **OPS-02**: Every prompt names the GitHub storage type and explains where to find or generate the value.
+- [ ] **OPS-03**: Exact entered bytes reach `gh` without trimming, appending, truncation, concatenation, shell expansion,
+  or log disclosure.
+- [ ] **OPS-04**: All local/remote preflight succeeds before mutation, and failures report written names without values.
+- [ ] **OPS-05**: Workflows consume public configuration from Actions variables and sensitive material from secrets.
+
+**Traceability:** OPS-01..OPS-05 map to Phase 19 and issue #5.
+
 
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-08-28 for Phase 18 public surface polish*
+*Last updated: 2026-08-30 for Phase 19 GitHub operator setup*

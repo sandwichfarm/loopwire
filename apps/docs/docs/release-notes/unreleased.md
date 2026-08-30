@@ -4,6 +4,10 @@ These notes describe source-tree progress. They are not a public release announc
 
 ## Desktop UI Rebuild
 
+- GitHub Actions setup now has a cross-platform guided command that separates public variables from secrets, explains
+  every source field, validates release keys locally, and transports entered bytes to GitHub CLI without shell
+  interpolation or hidden normalization.
+
 - The public web surface now splits cleanly: an Astro homepage at `/` and VitePress docs below `/docs/`, assembled
   into one Bunny deployment artifact so the homepage, installer endpoint, and docs stay aligned.
 

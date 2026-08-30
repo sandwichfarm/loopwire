@@ -30,6 +30,8 @@ verified against the host audio graph.
 
 ### Active
 
+- [ ] Configure GitHub Actions variables and secrets through a portable, exact-byte, prompt-driven operator command
+  (v0.5 Phase 19).
 - [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
 
 ### Out of Scope
@@ -66,9 +68,8 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 
 ## Current State
 
-**Ready for review:** v0.4 Public Surface Polish is implemented in PR #4 with the concise README, Astro homepage,
-VitePress `/docs/`, combined static artifact, and CI/CT/CD proof. Open carry-over: v0.2 Phase 12 (published release +
-VM proof).
+**Active:** v0.5 GitHub Operator Setup hardens the user-owned credentials/configuration handoff for CI/CD and final
+release proof. Open carry-over: v0.2 Phase 12 (published release + VM proof).
 
 ## Previous Milestone: v0.3 Seed Harvest
 
@@ -101,4 +102,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-28 for v0.4 Public Surface Polish*
+*Last updated: 2026-08-30 for v0.5 GitHub Operator Setup*

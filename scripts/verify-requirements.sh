@@ -116,8 +116,10 @@ done
 
 assert_script "package.json" "check" "pnpm check:verify && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm verify:site"
 assert_script "package.json" "check:verify" \
-  "pnpm verify:requirements && pnpm verify:docs && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri"
+  "pnpm verify:requirements && pnpm verify:docs && pnpm test:setup-github && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri"
 assert_script "package.json" "verify:requirements" "bash scripts/verify-requirements.sh"
+assert_script "package.json" "setup:github" "node scripts/setup-github-actions.mjs"
+assert_script "package.json" "test:setup-github" "node scripts/test-setup-github-actions.mjs"
 assert_contains "packages/core/tests/configuration.test.ts" "keeps independent route controls"
 assert_contains ".github/workflows/ci.yml" "pnpm check"
 assert_contains ".github/workflows/continuous-tests.yml" "Linux host audio diagnostics"
@@ -127,6 +129,8 @@ assert_contains ".github/workflows/deploy-docs.yml" "pnpm build:web"
 assert_contains ".github/workflows/deploy-docs.yml" "dist/site"
 assert_contains "scripts/setup-github-secrets.sh" "BUNNY_STORAGE_ZONE"
 assert_contains "scripts/setup-github-secrets.sh" "LOOPWIRE_RELEASE_PRIVATE_KEY"
+assert_contains "scripts/setup-github-actions.mjs" "Variables and secrets are sent to gh through stdin"
+assert_contains "scripts/setup-github-actions.mjs" "FTP & API Access"
 
 for requirement in ROUTE-01 ROUTE-02 ROUTE-03 ROUTE-04 ROUTE-05; do
   assert_requirement_checked "$requirement"

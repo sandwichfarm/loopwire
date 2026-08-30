@@ -158,14 +158,8 @@ report_missing_deployment_artifact() {
     echo "found artifact(s): none or unavailable from GitHub API" >&2
   fi
   echo "likely cause: Deploy Docs did not run the Bunny.net deployment step, so it did not upload deployment proof." >&2
-  echo "next: configure required Bunny.net GitHub secrets, rerun Deploy Docs, then rerun this helper:" >&2
-  if [ -n "$env_file" ]; then
-    printf '  %s\n' "$(shell_join bash scripts/setup-github-secrets.sh --repo "$repo" --scope deploy --env-file "$env_file")" >&2
-  else
-    echo "  bash scripts/setup-github-secrets.sh --repo $repo --scope deploy --storage-zone <zone> --access-key <key>" >&2
-    echo "  # Or load Bunny values from a local uncommitted env file:" >&2
-    echo "  bash scripts/setup-github-secrets.sh --repo $repo --scope deploy --env-file <secret-env-file>" >&2
-  fi
+  echo "next: configure required Bunny.net GitHub Actions variables and secrets, rerun Deploy Docs, then rerun this helper:" >&2
+  echo "  pnpm setup:github -- --repo $repo --scope deploy" >&2
 }
 
 download_artifact() {

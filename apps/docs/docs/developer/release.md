@@ -631,14 +631,10 @@ commit only the public key, and store the private key as a GitHub secret:
 pnpm release:prepare-key -- \
   --private-key-out /secure/loopwire-release-private.pem \
   --public-key-out packaging/release-signing-public.pem
-bash scripts/setup-github-secrets.sh \
+pnpm setup:github -- \
   --repo sandwichfarm/loopwire \
   --scope final \
-  --storage-zone loopwire-docs \
-  --access-key "$BUNNY_ACCESS_KEY" \
-  --pull-zone-hostname docs.example.test \
-  --release-private-key-file /secure/loopwire-release-private.pem \
-  --release-public-key-file packaging/release-signing-public.pem
+  --public-key-file packaging/release-signing-public.pem
 ```
 
 `release:prepare-key` refuses to write the private key inside the repository, refuses to overwrite existing key files
@@ -647,6 +643,10 @@ unless `--force` is passed, derives the public key, and verifies the pair by sig
 
 The release workflow requires `LOOPWIRE_RELEASE_PRIVATE_KEY`. The installer requires a trusted public key unless
 `--skip-signature` is passed explicitly for local unsigned development artifacts.
+
+Use the [cross-platform GitHub Actions setup guide](./github-actions-setup.md) for normal operator work. The remaining
+shell-helper commands document the legacy Unix-only env-file and offline secret-list surfaces retained for release
+rehearsal compatibility; they are not the recommended interactive path.
 
 Audit or preview the GitHub secret ceremony before setting anything:
 
@@ -780,6 +780,8 @@ Before pushing a release tag:
 Release notes must describe what is supported, what remains experimental, and which install channels were smoke-tested.
 
 ## Docs Deployment
+
+Before the first deployment, complete the [GitHub Actions setup](./github-actions-setup.md) for the repository.
 
 The docs deployment workflow builds the Astro homepage plus the VitePress docs tree, uploads one combined site
 artifact, and deploys to Bunny.net only on explicit workflow dispatch, `main`, `master`, or `v*` tags. The deploy job is assigned to the `docs-production` GitHub
