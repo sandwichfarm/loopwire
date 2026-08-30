@@ -701,7 +701,10 @@ names that would be set without printing secret values or writing to GitHub. `--
 uncommitted file with simple `KEY=VALUE` lines for `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`,
 `BUNNY_STORAGE_ENDPOINT`, `BUNNY_PULL_ZONE_HOSTNAME`, `BUNNY_REMOTE_PREFIX`,
 `LOOPWIRE_RELEASE_PRIVATE_KEY_FILE`, and `LOOPWIRE_RELEASE_PUBLIC_KEY_FILE`; command-line flags override env-file
-values. `.env.example` is the committed key-name template; copy it to an uncommitted path such as
+values. Values are taken literally after the first `=` byte, so shell-style quote parsing is intentionally not applied
+and the entered bytes reach GitHub unchanged. Enter canonical values exactly as they should be stored:
+`BUNNY_STORAGE_ENDPOINT` must already include its `https://` scheme and must not end with `/`, while
+`BUNNY_REMOTE_PREFIX` must already omit leading and trailing slashes. `.env.example` is the committed key-name template; copy it to an uncommitted path such as
 `/secure/loopwire-release-secrets.env` before filling values, or run
 `--write-env-template /secure/loopwire-release-secrets.env` to create the same no-value template with `0600`
 permissions. `--print-env-template` prints the same template to stdout for review. Use file paths for release keys
@@ -807,7 +810,7 @@ pnpm build:web
 bash scripts/deploy-docs-bunny.sh \
   --dist dist/site \
   --storage-zone loopwire-docs \
-  --storage-endpoint ny.storage.bunnycdn.com \
+  --storage-endpoint https://ny.storage.bunnycdn.com \
   --remote-prefix loopwire \
   --deployment-manifest dist/docs-deployment/deployment-manifest.json \
   --dry-run
@@ -854,7 +857,7 @@ bash scripts/setup-github-secrets.sh \
   --storage-zone loopwire-docs \
   --access-key "$BUNNY_ACCESS_KEY" \
   --pull-zone-hostname docs.example.test \
-  --storage-endpoint ny.storage.bunnycdn.com \
+  --storage-endpoint https://ny.storage.bunnycdn.com \
   --remote-prefix loopwire \
   --dry-run
 ```
