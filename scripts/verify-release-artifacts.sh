@@ -32,6 +32,8 @@ fi
 binary="$tmp_dir/loopwire"
 release_dir="$tmp_dir/release"
 staged_dir="$tmp_dir/staged-release"
+appimage_only_dir="$tmp_dir/appimage-only-release"
+manifest_dir="$tmp_dir/manifest-release"
 bundle_dir="$tmp_dir/bundles"
 prefix="$tmp_dir/prefix"
 private_key="$tmp_dir/release-private.pem"
@@ -262,9 +264,12 @@ grep -F '"configurationId": "installed-smoke"' "$installed_jack_manifest" >/dev/
 
 mkdir -p "$bundle_dir/appimage" "$bundle_dir/deb" "$bundle_dir/rpm"
 printf '%s\n' "fake appimage" >"$bundle_dir/appimage/Loopwire_0.0.0_amd64.AppImage"
+printf '%s\n' "fake arm appimage" >"$bundle_dir/appimage/Loopwire_0.1.0_aarch64.AppImage"
 printf '%s\n' "fake deb" >"$bundle_dir/deb/Loopwire_0.0.0_amd64.deb"
 printf '%s\n' "fake rpm" >"$bundle_dir/rpm/Loopwire-0.0.0-1.x86_64.rpm"
 
+mkdir -p "$appimage_only_dir"
+printf '%s\n' "stale signature" >"$appimage_only_dir/SHA256SUMS.sig"
 bash scripts/stage-release-artifacts.sh \
   --binary "$binary" \
   --version "0.0.0-smoke" \
@@ -290,5 +295,98 @@ done
 ) >/dev/null
 
 bash scripts/verify-release-signature.sh --release-dir "$staged_dir" --public-key "$public_key" >/dev/null
+
+bash scripts/stage-release-artifacts.sh \
+  --binary "$binary" \
+  --version "0.1.0" \
+  --arch aarch64 \
+  --bundle-dir "$bundle_dir" \
+  --appimage-only \
+  --output-dir "$appimage_only_dir" >/dev/null
+
+for staged_file in loopwire-linux-aarch64.tar.gz Loopwire_0.1.0_aarch64.AppImage SHA256SUMS; do
+  [ -f "$appimage_only_dir/$staged_file" ] || {
+    echo "AppImage-only staging is missing $staged_file." >&2
+    exit 1
+  }
+done
+if find "$appimage_only_dir" -maxdepth 1 -type f \( -name '*.deb' -o -name '*.rpm' \) | grep -q .; then
+  echo "AppImage-only staging included an unverified native package." >&2
+  exit 1
+fi
+if [ -e "$appimage_only_dir/SHA256SUMS.sig" ]; then
+  echo "Unsigned staging preserved a stale checksum signature." >&2
+  exit 1
+fi
+
+mkdir -p "$manifest_dir"
+cp "$release_dir/loopwire-linux-x86_64.tar.gz" "$manifest_dir/"
+cp "$release_dir/loopwire-linux-aarch64.tar.gz" "$manifest_dir/"
+printf '%s\n' "x86 AppImage" >"$manifest_dir/Loopwire_0.1.0_amd64.AppImage"
+printf '%s\n' "arm AppImage" >"$manifest_dir/Loopwire_0.1.0_aarch64.AppImage"
+printf '%s\n' "Ubuntu deb" >"$manifest_dir/loopwire_0.1.0-1ubuntu24.04_amd64.deb"
+printf '%s\n' "Debian deb" >"$manifest_dir/loopwire_0.1.0-1debian13_amd64.deb"
+printf '%s\n' "Fedora rpm" >"$manifest_dir/loopwire-0.1.0-1.fc44.x86_64.rpm"
+printf '%s\n' "openSUSE rpm" >"$manifest_dir/loopwire-0.1.0-1.x86_64.rpm"
+manifest_head="0123456789abcdef0123456789abcdef01234567"
+node scripts/release-asset-manifest.mjs write \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" >/dev/null
+(
+  cd "$manifest_dir"
+  find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%f\n' |
+    sort | xargs sha256sum >SHA256SUMS
+)
+node scripts/release-asset-manifest.mjs verify \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" --require-checksum >/dev/null
+
+printf '%s\n' "tampered" >>"$manifest_dir/Loopwire_0.1.0_amd64.AppImage"
+if node scripts/release-asset-manifest.mjs verify \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" >/dev/null 2>&1; then
+  echo "Release asset manifest accepted a tampered payload." >&2
+  exit 1
+fi
+printf '%s\n' "x86 AppImage" >"$manifest_dir/Loopwire_0.1.0_amd64.AppImage"
+
+rm "$manifest_dir/Loopwire_0.1.0_aarch64.AppImage"
+if node scripts/release-asset-manifest.mjs write \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" >/dev/null 2>&1; then
+  echo "Release asset manifest accepted a missing required payload." >&2
+  exit 1
+fi
+printf '%s\n' "arm AppImage" >"$manifest_dir/Loopwire_0.1.0_aarch64.AppImage"
+
+mv "$manifest_dir/loopwire_0.1.0-1debian13_amd64.deb" \
+  "$tmp_dir/debian-package.real"
+ln -s ../debian-package.real \
+  "$manifest_dir/loopwire_0.1.0-1debian13_amd64.deb"
+if node scripts/release-asset-manifest.mjs write \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" >/dev/null 2>&1; then
+  echo "Release asset manifest accepted a linked payload." >&2
+  exit 1
+fi
+rm "$manifest_dir/loopwire_0.1.0-1debian13_amd64.deb"
+mv "$tmp_dir/debian-package.real" "$manifest_dir/loopwire_0.1.0-1debian13_amd64.deb"
+
+printf '%s\n' "wrong version" >"$manifest_dir/Loopwire_0.0.0_amd64.AppImage"
+if node scripts/release-asset-manifest.mjs write \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" >/dev/null 2>&1; then
+  echo "Release asset manifest accepted an unrecognized or mis-versioned artifact." >&2
+  exit 1
+fi
+rm "$manifest_dir/Loopwire_0.0.0_amd64.AppImage"
+
+printf '%s\n' "release evidence" >"$manifest_dir/loopwire-release-evidence-v0.1.0.tar.gz"
+node scripts/release-asset-manifest.mjs write \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" >/dev/null
+(
+  cd "$manifest_dir"
+  find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%f\n' |
+    sort | xargs sha256sum >SHA256SUMS
+)
+node scripts/release-asset-manifest.mjs verify \
+  --release-dir "$manifest_dir" --tag v0.1.0 --git-head "$manifest_head" \
+  --require-checksum --require-evidence >/dev/null
+bash scripts/sign-release-artifacts.sh --release-dir "$manifest_dir" --private-key "$private_key" >/dev/null
+bash scripts/verify-release-signature.sh --release-dir "$manifest_dir" --public-key "$public_key" >/dev/null
 
 echo "Release artifact smoke passed."

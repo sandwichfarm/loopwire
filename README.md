@@ -20,6 +20,9 @@ pnpm check
 
 The curl installer is release-gated until signed public artifacts and Bunny deployment exist.
 
+Version tags are handled by the protected GitHub Release workflow, which publishes portable tarballs, AppImages,
+verified native packages, signed checksums, and a machine-readable asset inventory. No public release exists yet.
+
 ## Basic usage
 
 1. Launch the desktop shell with `pnpm --filter @loopwire/desktop dev`.

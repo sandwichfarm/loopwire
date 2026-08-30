@@ -60,6 +60,11 @@ These notes describe source-tree progress. They are not a public release announc
 
 ## Supported In Source
 
+- The tag-driven GitHub Release workflow now publishes a strict useful-asset set: two portable tarballs, two
+  tag-versioned AppImages, four proven x86_64 native packages, signed checksums, a machine-readable
+  `release-assets.json`, and tag-bound release evidence. AArch64 GUI-only deb/RPM bundles are excluded, and the remote
+  inventory is reconciled, downloaded, and re-verified after publication, including same-tag workflow reruns.
+
 - Native x86_64 package recipes now cover Ubuntu 24.04, Debian 13, Fedora 44, and openSUSE Tumbleweed from the same
   checksum-bound release tarball. A checksum-pinned QEMU/KVM harness verifies package metadata, installed files,
   packaged background/provider/backend commands, a Loopwire X11 application window, and clean uninstall in matching

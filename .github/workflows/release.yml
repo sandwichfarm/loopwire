@@ -1,4 +1,5 @@
 name: Release
+run-name: Release ${{ inputs.tag || github.ref_name }}
 
 on:
   push:
@@ -15,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -119,7 +120,12 @@ jobs:
         run: pnpm check
 
       - name: Build Tauri Linux bundles
-        run: pnpm --filter @loopwire/desktop tauri:build
+        run: |
+          set -euo pipefail
+          release_config="$(printf '{"version":"%s"}' "$LOOPWIRE_RELEASE_VERSION")"
+          pnpm --filter @loopwire/desktop tauri:build --config "$release_config"
+        env:
+          LOOPWIRE_RELEASE_ARCH: ${{ matrix.release_arch }}
 
       - name: Package release artifacts
         env:
@@ -148,6 +154,8 @@ jobs:
           )
           if [ "$LOOPWIRE_RELEASE_ARCH" = "x86_64" ]; then
             stage_args+=(--native-packages)
+          else
+            stage_args+=(--appimage-only)
           fi
           SOURCE_DATE_EPOCH="$source_epoch" bash scripts/stage-release-artifacts.sh "${stage_args[@]}"
 
@@ -281,6 +289,10 @@ jobs:
               exit 1
             fi
           done
+          node scripts/release-asset-manifest.mjs write \
+            --release-dir dist/release \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT"
           (
             cd dist/release
             find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%f\n' \
@@ -288,6 +300,11 @@ jobs:
               | xargs sha256sum >SHA256SUMS
             sha256sum --check SHA256SUMS
           )
+          node scripts/release-asset-manifest.mjs verify \
+            --release-dir dist/release \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --require-checksum
           bash scripts/sign-release-artifacts.sh \
             --release-dir dist/release \
             --private-key "$private_key_file"
@@ -315,6 +332,23 @@ jobs:
               --verify-tag \
               --notes-file "$LOOPWIRE_RELEASE_NOTES_FILE"
           fi
+          mapfile -t expected_assets < <(
+            find dist/release -maxdepth 1 -type f -printf '%f\n' | sort
+          )
+          while IFS= read -r remote_asset; do
+            keep_asset="false"
+            for expected_asset in "${expected_assets[@]}"; do
+              if [ "$remote_asset" = "$expected_asset" ]; then
+                keep_asset="true"
+                break
+              fi
+            done
+            if [ "$keep_asset" = "false" ]; then
+              gh release delete-asset "$LOOPWIRE_RELEASE_TAG" "$remote_asset" --yes
+            fi
+          done < <(
+            gh release view "$LOOPWIRE_RELEASE_TAG" --json assets --jq '.assets[].name'
+          )
 
       - name: Smoke install published release
         env:
@@ -325,10 +359,12 @@ jobs:
           mkdir -p "$published_dir"
           gh release download "$LOOPWIRE_RELEASE_TAG" \
             --dir "$published_dir" \
-            --pattern "loopwire-linux-*.tar.gz" \
-            --pattern "SHA256SUMS" \
-            --pattern "SHA256SUMS.sig" \
             --clobber
+          node scripts/release-asset-manifest.mjs verify \
+            --release-dir "$published_dir" \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --require-checksum
           bash scripts/install.sh \
             --base-url "file://${published_dir}" \
             --prefix "$RUNNER_TEMP/loopwire-published-bin" \
@@ -369,6 +405,10 @@ jobs:
           private_key_file="$RUNNER_TEMP/loopwire-release-private.pem"
           printf '%s\n' "$LOOPWIRE_RELEASE_PRIVATE_KEY" >"$private_key_file"
           chmod 0600 "$private_key_file"
+          node scripts/release-asset-manifest.mjs write \
+            --release-dir dist/release \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT"
           (
             cd dist/release
             find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%f\n' \
@@ -376,6 +416,12 @@ jobs:
               | xargs sha256sum >SHA256SUMS
             sha256sum --check SHA256SUMS
           )
+          node scripts/release-asset-manifest.mjs verify \
+            --release-dir dist/release \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --require-checksum \
+            --require-evidence
           bash scripts/sign-release-artifacts.sh \
             --release-dir dist/release \
             --private-key "$private_key_file"
@@ -385,8 +431,18 @@ jobs:
           gh release upload "$LOOPWIRE_RELEASE_TAG" \
             dist/release/SHA256SUMS \
             dist/release/SHA256SUMS.sig \
+            dist/release/release-assets.json \
             "$evidence_archive" \
             --clobber
+          final_published_dir="$RUNNER_TEMP/final-published-release"
+          mkdir -p "$final_published_dir"
+          gh release download "$LOOPWIRE_RELEASE_TAG" --dir "$final_published_dir" --clobber
+          node scripts/release-asset-manifest.mjs verify \
+            --release-dir "$final_published_dir" \
+            --tag "$LOOPWIRE_RELEASE_TAG" \
+            --git-head "$LOOPWIRE_RELEASE_COMMIT" \
+            --require-checksum \
+            --require-evidence
           bash scripts/verify-published-release.sh \
             --repo "$GITHUB_REPOSITORY" \
             --tag "$LOOPWIRE_RELEASE_TAG" \
