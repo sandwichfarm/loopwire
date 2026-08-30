@@ -221,8 +221,10 @@ copy_to_guest() {
 require_committed_implementation() {
   git diff --quiet -- . ':!.playwright-mcp' || fail "tracked changes must be committed before VM proof"
   git diff --cached --quiet -- . ':!.playwright-mcp' || fail "staged changes must be committed before VM proof"
-  git status --porcelain --untracked-files=all | awk '{ print $2 }' | grep -v '^\.playwright-mcp/' | grep -q . &&
+  if git status --porcelain --untracked-files=all | awk '{ print $2 }' |
+    grep -v '^\.playwright-mcp/' | grep -q .; then
     fail "untracked implementation files must be committed before VM proof"
+  fi
 }
 
 run_target() {
