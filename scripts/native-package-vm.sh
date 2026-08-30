@@ -189,10 +189,14 @@ ssh_args_for() {
 }
 
 wait_for_guest() {
-  local key="$1" port="$2" known_hosts="$3" attempt
+  local key="$1" port="$2" known_hosts="$3" container="$4" attempt
   local -a ssh_args=()
   mapfile -d '' -t ssh_args < <(ssh_args_for "$key" "$port" "$known_hosts")
   for attempt in $(seq 1 120); do
+    if [ "$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null || true)" != "true" ]; then
+      echo "Guest container exited before SSH became ready: $container" >&2
+      return 1
+    fi
     if ssh "${ssh_args[@]}" "$ssh_user@127.0.0.1" \
       'test -f /var/lib/cloud/instance/loopwire-ready' >/dev/null 2>&1; then
       echo "Guest SSH and cloud-init are ready after attempt $attempt."
@@ -271,7 +275,7 @@ run_target() {
 
   docker rm -f "$container" >/dev/null 2>&1 || true
   docker run --detach --name "$container" --device /dev/kvm --network host \
-    -v "$target_dir:/vm" "$qemu_image" \
+    -v "$target_dir:/vm" -v "$image_path:/base.img:ro" "$qemu_image" \
     qemu-system-x86_64 \
       -machine accel=kvm -cpu host -smp 4 -m 4096 \
       -nographic -serial mon:stdio -no-reboot \
@@ -286,7 +290,7 @@ run_target() {
   }
   trap cleanup_vm EXIT INT TERM
 
-  if ! wait_for_guest "$key" "$port" "$known_hosts"; then
+  if ! wait_for_guest "$key" "$port" "$known_hosts" "$container"; then
     fail "$id guest did not become ready; inspect $target_dir/console.log"
   fi
   local -a ssh_args=()
