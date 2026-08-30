@@ -1,6 +1,7 @@
 # Loopwire
 
-Loopwire is a Linux virtual audio routing app for PipeWire-first desktops.
+Loopwire is a Linux virtual audio routing app for PipeWire-first desktops. It is currently alpha-stage, with `v0.1.0`
+as the first public version.
 
 ![Loopwire desktop patch bay screenshot](assets/product-screenshot.png)
 
@@ -45,9 +46,10 @@ The default device starts as Pass-Thru -> Channels 1 & 2, so the first route is 
 
 ## Status
 
-Loopwire is pre-release. PipeWire is the first-class path; PulseAudio and JACK have explicit compatibility limits, and
-ALSA is detection-only. See the [support matrix](https://loopwire.app/docs/guide/support-matrix.html) before relying on
-host apply. The curl installer remains release-gated until signed public artifacts are published and smoke-tested.
+Loopwire `v0.1.0` is the first alpha. PipeWire is the first-class path; PulseAudio and JACK have explicit compatibility
+limits, and ALSA is detection-only. See the [support matrix](https://loopwire.app/docs/guide/support-matrix.html) before
+relying on host apply. The curl installer remains release-gated until signed public artifacts are published and
+smoke-tested.
 
 ## Development
 

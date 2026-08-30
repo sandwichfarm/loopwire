@@ -19,6 +19,7 @@ version tag without creating a second publisher or relying on filenames that sil
 
 ## Decisions
 
+- Treat `v0.1.0` as the first public alpha and label the release-facing documentation accordingly.
 - Keep `.github/workflows/release.yml` as the sole publisher.
 - Keep public release creation tag-driven; manual dispatch may only target an existing version tag.
 - Override Tauri's build configuration with the tag version rather than mutating tracked source versions.
