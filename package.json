@@ -64,6 +64,8 @@
     "package:rpm": "bash scripts/build-rpm-package.sh",
     "vm:native-packages": "bash scripts/native-package-vm.sh",
     "verify:native-vm-proof": "bash scripts/native-package-vm.sh verify-all",
+    "vm:promote-native-package-proof": "bash scripts/promote-native-package-vm-proof.sh",
+    "verify:native-package-proof-snapshot": "node scripts/verify-native-package-proof-snapshot.mjs",
     "verify:runtime": "bash scripts/verify-runtime.sh",
     "verify:scripts": "bash scripts/verify-scripts.sh",
     "verify:support-matrix": "node scripts/verify-support-matrix.mjs",

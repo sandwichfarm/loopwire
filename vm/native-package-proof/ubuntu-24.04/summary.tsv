@@ -1,0 +1,14 @@
+schema	loopwire.native-package-vm-proof.v1
+target	ubuntu-24.04
+package_target	ubuntu-24.04
+format	deb
+version	0.1.0
+git_head	70eee4ec433bb7d967931357cf77bd0c28056a35
+package	loopwire_0.1.0-1ubuntu24.04_amd64.deb
+package_sha256	b3e4498dc70d6a28e80b9ae30bd8e31d69f81017805e37561e926ff053141ad4
+virtualization	kvm
+background_help	pass
+backend_detection	pass
+gui_linkage	pass
+gui_launch	pass
+uninstall	pass

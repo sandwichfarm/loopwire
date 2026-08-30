@@ -70,12 +70,17 @@ the Tauri shell command bridge.
 | Source checkout | `pnpm check` | Supported for contributors. |
 | Signed curl installer | `pnpm verify:install`, `pnpm verify:release` | Blocked on tagged artifacts and public key. |
 | AppImage | Local Tauri bundle smoke | Blocked on release publishing. |
-| Ubuntu 24.04 / Debian 13 deb | Deterministic native builder; matching-guest KVM proof pending | Blocked on release publishing. |
-| Fedora 44 / openSUSE Tumbleweed RPM | Deterministic native builder; matching-guest KVM proof pending | Blocked on release publishing. |
+| Ubuntu 24.04 / Debian 13 deb | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Blocked on release publishing. |
+| Fedora 44 / openSUSE Tumbleweed RPM | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Blocked on release publishing. |
 | AUR `loopwire-bin` | `pnpm verify:aur` on Arch with `makepkg` | Blocked on tagged artifacts. |
 | Nix flake package template | `pnpm verify:packaging` | Blocked on real release hashes and Nix build proof. |
 
 The flake package output is `packages.<system>.loopwire-bin`; it uses fake hashes until published artifacts exist.
+
+Native package verification is narrower than audio-backend support. The committed snapshot proves that each official,
+checksum-pinned guest built and installed its target package, ran the packaged background/provider/backend commands,
+resolved GUI libraries, created a Loopwire X11 window under Xvfb, and removed all package-owned files. It does not
+promote any host-audio backend row or claim that the packages have been published.
 
 ## Desktop Integration
 

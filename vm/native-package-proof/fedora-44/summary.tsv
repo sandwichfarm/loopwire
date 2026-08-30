@@ -1,0 +1,14 @@
+schema	loopwire.native-package-vm-proof.v1
+target	fedora-44
+package_target	fedora-44
+format	rpm
+version	0.1.0
+git_head	70eee4ec433bb7d967931357cf77bd0c28056a35
+package	loopwire-0.1.0-1.fc44.x86_64.rpm
+package_sha256	ed22ec8b40a46080816bf355f5b6f3e35eb73ac2adf08b1e07cdea8d2a1f2cc7
+virtualization	kvm
+background_help	pass
+backend_detection	pass
+gui_linkage	pass
+gui_launch	pass
+uninstall	pass

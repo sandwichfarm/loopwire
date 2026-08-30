@@ -1,0 +1,239 @@
+{
+  "generatedAt": "2026-08-30T18:49:35.251Z",
+  "platform": "linux",
+  "reports": [
+    {
+      "kind": "pipewire",
+      "displayName": "PipeWire",
+      "availability": "unavailable",
+      "priority": 10,
+      "transport": "native",
+      "version": "1.4.2",
+      "operations": {
+        "detect": "implemented",
+        "enumerateDevices": "unavailable",
+        "createVirtualDevice": "unavailable",
+        "routeAudio": "unavailable",
+        "monitorAudio": "unavailable",
+        "apply": "unavailable",
+        "verify": "unavailable",
+        "rollback": "unavailable"
+      },
+      "mixing": {
+        "controlScope": "unavailable",
+        "supportsPerEdgeGain": false,
+        "supportsPerEdgeMute": false,
+        "warning": "No route controls are available because the backend is unavailable."
+      },
+      "gaps": [
+        "service unavailable"
+      ],
+      "diagnostics": [
+        {
+          "level": "warning",
+          "code": "PIPEWIRE_UNAVAILABLE",
+          "message": "PipeWire tools or service are not available. Probe result: E 18:49:35.266860             mod.rt ../src/modules/module-rt.c:294:pw_rtkit_bus_get: Failed to connect to session bus: Unable to autolaunch a dbus-daemon without a $DISPLAY for X11."
+        }
+      ],
+      "commands": [
+        {
+          "command": "pw-cli",
+          "args": [
+            "--version"
+          ],
+          "exitCode": 0,
+          "available": true,
+          "summary": "pw-cli"
+        },
+        {
+          "command": "wpctl",
+          "args": [
+            "status"
+          ],
+          "exitCode": 2,
+          "available": false,
+          "summary": "E 18:49:35.266860             mod.rt ../src/modules/module-rt.c:294:pw_rtkit_bus_get: Failed to connect to session bus: Unable to autolaunch a dbus-daemon without a $DISPLAY for X11"
+        },
+        {
+          "command": "pw-cli",
+          "args": [
+            "info",
+            "0"
+          ],
+          "exitCode": 255,
+          "available": false,
+          "summary": "Error: \"failed to connect: Host is down\""
+        }
+      ]
+    },
+    {
+      "kind": "pulseaudio",
+      "displayName": "PulseAudio",
+      "availability": "unavailable",
+      "priority": 20,
+      "transport": "compatibility",
+      "operations": {
+        "detect": "implemented",
+        "enumerateDevices": "unavailable",
+        "createVirtualDevice": "unavailable",
+        "routeAudio": "unavailable",
+        "monitorAudio": "unavailable",
+        "apply": "unavailable",
+        "verify": "unavailable",
+        "rollback": "unavailable"
+      },
+      "mixing": {
+        "controlScope": "unavailable",
+        "supportsPerEdgeGain": false,
+        "supportsPerEdgeMute": false,
+        "warning": "No route controls are available because the backend is unavailable."
+      },
+      "gaps": [
+        "service unavailable"
+      ],
+      "diagnostics": [
+        {
+          "level": "warning",
+          "code": "PULSEAUDIO_UNAVAILABLE",
+          "message": "PulseAudio pactl probe did not succeed. Probe result: Connection failure: Connection refused."
+        }
+      ],
+      "commands": [
+        {
+          "command": "pactl",
+          "args": [
+            "info"
+          ],
+          "exitCode": 1,
+          "available": false,
+          "summary": "Connection failure: Connection refused"
+        }
+      ]
+    },
+    {
+      "kind": "jack",
+      "displayName": "JACK",
+      "availability": "unavailable",
+      "priority": 30,
+      "transport": "bridge",
+      "operations": {
+        "detect": "implemented",
+        "enumerateDevices": "unavailable",
+        "createVirtualDevice": "unavailable",
+        "routeAudio": "unavailable",
+        "monitorAudio": "unavailable",
+        "apply": "unavailable",
+        "verify": "unavailable",
+        "rollback": "unavailable"
+      },
+      "mixing": {
+        "controlScope": "unavailable",
+        "supportsPerEdgeGain": false,
+        "supportsPerEdgeMute": false,
+        "warning": "No route controls are available because the backend is unavailable."
+      },
+      "gaps": [
+        "server unavailable"
+      ],
+      "diagnostics": [
+        {
+          "level": "warning",
+          "code": "JACK_UNAVAILABLE",
+          "message": "JACK tools or server are not available. Probe result: Cannot connect to server socket err = No such file or directory."
+        }
+      ],
+      "commands": [
+        {
+          "command": "jack_lsp",
+          "args": [],
+          "exitCode": 1,
+          "available": false,
+          "summary": "Cannot connect to server socket err = No such file or directory"
+        }
+      ]
+    },
+    {
+      "kind": "alsa",
+      "displayName": "ALSA",
+      "availability": "unavailable",
+      "priority": 40,
+      "transport": "hardware",
+      "operations": {
+        "detect": "implemented",
+        "enumerateDevices": "unavailable",
+        "createVirtualDevice": "unavailable",
+        "routeAudio": "unavailable",
+        "monitorAudio": "unavailable",
+        "apply": "unavailable",
+        "verify": "unavailable",
+        "rollback": "unavailable"
+      },
+      "mixing": {
+        "controlScope": "unavailable",
+        "supportsPerEdgeGain": false,
+        "supportsPerEdgeMute": false,
+        "warning": "No route controls are available because the backend is unavailable."
+      },
+      "gaps": [
+        "no playback or capture devices"
+      ],
+      "diagnostics": [
+        {
+          "level": "warning",
+          "code": "ALSA_UNAVAILABLE",
+          "message": "ALSA playback or capture devices were not listed."
+        }
+      ],
+      "commands": [
+        {
+          "command": "aplay",
+          "args": [
+            "-l"
+          ],
+          "exitCode": 0,
+          "available": true,
+          "summary": "ok"
+        },
+        {
+          "command": "arecord",
+          "args": [
+            "-l"
+          ],
+          "exitCode": 0,
+          "available": true,
+          "summary": "ok"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "kind": "pipewire",
+      "displayName": "PipeWire",
+      "availability": "unavailable",
+      "priority": 10,
+      "reason": "PipeWire tools or service are not available. Probe result: E 18:49:35.266860             mod.rt ../src/modules/module-rt.c:294:pw_rtkit_bus_get: Failed to connect to session bus: Unable to autolaunch a dbus-daemon without a $DISPLAY for X11."
+    },
+    {
+      "kind": "pulseaudio",
+      "displayName": "PulseAudio",
+      "availability": "unavailable",
+      "priority": 20,
+      "reason": "PulseAudio pactl probe did not succeed. Probe result: Connection failure: Connection refused."
+    },
+    {
+      "kind": "jack",
+      "displayName": "JACK",
+      "availability": "unavailable",
+      "priority": 30,
+      "reason": "JACK tools or server are not available. Probe result: Cannot connect to server socket err = No such file or directory."
+    },
+    {
+      "kind": "alsa",
+      "displayName": "ALSA",
+      "availability": "unavailable",
+      "priority": 40,
+      "reason": "ALSA playback or capture devices were not listed."
+    }
+  ]
+}

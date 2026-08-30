@@ -1,0 +1,1 @@
+Linux loopwire-opensuse-tumbleweed 7.2.0-1-default #1 SMP PREEMPT_DYNAMIC Wed Aug 19 00:46:07 UTC 2026 (2b1d628) x86_64 x86_64 x86_64 GNU/Linux

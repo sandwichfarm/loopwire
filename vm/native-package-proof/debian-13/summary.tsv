@@ -1,0 +1,14 @@
+schema	loopwire.native-package-vm-proof.v1
+target	debian-13
+package_target	debian-13
+format	deb
+version	0.1.0
+git_head	70eee4ec433bb7d967931357cf77bd0c28056a35
+package	loopwire_0.1.0-1debian13_amd64.deb
+package_sha256	dd4002cac5460d1de53eebaf2aab2eacd73f3407203599402f99b76d1e2031b2
+virtualization	kvm
+background_help	pass
+backend_detection	pass
+gui_linkage	pass
+gui_launch	pass
+uninstall	pass

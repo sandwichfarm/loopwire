@@ -1,0 +1,8 @@
+schema	loopwire.native-package-image.v1
+target	opensuse-tumbleweed
+distro	openSUSE Tumbleweed
+url	https://download.opensuse.org/tumbleweed/appliances/openSUSE-Tumbleweed-Minimal-VM.x86_64-Cloud.qcow2
+checksum_algorithm	sha256
+checksum	e80d2d1f9cfb328c79a5031d6a30f9744ec83824f6ba44c41ce831ff829a5dad
+actual_checksum	e80d2d1f9cfb328c79a5031d6a30f9744ec83824f6ba44c41ce831ff829a5dad
+firmware	bios

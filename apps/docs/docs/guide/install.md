@@ -88,14 +88,16 @@ Run the metadata smoke:
 pnpm verify:packaging
 ```
 
-The native package recipes are not yet a public install channel. Their matching-guest proof command boots official,
-checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
+The native package recipes are verified but are not yet a public install channel. Their matching-guest proof command
+boots official, checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
 
 ```bash
 pnpm vm:native-packages -- run-all --version 0.1.0 --release-dir .vm/native-packages/release
 ```
 
 See `packaging/README.md` for release-tarball creation, host prerequisites, exact target names, and evidence paths.
+The review-safe proof snapshot for commit `70eee4e` is under `vm/native-package-proof/`; package publication remains
+blocked until the tagged release ceremony succeeds.
 
 After signed release artifacts exist, render the concrete Nix package expression from the published checksum manifest:
 

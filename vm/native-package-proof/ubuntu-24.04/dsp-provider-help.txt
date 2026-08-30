@@ -1,0 +1,16 @@
+Loopwire file-backed DSP provider.
+
+Usage:
+  loopwire-dsp-provider capabilities
+  loopwire-dsp-provider read-source --source-id ID --channels N [--frames N] [--store-dir DIR]
+  loopwire-dsp-provider write-output --output-id ID --channels N --frames N --peak VALUE --configuration-id ID [--store-dir DIR]
+  loopwire-dsp-provider verify-output --output-id ID --channels N --frames N --peak VALUE --configuration-id ID [--store-dir DIR]
+  loopwire-dsp-provider clear-output --configuration-id ID --output-id ID [--store-dir DIR]
+  loopwire-dsp-provider seed-source --source-id ID --channels N --frames N [--value N] [--store-dir DIR]
+
+State defaults to LOOPWIRE_DSP_PROVIDER_DIR or XDG_STATE_HOME/loopwire/dsp-provider.
+capabilities prints provider metadata and declares supportsLiveGraph:false for this bundled file-backed provider.
+Set LOOPWIRE_DSP_PROVIDER_LIVE_SMOKE=1 only for isolated command-contract proof; it still does not capture or play
+real PipeWire/JACK audio.
+read-source prints {"missing":true} until a source is seeded.
+write-output and verify-output read Loopwire rendered-output JSON on stdin.

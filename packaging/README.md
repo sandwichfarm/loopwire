@@ -159,6 +159,16 @@ requires a Loopwire-named X11 window under Xvfb, runs packaged CLI/backend smoke
 ignored `.vm/native-packages/evidence/<target>/<commit>/`. Containers provide QEMU binaries only; they do not count as
 guest proof. `pnpm verify:native-vm-proof -- --git-head <commit>` rechecks all four proof directories.
 
+The first complete matrix passed at commit `70eee4ec433bb7d967931357cf77bd0c28056a35`. A review-safe, CI-checked subset
+is committed under `vm/native-package-proof/`; the raw packages, VM disks, console output, and full command logs remain
+ignored beneath `.vm/`. Recreate the snapshot only from fully verified raw evidence:
+
+```bash
+pnpm vm:promote-native-package-proof -- \
+  --git-head 70eee4ec433bb7d967931357cf77bd0c28056a35
+pnpm verify:native-package-proof-snapshot
+```
+
 ## Smoke
 
 Run:

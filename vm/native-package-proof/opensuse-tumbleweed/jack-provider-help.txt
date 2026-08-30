@@ -1,0 +1,22 @@
+Loopwire JACK virtual port provider wrapper.
+
+Usage:
+  loopwire-jack-ports ensure --configuration-id ID --requirement KIND:SOURCE:ENDPOINT:DEVICE:CHANNELS --port PORT...
+
+Options:
+  --manifest-file FILE       Record the provision plan. Defaults to XDG_STATE_HOME/loopwire/jack-ports-provision.json.
+  --delegate-command COMMAND Delegate live JACK client creation to COMMAND.
+  --delegate-mode MODE       foreground (default) waits for COMMAND; detached keeps a long-running provider alive.
+  --ready-delay-ms MS        Detached mode readiness delay before returning success. Default: 250.
+
+Environment:
+  LOOPWIRE_JACK_PORTS_MANIFEST   Default manifest path.
+  LOOPWIRE_JACK_PORTS_DELEGATE   Live provider command used when --delegate-command is omitted.
+  LOOPWIRE_JACK_PORTS_DELEGATE_MODE
+                                  Default delegate mode: foreground or detached.
+  LOOPWIRE_JACK_PORTS_READY_DELAY_MS
+                                  Default detached readiness delay in milliseconds.
+
+The bundled command never pretends to create JACK clients by itself. Without a delegate it records the exact plan and
+exits nonzero so live restore fails closed with an actionable message. Detached mode is for live JACK providers that
+must keep running for their ports to exist; Loopwire still re-runs jack_lsp after this wrapper returns.

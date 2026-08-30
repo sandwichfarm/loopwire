@@ -1,0 +1,8 @@
+schema	loopwire.native-package-image.v1
+target	ubuntu-24.04
+distro	Ubuntu 24.04 LTS
+url	https://cloud-images.ubuntu.com/releases/server/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img
+checksum_algorithm	sha256
+checksum	d0fe84bb5f80853425fa6be28e2c106f30104c3cfe8611933f2e65c9b63f0e30
+actual_checksum	d0fe84bb5f80853425fa6be28e2c106f30104c3cfe8611933f2e65c9b63f0e30
+firmware	bios

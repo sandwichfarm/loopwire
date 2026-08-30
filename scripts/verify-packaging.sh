@@ -58,6 +58,7 @@ bash scripts/install.sh --dry-run >/dev/null
 bash scripts/vm-matrix.sh validate >/dev/null
 bash scripts/native-package-vm.sh list >/dev/null
 bash scripts/verify-native-packaging.sh >/dev/null
+node scripts/verify-native-package-proof-snapshot.mjs >/dev/null
 
 tmp_dir="$(mktemp -d)"
 cleanup() {

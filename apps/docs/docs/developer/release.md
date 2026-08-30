@@ -457,7 +457,8 @@ The curl installer and binary package templates expect these files in each GitHu
 
 The Tauri AppImage is a release attachment. On x86_64, repository-owned Ubuntu, Debian, Fedora, and openSUSE native
 packages are built from the canonical tarball and replace Tauri's GUI-only deb/rpm outputs. Their recipes and KVM proof
-contract are documented in `packaging/README.md`.
+contract are documented in `packaging/README.md`; the four-target proof snapshot is under
+`vm/native-package-proof/`.
 
 The public docs asset `apps/docs/docs/public/install.sh` is kept byte-for-byte synchronized with `scripts/install.sh`.
 That makes `https://loopwire.app/install.sh` deployable through the VitePress/Bunny.net docs pipeline without creating a
