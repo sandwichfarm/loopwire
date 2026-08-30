@@ -55,8 +55,6 @@ Environment fallback:
 
 Env files:
   --env-file accepts simple KEY=VALUE lines for the same environment names above.
-  Values are taken literally after the first = byte; shell-style quote parsing is
-  intentionally not applied so the entered bytes reach GitHub unchanged.
   It also accepts LOOPWIRE_RELEASE_PRIVATE_KEY_FILE for a local private-key path.
   Command-line flags override env-file values.
   --print-env-template prints the committed no-value template accepted by --env-file.
@@ -282,43 +280,37 @@ validate_storage_zone() {
   esac
 }
 
-validate_storage_endpoint() {
+normalize_endpoint() {
   endpoint="$1"
   reject_unsafe_value "$endpoint" "storage endpoint"
 
   case "$endpoint" in
-    https://*)
+    http://* | https://*)
       ;;
     *)
-      fail "storage endpoint must start with https:// and must be passed exactly as GitHub should store it"
+      endpoint="https://${endpoint}"
       ;;
   esac
 
-  case "$endpoint" in
-    */)
-      fail "storage endpoint must not end with a slash"
-      ;;
-  esac
+  printf '%s\n' "${endpoint%/}"
 }
 
-validate_remote_prefix() {
+normalize_prefix() {
   prefix="$1"
   reject_unsafe_value "$prefix" "remote prefix"
-
-  case "$prefix" in
-    /* | */)
-      fail "remote prefix must not start or end with a slash; pass the exact stored value"
-      ;;
-  esac
+  prefix="${prefix#/}"
+  prefix="${prefix%/}"
 
   case "$prefix" in
     "." | ".." | ./* | ../* | */../* | */.. | */./* | */.)
       fail "remote prefix must not contain . or .. path segments"
       ;;
   esac
+
+  printf '%s\n' "$prefix"
 }
 
-validate_pull_zone_hostname() {
+normalize_pull_zone_hostname() {
   hostname="$1"
   reject_unsafe_value "$hostname" "pull-zone hostname"
 
@@ -327,11 +319,30 @@ validate_pull_zone_hostname() {
       fail "pull-zone hostname must be a hostname, not a URL or path"
       ;;
   esac
+
+  printf '%s\n' "$hostname"
 }
 
 env_value_for_log() {
   key="$1"
   printf '%s\n' "env-file value for ${key}"
+}
+
+strip_wrapping_quotes() {
+  value="$1"
+
+  case "$value" in
+    \"*\")
+      value="${value#\"}"
+      value="${value%\"}"
+      ;;
+    \'*\')
+      value="${value#\'}"
+      value="${value%\'}"
+      ;;
+  esac
+
+  printf '%s\n' "$value"
 }
 
 assign_env_file_value() {
@@ -405,6 +416,7 @@ load_env_file() {
         ;;
     esac
 
+    value="$(strip_wrapping_quotes "$value")"
     assign_env_file_value "$key" "$value"
   done <"$env_file"
 }
@@ -895,7 +907,7 @@ prompt_missing_inputs_for_set_scope() {
       false \
       false \
       "" \
-      "Optional Bunny storage endpoint override, for example https://ny.storage.bunnycdn.com. Enter the exact https URL GitHub should store."
+      "Optional Bunny storage endpoint override, for example ny.storage.bunnycdn.com."
 
     prompt_line \
       "BUNNY_REMOTE_PREFIX" \
@@ -903,7 +915,7 @@ prompt_missing_inputs_for_set_scope() {
       false \
       false \
       "" \
-      "Optional remote path prefix for docs deployment. Enter the exact stored value without leading or trailing slashes or traversal segments."
+      "Optional remote path prefix for docs deployment, without leading slash or traversal segments."
   fi
 }
 
@@ -949,15 +961,15 @@ validate_requested_secret_set() {
   fi
 
   if [ -n "$storage_endpoint" ]; then
-    validate_storage_endpoint "$storage_endpoint"
+    storage_endpoint="$(normalize_endpoint "$storage_endpoint")"
   fi
 
   if [ -n "$pull_zone_hostname" ]; then
-    validate_pull_zone_hostname "$pull_zone_hostname"
+    pull_zone_hostname="$(normalize_pull_zone_hostname "$pull_zone_hostname")"
   fi
 
   if [ -n "$remote_prefix" ]; then
-    validate_remote_prefix "$remote_prefix"
+    remote_prefix="$(normalize_prefix "$remote_prefix")"
   fi
 }
 

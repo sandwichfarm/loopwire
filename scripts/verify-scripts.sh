@@ -406,7 +406,7 @@ release_handoff_env_file="$(mktemp)"
 cat >"$release_handoff_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
-BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-preview
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
@@ -2911,7 +2911,7 @@ prepare_vm_release_env_file="$(mktemp)"
 cat >"$prepare_vm_release_env_file" <<'EOF'
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
-BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-preview
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=/secure/env-loopwire-release-private.pem
@@ -5416,7 +5416,7 @@ github_secret_dry_run="$(
     --storage-zone loopwire-docs \
     --access-key dry-run-access-key \
     --pull-zone-hostname docs.example.test \
-    --storage-endpoint https://ny.storage.bunnycdn.com \
+    --storage-endpoint ny.storage.bunnycdn.com \
     --remote-prefix private-prefix-value \
     --release-private-key-file "$tmp_secret_file" \
     --release-public-key-file "$tmp_secret_public_key" \
@@ -5436,7 +5436,7 @@ cat >"$github_secret_env_file" <<EOF
 # Local release-secret inputs. Values must never be committed.
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key
-BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-private-prefix
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$tmp_secret_file
@@ -7546,7 +7546,7 @@ secret_set_output="$(
       --storage-zone loopwire-docs \
       --access-key dry-run-access-key \
       --pull-zone-hostname docs.example.test \
-      --storage-endpoint https://ny.storage.bunnycdn.com \
+      --storage-endpoint ny.storage.bunnycdn.com \
       --remote-prefix private-prefix-value \
       --release-private-key-file "$tmp_secret_file" \
       --release-public-key-file "$tmp_secret_public_key"
@@ -7573,7 +7573,7 @@ grep -F "docs.example.test" "$fake_secret_set_dir/BUNNY_PULL_ZONE_HOSTNAME" >/de
   exit 1
 }
 grep -F "https://ny.storage.bunnycdn.com" "$fake_secret_set_dir/BUNNY_STORAGE_ENDPOINT" >/dev/null || {
-  echo "verify-scripts: GitHub secret helper did not preserve and write the storage endpoint" >&2
+  echo "verify-scripts: GitHub secret helper did not normalize and write the storage endpoint" >&2
   exit 1
 }
 grep -F "private-prefix-value" "$fake_secret_set_dir/BUNNY_REMOTE_PREFIX" >/dev/null || {
@@ -7842,57 +7842,6 @@ grep -F "docs.env.example.test" "$fake_secret_env_set_dir/BUNNY_PULL_ZONE_HOSTNA
 }
 cmp -s "$tmp_secret_file" "$fake_secret_env_set_dir/LOOPWIRE_RELEASE_PRIVATE_KEY" || {
   echo "verify-scripts: GitHub secret helper did not write env-file release private key through stdin" >&2
-  exit 1
-}
-quoted_env_secret_file="$tmp_dir/setup-github-secrets-quoted.env"
-cat >"$quoted_env_secret_file" <<EOF
-BUNNY_STORAGE_ZONE=quoted-loopwire-docs
-BUNNY_ACCESS_KEY="quoted-access-key"
-EOF
-quoted_env_secret_set_dir="$tmp_dir/fake-gh-secret-quoted-env-set"
-quoted_env_secret_output="$(
-  LOOPWIRE_FAKE_GH_SET_DIR="$quoted_env_secret_set_dir" \
-    PATH="$fake_gh_dir:$PATH" \
-    bash scripts/setup-github-secrets.sh \
-      --repo sandwichfarm/loopwire \
-      --scope deploy \
-      --env-file "$quoted_env_secret_file"
-)"
-printf '%s\n' "$quoted_env_secret_output" | grep -F "GitHub deployment/release secrets set for sandwichfarm/loopwire." \
-  >/dev/null || {
-    echo "verify-scripts: GitHub secret helper did not report successful quoted env-file fake writes" >&2
-    exit 1
-  }
-grep -F '"quoted-access-key"' "$quoted_env_secret_set_dir/BUNNY_ACCESS_KEY" >/dev/null || {
-  echo "verify-scripts: GitHub secret helper stripped literal quotes from env-file input" >&2
-  exit 1
-}
-invalid_endpoint_secret_log="$tmp_dir/setup-github-secrets-invalid-endpoint.log"
-if bash scripts/setup-github-secrets.sh \
-  --repo sandwichfarm/loopwire \
-  --scope deploy \
-  --storage-zone loopwire-docs \
-  --access-key access-key \
-  --storage-endpoint ny.storage.bunnycdn.com >"$invalid_endpoint_secret_log" 2>&1; then
-  echo "verify-scripts: GitHub secret helper accepted a storage endpoint without https://" >&2
-  exit 1
-fi
-grep -F "storage endpoint must start with https://" "$invalid_endpoint_secret_log" >/dev/null || {
-  echo "verify-scripts: GitHub secret helper did not explain the exact storage endpoint requirement" >&2
-  exit 1
-}
-invalid_prefix_secret_log="$tmp_dir/setup-github-secrets-invalid-prefix.log"
-if bash scripts/setup-github-secrets.sh \
-  --repo sandwichfarm/loopwire \
-  --scope deploy \
-  --storage-zone loopwire-docs \
-  --access-key access-key \
-  --remote-prefix /leading/slash >"$invalid_prefix_secret_log" 2>&1; then
-  echo "verify-scripts: GitHub secret helper accepted a slash-prefixed remote prefix" >&2
-  exit 1
-fi
-grep -F "remote prefix must not start or end with a slash" "$invalid_prefix_secret_log" >/dev/null || {
-  echo "verify-scripts: GitHub secret helper did not explain the exact remote prefix requirement" >&2
   exit 1
 }
 release_readiness_secret_failure_log="$tmp_dir/release-readiness-secret-failure.log"
@@ -9231,7 +9180,7 @@ vm_release_env_file="$tmp_dir/vm-evidence-release.env"
 cat >"$vm_release_env_file" <<EOF
 BUNNY_STORAGE_ZONE=env-loopwire-docs
 BUNNY_ACCESS_KEY=env-access-key-that-must-not-print
-BUNNY_STORAGE_ENDPOINT=https://ny.storage.bunnycdn.com
+BUNNY_STORAGE_ENDPOINT=ny.storage.bunnycdn.com
 BUNNY_PULL_ZONE_HOSTNAME=docs.env.example.test
 BUNNY_REMOTE_PREFIX=env-preview
 LOOPWIRE_RELEASE_PRIVATE_KEY_FILE=$private_key_file
