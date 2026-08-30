@@ -27,6 +27,7 @@ fail() {
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --) shift ;;
     --target) target="${2:?missing value for --target}"; shift 2 ;;
     --version) version="${2:?missing value for --version}"; shift 2 ;;
     --arch) arch="${2:?missing value for --arch}"; shift 2 ;;

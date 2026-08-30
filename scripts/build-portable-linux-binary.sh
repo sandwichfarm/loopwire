@@ -23,6 +23,7 @@ fail() {
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --) shift ;;
     --output) output="${2:?missing value for --output}"; shift 2 ;;
     --image-tag) image_tag="${2:?missing value for --image-tag}"; shift 2 ;;
     -h | --help) usage; exit 0 ;;

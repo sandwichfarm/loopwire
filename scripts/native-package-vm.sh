@@ -329,6 +329,9 @@ verify_target() {
 cd "$root"
 validate_manifest
 
+if [ "${1:-}" = "--" ]; then
+  shift
+fi
 command="${1:-}"
 [ -n "$command" ] || { usage; exit 2; }
 shift

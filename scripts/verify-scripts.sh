@@ -71,6 +71,22 @@ node --check scripts/e2e-desktop-shell.mjs
 node --check scripts/verify-support-matrix.mjs
 node --check scripts/verify-vm-evidence-archive-manifest.mjs
 node --check scripts/verify-native-package-vm-proof.mjs
+bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
+  echo "verify-scripts: portable builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/build-deb-package.sh -- --help | grep -Fq -- "--target ubuntu-24.04|debian-13" || {
+  echo "verify-scripts: deb builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/build-rpm-package.sh -- --help | grep -Fq -- "--target fedora-44|opensuse-tumbleweed" || {
+  echo "verify-scripts: RPM builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/native-package-vm.sh -- list | grep -Fq -- "opensuse-tumbleweed" || {
+  echo "verify-scripts: native VM runner does not accept the package-script separator" >&2
+  exit 1
+}
 node -e '
 const root = require("./package.json");
 const audioHost = require("./packages/audio-host/package.json");
