@@ -17,6 +17,7 @@ verified against the host audio graph.
 
 ### Validated
 
+- [x] Cross-platform, exact-byte GitHub Actions variable and secret setup with guided prompts (v0.5 Phase 19).
 - [x] Concise README, Astro homepage, and VitePress guides mounted at `/docs/` (v0.4 Phase 18).
 - [x] Combined static artifact with protected Bunny CI/CT/CD verification (v0.4 Phase 18).
 - [x] Endpoint kind metadata drives icons, menu grouping, and per-kind options (v0.3 Phase 13).
@@ -30,8 +31,6 @@ verified against the host audio graph.
 
 ### Active
 
-- [ ] Configure GitHub Actions variables and secrets through a portable, exact-byte, prompt-driven operator command
-  (v0.5 Phase 19).
 - [ ] Prove release artifacts through published install smoke and VM evidence (v0.2 Phase 12; blocked on signing/publishing infrastructure).
 
 ### Out of Scope
@@ -68,8 +67,9 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 
 ## Current State
 
-**Active:** v0.5 GitHub Operator Setup hardens the user-owned credentials/configuration handoff for CI/CD and final
-release proof. Open carry-over: v0.2 Phase 12 (published release + VM proof).
+**Ready for review:** v0.5 GitHub Operator Setup is implemented in PR #9 with cross-platform prompts, exact-byte
+transport tests, workflow variable migration, release handoff integration, and security review. Open carry-over: v0.2
+Phase 12 (published release + VM proof).
 
 ## Previous Milestone: v0.3 Seed Harvest
 

@@ -145,6 +145,10 @@ for requirement in WEB-01 WEB-02 WEB-03 WEB-04 WEB-05; do
   assert_requirement_checked "$requirement"
 done
 
+for requirement in OPS-01 OPS-02 OPS-03 OPS-04 OPS-05; do
+  assert_requirement_checked "$requirement"
+done
+
 for requirement in SHIP-01 SHIP-02 SHIP-03; do
   assert_requirement_pending "$requirement"
 done

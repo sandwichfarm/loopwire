@@ -123,13 +123,13 @@ Archived: [milestones/v0.3-REQUIREMENTS.md](milestones/v0.3-REQUIREMENTS.md)
 
 ## v0.5 Requirements (GitHub Operator Setup)
 
-- [ ] **OPS-01**: Operator can configure GitHub Actions variables and secrets through guided prompts on Windows,
+- [x] **OPS-01**: Operator can configure GitHub Actions variables and secrets through guided prompts on Windows,
   macOS, and Linux.
-- [ ] **OPS-02**: Every prompt names the GitHub storage type and explains where to find or generate the value.
-- [ ] **OPS-03**: Exact entered bytes reach `gh` without trimming, appending, truncation, concatenation, shell expansion,
+- [x] **OPS-02**: Every prompt names the GitHub storage type and explains where to find or generate the value.
+- [x] **OPS-03**: Exact entered bytes reach `gh` without trimming, appending, truncation, concatenation, shell expansion,
   or log disclosure.
-- [ ] **OPS-04**: All local/remote preflight succeeds before mutation, and failures report written names without values.
-- [ ] **OPS-05**: Workflows consume public configuration from Actions variables and sensitive material from secrets.
+- [x] **OPS-04**: All local/remote preflight succeeds before mutation, and failures report written names without values.
+- [x] **OPS-05**: Workflows consume public configuration from Actions variables and sensitive material from secrets.
 
 **Traceability:** OPS-01..OPS-05 map to Phase 19 and issue #5.
 
