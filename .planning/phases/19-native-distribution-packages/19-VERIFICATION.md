@@ -18,6 +18,8 @@
 | Install/runtime/GUI/uninstall proof | Per-target summary, metadata/files, detector, ldd, X11 window, uninstall | Passed |
 | Official image provenance | Per-target `image.tsv` URL and matching expected/actual digest | Passed |
 | Exact commit/package binding | Per-target `summary.tsv`, `git-head.txt`, `package.sha256` | Passed |
+| PR-tip equivalence | Snapshot verifier rejects changes to any package/runtime/proof-critical path after `70eee4e` | Passed |
+| Release proof gate | Native release staging runs the snapshot verifier before building attachments | Passed |
 
 ## Commands
 

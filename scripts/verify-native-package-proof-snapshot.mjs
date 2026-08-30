@@ -140,4 +140,34 @@ try {
   fail(`tested commit is not an ancestor of HEAD: ${sharedCommit}`);
 }
 
+const proofCriticalPaths = [
+  "apps/desktop/package.json",
+  "apps/desktop/src",
+  "apps/desktop/src-tauri",
+  "packages/audio-host",
+  "packages/core",
+  "packaging/common",
+  "packaging/deb",
+  "packaging/rpm",
+  "packaging/vm/Dockerfile.portable-build",
+  "packaging/vm/Dockerfile.qemu",
+  "packaging/vm/guest-native-package-smoke.sh",
+  "packaging/vm/native-package-targets.tsv",
+  "pnpm-lock.yaml",
+  "scripts/build-deb-package.sh",
+  "scripts/build-portable-linux-binary.sh",
+  "scripts/build-rpm-package.sh",
+  "scripts/detect-audio-backends.mjs",
+  "scripts/extract-safe-tar.sh",
+  "scripts/package-release.sh",
+  "scripts/restore-background.mjs",
+];
+try {
+  execFileSync("git", ["diff", "--quiet", `${sharedCommit}..HEAD`, "--", ...proofCriticalPaths], {
+    stdio: "ignore",
+  });
+} catch {
+  fail(`package or proof-critical inputs changed after tested commit: ${sharedCommit}`);
+}
+
 console.log(`Native package proof snapshot verified: ${manifest.length} targets at ${sharedCommit}`);

@@ -169,6 +169,11 @@ pnpm vm:promote-native-package-proof -- \
 pnpm verify:native-package-proof-snapshot
 ```
 
+The snapshot verifier also compares every package/runtime/proof-critical path against the tested commit. The release
+stager calls it before building native attachments, so a later package, desktop runtime, release payload, image
+manifest, guest smoke, or raw-verifier change blocks release until the four-guest proof is refreshed. Documentation and
+snapshot-promotion tooling may advance independently because they do not change the package exercised by the guests.
+
 ## Smoke
 
 Run:

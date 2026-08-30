@@ -122,6 +122,7 @@ if [ "$native_packages" = "true" ]; then
     echo "Native distro packages are currently verified only for x86_64." >&2
     exit 1
   fi
+  node scripts/verify-native-package-proof-snapshot.mjs >/dev/null
   for target in ubuntu-24.04 debian-13; do
     bash scripts/build-deb-package.sh \
       --target "$target" \

@@ -104,6 +104,8 @@ const expected = expectedTargets[target];
 if (!expected) fail(`unsupported target: ${target}`);
 
 const summary = parseTsvMap(await textFile(evidenceDir, "summary.tsv"), "summary.tsv");
+if (!(await textFile(evidenceDir, "commands.log")).trim()) fail("commands.log is empty");
+if (!(await textFile(evidenceDir, "console.log")).trim()) fail("console.log is empty");
 requireValue(summary, "schema", "loopwire.native-package-vm-proof.v1", "summary.tsv");
 requireValue(summary, "target", id, "summary.tsv");
 requireValue(summary, "package_target", packageTarget, "summary.tsv");
