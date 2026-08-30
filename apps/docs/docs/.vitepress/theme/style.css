@@ -1,32 +1,67 @@
 :root {
-  --vp-c-brand-1: #7fe3e7;
-  --vp-c-brand-2: #d7ff70;
-  --vp-c-brand-3: #9ff0f2;
-  --vp-c-bg: #071014;
-  --vp-c-bg-alt: #0a171d;
-  --vp-c-bg-soft: #112129;
-  --vp-c-bg-elv: #0f1d25;
-  --vp-c-text-1: #eef8fa;
-  --vp-c-text-2: rgba(238, 248, 250, 0.78);
-  --vp-c-text-3: rgba(238, 248, 250, 0.56);
+  --vp-c-brand-1: #c1ff52;
+  --vp-c-brand-2: #8be6d8;
+  --vp-c-brand-3: #e5ffac;
+  --vp-c-brand-soft: rgba(193, 255, 82, 0.18);
+  --vp-c-bg: #05090b;
+  --vp-c-bg-alt: #0a110d;
+  --vp-c-bg-soft: #101814;
+  --vp-c-bg-elv: #131b17;
+  --vp-c-text-1: #f5f8f1;
+  --vp-c-text-2: rgba(245, 248, 241, 0.76);
+  --vp-c-text-3: rgba(245, 248, 241, 0.54);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #f5f8f1 0%, #c1ff52 58%, #8be6d8 100%);
+  --vp-home-hero-image-background-image: radial-gradient(circle at center, rgba(193, 255, 82, 0.18), rgba(139, 230, 216, 0.08));
+  --vp-home-hero-image-filter: drop-shadow(0 26px 80px rgba(0, 0, 0, 0.36));
   --vp-font-family-base: "Avenir Next", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif;
   --vp-font-family-mono: "Berkeley Mono", "Cascadia Code", "SFMono-Regular", monospace;
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(135deg, #eef8fa 0%, #7fe3e7 70%, #d7ff70 100%);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top center, rgba(193, 255, 82, 0.12), transparent 24%),
+    radial-gradient(circle at 88% 10%, rgba(139, 230, 216, 0.12), transparent 16%),
+    linear-gradient(180deg, #0a110d 0%, #070b0a 40%, #05090b 100%);
 }
 
 .Layout {
-  background:
-    radial-gradient(circle at top center, rgba(127, 227, 231, 0.1), transparent 24%),
-    linear-gradient(180deg, #071014 0%, #081319 42%, #050b0e 100%);
+  background: transparent;
+}
+
+.Layout::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), transparent 84%);
 }
 
 .VPNav {
-  border-bottom: 1px solid rgba(127, 227, 231, 0.14);
-  background: rgba(7, 16, 20, 0.82);
+  border-bottom: 1px solid rgba(193, 255, 82, 0.12);
+  background: rgba(5, 9, 11, 0.76);
   backdrop-filter: blur(18px);
 }
 
+.VPNavBarTitle .title {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.VPSidebar {
+  background: rgba(7, 11, 10, 0.82);
+}
+
+.VPDoc,
 .VPHome {
   position: relative;
 }
@@ -34,57 +69,132 @@
 .VPHome::before {
   position: absolute;
   inset: 0 0 auto;
-  height: 560px;
+  height: 520px;
   content: "";
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(127, 227, 231, 0.08), transparent 62%),
-    radial-gradient(circle at top center, rgba(215, 255, 112, 0.09), transparent 30%);
+    linear-gradient(180deg, rgba(193, 255, 82, 0.08), transparent 64%),
+    radial-gradient(circle at top center, rgba(139, 230, 216, 0.1), transparent 28%);
 }
 
 .VPHomeHero .container {
-  padding-top: 48px;
+  padding-top: 40px;
 }
 
 .VPHomeHero .name,
-.VPHomeHero .text {
+.VPHomeHero .text,
+.VPFeature .title {
   font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
   letter-spacing: -0.04em;
 }
 
+.VPHomeHero .text {
+  max-width: 12ch;
+  line-height: 0.95;
+}
+
 .VPHomeHero .tagline {
-  max-width: 42rem;
+  max-width: 40rem;
   color: var(--vp-c-text-2);
+  font-size: 1.05rem;
 }
 
-.VPHomeHero .image-container {
-  border: 1px solid rgba(127, 227, 231, 0.18);
-  border-radius: 24px;
-  background: rgba(8, 18, 24, 0.82);
-  box-shadow: 0 30px 120px rgba(0, 0, 0, 0.34);
+.VPHomeHero .actions {
+  gap: 10px;
 }
 
-.VPHomeHero .image-src {
-  border-radius: 18px;
+.VPButton {
+  border-radius: 999px;
 }
 
 .VPButton.brand {
-  color: #071014;
+  color: #081108;
   border-color: transparent;
-  background: #7fe3e7;
+  background: linear-gradient(135deg, #c1ff52 0%, #e5ffac 100%);
 }
 
 .VPButton.alt {
-  border-color: rgba(127, 227, 231, 0.24);
+  border-color: rgba(193, 255, 82, 0.22);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.VPButton.alt:hover {
+  border-color: rgba(193, 255, 82, 0.42);
+  background: rgba(193, 255, 82, 0.08);
+}
+
+.VPHomeHero .image-container,
+.VPFeature {
+  border: 1px solid rgba(193, 255, 82, 0.14);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(18, 27, 24, 0.94), rgba(9, 15, 13, 0.88)),
+    radial-gradient(circle at top left, rgba(193, 255, 82, 0.08), transparent 32%);
+  box-shadow: 0 34px 120px rgba(0, 0, 0, 0.34);
+}
+
+.VPHomeHero .image-src {
+  border-radius: 20px;
+}
+
+.VPFeatures {
+  padding-bottom: 60px;
 }
 
 .VPFeature {
-  border: 1px solid rgba(127, 227, 231, 0.14);
-  background: rgba(8, 18, 24, 0.82);
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  .VPHomeHero .container {
-    padding-top: 24px;
+.VPFeature .details {
+  color: var(--vp-c-text-2);
+}
+
+.VPDoc .content-container,
+.VPDocAside .content {
+  background: rgba(9, 14, 12, 0.56);
+  border: 1px solid rgba(193, 255, 82, 0.08);
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+}
+
+.VPDoc .content-container {
+  padding: 12px 24px 32px;
+}
+
+.VPDocAside .content {
+  padding: 16px;
+}
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+.vp-doc a {
+  text-underline-offset: 0.18em;
+}
+
+.vp-doc div[class*='language-'] {
+  border: 1px solid rgba(139, 230, 216, 0.16);
+  border-radius: 20px;
+  background: rgba(3, 6, 5, 0.92);
+}
+
+.outline-link.active {
+  color: var(--vp-c-brand-1);
+}
+
+@media (max-width: 960px) {
+  .VPDoc .content-container,
+  .VPDocAside .content {
+    border-radius: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

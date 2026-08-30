@@ -4,7 +4,7 @@ import screenshot from "../../../../assets/product-screenshot.png";
 
 const title = "Loopwire | Linux virtual audio routing";
 const description =
-  "PipeWire-first virtual audio routing for Linux with named devices, honest backend limits, and a desktop UI that keeps the graph visible.";
+  "A Linux virtual audio router that keeps the graph visible, keeps backend limits honest, and keeps restore paths scriptable.";
 const siteUrl = Astro.site ?? new URL("https://loopwire.app");
 const canonical = new URL("/", siteUrl).toString();
 const ogImage = new URL(screenshot.src, siteUrl).toString();
@@ -12,11 +12,16 @@ const sourceInstall = `git clone https://github.com/sandwichfarm/loopwire
 cd loopwire
 pnpm install
 pnpm check`;
-const capabilities = [
-  ["PipeWire", "First-class routing path"],
-  ["PulseAudio", "Compatibility adapter"],
-  ["JACK", "Existing-port bridge"],
-  ["ALSA", "Diagnostics and hardware discovery"]
+const proofItems = [
+  ["PipeWire first", "Reference backend with visible graph state and named routes."],
+  ["Preview before apply", "Separate saved routing from host mutations so unsupported paths stay explicit."],
+  ["Restore that can be audited", "Desktop autostart, background restore, and release evidence stay scriptable."],
+  ["Limits shown in plain view", "PulseAudio, JACK, and ALSA gaps stay documented instead of being faked away."]
+];
+const stats = [
+  ["Primary target", "PipeWire desktops"],
+  ["Fallback story", "PulseAudio, JACK, ALSA"],
+  ["Current install", "Source-first"]
 ];
 const applicationJsonLd = {
   "@context": "https://schema.org",
@@ -43,54 +48,79 @@ const applicationJsonLd = {
 
   <main class="shell">
     <section class="hero">
-      <p class="eyebrow">Linux virtual audio routing</p>
-      <h1>Loopwire</h1>
-      <p class="summary">
-        PipeWire-first virtual audio routing with named devices, saved mixes, and startup restore for Linux desktops
-        that need the routing graph visible instead of hidden in terminal state.
-      </p>
+      <div class="hero-copy">
+        <p class="eyebrow">Linux audio routing</p>
+        <h1>Loopwire</h1>
+        <p class="summary">
+          Patch Linux audio like the platform should have shipped: visible routes, named devices, saved mixes,
+          startup restore, and backend diagnostics that tell the truth.
+        </p>
 
-      <nav class="links" aria-label="Primary links">
-        <a class="link primary" href="/docs/">Docs</a>
-        <a class="link" href="https://github.com/sandwichfarm/loopwire">GitHub</a>
-        <a class="link" href="https://github.com/sandwichfarm/loopwire/releases">Releases</a>
-      </nav>
+        <nav class="links" aria-label="Primary links">
+          <a class="link primary" href="/docs/guide/install.html">Install</a>
+          <a class="link" href="/docs/">Docs</a>
+          <a class="link" href="https://github.com/sandwichfarm/loopwire">GitHub</a>
+        </nav>
 
-      <div class="install-card" aria-labelledby="source-install-heading">
-        <div class="install-copy">
-          <div>
-            <p id="source-install-heading" class="install-label">Current source install</p>
-            <p class="install-note">Pre-release today. Signed public artifacts and the curl installer stay gated until the release workflow, Bunny deploy, and VM proof pass.</p>
+        <div class="command-card" aria-labelledby="source-install-heading">
+          <div class="command-copy">
+            <div>
+              <p id="source-install-heading" class="command-label">Current source install</p>
+              <p class="command-note">
+                August 30, 2026: public `curl | bash` stays staged behind signed release artifacts. Today’s honest
+                path is source install plus docs.
+              </p>
+            </div>
+            <button type="button" class="copy-button" data-copy-install>
+              Copy command
+            </button>
           </div>
-          <button type="button" class="copy-button" data-copy-install>
-            Copy command
-          </button>
+          <pre><code id="source-install-command">{sourceInstall}</code></pre>
+          <p id="copy-status" class="sr-only" aria-live="polite"></p>
         </div>
-        <pre><code id="source-install-command">{sourceInstall}</code></pre>
-        <p id="copy-status" class="sr-only" aria-live="polite"></p>
+
+        <ul class="stat-row" aria-label="Current product status">
+          {
+            stats.map(([label, value]) => (
+              <li>
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </li>
+            ))
+          }
+        </ul>
       </div>
 
-      <ul class="capability-row" aria-label="Current capability status">
-        {
-          capabilities.map(([label, value]) => (
-            <li>
-              <span>{label}</span>
-              <strong>{value}</strong>
-            </li>
-          ))
-        }
-      </ul>
+      <figure class="shot">
+        <div class="shot-frame">
+          <img
+            src={screenshot.src}
+            width={screenshot.width}
+            height={screenshot.height}
+            alt="Loopwire desktop shell showing one saved device, browser and microphone sources, output channels, and monitor destinations connected by visible routes."
+          />
+        </div>
+        <figcaption>One device, visible sources, explicit buses, and monitors you can reason about at a glance.</figcaption>
+      </figure>
     </section>
 
-    <figure class="shot">
-      <img
-        src={screenshot.src}
-        width={screenshot.width}
-        height={screenshot.height}
-        alt="Loopwire desktop shell showing one saved device, browser and microphone sources, output channels, and monitor destinations connected by visible routes."
-      />
-      <figcaption>Current desktop shell: saved device, visible routes, source cards, outputs, and monitors.</figcaption>
-    </figure>
+    <section class="proof" aria-labelledby="proof-heading">
+      <div class="section-heading">
+        <p class="section-kicker">Why it feels different</p>
+        <h2 id="proof-heading">The graph stays visible.</h2>
+      </div>
+
+      <div class="proof-grid">
+        {
+          proofItems.map(([title, detail]) => (
+            <article class="proof-card">
+              <h3>{title}</h3>
+              <p>{detail}</p>
+            </article>
+          ))
+        }
+      </div>
+    </section>
   </main>
 
   <script is:inline>
@@ -119,265 +149,279 @@ const applicationJsonLd = {
 
 <style>
   .shell {
-    width: min(1180px, calc(100vw - 32px));
+    width: min(1220px, calc(100vw - 32px));
     min-height: 100vh;
     margin: 0 auto;
-    padding: 32px 0 40px;
+    padding: 28px 0 54px;
     display: grid;
-    align-content: center;
-    gap: 22px;
+    gap: 28px;
   }
 
   .hero,
-  .shot {
+  .proof {
     animation: rise 520ms ease both;
   }
 
   .hero {
     display: grid;
-    justify-items: center;
-    gap: 0;
-    padding: clamp(32px, 6vw, 72px) clamp(18px, 4vw, 42px);
-    text-align: center;
-    border: 1px solid var(--panel-border);
-    border-radius: 28px;
-    background:
-      linear-gradient(180deg, rgba(10, 25, 30, 0.92), rgba(8, 17, 22, 0.86)),
-      radial-gradient(circle at top center, rgba(215, 255, 112, 0.08), transparent 36%);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(16px);
+    grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.98fr);
+    gap: 22px;
+    align-items: stretch;
   }
 
-  .eyebrow {
-    margin: 0 0 18px;
-    padding: 7px 12px;
-    color: var(--accent-warm);
-    font-size: 0.77rem;
+  .hero-copy,
+  .shot,
+  .proof-card {
+    border: 1px solid var(--panel-border);
+    border-radius: 30px;
+    background:
+      linear-gradient(180deg, rgba(18, 27, 24, 0.94), rgba(9, 15, 13, 0.88)),
+      radial-gradient(circle at top left, rgba(193, 255, 82, 0.08), transparent 32%);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+  }
+
+  .hero-copy {
+    padding: clamp(26px, 4vw, 44px);
+  }
+
+  .eyebrow,
+  .section-kicker,
+  .command-label {
+    margin: 0;
+    color: var(--accent);
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    border: 1px solid rgba(215, 255, 112, 0.24);
-    border-radius: 999px;
-    background: rgba(215, 255, 112, 0.06);
   }
 
   h1 {
-    margin: 0;
+    margin: 14px 0 0;
     font-family: var(--display-font);
-    font-size: clamp(4.5rem, 17vw, 9.8rem);
+    font-size: clamp(4.2rem, 14vw, 9.2rem);
     font-weight: 700;
-    line-height: 0.88;
-    letter-spacing: -0.06em;
+    line-height: 0.9;
+    letter-spacing: -0.07em;
   }
 
   .summary {
-    width: min(66ch, 100%);
-    margin: 18px 0 0;
+    width: min(33rem, 100%);
+    margin: 20px 0 0;
     color: var(--text-soft);
-    font-size: clamp(1.02rem, 2vw, 1.22rem);
-    line-height: 1.65;
+    font-size: clamp(1.06rem, 2vw, 1.22rem);
+    line-height: 1.68;
   }
 
   .links {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: 12px;
-    margin: 30px 0 0;
+    margin: 28px 0 0;
   }
 
-  .link {
+  .link,
+  .copy-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-height: 44px;
     padding: 0 16px;
     color: var(--text-main);
+    font: inherit;
     text-decoration: none;
     border: 1px solid var(--panel-border-strong);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
   }
 
-  .link:hover {
-    border-color: rgba(127, 227, 231, 0.58);
+  .link:hover,
+  .copy-button:hover {
+    border-color: rgba(193, 255, 82, 0.6);
+    background: rgba(193, 255, 82, 0.08);
     transform: translateY(-1px);
   }
 
   .link.primary {
-    color: #051014;
+    color: #081108;
     font-weight: 700;
-    background: var(--accent);
     border-color: transparent;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
   }
 
-  .install-card {
-    width: min(780px, 100%);
-    margin: 28px 0 0;
+  .command-card {
+    margin: 30px 0 0;
     padding: 18px;
-    text-align: left;
-    border: 1px solid var(--panel-border);
-    border-radius: 22px;
-    background: var(--panel-bg);
+    border: 1px solid rgba(193, 255, 82, 0.16);
+    border-radius: 24px;
+    background: rgba(8, 13, 11, 0.72);
   }
 
-  .install-copy {
+  .command-copy {
     display: flex;
     gap: 16px;
     align-items: start;
     justify-content: space-between;
   }
 
-  .install-label {
-    margin: 0;
-    color: var(--accent-warm);
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-
-  .install-note {
+  .command-note {
+    max-width: 32rem;
     margin: 8px 0 0;
     color: var(--text-faint);
-    line-height: 1.45;
-  }
-
-  .copy-button {
-    flex: 0 0 auto;
-    min-height: 40px;
-    padding: 0 14px;
-    color: var(--text-main);
-    font: inherit;
-    border: 1px solid var(--panel-border-strong);
-    border-radius: 999px;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .copy-button:hover {
-    border-color: rgba(127, 227, 231, 0.58);
-    background: rgba(127, 227, 231, 0.08);
+    line-height: 1.52;
   }
 
   pre {
-    margin: 18px 0 0;
-    padding: 16px 18px;
     overflow-x: auto;
-    color: var(--accent);
+    margin: 18px 0 0;
+    padding: 18px;
     font-family: var(--mono-font);
     font-size: 0.95rem;
-    line-height: 1.7;
-    border-radius: 16px;
-    background: rgba(0, 0, 0, 0.28);
+    line-height: 1.55;
+    border: 1px solid rgba(139, 230, 216, 0.14);
+    border-radius: 20px;
+    background: rgba(3, 6, 5, 0.92);
   }
 
   code {
-    font-family: inherit;
+    white-space: pre;
   }
 
-  .capability-row {
+  .stat-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-    width: 100%;
-    margin: 22px 0 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
     padding: 0;
+    margin: 24px 0 0;
     list-style: none;
   }
 
-  .capability-row li {
-    display: grid;
-    gap: 8px;
-    padding: 14px 16px;
-    border: 1px solid var(--panel-border);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.025);
+  .stat-row li {
+    padding: 16px;
+    border: 1px solid rgba(193, 255, 82, 0.12);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.02);
   }
 
-  .capability-row span {
+  .stat-row span,
+  .shot figcaption {
+    display: block;
     color: var(--text-faint);
-    font-size: 0.8rem;
-    letter-spacing: 0.12em;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
-  .capability-row strong {
-    font-size: 0.98rem;
-    line-height: 1.35;
+  .stat-row strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 1.04rem;
+    font-weight: 700;
   }
 
   .shot {
-    display: grid;
-    gap: 10px;
     margin: 0;
     padding: 18px;
-    border: 1px solid var(--panel-border);
-    border-radius: 28px;
-    background: rgba(6, 12, 16, 0.84);
-    box-shadow: var(--shadow);
+    display: grid;
+    gap: 14px;
   }
 
-  .shot img {
+  .shot-frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(193, 255, 82, 0.14);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(9, 13, 12, 0.96), rgba(6, 9, 8, 0.98));
+  }
+
+  .shot-frame::before {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 1px;
+    content: "";
+    background: linear-gradient(90deg, transparent, rgba(193, 255, 82, 0.48), transparent);
+  }
+
+  img {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
-  .shot figcaption {
-    color: var(--text-faint);
-    font-size: 0.92rem;
-    text-align: center;
+  .proof {
+    padding: clamp(22px, 4vw, 34px);
+    border: 1px solid var(--panel-border);
+    border-radius: 32px;
+    background: linear-gradient(180deg, rgba(10, 15, 14, 0.86), rgba(8, 12, 11, 0.92));
   }
 
-  @media (max-width: 920px) {
-    .shell {
-      width: min(100vw - 20px, 1180px);
-      padding: 10px 0 20px;
-      gap: 14px;
-    }
-
-    .hero,
-    .shot {
-      border-radius: 22px;
-    }
-
-    .install-copy {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .copy-button {
-      width: 100%;
-    }
-
-    .capability-row {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .section-heading {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 18px;
   }
 
-  @media (max-width: 640px) {
-    h1 {
-      letter-spacing: -0.04em;
-    }
+  h2,
+  h3 {
+    margin: 0;
+    font-family: var(--display-font);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
 
-    .links {
-      width: 100%;
-    }
+  h2 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+  }
 
-    .link {
-      flex: 1 1 calc(50% - 6px);
-    }
+  .proof-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
 
-    .capability-row {
+  .proof-card {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .proof-card h3 {
+    font-size: 1.4rem;
+  }
+
+  .proof-card p {
+    margin: 10px 0 0;
+    color: var(--text-soft);
+    line-height: 1.58;
+  }
+
+  @media (max-width: 980px) {
+    .hero {
       grid-template-columns: 1fr;
     }
+  }
 
-    pre {
-      padding: 14px;
-      font-size: 0.88rem;
+  @media (max-width: 720px) {
+    .shell {
+      width: min(100vw - 20px, 1220px);
+      padding-top: 18px;
+      gap: 18px;
+    }
+
+    .hero-copy,
+    .shot,
+    .proof {
+      border-radius: 24px;
+    }
+
+    .command-copy {
+      flex-direction: column;
+    }
+
+    .stat-row,
+    .proof-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>

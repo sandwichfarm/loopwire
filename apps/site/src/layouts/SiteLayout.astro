@@ -18,7 +18,7 @@ const { title, description, canonical, ogImage } = Astro.props;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/loopwire-mark.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#071014" />
+    <meta name="theme-color" content="#05090b" />
     <meta name="color-scheme" content="dark" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
@@ -38,18 +38,20 @@ const { title, description, canonical, ogImage } = Astro.props;
 
 <style is:global>
   :root {
-    --page-bg: #071014;
-    --page-bg-soft: rgba(10, 24, 30, 0.86);
-    --panel-bg: rgba(8, 18, 24, 0.82);
-    --panel-border: rgba(136, 224, 225, 0.18);
-    --panel-border-strong: rgba(136, 224, 225, 0.36);
-    --text-main: #eef8fa;
-    --text-soft: rgba(238, 248, 250, 0.72);
-    --text-faint: rgba(238, 248, 250, 0.54);
-    --accent: #7fe3e7;
-    --accent-warm: #d7ff70;
-    --focus: #f6f097;
-    --shadow: 0 34px 120px rgba(0, 0, 0, 0.38);
+    --page-bg: #05090b;
+    --page-bg-soft: rgba(12, 20, 18, 0.9);
+    --panel-bg: rgba(11, 18, 16, 0.78);
+    --panel-bg-strong: rgba(16, 24, 22, 0.92);
+    --panel-border: rgba(193, 255, 82, 0.14);
+    --panel-border-strong: rgba(193, 255, 82, 0.32);
+    --text-main: #f5f8f1;
+    --text-soft: rgba(245, 248, 241, 0.74);
+    --text-faint: rgba(245, 248, 241, 0.52);
+    --accent: #c1ff52;
+    --accent-strong: #e5ffac;
+    --accent-cool: #8be6d8;
+    --focus: #f3ffbf;
+    --shadow: 0 42px 140px rgba(0, 0, 0, 0.42);
     --display-font: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", "Book Antiqua", Georgia, serif;
     --body-font: "Avenir Next", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif;
     --mono-font: "Berkeley Mono", "Cascadia Code", "SFMono-Regular", "Liberation Mono", monospace;
@@ -70,8 +72,9 @@ const { title, description, canonical, ogImage } = Astro.props;
     min-width: 320px;
     font-family: var(--body-font);
     background:
-      radial-gradient(circle at top center, rgba(127, 227, 231, 0.14), transparent 36%),
-      linear-gradient(180deg, #081218 0%, #071014 56%, #050b0e 100%);
+      radial-gradient(circle at top center, rgba(193, 255, 82, 0.18), transparent 28%),
+      radial-gradient(circle at 85% 10%, rgba(139, 230, 216, 0.14), transparent 18%),
+      linear-gradient(180deg, #0a110d 0%, #070b0a 42%, #05090b 100%);
   }
 
   body::before {
@@ -81,10 +84,21 @@ const { title, description, canonical, ogImage } = Astro.props;
     content: "";
     pointer-events: none;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 36px 36px;
-    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 82%);
+      linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), transparent 82%);
+  }
+
+  body::after {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    pointer-events: none;
+    background:
+      linear-gradient(120deg, transparent 0 42%, rgba(193, 255, 82, 0.045) 42% 43%, transparent 43% 100%),
+      linear-gradient(300deg, transparent 0 68%, rgba(139, 230, 216, 0.03) 68% 69%, transparent 69% 100%);
   }
 
   a,

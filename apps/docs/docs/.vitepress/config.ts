@@ -3,13 +3,13 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "Loopwire Docs",
   titleTemplate: ":title | Loopwire",
-  description: "Install, configure, and verify Loopwire on Linux desktops.",
+  description: "Install, route, verify, and ship Loopwire on Linux desktops.",
   lang: "en-US",
   base: "/docs/",
   cleanUrls: false,
   lastUpdated: true,
   head: [
-    ["meta", { name: "theme-color", content: "#071014" }],
+    ["meta", { name: "theme-color", content: "#05090b" }],
     ["meta", { name: "color-scheme", content: "dark" }],
     ["meta", { property: "og:site_name", content: "Loopwire Docs" }],
     ["meta", { property: "og:type", content: "website" }],
@@ -29,11 +29,8 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "https://loopwire.app/" },
       { text: "Install", link: "/guide/install" },
-      { text: "Basic Usage", link: "/guide/basic-usage" },
-      { text: "Configurations", link: "/guide/configurations" },
+      { text: "First Route", link: "/guide/basic-usage" },
       { text: "Backends", link: "/guide/backends" },
-      { text: "Support Matrix", link: "/guide/support-matrix" },
-      { text: "Start on Boot", link: "/guide/start-on-boot" },
       { text: "Troubleshooting", link: "/guide/troubleshooting" },
       { text: "Architecture", link: "/developer/architecture" },
       { text: "Release", link: "/developer/release" }
@@ -72,6 +69,14 @@ export default defineConfig({
     ],
     search: {
       provider: "local"
+    },
+    outline: {
+      level: [2, 3],
+      label: "On this page"
+    },
+    docFooter: {
+      prev: "Previous",
+      next: "Next"
     },
     socialLinks: [{ icon: "github", link: "https://github.com/sandwichfarm/loopwire" }]
   }
