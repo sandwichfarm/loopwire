@@ -4,6 +4,10 @@ These notes describe source-tree progress. They are not a public release announc
 
 ## Desktop UI Rebuild
 
+- GitHub Actions setup now has a cross-platform guided command that separates public variables from secrets, explains
+  every source field, validates release keys locally, and transports entered bytes to GitHub CLI without shell
+  interpolation or hidden normalization.
+
 - The public web surface now splits cleanly: an Astro homepage at `/` and VitePress docs below `/docs/`, assembled
   into one Bunny deployment artifact so the homepage, installer endpoint, and docs stay aligned.
 
@@ -425,6 +429,9 @@ These notes describe source-tree progress. They are not a public release announc
   bundles also fail if versioned notes regress to candidate-only wording.
 - The GitHub secret helper now rejects Bunny storage zones, endpoints, pull-zone hostnames, and remote prefixes that
   would later fail the docs deploy or live-smoke helpers.
+- `scripts/setup-github-secrets.sh` now preserves the exact bytes entered through `--env-file` and direct flags instead
+  of stripping wrapping quotes or normalizing Bunny endpoint/prefix values before upload, so operator-reviewed values
+  reach GitHub unchanged.
 - The GitHub secret helper can now validate the release private key against the release public key before dry-run or
   secret writes, rejecting invalid or mismatched signing material.
 - The GitHub secret helper now writes secrets through the current `gh secret set` stdin contract, avoiding the removed

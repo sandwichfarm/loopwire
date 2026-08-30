@@ -17,6 +17,7 @@ verified against the host audio graph.
 
 ### Validated
 
+- [x] Cross-platform, exact-byte GitHub Actions variable and secret setup with guided prompts (v0.5 Phase 19).
 - [x] Concise README, Astro homepage, and VitePress guides mounted at `/docs/` (v0.4 Phase 18).
 - [x] Combined static artifact with protected Bunny CI/CT/CD verification (v0.4 Phase 18).
 - [x] Endpoint kind metadata drives icons, menu grouping, and per-kind options (v0.3 Phase 13).
@@ -66,9 +67,9 @@ claims require detection, apply, verify, diagnostics, and rollback evidence.
 
 ## Current State
 
-**Ready for review:** v0.4 Public Surface Polish is implemented in PR #4 with the concise README, Astro homepage,
-VitePress `/docs/`, combined static artifact, and CI/CT/CD proof. Open carry-over: v0.2 Phase 12 (published release +
-VM proof).
+**Ready for review:** v0.5 GitHub Operator Setup is implemented in PR #9 with cross-platform prompts, exact-byte
+transport tests, workflow variable migration, release handoff integration, and security review. Open carry-over: v0.2
+Phase 12 (published release + VM proof).
 
 ## Previous Milestone: v0.3 Seed Harvest
 
@@ -101,4 +102,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-28 for v0.4 Public Surface Polish*
+*Last updated: 2026-08-30 for v0.5 GitHub Operator Setup*

@@ -57,6 +57,7 @@ export default defineConfig({
           { text: "Architecture", link: "/developer/architecture" },
           { text: "Screenshots", link: "/developer/screenshots" },
           { text: "End-to-End UI Tests", link: "/developer/e2e" },
+          { text: "GitHub Actions Setup", link: "/developer/github-actions-setup" },
           { text: "VM Matrix", link: "/developer/vm-matrix" },
           { text: "Release", link: "/developer/release" },
           { text: "Release Notes", link: "/developer/release-notes" }

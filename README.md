@@ -52,3 +52,5 @@ host apply. The curl installer remains release-gated until signed public artifac
 pnpm check
 pnpm build:web
 ```
+
+Release operators: [configure GitHub Actions variables and secrets](https://loopwire.app/docs/developer/github-actions-setup.html).

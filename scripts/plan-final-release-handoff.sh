@@ -385,20 +385,16 @@ reject_unsafe_value "$support_matrix" "support matrix"
 reject_unsafe_value "$secret_list_file" "secret-list file"
 
 docs_run_id="${docs_deployment_run_id:-<docs-deployment-run-id>}"
-secret_env_file="${env_file:-/secure/loopwire-release-secrets.env}"
 release_evidence_asset="${release_evidence_asset:-loopwire-release-evidence-${tag}.tar.gz}"
 vm_evidence_asset="${vm_evidence_asset:-loopwire-vm-evidence-${tag}.tar.gz}"
 
 echo "Final release handoff plan for ${repo}@${tag}"
 echo
 echo "Operator-deferred after agent delivery:"
-echo "- Fill the local release secret env file and set GitHub secrets; do not commit secret values."
+echo "- Run the guarded GitHub Actions setup; secret values never belong in commands or committed files."
 echo "- Create or push the release tag only after strict readiness passes."
 echo "- Dispatch release/docs/final-proof workflows from protected GitHub surfaces."
 echo "- Run VM guests and upload signed evidence from operator-controlled hosts."
-echo
-echo "Create the no-value secret env template when needed:"
-print_command bash scripts/setup-github-secrets.sh --write-env-template /secure/loopwire-release-secrets.env
 echo
 echo "1. Verify agent-ready release automation for this exact commit:"
 print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
@@ -407,17 +403,15 @@ print_command pnpm release:agent-ready -- --repo "$repo" --tag "$tag" \
   --vm-evidence-asset "$vm_evidence_asset" \
   --require-hosted-checks
 echo
-echo "2. Set required GitHub release secrets from the filled local env file:"
-print_command bash scripts/setup-github-secrets.sh --repo "$repo" --scope final --env-file "$secret_env_file"
+echo "2. Set required GitHub Actions variables and secrets through guided prompts:"
+print_command pnpm setup:github -- --repo "$repo" --scope final
 echo
-echo "3. Verify required GitHub secrets are ready:"
-secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check)
-secret_check+=(--scope final)
-if [ -n "$env_file" ]; then
-  secret_check+=(--env-file "$env_file")
-fi
+echo "3. Verify required GitHub Actions variables and secrets are ready:"
 if [ -n "$secret_list_file" ]; then
+  secret_check=(bash scripts/setup-github-secrets.sh --repo "$repo" --check --scope final)
   secret_check+=(--secret-list-file "$secret_list_file")
+else
+  secret_check=(pnpm setup:github -- --repo "$repo" --scope final --check)
 fi
 print_command "${secret_check[@]}"
 echo
