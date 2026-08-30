@@ -150,10 +150,6 @@ ensure_ssh_key() {
   printf '%s\n' "$key"
 }
 
-docker_qemu() {
-  docker run --rm "$@" "$qemu_image"
-}
-
 write_cloud_init() {
   local target_dir="$1" public_key="$2" id="$3"
   cat >"$target_dir/user-data" <<EOF
@@ -264,11 +260,13 @@ run_target() {
   cp "$release_dir/SHA256SUMS" "$target_dir/kit/release/"
   write_cloud_init "$target_dir" "$public_key" "$id"
 
-  docker_qemu -v "$target_dir:/vm" cloud-localds /vm/seed.img /vm/user-data /vm/meta-data
-  base_format="$(docker_qemu -v "$image_path:/base.img:ro" qemu-img info --output=json /base.img | node -e \
+  docker run --rm -v "$target_dir:/vm" "$qemu_image" \
+    cloud-localds /vm/seed.img /vm/user-data /vm/meta-data
+  base_format="$(docker run --rm -v "$image_path:/base.img:ro" "$qemu_image" \
+    qemu-img info --output=json /base.img | node -e \
     "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).format))")"
   [ -n "$base_format" ] || fail "could not determine the base image format for $id"
-  docker_qemu -v "$target_dir:/vm" -v "$image_path:/base.img:ro" \
+  docker run --rm -v "$target_dir:/vm" -v "$image_path:/base.img:ro" "$qemu_image" \
     qemu-img create -f qcow2 -F "$base_format" -b /base.img /vm/overlay.qcow2 24G >/dev/null
 
   docker rm -f "$container" >/dev/null 2>&1 || true
