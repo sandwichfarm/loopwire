@@ -117,7 +117,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run workspace checks
-        run: pnpm check
+        run: |
+          env \
+            -u LOOPWIRE_RELEASE_TAG \
+            -u LOOPWIRE_RELEASE_VERSION \
+            -u LOOPWIRE_RELEASE_COMMIT \
+            -u LOOPWIRE_RELEASE_NOTES_FILE \
+            pnpm check
 
       - name: Build Tauri Linux bundles
         run: |
