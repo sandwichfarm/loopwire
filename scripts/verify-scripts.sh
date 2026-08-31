@@ -60,6 +60,10 @@ bash -n \
 
 node --check scripts/detect-audio-backends.mjs
 node --check scripts/collect-release-evidence.mjs
+grep -F "failed required evidence command:" scripts/collect-release-evidence.mjs >/dev/null || {
+  echo "verify-scripts: release evidence collector does not report failed required command names" >&2
+  exit 1
+}
 for release_context_name in \
   LOOPWIRE_RELEASE_TAG \
   LOOPWIRE_RELEASE_VERSION \

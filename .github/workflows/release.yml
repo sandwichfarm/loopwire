@@ -457,6 +457,15 @@ jobs:
             --require-release-evidence
           printf 'LOOPWIRE_RELEASE_EVIDENCE_ARCHIVE=%s\n' "$evidence_archive" >>"$GITHUB_ENV"
 
+      - name: Upload failed release evidence diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-release-evidence-failure-${{ env.LOOPWIRE_RELEASE_TAG }}-${{ github.run_attempt }}
+          path: dist/release-evidence/${{ env.LOOPWIRE_RELEASE_TAG }}
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload release evidence
         uses: actions/upload-artifact@v7.0.1
         with:

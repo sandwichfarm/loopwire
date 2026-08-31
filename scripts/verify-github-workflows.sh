@@ -262,6 +262,9 @@ assert_contains ".github/workflows/release.yml" "Sign combined release manifest"
 assert_contains ".github/workflows/release.yml" "Smoke install generated tarball"
 assert_contains ".github/workflows/release.yml" "Smoke install published release"
 assert_contains ".github/workflows/release.yml" "Collect published release evidence"
+assert_contains ".github/workflows/release.yml" "Upload failed release evidence diagnostics"
+assert_contains ".github/workflows/release.yml" 'if: failure()'
+assert_contains ".github/workflows/release.yml" 'loopwire-release-evidence-failure-${{ env.LOOPWIRE_RELEASE_TAG }}-${{ github.run_attempt }}'
 assert_contains ".github/workflows/release.yml" "pnpm collect:evidence"
 assert_contains ".github/workflows/release.yml" "pnpm verify:release-evidence"
 assert_contains ".github/workflows/release.yml" '--release-tag "$LOOPWIRE_RELEASE_TAG"'
