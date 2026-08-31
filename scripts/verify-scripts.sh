@@ -64,7 +64,10 @@ for release_context_name in \
   LOOPWIRE_RELEASE_TAG \
   LOOPWIRE_RELEASE_VERSION \
   LOOPWIRE_RELEASE_COMMIT \
-  LOOPWIRE_RELEASE_NOTES_FILE; do
+  LOOPWIRE_RELEASE_NOTES_FILE \
+  LOOPWIRE_RELEASE_PUBLIC_KEY \
+  LOOPWIRE_RELEASE_PUBLIC_KEY_FILE \
+  LOOPWIRE_RELEASE_PRIVATE_KEY; do
   grep -F "\"$release_context_name\"" scripts/collect-release-evidence.mjs >/dev/null || {
     echo "verify-scripts: release evidence collector does not isolate $release_context_name" >&2
     exit 1
