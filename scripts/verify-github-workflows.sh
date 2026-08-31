@@ -237,6 +237,7 @@ assert_occurrences ".github/workflows/release.yml" 'openssl pkey -pubin -in "$de
 assert_occurrences ".github/workflows/release.yml" 'openssl pkey -pubin -in "$committed_public_key_file" -outform DER' "2"
 assert_occurrences ".github/workflows/release.yml" 'cmp -s "$derived_public_der" "$committed_public_der"' "2"
 assert_occurrences ".github/workflows/release.yml" 'LOOPWIRE_RELEASE_PRIVATE_KEY does not match $committed_public_key_file.' "2"
+assert_not_contains ".github/workflows/release.yml" '$public_key_file'
 assert_contains ".github/workflows/release.yml" "Require versioned release notes"
 assert_contains ".github/workflows/release.yml" "scripts/verify-release-readiness.sh"
 assert_contains ".github/workflows/release.yml" "--skip-public-key"

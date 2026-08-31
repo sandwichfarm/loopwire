@@ -338,7 +338,7 @@ jobs:
             --private-key "$private_key_file"
           bash scripts/verify-release-signature.sh \
             --release-dir dist/release \
-            --public-key "$public_key_file"
+            --public-key "$committed_public_key_file"
 
       - name: Smoke install generated tarball
         run: >
