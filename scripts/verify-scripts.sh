@@ -8444,6 +8444,67 @@ if [ "$("$published_prefix/loopwire")" != "loopwire published verifier smoke" ];
   echo "verify-scripts: published release verifier did not install the expected binary" >&2
   exit 1
 fi
+long_running_binary="$tmp_dir/long-running-loopwire"
+long_running_release_dir="$tmp_dir/long-running-published-release"
+long_running_prefix="$tmp_dir/long-running-published-prefix"
+cat >"$long_running_binary" <<'EOF'
+#!/usr/bin/env sh
+trap 'exit 0' TERM INT
+while :; do
+  sleep 1
+done
+EOF
+chmod 0755 "$long_running_binary"
+bash scripts/package-release.sh \
+  --binary "$long_running_binary" \
+  --version "0.1.0-smoke" \
+  --arch "$published_current_arch" \
+  --output-dir "$long_running_release_dir" >/dev/null
+bash scripts/package-release.sh \
+  --binary "$long_running_binary" \
+  --version "0.1.0-smoke" \
+  --arch "$published_secondary_arch" \
+  --output-dir "$long_running_release_dir" >/dev/null
+bash scripts/sign-release-artifacts.sh \
+  --release-dir "$long_running_release_dir" \
+  --private-key "$private_key_file" >/dev/null
+LOOPWIRE_GUI_STARTUP_PROBE_SECONDS=1 bash scripts/verify-published-release.sh \
+  --release-dir "$long_running_release_dir" \
+  --public-key "$public_key_file" \
+  --prefix "$long_running_prefix" >/dev/null
+crashing_binary="$tmp_dir/crashing-loopwire"
+crashing_release_dir="$tmp_dir/crashing-published-release"
+crashing_prefix="$tmp_dir/crashing-published-prefix"
+crashing_log="$tmp_dir/crashing-published-release.log"
+cat >"$crashing_binary" <<'EOF'
+#!/usr/bin/env sh
+exit 23
+EOF
+chmod 0755 "$crashing_binary"
+bash scripts/package-release.sh \
+  --binary "$crashing_binary" \
+  --version "0.1.0-smoke" \
+  --arch "$published_current_arch" \
+  --output-dir "$crashing_release_dir" >/dev/null
+bash scripts/package-release.sh \
+  --binary "$crashing_binary" \
+  --version "0.1.0-smoke" \
+  --arch "$published_secondary_arch" \
+  --output-dir "$crashing_release_dir" >/dev/null
+bash scripts/sign-release-artifacts.sh \
+  --release-dir "$crashing_release_dir" \
+  --private-key "$private_key_file" >/dev/null
+if LOOPWIRE_GUI_STARTUP_PROBE_SECONDS=1 bash scripts/verify-published-release.sh \
+  --release-dir "$crashing_release_dir" \
+  --public-key "$public_key_file" \
+  --prefix "$crashing_prefix" >"$crashing_log" 2>&1; then
+  echo "verify-scripts: published release verifier accepted a GUI that crashed during startup" >&2
+  exit 1
+fi
+grep -F "installed GUI startup probe failed with exit code 23" "$crashing_log" >/dev/null || {
+  echo "verify-scripts: published release verifier did not preserve the GUI crash exit code" >&2
+  exit 1
+}
 if bash scripts/verify-published-release.sh \
   --release-dir "$published_release_dir" \
   --public-key "$public_key_file" \

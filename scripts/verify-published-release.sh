@@ -11,6 +11,7 @@ release_source="github"
 require_release_evidence="false"
 require_github_release_source="false"
 release_evidence_asset=""
+gui_startup_probe_seconds="${LOOPWIRE_GUI_STARTUP_PROBE_SECONDS:-5}"
 
 usage() {
   cat <<'USAGE'
@@ -88,6 +89,9 @@ done
 
 [ -n "$release_dir" ] || [ -n "$repo" ] || fail "missing --repo OWNER/REPO or --release-dir DIR"
 [ -n "$release_dir" ] || [ -n "$tag" ] || fail "missing --tag vX.Y.Z"
+if [[ ! "$gui_startup_probe_seconds" =~ ^[1-9][0-9]*$ ]]; then
+  fail "LOOPWIRE_GUI_STARTUP_PROBE_SECONDS must be a positive integer"
+fi
 if [ "$require_github_release_source" = "true" ] && [ -n "$release_dir" ]; then
   fail "--require-github-release-source cannot be used with --release-dir"
 fi
@@ -275,7 +279,19 @@ if [ -n "$release_evidence_archive" ]; then
 fi
 bash scripts/install.sh --base-url "file://$release_dir" --prefix "$install_prefix" --public-key "$public_key" >/dev/null
 
-"$install_prefix/loopwire" >/dev/null
+command -v timeout >/dev/null 2>&1 || fail "timeout is required for the bounded GUI startup probe"
+set +e
+timeout --signal=TERM --kill-after=2s "${gui_startup_probe_seconds}s" \
+  "$install_prefix/loopwire" >/dev/null 2>&1
+gui_startup_status="$?"
+set -e
+case "$gui_startup_status" in
+  0 | 124)
+    ;;
+  *)
+    fail "installed GUI startup probe failed with exit code $gui_startup_status"
+    ;;
+esac
 "$install_prefix/loopwire" --background --help | grep -F -- "--state-file" >/dev/null
 if [ "$release_source" = "github" ]; then
   echo "Published release verification passed for $repo@$tag."
