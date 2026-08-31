@@ -280,9 +280,14 @@ fi
 bash scripts/install.sh --base-url "file://$release_dir" --prefix "$install_prefix" --public-key "$public_key" >/dev/null
 
 command -v timeout >/dev/null 2>&1 || fail "timeout is required for the bounded GUI startup probe"
+gui_startup_command=("$install_prefix/loopwire")
+if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  command -v xvfb-run >/dev/null 2>&1 || fail "xvfb-run is required for the GUI startup probe on a headless host"
+  gui_startup_command=(xvfb-run -a "$install_prefix/loopwire")
+fi
 set +e
 timeout --signal=TERM --kill-after=2s "${gui_startup_probe_seconds}s" \
-  "$install_prefix/loopwire" >/dev/null 2>&1
+  "${gui_startup_command[@]}" >/dev/null 2>&1
 gui_startup_status="$?"
 set -e
 case "$gui_startup_status" in
