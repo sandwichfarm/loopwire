@@ -8004,9 +8004,10 @@ if LOOPWIRE_FAKE_GH_SECRET_MODE=missing-required \
   bash scripts/verify-release-readiness.sh \
     --repo sandwichfarm/loopwire \
     --tag v0.1.0 \
+    --skip-tag \
     --skip-public-key \
     --skip-clean-git >"$release_readiness_next_steps_log" 2>&1; then
-  echo "verify-scripts: release readiness accepted missing Bunny secrets and tag" >&2
+  echo "verify-scripts: release readiness accepted missing Bunny secrets" >&2
   exit 1
 fi
 grep -F "next: set Bunny.net deployment and live-docs secrets without printing values" \
@@ -8019,13 +8020,17 @@ grep -F "pnpm setup:github -- --repo sandwichfarm/loopwire --scope final" \
   echo "verify-scripts: release readiness Bunny next step is missing guided GitHub setup" >&2
   exit 1
 }
-grep -F "next: after required secrets are configured and readiness passes, create and push the release tag" \
-  "$release_readiness_next_steps_log" >/dev/null || {
-    echo "verify-scripts: release readiness did not print release tag next step" >&2
+grep -F 'next: after required secrets are configured and readiness passes, create and push the release tag' \
+  scripts/verify-release-readiness.sh >/dev/null || {
+    echo "verify-scripts: release readiness is missing release tag next-step guidance" >&2
     exit 1
   }
-grep -F "git tag -a v0.1.0 -m \"Loopwire v0.1.0\"" "$release_readiness_next_steps_log" >/dev/null || {
-  echo "verify-scripts: release readiness tag next step is missing tag command" >&2
+grep -F 'git tag -a ${tag} -m "Loopwire ${tag}"' scripts/verify-release-readiness.sh >/dev/null || {
+  echo "verify-scripts: release readiness is missing the annotated tag command" >&2
+  exit 1
+}
+grep -F 'git push origin ${tag}' scripts/verify-release-readiness.sh >/dev/null || {
+  echo "verify-scripts: release readiness is missing the tag push command" >&2
   exit 1
 }
 release_readiness_live_docs_log="$tmp_dir/release-readiness-live-docs.log"
