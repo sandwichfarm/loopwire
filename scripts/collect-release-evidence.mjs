@@ -4,6 +4,15 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const args = process.argv.slice(2);
+const evidenceCommandEnv = { ...process.env };
+for (const name of [
+  "LOOPWIRE_RELEASE_TAG",
+  "LOOPWIRE_RELEASE_VERSION",
+  "LOOPWIRE_RELEASE_COMMIT",
+  "LOOPWIRE_RELEASE_NOTES_FILE"
+]) {
+  delete evidenceCommandEnv[name];
+}
 const outputDir = readOption("--output-dir");
 const profile = readOption("--profile") ?? "full";
 const releaseTag = readOption("--release-tag") ?? process.env.LOOPWIRE_RELEASE_TAG ?? "v0.1.0";
@@ -639,7 +648,8 @@ function runEvidenceCommand({ name, command, log, required = true }) {
   const startedAt = new Date().toISOString();
   const result = spawnSync("bash", ["-lc", command], {
     encoding: "utf8",
-    maxBuffer: 20 * 1024 * 1024
+    maxBuffer: 20 * 1024 * 1024,
+    env: evidenceCommandEnv
   });
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
   writeFileSync(join(outputDir, log), output);

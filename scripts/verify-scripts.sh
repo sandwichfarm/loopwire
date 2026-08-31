@@ -60,6 +60,20 @@ bash -n \
 
 node --check scripts/detect-audio-backends.mjs
 node --check scripts/collect-release-evidence.mjs
+for release_context_name in \
+  LOOPWIRE_RELEASE_TAG \
+  LOOPWIRE_RELEASE_VERSION \
+  LOOPWIRE_RELEASE_COMMIT \
+  LOOPWIRE_RELEASE_NOTES_FILE; do
+  grep -F "\"$release_context_name\"" scripts/collect-release-evidence.mjs >/dev/null || {
+    echo "verify-scripts: release evidence collector does not isolate $release_context_name" >&2
+    exit 1
+  }
+done
+grep -F "env: evidenceCommandEnv" scripts/collect-release-evidence.mjs >/dev/null || {
+  echo "verify-scripts: release evidence commands do not use the isolated environment" >&2
+  exit 1
+}
 node --check scripts/verify-release-evidence.mjs
 node --check scripts/collect-support-bundle.mjs
 node --check scripts/describe-jack-ports.mjs
