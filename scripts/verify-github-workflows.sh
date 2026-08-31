@@ -232,6 +232,11 @@ assert_contains ".github/workflows/release.yml" "Prepare architecture release up
 assert_contains ".github/workflows/release.yml" 'release-upload-${{ matrix.release_arch }}'
 assert_contains ".github/workflows/release.yml" "loopwire-linux-aarch64.tar.gz"
 assert_contains ".github/workflows/release.yml" "LOOPWIRE_RELEASE_PRIVATE_KEY"
+assert_occurrences ".github/workflows/release.yml" 'committed_public_key_file="packaging/release-signing-public.pem"' "2"
+assert_occurrences ".github/workflows/release.yml" 'openssl pkey -pubin -in "$derived_public_key_file" -outform DER' "2"
+assert_occurrences ".github/workflows/release.yml" 'openssl pkey -pubin -in "$committed_public_key_file" -outform DER' "2"
+assert_occurrences ".github/workflows/release.yml" 'cmp -s "$derived_public_der" "$committed_public_der"' "2"
+assert_occurrences ".github/workflows/release.yml" 'LOOPWIRE_RELEASE_PRIVATE_KEY does not match $committed_public_key_file.' "2"
 assert_contains ".github/workflows/release.yml" "Require versioned release notes"
 assert_contains ".github/workflows/release.yml" "scripts/verify-release-readiness.sh"
 assert_contains ".github/workflows/release.yml" "--skip-public-key"
