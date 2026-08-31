@@ -165,6 +165,12 @@ const manifest = {
 writeFileSync(join(outputDir, "release-evidence.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
 if (!manifest.ok) {
+  for (const result of results.filter((item) => item.required && item.exitCode !== 0)) {
+    console.error(
+      `failed required evidence command: ${result.name} ` +
+        `exitCode=${result.exitCode} signal=${result.signal ?? "none"} log=${result.log}`
+    );
+  }
   fail(`evidence collection failed; see ${join(outputDir, "release-evidence.json")}`);
 }
 
