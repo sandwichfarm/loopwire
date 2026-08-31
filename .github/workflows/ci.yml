@@ -39,6 +39,8 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
+            xauth \
+            xvfb \
             rpm
 
       - name: Set up pnpm

@@ -8489,10 +8489,30 @@ bash scripts/package-release.sh \
 bash scripts/sign-release-artifacts.sh \
   --release-dir "$long_running_release_dir" \
   --private-key "$private_key_file" >/dev/null
-LOOPWIRE_GUI_STARTUP_PROBE_SECONDS=1 bash scripts/verify-published-release.sh \
+fake_xvfb_bin="$tmp_dir/fake-xvfb-bin"
+fake_xvfb_trace="$tmp_dir/fake-xvfb-trace.log"
+mkdir -p "$fake_xvfb_bin"
+cat >"$fake_xvfb_bin/xvfb-run" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "${1:-}" = "-a" ]; then
+  shift
+fi
+printf '%s\n' "invoked" >"${LOOPWIRE_FAKE_XVFB_TRACE:?}"
+exec "$@"
+EOF
+chmod 0755 "$fake_xvfb_bin/xvfb-run"
+DISPLAY= WAYLAND_DISPLAY= \
+  PATH="$fake_xvfb_bin:$PATH" \
+  LOOPWIRE_FAKE_XVFB_TRACE="$fake_xvfb_trace" \
+  LOOPWIRE_GUI_STARTUP_PROBE_SECONDS=1 bash scripts/verify-published-release.sh \
   --release-dir "$long_running_release_dir" \
   --public-key "$public_key_file" \
   --prefix "$long_running_prefix" >/dev/null
+grep -Fx "invoked" "$fake_xvfb_trace" >/dev/null || {
+  echo "verify-scripts: headless published release smoke did not use xvfb-run" >&2
+  exit 1
+}
 crashing_binary="$tmp_dir/crashing-loopwire"
 crashing_release_dir="$tmp_dir/crashing-published-release"
 crashing_prefix="$tmp_dir/crashing-published-prefix"
@@ -8515,7 +8535,10 @@ bash scripts/package-release.sh \
 bash scripts/sign-release-artifacts.sh \
   --release-dir "$crashing_release_dir" \
   --private-key "$private_key_file" >/dev/null
-if LOOPWIRE_GUI_STARTUP_PROBE_SECONDS=1 bash scripts/verify-published-release.sh \
+if DISPLAY= WAYLAND_DISPLAY= \
+  PATH="$fake_xvfb_bin:$PATH" \
+  LOOPWIRE_FAKE_XVFB_TRACE="$fake_xvfb_trace" \
+  LOOPWIRE_GUI_STARTUP_PROBE_SECONDS=1 bash scripts/verify-published-release.sh \
   --release-dir "$crashing_release_dir" \
   --public-key "$public_key_file" \
   --prefix "$crashing_prefix" >"$crashing_log" 2>&1; then

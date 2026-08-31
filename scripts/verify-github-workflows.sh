@@ -116,6 +116,8 @@ ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path); puts path }' "
 assert_contains ".github/workflows/ci.yml" "pnpm check"
 assert_contains ".github/workflows/ci.yml" "fetch-depth: 0"
 assert_contains ".github/workflows/ci.yml" "libwebkit2gtk-4.1-dev"
+assert_contains ".github/workflows/ci.yml" "xauth"
+assert_contains ".github/workflows/ci.yml" "xvfb"
 assert_contains "package.json" '"verify:tauri": "bash scripts/verify-tauri.sh"'
 assert_contains "package.json" "pnpm verify:tauri"
 
@@ -262,6 +264,8 @@ assert_contains ".github/workflows/release.yml" "Sign combined release manifest"
 assert_contains ".github/workflows/release.yml" "Smoke install generated tarball"
 assert_contains ".github/workflows/release.yml" "Smoke install published release"
 assert_contains ".github/workflows/release.yml" "Collect published release evidence"
+assert_occurrences ".github/workflows/release.yml" "xauth" "2"
+assert_occurrences ".github/workflows/release.yml" "xvfb" "2"
 assert_contains ".github/workflows/release.yml" "Upload failed release evidence diagnostics"
 assert_contains ".github/workflows/release.yml" 'if: failure()'
 assert_contains ".github/workflows/release.yml" 'loopwire-release-evidence-failure-${{ env.LOOPWIRE_RELEASE_TAG }}-${{ github.run_attempt }}'
