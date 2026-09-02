@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: GitHub Operator Setup
 status: Ready for Review
-last_updated: "2026-08-30T00:00:00.000Z"
-last_activity: 2026-08-30
+last_updated: "2026-09-02T20:11:53.793Z"
+last_activity: 2026-09-02
 progress:
   total_phases: 1
   completed_phases: 1
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 19 of 19 complete
 Plan: 19.1 — Hardened GitHub Actions Setup
 Status: Ready for review in PR #9
-Last activity: 2026-08-30 — implementation/security validation complete and PR #9 opened
+Last activity: 2026-09-02 — completed quick task 260902-tfw: fail docs deployment when Bunny configuration is absent
 
 
 ## Blockers / Concerns
@@ -84,6 +84,12 @@ Last activity: 2026-08-30 — implementation/security validation complete and PR
 - The `fedora-kde-jack` target is metadata and plan coverage only until an operator-run guest evidence bundle passes.
 - The `v0.1.0` release-note page is now publication-ready copy. Do not reintroduce release-candidate/not-published
   wording into versioned notes; keep unpublished-artifact caveats in status, support-matrix, or unreleased docs instead.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260902-tfw | Fail docs deployment when Bunny configuration is absent | 2026-09-02 | 2d1e697 | [260902-tfw-make-docs-deployment-fail-when-bunny-con](./quick/260902-tfw-make-docs-deployment-fail-when-bunny-con/) |
 
 ## Accumulated Context
 
