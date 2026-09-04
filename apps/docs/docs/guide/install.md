@@ -1,6 +1,21 @@
 # Install
 
-Loopwire is not released yet. The current install path is for contributors and early testers working from source.
+Loopwire 0.1.0 is published for early testers. Arch users can choose the stable source-built `loopwire` package or
+the prebuilt `loopwire-bin` package; contributors can still work directly from a source checkout.
+
+## Arch User Repository
+
+Build the stable tagged source package:
+
+```bash
+git clone https://aur.archlinux.org/loopwire.git
+cd loopwire
+makepkg -si
+```
+
+For the faster prebuilt release-artifact package, use the separate `loopwire-bin` package base instead. The variants
+conflict because they install the same commands; do not install both at once. A future live-VCS package, if added,
+will use the `loopwire-git` name.
 
 ## Source Install
 
@@ -75,7 +90,8 @@ paths declare or wrap that dependency for you.
 
 Package metadata templates now exist under `packaging/`:
 
-- `packaging/aur/PKGBUILD.in` for future AUR `loopwire-bin`.
+- `packaging/aur/loopwire/PKGBUILD.in` for stable tagged source builds.
+- `packaging/aur/loopwire-bin/PKGBUILD.in` for signed prebuilt release artifacts.
 - `flake.nix` exposes `packages.<system>.loopwire-bin` from `packaging/nix/loopwire-bin.nix`, currently with fake
   hashes until the first public release provides real artifact hashes.
 - Repository-owned deb recipes for Ubuntu 24.04 and Debian 13, plus RPM recipes for Fedora 44 and openSUSE
@@ -133,5 +149,5 @@ pnpm verify:nix-release -- \
 Non-Nix CI and local machines may use `--skip-build-if-missing-nix` only to check wiring. Release evidence and final
 release proof must not use that skip as Nix package proof.
 
-These channels are not published yet. Do not submit AUR metadata or expose a release-ready Nix package until versioned
-artifacts and real checksums exist.
+The AUR recipes are published as separate package bases. The Nix package remains a template; do not expose it as
+release-ready until real hashes and non-skipped Nix build proof exist.

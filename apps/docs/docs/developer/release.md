@@ -779,11 +779,23 @@ configured and readiness passes.
 
 ```bash
 pnpm verify:aur
+pnpm verify:aur:source -- --version 0.1.0
 ```
 
-The AUR smoke renders `packaging/aur/PKGBUILD.in` against generated local artifacts, runs `makepkg --nodeps` in a temp
-directory when `makepkg` is available, and checks the resulting package archive contains `usr/bin/loopwire`. It does not
-install the package or submit anything to AUR.
+The lightweight AUR smoke renders both `packaging/aur/loopwire-bin/PKGBUILD.in` and
+`packaging/aur/loopwire/PKGBUILD.in`, builds the binary recipe, and validates the source recipe metadata.
+`verify:aur:source` performs the full tagged-source compilation and package-content inspection on Arch. Neither command
+installs or submits anything.
+
+After the GitHub release is public, publish one or both package bases from a clean Arch checkout:
+
+```bash
+pnpm deploy:aur -- --package loopwire --tag v0.1.0 --key ~/.ssh/aur
+pnpm deploy:aur -- --package loopwire-bin --tag v0.1.0 --key ~/.ssh/aur
+```
+
+The manual `Publish AUR` workflow uses the same helper inside an Arch container. It is isolated behind the `aur`
+GitHub environment and never runs on a pull request or ordinary branch push.
 
 ## Documentation Ceremony
 

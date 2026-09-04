@@ -13,7 +13,8 @@ cleanup() {
 trap cleanup EXIT
 
 release_dir="$tmp_dir/release"
-work_dir="$tmp_dir/aur"
+work_dir="$tmp_dir/aur-bin"
+source_work_dir="$tmp_dir/aur-source"
 binary="$tmp_dir/loopwire"
 
 pnpm --filter @loopwire/core build >/dev/null
@@ -27,19 +28,23 @@ chmod 0755 "$binary"
 
 bash scripts/package-release.sh \
   --binary "$binary" \
-  --version "0.0.0-smoke" \
+  --version "0.0.0" \
   --arch x86_64 \
   --output-dir "$release_dir" >/dev/null
 
 bash scripts/package-release.sh \
   --binary "$binary" \
-  --version "0.0.0-smoke" \
+  --version "0.0.0" \
   --arch aarch64 \
   --output-dir "$release_dir" >/dev/null
 
-mkdir -p "$work_dir"
+mkdir -p "$work_dir" "$source_work_dir"
+cp packaging/aur/LICENSE-MIT "$work_dir/LICENSE-MIT"
+cp packaging/aur/LICENSE-MIT "$source_work_dir/LICENSE-MIT"
 bash scripts/render-aur-pkgbuild.sh \
-  --version "0.0.0_smoke" \
+  --package loopwire-bin \
+  --version "0.0.0" \
+  --pkgrel 1 \
   --release-dir "$release_dir" \
   --output "$work_dir/PKGBUILD" >/dev/null
 
@@ -82,4 +87,35 @@ require_package_member "usr/bin/loopwire-detect-audio"
 require_package_member "usr/lib/loopwire/loopwire-gui"
 require_package_member "usr/lib/loopwire/scripts/restore-background.mjs"
 
-echo "AUR local package smoke passed."
+namcap_log="$tmp_dir/namcap-bin.log"
+namcap "$work_dir/PKGBUILD" "$package_file" | tee "$namcap_log"
+if grep -Fq " E: " "$namcap_log"; then
+  echo "namcap reported an error for loopwire-bin." >&2
+  exit 1
+fi
+
+source_archive="$tmp_dir/loopwire-0.0.0.tar.gz"
+mkdir -p "$tmp_dir/loopwire-0.0.0"
+tar -czf "$source_archive" -C "$tmp_dir" loopwire-0.0.0
+cp "$source_archive" "$source_work_dir/loopwire-0.0.0.tar.gz"
+bash scripts/render-aur-pkgbuild.sh \
+  --package loopwire \
+  --version "0.0.0" \
+  --pkgrel 1 \
+  --source-archive "$source_archive" \
+  --output "$source_work_dir/PKGBUILD" >/dev/null
+(
+  cd "$source_work_dir"
+  makepkg --printsrcinfo >.SRCINFO
+)
+grep -Fqx "pkgbase = loopwire" "$source_work_dir/.SRCINFO"
+grep -Fqx $'\tconflicts = loopwire-bin' "$source_work_dir/.SRCINFO"
+grep -Fqx $'\tmakedepends = pnpm' "$source_work_dir/.SRCINFO"
+grep -Fqx $'\tmakedepends = rust' "$source_work_dir/.SRCINFO"
+namcap "$source_work_dir/PKGBUILD" | tee "$tmp_dir/namcap-source-metadata.log"
+if grep -Fq " E: " "$tmp_dir/namcap-source-metadata.log"; then
+  echo "namcap reported an error for the loopwire source PKGBUILD." >&2
+  exit 1
+fi
+
+echo "AUR binary build and source metadata smokes passed."

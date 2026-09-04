@@ -1,0 +1,112 @@
+name: Publish AUR
+run-name: Publish AUR ${{ inputs.package }} from ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published v-prefixed release tag
+        required: true
+        type: string
+      package:
+        description: AUR package base to publish
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - loopwire
+          - loopwire-bin
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aur-${{ inputs.tag }}-${{ inputs.package }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish AUR metadata
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: aur
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Verify published release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LOOPWIRE_AUR_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag_pattern='^v[0-9]+[.][0-9]+[.][0-9]+$'
+          if [[ ! "$LOOPWIRE_AUR_TAG" =~ $tag_pattern ]]; then
+            echo "AUR publication requires a stable v-prefixed semver tag." >&2
+            exit 1
+          fi
+          git rev-parse --verify "refs/tags/${LOOPWIRE_AUR_TAG}^{commit}"
+          release_state="$(
+            gh release view "$LOOPWIRE_AUR_TAG" --repo "$GITHUB_REPOSITORY" \
+              --json isDraft,isPrerelease \
+              --jq '"\(.isDraft) \(.isPrerelease)"'
+          )"
+          if [ "$release_state" != "false false" ]; then
+            echo "AUR publication requires a non-draft, non-prerelease GitHub release." >&2
+            exit 1
+          fi
+
+      - name: Prepare ephemeral AUR key
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AUR_SSH_PRIVATE_KEY:-}" ]; then
+            echo "The aur environment is missing AUR_SSH_PRIVATE_KEY." >&2
+            exit 1
+          fi
+          key_dir="$RUNNER_TEMP/aur-key"
+          mkdir -p "$key_dir"
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" >"$key_dir/aur"
+          chmod 0600 "$key_dir/aur"
+          ssh-keygen -y -f "$key_dir/aur" >"$key_dir/aur.pub"
+          chmod 0644 "$key_dir/aur.pub"
+
+      - name: Build and publish selected recipes from Arch Linux
+        env:
+          LOOPWIRE_AUR_PACKAGE: ${{ inputs.package }}
+          LOOPWIRE_AUR_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          checkout_root="$RUNNER_TEMP/aur-checkouts"
+          mkdir -p "$checkout_root"
+          docker run --rm \
+            --env LOOPWIRE_AUR_PACKAGE \
+            --env LOOPWIRE_AUR_TAG \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            --volume "$RUNNER_TEMP/aur-key:/run/secrets/aur-key:ro" \
+            --volume "$checkout_root:/aur" \
+            archlinux@sha256:84cd9ef000b3cff245ec028e87965b84724f4bf1cc63fc2741ba927b88515ed6 \
+            bash -ceu '
+              pacman -Syu --noconfirm --needed \
+                curl git namcap nodejs openssh pipewire pnpm rust webkit2gtk-4.1 wireplumber
+              useradd --create-home aur-builder
+              chown -R aur-builder:aur-builder /aur
+              install -d -m 0700 -o aur-builder -g aur-builder /home/aur-builder/.ssh
+              cp /run/secrets/aur-key/aur /home/aur-builder/.ssh/aur
+              cp /run/secrets/aur-key/aur.pub /home/aur-builder/.ssh/aur.pub
+              chown aur-builder:aur-builder /home/aur-builder/.ssh/aur*
+              chmod 0600 /home/aur-builder/.ssh/aur
+              chmod 0644 /home/aur-builder/.ssh/aur.pub
+              runuser -u aur-builder -- env HOME=/home/aur-builder \
+                bash /workspace/scripts/deploy-aur-package.sh \
+                  --package "$LOOPWIRE_AUR_PACKAGE" \
+                  --tag "$LOOPWIRE_AUR_TAG" \
+                  --checkout-root /aur \
+                  --key /home/aur-builder/.ssh/aur
+            '

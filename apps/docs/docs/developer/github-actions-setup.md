@@ -56,6 +56,21 @@ repository, variable, and secret preflight. Review the displayed names and type 
 Public configuration uses the GitHub `vars` context. Credentials and signing material use the `secrets` context. During
 migration, workflows still fall back to older repository secrets when the matching Actions variable is absent.
 
+## AUR publication environment
+
+The manually dispatched `Publish AUR` workflow uses a separate GitHub environment named `aur`. Configure required
+reviewers on that environment, then add one environment secret named `AUR_SSH_PRIVATE_KEY`. Use a dedicated
+passphrase-free automation key whose public half is registered on the maintainer's AUR account; do not reuse the
+interactive, passphrase-protected local key and never commit either private key.
+
+```bash
+gh api --method PUT repos/OWNER/REPO/environments/aur
+gh secret set AUR_SSH_PRIVATE_KEY --repo OWNER/REPO --env aur < ~/.ssh/loopwire-aur-actions
+```
+
+The environment gate is the authority boundary: pull requests and ordinary pushes only build the recipes, while an
+approved manual dispatch can publish `loopwire`, `loopwire-bin`, or both from an already-public stable release tag.
+
 ## Input integrity and secrecy
 
 - The command never accepts sensitive values as CLI flags or environment variables.
