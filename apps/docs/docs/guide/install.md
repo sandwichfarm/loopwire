@@ -90,8 +90,8 @@ Package metadata templates now exist under `packaging/`:
 - `packaging/aur/loopwire/PKGBUILD.in` for stable tagged source builds.
 - `packaging/aur/loopwire-bin/PKGBUILD.in` for signed prebuilt release artifacts.
 - `packaging/aur/loopwire-git/PKGBUILD.in` for the rolling default-branch source build.
-- `flake.nix` exposes `packages.<system>.loopwire-bin` from `packaging/nix/loopwire-bin.nix`, currently with fake
-  hashes until the first public release provides real artifact hashes.
+- `flake.nix` exposes `packages.<system>.loopwire-bin` from `packaging/nix/loopwire-bin.nix`, pinned to the signed
+  `v0.1.0` release hashes for `x86_64-linux` and `aarch64-linux`.
 - Repository-owned deb recipes for Ubuntu 24.04 and Debian 13, plus RPM recipes for Fedora 44 and openSUSE
   Tumbleweed. They package the full canonical release payload rather than Tauri's GUI-only bundle.
 - AppImage through Tauri bundling.
@@ -148,5 +148,6 @@ pnpm verify:nix-release -- \
 Non-Nix CI and local machines may use `--skip-build-if-missing-nix` only to check wiring. Release evidence and final
 release proof must not use that skip as Nix package proof.
 
-The AUR recipes are published as separate package bases. The Nix package remains a template; do not expose it as
-release-ready until real hashes and non-skipped Nix build proof exist.
+The AUR recipes are published as separate package bases. The default Nix package is now release-bound for `v0.1.0`,
+but fresh local non-skipped build proof currently covers only `x86_64-linux`; do not describe `aarch64-linux` as
+locally verified until it gets its own native proof run.

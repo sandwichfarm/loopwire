@@ -46,8 +46,10 @@ require_contains flake.nix "packages = forEachSystem"
 require_contains flake.nix "loopwire-bin = loopwireBin"
 require_contains flake.nix "default = loopwireBin"
 require_contains flake.nix "pkgs.callPackage ./packaging/nix/loopwire-bin.nix"
-require_contains flake.nix "nixpkgs.lib.fakeHash"
+require_contains flake.nix 'x86_64-linux = "sha256-Gt5lTPyKa34+WoVXorxTdH3MktJVW7mKNlEKVTjktWI="'
+require_contains flake.nix 'aarch64-linux = "sha256-5ZjdwSUDQZYfw4gwhDf/4/1rhfg8m4ue0uvJkl7m0L8="'
 require_contains flake.nix "mkLoopwireBinPackage"
+require_contains flake.lock '"type": "github"'
 require_contains package.json '"nix:render-release": "bash scripts/render-nix-release-package.sh"'
 require_contains package.json '"verify:nix-release": "bash scripts/verify-nix-release-package.sh"'
 require_contains scripts/render-nix-release-package.sh "loopwire-linux-x86_64.tar.gz"
@@ -115,5 +117,10 @@ bash scripts/verify-nix-release-package.sh \
   --version 0.1.0 \
   --release-dir "$release_dir" \
   --render-only >/dev/null
+
+if grep -Fq "fakeHash" flake.nix; then
+  echo "flake.nix must not use fakeHash for the default Loopwire release package" >&2
+  exit 1
+fi
 
 echo "Packaging metadata smoke passed."

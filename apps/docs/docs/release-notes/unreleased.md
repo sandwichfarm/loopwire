@@ -731,8 +731,8 @@ These notes describe source-tree progress. They are not a public release announc
 - The VM target matrix now includes `opensuse-kde-pipewire` with zypper-based guest bootstrap validation.
 - The VM target matrix now includes an AArch64 Ubuntu target and prints architecture-specific QEMU launch handoffs.
 - `pnpm check` now includes `pnpm verify:tauri`, which runs Tauri Rust formatting, compile checks, and tests.
-- The Nix flake now exposes `packages.<system>.loopwire-bin` as a binary package template with fake hashes, plus a
-  helper for injecting real release hashes after published artifacts exist.
+- The Nix flake now binds `packages.<system>.loopwire-bin` to the signed `v0.1.0` release hashes for `x86_64-linux`
+  and `aarch64-linux`, while `lib.<system>.mkLoopwireBinPackage` remains available for future published releases.
 - `pnpm nix:render-release` now renders a concrete Nix package expression from checksum-bound release tarballs and
   rejects missing or duplicate checksum manifest entries before any Nix publication claim.
 - `pnpm verify:nix-release` now wraps the Nix render step and runs `nix build` on Nix-enabled hosts, with an explicit

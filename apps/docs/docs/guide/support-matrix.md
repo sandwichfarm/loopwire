@@ -75,9 +75,11 @@ the Tauri shell command bridge.
 | AUR `loopwire` | Tagged source build through `pnpm verify:aur:source` | Published for 0.1.0. |
 | AUR `loopwire-bin` | Signed release-artifact build through `pnpm verify:aur` | Published for 0.1.0. |
 | AUR `loopwire-git` | Rolling default-branch build through `pnpm verify:aur:git` | Published; development snapshots are not stable releases. |
-| Nix flake package template | `pnpm verify:packaging` | Blocked on real release hashes and Nix build proof. |
+| Nix flake package (`loopwire-bin`) | `pnpm verify:nix-release -- --repo sandwichfarm/loopwire --tag v0.1.0 --public-key packaging/release-signing-public.pem` | Release-bound for 0.1.0; locally proved on x86_64 only. |
 
-The flake package output is `packages.<system>.loopwire-bin`; it uses fake hashes until published artifacts exist.
+The flake package output is `packages.<system>.loopwire-bin`; `flake.nix` now pins the signed `v0.1.0` tarball hashes
+for `x86_64-linux` and `aarch64-linux`. Fresh local non-skipped Nix build evidence in this repository currently covers
+`x86_64-linux` only; `aarch64-linux` still needs native proof.
 
 Native package verification is narrower than audio-backend support. The committed snapshot proves that each official,
 checksum-pinned guest built and installed its target package, ran the packaged background/provider/backend commands,

@@ -11,8 +11,8 @@
       forEachSystem = nixpkgs.lib.genAttrs systems;
       releaseVersion = "0.1.0";
       releaseHashes = {
-        x86_64-linux = nixpkgs.lib.fakeHash;
-        aarch64-linux = nixpkgs.lib.fakeHash;
+        x86_64-linux = "sha256-Gt5lTPyKa34+WoVXorxTdH3MktJVW7mKNlEKVTjktWI=";
+        aarch64-linux = "sha256-5ZjdwSUDQZYfw4gwhDf/4/1rhfg8m4ue0uvJkl7m0L8=";
       };
     in
     {

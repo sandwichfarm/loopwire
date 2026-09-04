@@ -768,8 +768,8 @@ configured and readiness passes.
 
 - The workflow now has a dedicated `ubuntu-22.04-arm` AArch64 lane, but public AArch64 proof still requires a tagged
   workflow run and published `loopwire-linux-aarch64.tar.gz` asset.
-- Package templates must not be published until a tagged release has real checksums and package-build smoke evidence
-  against those published artifacts.
+- The default flake package is now bound to the signed `v0.1.0` tarball checksums. Fresh local non-skipped Nix build
+  proof only covers `x86_64-linux`; public `aarch64-linux` proof still requires its own Nix-enabled run.
 - `packaging/release-signing-public.pem` contains the project release public key, and the live `sandwichfarm/loopwire`
   repository has the matching `LOOPWIRE_RELEASE_PRIVATE_KEY` secret. Public installer claims still require Bunny
   deployment secrets plus a tagged release workflow run.
