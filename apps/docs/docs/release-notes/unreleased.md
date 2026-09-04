@@ -2,6 +2,11 @@
 
 These notes describe source-tree progress. They are not a public release announcement.
 
+- Root-level Bunny deployments now pass the post-upload live-site check when `BUNNY_REMOTE_PREFIX` is intentionally
+  empty, while an omitted command argument remains an error.
+- The signed installer is now live at `https://loopwire.app/install.sh`; AppImage, deb, and RPM artifacts are available
+  from the `v0.1.0` GitHub Release, with native files documented as direct downloads rather than distro repositories.
+
 ## Packaging
 
 - The AUR now keeps two honest stable recipes: `loopwire` compiles the immutable tagged source archive, while

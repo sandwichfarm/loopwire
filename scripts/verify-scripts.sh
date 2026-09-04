@@ -5449,6 +5449,21 @@ printf '%s\n' "$docs_live_output" | grep -F "Live docs smoke passed for https://
   echo "verify-scripts: live docs smoke did not verify the expected pull-zone URL" >&2
   exit 1
 }
+docs_live_root_output="$(
+  PATH="$docs_live_bin:$PATH" \
+    LOOPWIRE_FAKE_INSTALLER="scripts/install.sh" \
+    bash scripts/verify-docs-live.sh --hostname docs.example.test --remote-prefix ""
+)"
+printf '%s\n' "$docs_live_root_output" | grep -F "Live docs smoke passed for https://docs.example.test." >/dev/null || {
+  echo "verify-scripts: live docs smoke did not accept an explicit root prefix" >&2
+  exit 1
+}
+if PATH="$docs_live_bin:$PATH" \
+  LOOPWIRE_FAKE_INSTALLER="scripts/install.sh" \
+  bash scripts/verify-docs-live.sh --hostname docs.example.test --remote-prefix >/dev/null 2>&1; then
+  echo "verify-scripts: live docs smoke accepted an omitted remote-prefix value" >&2
+  exit 1
+fi
 bad_live_installer="$tmp_dir/bad-live-install.sh"
 printf '%s\n' "#!/usr/bin/env bash" "echo stale" >"$bad_live_installer"
 if PATH="$docs_live_bin:$PATH" \

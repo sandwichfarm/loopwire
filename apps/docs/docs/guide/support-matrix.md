@@ -68,10 +68,10 @@ the Tauri shell command bridge.
 | Channel | Current validation | Public status |
 |---------|--------------------|---------------|
 | Source checkout | `pnpm check` | Supported for contributors. |
-| Signed curl installer | `pnpm verify:install`, `pnpm verify:release` | Blocked on tagged artifacts and public key. |
-| AppImage | Local Tauri bundle smoke | Blocked on release publishing. |
-| Ubuntu 24.04 / Debian 13 deb | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Blocked on release publishing. |
-| Fedora 44 / openSUSE Tumbleweed RPM | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Blocked on release publishing. |
+| Signed curl installer | Local verification plus live `/install.sh` byte comparison | Published for 0.1.0 at `loopwire.app`. |
+| AppImage | Published-artifact and Tauri bundle smoke | Published for 0.1.0 on GitHub Releases. |
+| Ubuntu 24.04 / Debian 13 deb | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads; no APT repository. |
+| Fedora 44 / openSUSE Tumbleweed RPM | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads; no COPR/OBS repository. |
 | AUR `loopwire` | Tagged source build through `pnpm verify:aur:source` | Published for 0.1.0. |
 | AUR `loopwire-bin` | Signed release-artifact build through `pnpm verify:aur` | Published for 0.1.0. |
 | Nix flake package template | `pnpm verify:packaging` | Blocked on real release hashes and Nix build proof. |
