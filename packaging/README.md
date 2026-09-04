@@ -80,12 +80,13 @@ key in `packaging/aur/known_hosts`; verify any future key rotation against the o
 ## Nix
 
 `flake.nix` exposes `packages.<system>.loopwire-bin` and `packages.<system>.default` from
-`packaging/nix/loopwire-bin.nix` for `x86_64-linux` and `aarch64-linux`. The default flake package intentionally uses
-`nixpkgs.lib.fakeHash` until the first public release provides real artifact hashes.
+`packaging/nix/loopwire-bin.nix` for `x86_64-linux` and `aarch64-linux`. The default flake package is pinned to the
+signed `v0.1.0` release tarball hashes for both systems.
+`flake.lock` pins the nixpkgs revision used to evaluate and build those outputs.
 
-After a release exists, use `lib.<system>.mkLoopwireBinPackage` with the published version and per-system hashes from
-release metadata. Do not describe the flake package as release-ready until those hashes are real and `nix build` has
-been run against published artifacts.
+Use `lib.<system>.mkLoopwireBinPackage` when a newer release exists and you need to inject a different published
+version/hash set. Fresh local proof in this repository only covers `x86_64-linux` via a non-skipped `nix build`
+against published artifacts; `aarch64-linux` still needs native proof before that host is described as verified.
 
 Render a reviewable Nix package expression from a signed release directory:
 
@@ -231,8 +232,8 @@ and validates source-package `.SRCINFO`. It skips cleanly on hosts without `make
 builds the tagged source recipe and checks the complete runtime, desktop entry, and icon.
 
 `verify:packaging` statically checks that package metadata points at the same release artifact names as the installer
-and that the flake exposes the binary package template without replacing fake hashes with unverified values. It also
-renders a temporary Nix release package expression from checksum-bound fake artifacts and proves duplicate manifest
-entries are rejected. It invokes the Nix verifier with `--render-only` against fake local artifacts, so it does not
-replace real release-time `nix build` evidence. It also runs the native package reproducibility and proof-verifier
-regressions; this still does not substitute for the matching-guest KVM run.
+and that the flake keeps the signed `v0.1.0` SRI hashes wired while render-only metadata smokes stay separate from real
+release proof. It also renders a temporary Nix release package expression from checksum-bound fake artifacts and proves
+duplicate manifest entries are rejected. It invokes the Nix verifier with `--render-only` against fake local artifacts,
+so it does not replace real release-time `nix build` evidence. It also runs the native package reproducibility and
+proof-verifier regressions; this still does not substitute for the matching-guest KVM run.

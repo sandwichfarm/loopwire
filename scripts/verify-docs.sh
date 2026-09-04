@@ -103,8 +103,8 @@ assert_contains "apps/docs/docs/guide/support-matrix.md" "pnpm vm:render-ssh-pla
 assert_contains "apps/docs/docs/guide/support-matrix.md" "Virtual sinks, routes, mute, monitor links"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "one output per source"
 assert_contains "apps/docs/docs/guide/support-matrix.md" "Playback/capture hardware detection"
-assert_contains "apps/docs/docs/guide/support-matrix.md" "Nix flake package template"
-assert_contains "apps/docs/docs/guide/support-matrix.md" "fake hashes"
+assert_contains "apps/docs/docs/guide/support-matrix.md" 'Nix flake package (`loopwire-bin`)'
+assert_contains "apps/docs/docs/guide/support-matrix.md" "Release-bound for 0.1.0; locally proved on x86_64 only."
 assert_contains "apps/docs/docs/guide/backends.md" "list PipeWire output ports as source candidates"
 assert_contains "apps/docs/docs/guide/backends.md" "create Loopwire-owned virtual output and monitor sinks"
 assert_contains "apps/docs/docs/guide/backends.md" "virtual monitor sink ports"
@@ -970,7 +970,7 @@ assert_contains "apps/docs/docs/release-notes/unreleased.md" "Debian and Ubuntu 
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Non-Nix VM cloud-init commands now install Rust"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "NixOS VM cloud-init commands"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'packages.<system>.loopwire-bin'
-assert_contains "apps/docs/docs/release-notes/unreleased.md" "fake hashes"
+assert_contains "apps/docs/docs/release-notes/unreleased.md" 'signed `v0.1.0` release hashes'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "VitePress public installer asset"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "unsafe absolute or parent-traversing archive paths"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "Release readiness now fails if the public docs installer drifts"
