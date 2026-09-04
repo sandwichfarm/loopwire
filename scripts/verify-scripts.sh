@@ -9,6 +9,7 @@ bash -n \
   scripts/verify-release-signature.sh \
   scripts/stage-release-artifacts.sh \
   scripts/deploy-docs-bunny.sh \
+  scripts/deploy-aur-package.sh \
   scripts/verify-docs-live.sh \
   scripts/select-docs-deployment-run.sh \
   scripts/fetch-docs-deployment-proof.sh \
@@ -46,6 +47,7 @@ bash -n \
   scripts/collect-vm-evidence-ssh.sh \
   scripts/collect-vm-matrix-evidence.sh \
   scripts/verify-aur-package.sh \
+  scripts/verify-aur-source-package.sh \
   scripts/verify-packaging.sh \
   scripts/verify-native-packaging.sh \
   scripts/build-deb-package.sh \
@@ -98,6 +100,14 @@ node --check scripts/verify-native-package-vm-proof.mjs
 node --check scripts/verify-native-package-proof-snapshot.mjs
 bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
   echo "verify-scripts: portable builder does not accept the package-script separator" >&2
+  exit 1
+}
+bash scripts/deploy-aur-package.sh --help | grep -Fq -- "--package loopwire|loopwire-bin|all" || {
+  echo "verify-scripts: AUR deploy helper does not advertise package selection" >&2
+  exit 1
+}
+bash scripts/verify-aur-source-package.sh --help | grep -Fq -- "--source-archive FILE" || {
+  echo "verify-scripts: AUR source verifier does not advertise local archive input" >&2
   exit 1
 }
 bash scripts/build-deb-package.sh -- --help | grep -Fq -- "--target ubuntu-24.04|debian-13" || {

@@ -2,6 +2,12 @@
 
 These notes describe source-tree progress. They are not a public release announcement.
 
+## Packaging
+
+- The AUR now keeps two honest stable recipes: `loopwire` compiles the immutable tagged source archive, while
+  `loopwire-bin` continues to consume signed prebuilt release artifacts. Both are built and inspected before a manual,
+  environment-protected AUR publication workflow may push their separate package repositories.
+
 ## Desktop UI Rebuild
 
 - GitHub Actions setup now has a cross-platform guided command that separates public variables from secrets, explains

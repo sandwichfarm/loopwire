@@ -59,3 +59,27 @@ jobs:
 
       - name: Run workspace checks
         run: pnpm check
+
+  validate-aur-source:
+    name: Build source AUR package on Arch Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Build and inspect source package
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            archlinux@sha256:84cd9ef000b3cff245ec028e87965b84724f4bf1cc63fc2741ba927b88515ed6 \
+            bash -ceu '
+              pacman -Syu --noconfirm --needed \
+                curl git namcap nodejs pipewire pnpm rust webkit2gtk-4.1 wireplumber
+              useradd --create-home aur-builder
+              runuser -u aur-builder -- env HOME=/home/aur-builder \
+                bash /workspace/scripts/verify-aur-source-package.sh
+            '

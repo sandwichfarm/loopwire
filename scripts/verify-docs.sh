@@ -287,6 +287,12 @@ assert_contains "apps/docs/docs/guide/install.md" "loopwire-dsp-provider"
 assert_contains "apps/docs/docs/guide/install.md" 'The curl installer reports whether `node` is available'
 assert_contains "apps/docs/docs/guide/install.md" "AUR and Nix package"
 assert_contains "apps/docs/docs/guide/install.md" "paths declare or wrap that dependency"
+assert_contains "apps/docs/docs/guide/install.md" "https://aur.archlinux.org/loopwire.git"
+assert_contains "apps/docs/docs/guide/install.md" "packaging/aur/loopwire-bin/PKGBUILD.in"
+assert_contains "apps/docs/docs/guide/support-matrix.md" 'AUR `loopwire`'
+assert_contains "apps/docs/docs/guide/support-matrix.md" 'AUR `loopwire-bin`'
+assert_contains "apps/docs/docs/developer/release.md" "pnpm verify:aur:source"
+assert_contains "apps/docs/docs/developer/github-actions-setup.md" "AUR_SSH_PRIVATE_KEY"
 assert_contains "apps/docs/docs/guide/install.md" "fake"
 assert_contains "apps/docs/docs/guide/install.md" "VitePress public asset"
 assert_contains "apps/docs/docs/guide/install.md" "/install.sh"

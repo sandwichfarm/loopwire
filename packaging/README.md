@@ -1,7 +1,8 @@
 # Packaging
 
-Loopwire package metadata is release-artifact-first. AUR, Nix, curl installer, and native distro packages consume
-the same release artifacts:
+Loopwire binary package metadata is release-artifact-first. `loopwire-bin`, Nix, the curl installer, and native
+distro packages consume the same release artifacts, while the unsuffixed AUR `loopwire` recipe compiles the immutable
+tagged source archive:
 
 - `loopwire-linux-x86_64.tar.gz`
 - `loopwire-linux-aarch64.tar.gz`
@@ -31,22 +32,44 @@ verify the key pair without placing the private key under the repository.
 
 ## AUR
 
-`packaging/aur/PKGBUILD.in` is a template for `loopwire-bin`. Replace:
+The two stable AUR recipes are deliberately separate:
 
-- `@VERSION@`,
-- `@SHA256_X86_64@`,
-- `@SHA256_AARCH64@`.
+- `packaging/aur/loopwire/PKGBUILD.in` builds the immutable tagged source archive and owns the exact `loopwire`
+  package base.
+- `packaging/aur/loopwire-bin/PKGBUILD.in` consumes the signed architecture-specific release tarballs and owns
+  `loopwire-bin`.
 
-The generated `PKGBUILD` must be tested with `makepkg` against published artifacts before any AUR submission.
+The source template replaces `@VERSION@`, `@PKGREL@`, and `@SHA256_SOURCE@`. The binary template replaces
+`@VERSION@`, `@PKGREL@`, `@SHA256_X86_64@`, and `@SHA256_AARCH64@`. The recipes declare conflicts/provides so only
+one variant can own the installed `loopwire` files; a future live-VCS recipe must use the separate `loopwire-git`
+package base.
+
+Every generated `PKGBUILD` must be tested with `makepkg` against its published tag or release artifacts before AUR
+submission.
 
 For local release-shaped smoke, render the template against generated artifacts and build without installing:
 
 ```bash
 pnpm verify:aur
+pnpm verify:aur:source -- --version 0.1.0
 ```
 
-That command uses `makepkg --nodeps` in a temp directory when `makepkg` is available. It does not install the package or
-submit anything to AUR.
+`verify:aur` builds the binary recipe and checks the source recipe metadata. `verify:aur:source` performs the heavier
+tagged source compilation and package-content inspection. Neither command installs or submits a package.
+
+Publish from a clean Arch checkout with the AUR key loaded or available for an interactive passphrase prompt:
+
+```bash
+pnpm deploy:aur -- --package loopwire --tag v0.1.0 --key ~/.ssh/aur
+pnpm deploy:aur -- --package loopwire-bin --tag v0.1.0 --key ~/.ssh/aur
+```
+
+The helper downloads checksum-bound inputs, builds and inspects the package, generates `.SRCINFO`, increments `pkgrel`
+when same-version metadata changes, commits `PKGBUILD`, `.SRCINFO`, and `LICENSE-MIT`, pushes the package-aligned AUR
+Git repo, and verifies the remote commit. `.github/workflows/publish-aur.yml` exposes the same path as an
+environment-protected
+manual dispatch after its dedicated `AUR_SSH_PRIVATE_KEY` secret is configured. The workflow pins the AUR Ed25519 host
+key in `packaging/aur/known_hosts`; verify any future key rotation against the official AUR homepage before updating it.
 
 ## Nix
 
@@ -197,9 +220,9 @@ verifies multi-architecture checksum entries, signs the manifest, installs the g
 through `scripts/install.sh`, and proves `loopwire --background --help` works from the extracted and installed
 launcher.
 
-`verify:aur` renders the AUR template from generated local artifacts, runs `makepkg --nodeps` in a temp directory, and
-checks the package archive contains `usr/bin/loopwire`, `usr/bin/loopwire-dsp-provider`, and
-`usr/bin/loopwire-jack-ports`. It skips cleanly on hosts without `makepkg`.
+`verify:aur` renders both AUR templates, runs a `makepkg --nodeps` binary-package build, checks the package archive,
+and validates source-package `.SRCINFO`. It skips cleanly on hosts without `makepkg`. `verify:aur:source` separately
+builds the tagged source recipe and checks the complete runtime, desktop entry, and icon.
 
 `verify:packaging` statically checks that package metadata points at the same release artifact names as the installer
 and that the flake exposes the binary package template without replacing fake hashes with unverified values. It also
