@@ -32,17 +32,19 @@ verify the key pair without placing the private key under the repository.
 
 ## AUR
 
-The two stable AUR recipes are deliberately separate:
+The stable and rolling AUR recipes are deliberately separate:
 
 - `packaging/aur/loopwire/PKGBUILD.in` builds the immutable tagged source archive and owns the exact `loopwire`
   package base.
 - `packaging/aur/loopwire-bin/PKGBUILD.in` consumes the signed architecture-specific release tarballs and owns
   `loopwire-bin`.
+- `packaging/aur/loopwire-git/PKGBUILD.in` builds the current default branch, derives `pkgver` from Git history, and
+  owns `loopwire-git`.
 
 The source template replaces `@VERSION@`, `@PKGREL@`, and `@SHA256_SOURCE@`. The binary template replaces
 `@VERSION@`, `@PKGREL@`, `@SHA256_X86_64@`, and `@SHA256_AARCH64@`. The recipes declare conflicts/provides so only
-one variant can own the installed `loopwire` files; a future live-VCS recipe must use the separate `loopwire-git`
-package base.
+one variant can own the installed `loopwire` files. The VCS recipe uses `SKIP` only for its moving Git source; the
+packager-supplied MIT license remains checksum-bound.
 
 Every generated `PKGBUILD` must be tested with `makepkg` against its published tag or release artifacts before AUR
 submission.
@@ -52,21 +54,25 @@ For local release-shaped smoke, render the template against generated artifacts 
 ```bash
 pnpm verify:aur
 pnpm verify:aur:source -- --version 0.1.0
+pnpm verify:aur:git
 ```
 
-`verify:aur` builds the binary recipe and checks the source recipe metadata. `verify:aur:source` performs the heavier
-tagged source compilation and package-content inspection. Neither command installs or submits a package.
+`verify:aur` builds the binary recipe and checks stable plus VCS source metadata. `verify:aur:source` and
+`verify:aur:git` perform the heavier stable-tag and rolling-branch compilations. None installs or submits a package.
+The VCS build intentionally runs without any AUR key. Its key-bearing publication path revalidates and pushes only
+the reviewed `PKGBUILD`, `.SRCINFO`, and license metadata; it never executes the moving branch source.
 
 Publish from a clean Arch checkout with the AUR key loaded or available for an interactive passphrase prompt:
 
 ```bash
 pnpm deploy:aur -- --package loopwire --tag v0.1.0 --key ~/.ssh/aur
 pnpm deploy:aur -- --package loopwire-bin --tag v0.1.0 --key ~/.ssh/aur
+pnpm deploy:aur -- --package loopwire-git --tag v0.1.0 --key ~/.ssh/aur
 ```
 
-The helper downloads checksum-bound inputs, builds and inspects the package, generates `.SRCINFO`, increments `pkgrel`
-when same-version metadata changes, commits `PKGBUILD`, `.SRCINFO`, and `LICENSE-MIT`, pushes the package-aligned AUR
-Git repo, and verifies the remote commit. `.github/workflows/publish-aur.yml` exposes the same path as an
+The helper downloads checksum-bound stable inputs, builds and inspects stable packages, generates `.SRCINFO`, and
+increments `pkgrel` when same-version metadata changes. It commits `PKGBUILD`, `.SRCINFO`, and `LICENSE-MIT`, then
+pushes the package-aligned AUR Git repo and verifies the remote commit. `.github/workflows/publish-aur.yml` exposes the same path as an
 environment-protected
 manual dispatch after its dedicated `AUR_SSH_PRIVATE_KEY` secret is configured. The workflow pins the AUR Ed25519 host
 key in `packaging/aur/known_hosts`; verify any future key rotation against the official AUR homepage before updating it.

@@ -8,6 +8,7 @@ release_dir=""
 source_archive=""
 output_path=""
 published="false"
+default_branch=""
 
 usage() {
   cat <<'USAGE'
@@ -16,6 +17,7 @@ Render a Loopwire AUR PKGBUILD from verified local inputs.
 Usage:
   render-aur-pkgbuild.sh --package loopwire-bin --version VERSION --release-dir DIR --output PATH [--pkgrel N] [--published]
   render-aur-pkgbuild.sh --package loopwire --version VERSION --source-archive FILE --output PATH [--pkgrel N] [--published]
+  render-aur-pkgbuild.sh --package loopwire-git --version VERSION --default-branch BRANCH --output PATH [--pkgrel N] [--published]
 
 Without --published, binary release URLs are rewritten to local file:// inputs.
 Source builds keep their immutable tag URL and can be made offline by placing
@@ -32,6 +34,7 @@ while [ "$#" -gt 0 ]; do
     --pkgrel) pkgrel="${2:?missing value for --pkgrel}"; shift 2 ;;
     --release-dir) release_dir="${2:?missing value for --release-dir}"; shift 2 ;;
     --source-archive) source_archive="${2:?missing value for --source-archive}"; shift 2 ;;
+    --default-branch) default_branch="${2:?missing value for --default-branch}"; shift 2 ;;
     --output) output_path="${2:?missing value for --output}"; shift 2 ;;
     --published) published="true"; shift ;;
     -h | --help) usage; exit 0 ;;
@@ -43,10 +46,20 @@ if [ -z "$package_name" ] || [ -z "$version" ] || [ -z "$output_path" ]; then
   usage >&2
   exit 2
 fi
-if [[ ! "$version" =~ ^[0-9]+([.][0-9]+)*$ ]]; then
-  echo "Version must contain dot-separated integers: $version" >&2
-  exit 2
-fi
+case "$package_name" in
+  loopwire-git)
+    [[ "$version" =~ ^[0-9]+([.][0-9]+)*[.]r[0-9]+[.]g[0-9a-f]+$ ]] || {
+      echo "loopwire-git version must look like 1.2.3.r4.gabcdef0: $version" >&2
+      exit 2
+    }
+    ;;
+  *)
+    [[ "$version" =~ ^[0-9]+([.][0-9]+)*$ ]] || {
+      echo "Version must contain dot-separated integers: $version" >&2
+      exit 2
+    }
+    ;;
+esac
 if [[ ! "$pkgrel" =~ ^[1-9][0-9]*$ ]]; then
   echo "pkgrel must be a positive integer: $pkgrel" >&2
   exit 2
@@ -112,6 +125,23 @@ case "$package_name" in
       -e "s/@PKGREL@/${pkgrel}/g" \
       -e "s/@SHA256_SOURCE@/${source_hash}/g" \
       -e "s/@SHA256_LICENSE@/${license_hash}/g" \
+      "$template_path" >"$tmp_output"
+    ;;
+  loopwire-git)
+    [ -n "$default_branch" ] || {
+      echo "loopwire-git requires --default-branch BRANCH" >&2
+      exit 2
+    }
+    git check-ref-format --branch "$default_branch" >/dev/null 2>&1 || {
+      echo "Invalid default branch: $default_branch" >&2
+      exit 2
+    }
+    template_path="$root/packaging/aur/loopwire-git/PKGBUILD.in"
+    sed \
+      -e "s/@VERSION@/${version}/g" \
+      -e "s/@PKGREL@/${pkgrel}/g" \
+      -e "s/@SHA256_LICENSE@/${license_hash}/g" \
+      -e "s/@DEFAULT_BRANCH@/${default_branch}/g" \
       "$template_path" >"$tmp_output"
     ;;
   *) echo "Unsupported AUR package: $package_name" >&2; exit 2 ;;

@@ -15,6 +15,7 @@ trap cleanup EXIT
 release_dir="$tmp_dir/release"
 work_dir="$tmp_dir/aur-bin"
 source_work_dir="$tmp_dir/aur-source"
+git_work_dir="$tmp_dir/aur-git"
 binary="$tmp_dir/loopwire"
 
 pnpm --filter @loopwire/core build >/dev/null
@@ -38,9 +39,10 @@ bash scripts/package-release.sh \
   --arch aarch64 \
   --output-dir "$release_dir" >/dev/null
 
-mkdir -p "$work_dir" "$source_work_dir"
+mkdir -p "$work_dir" "$source_work_dir" "$git_work_dir"
 cp packaging/aur/LICENSE-MIT "$work_dir/LICENSE-MIT"
 cp packaging/aur/LICENSE-MIT "$source_work_dir/LICENSE-MIT"
+cp packaging/aur/LICENSE-MIT "$git_work_dir/LICENSE-MIT"
 bash scripts/render-aur-pkgbuild.sh \
   --package loopwire-bin \
   --version "0.0.0" \
@@ -118,4 +120,23 @@ if grep -Fq " E: " "$tmp_dir/namcap-source-metadata.log"; then
   exit 1
 fi
 
-echo "AUR binary build and source metadata smokes passed."
+bash scripts/render-aur-pkgbuild.sh \
+  --package loopwire-git \
+  --version "0.1.0.r1.gabcdef0" \
+  --default-branch master \
+  --pkgrel 1 \
+  --output "$git_work_dir/PKGBUILD" >/dev/null
+(
+  cd "$git_work_dir"
+  makepkg --printsrcinfo >.SRCINFO
+)
+grep -Fqx "pkgbase = loopwire-git" "$git_work_dir/.SRCINFO"
+grep -Fqx $'\tprovides = loopwire=0.1.0.r1.gabcdef0' "$git_work_dir/.SRCINFO"
+grep -Fqx $'\tconflicts = loopwire' "$git_work_dir/.SRCINFO"
+grep -Fqx $'\tmakedepends = git' "$git_work_dir/.SRCINFO"
+if grep -Fq $'\treplaces = ' "$git_work_dir/.SRCINFO"; then
+  echo "loopwire-git must not declare replaces." >&2
+  exit 1
+fi
+
+echo "AUR binary build plus stable/VCS source metadata smokes passed."

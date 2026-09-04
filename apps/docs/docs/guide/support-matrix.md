@@ -74,6 +74,7 @@ the Tauri shell command bridge.
 | Fedora 44 / openSUSE Tumbleweed RPM | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads; no COPR/OBS repository. |
 | AUR `loopwire` | Tagged source build through `pnpm verify:aur:source` | Published for 0.1.0. |
 | AUR `loopwire-bin` | Signed release-artifact build through `pnpm verify:aur` | Published for 0.1.0. |
+| AUR `loopwire-git` | Rolling default-branch build through `pnpm verify:aur:git` | Published; development snapshots are not stable releases. |
 | Nix flake package template | `pnpm verify:packaging` | Blocked on real release hashes and Nix build proof. |
 
 The flake package output is `packages.<system>.loopwire-bin`; it uses fake hashes until published artifacts exist.

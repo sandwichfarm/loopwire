@@ -780,18 +780,23 @@ configured and readiness passes.
 ```bash
 pnpm verify:aur
 pnpm verify:aur:source -- --version 0.1.0
+pnpm verify:aur:git
 ```
 
 The lightweight AUR smoke renders both `packaging/aur/loopwire-bin/PKGBUILD.in` and
 `packaging/aur/loopwire/PKGBUILD.in`, builds the binary recipe, and validates the source recipe metadata.
 `verify:aur:source` performs the full tagged-source compilation and package-content inspection on Arch. Neither command
-installs or submits anything.
+installs or submits anything. `verify:aur:git` separately builds the current default branch and checks its VCS-derived
+package version plus complete installed payload.
+Run that VCS build proof before publication and without an AUR key in its environment. The publisher handles
+`loopwire-git` as metadata-only so moving default-branch code never executes while the signing key is reachable.
 
 After the GitHub release is public, publish one or both package bases from a clean Arch checkout:
 
 ```bash
 pnpm deploy:aur -- --package loopwire --tag v0.1.0 --key ~/.ssh/aur
 pnpm deploy:aur -- --package loopwire-bin --tag v0.1.0 --key ~/.ssh/aur
+pnpm deploy:aur -- --package loopwire-git --tag v0.1.0 --key ~/.ssh/aur
 ```
 
 The manual `Publish AUR` workflow uses the same helper inside an Arch container. It is isolated behind the `aur`

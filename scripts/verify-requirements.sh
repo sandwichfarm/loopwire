@@ -84,7 +84,9 @@ assert_contains "scripts/install.sh" "detect_arch"
 assert_contains "scripts/install.sh" "loopwire-linux-aarch64.tar.gz"
 assert_file "packaging/aur/loopwire/PKGBUILD.in"
 assert_file "packaging/aur/loopwire-bin/PKGBUILD.in"
+assert_file "packaging/aur/loopwire-git/PKGBUILD.in"
 assert_file "scripts/deploy-aur-package.sh"
+assert_file "scripts/verify-aur-git-package.sh"
 assert_file "scripts/verify-aur-source-package.sh"
 assert_file "packaging/nix/loopwire-bin.nix"
 assert_file "flake.nix"
@@ -97,6 +99,7 @@ assert_script "package.json" "nix:render-release" "bash scripts/render-nix-relea
 assert_script "package.json" "verify:nix-release" "bash scripts/verify-nix-release-package.sh"
 assert_script "package.json" "release:agent-ready" "bash scripts/verify-agent-release-ready.sh"
 assert_script "package.json" "deploy:aur" "bash scripts/deploy-aur-package.sh"
+assert_script "package.json" "verify:aur:git" "bash scripts/verify-aur-git-package.sh"
 
 for requirement in DOCS-01 DOCS-02 DOCS-03 DOCS-04; do
   assert_requirement_checked "$requirement"

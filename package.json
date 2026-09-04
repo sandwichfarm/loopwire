@@ -56,6 +56,7 @@
     "nix:render-release": "bash scripts/render-nix-release-package.sh",
     "verify:nix-release": "bash scripts/verify-nix-release-package.sh",
     "verify:aur": "bash scripts/verify-aur-package.sh",
+    "verify:aur:git": "bash scripts/verify-aur-git-package.sh",
     "verify:aur:source": "bash scripts/verify-aur-source-package.sh",
     "verify:docs": "bash scripts/verify-docs.sh",
     "verify:site": "node scripts/verify-static-site.mjs",

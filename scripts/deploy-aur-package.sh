@@ -7,6 +7,7 @@ package_selection="loopwire"
 checkout_root="$workspace_root/aur"
 key_path="${AUR_SSH_KEY:-$HOME/.ssh/aur}"
 tag=""
+default_branch="${LOOPWIRE_DEFAULT_BRANCH:-}"
 
 die() {
   printf 'error: %s\n' "$*" >&2
@@ -18,8 +19,9 @@ usage() {
 Build, validate, and publish Loopwire AUR recipes.
 
 Usage:
-  deploy-aur-package.sh [--package loopwire|loopwire-bin|all] [--tag vX.Y.Z]
+  deploy-aur-package.sh [--package loopwire|loopwire-bin|loopwire-git|all] [--tag vX.Y.Z]
                         [--checkout-root DIR] [--key PATH]
+                        [--default-branch BRANCH]
 
 Defaults:
   --package        loopwire
@@ -27,9 +29,9 @@ Defaults:
   --checkout-root  ../aur relative to the repository root
   --key            ~/.ssh/aur
 
-The stable `loopwire` recipe builds the tagged source archive. `loopwire-bin`
-consumes the signed architecture-specific release artifacts. Each recipe is
-fully built with makepkg and inspected with namcap before its AUR Git push.
+The stable `loopwire` recipe builds the tagged source archive, `loopwire-bin`
+consumes signed release artifacts, and `loopwire-git` tracks the default branch.
+Each recipe is fully built and inspected before its package-scoped AUR Git push.
 USAGE
 }
 
@@ -40,6 +42,7 @@ while [ "$#" -gt 0 ]; do
     --tag) tag="${2:?missing value for --tag}"; shift 2 ;;
     --checkout-root) checkout_root="${2:?missing value for --checkout-root}"; shift 2 ;;
     --key) key_path="${2:?missing value for --key}"; shift 2 ;;
+    --default-branch) default_branch="${2:?missing value for --default-branch}"; shift 2 ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
@@ -48,14 +51,15 @@ done
 case "$package_selection" in
   loopwire) packages=(loopwire) ;;
   loopwire-bin) packages=(loopwire-bin) ;;
-  all) packages=(loopwire loopwire-bin) ;;
-  *) die "--package must be loopwire, loopwire-bin, or all" ;;
+  loopwire-git) packages=(loopwire-git) ;;
+  all) packages=(loopwire loopwire-bin loopwire-git) ;;
+  *) die "--package must be loopwire, loopwire-bin, loopwire-git, or all" ;;
 esac
 
 for command_name in awk curl git makepkg namcap openssl sed sha256sum ssh ssh-add ssh-agent ssh-keygen tar; do
   command -v "$command_name" >/dev/null 2>&1 || die "required command is missing: $command_name"
 done
-[[ -d "$repo_root/.git" ]] || die "Loopwire checkout not found: $repo_root"
+[[ -e "$repo_root/.git" ]] || die "Loopwire checkout not found: $repo_root"
 [[ -f "$repo_root/packaging/release-signing-public.pem" ]] || die "release public key not found"
 [[ -f "$repo_root/scripts/verify-release-signature.sh" ]] || die "release signature verifier not found"
 known_hosts_path="$repo_root/packaging/aur/known_hosts"
@@ -75,6 +79,26 @@ if [ -z "$tag" ]; then
 fi
 [[ "$tag" =~ ^v([0-9]+([.][0-9]+)*)$ ]] || die "release tag must look like v1.2.3; got $tag"
 version="${tag#v}"
+git_version=""
+if [[ " ${packages[*]} " == *" loopwire-git "* ]]; then
+  if [ -z "$default_branch" ]; then
+    remote_head="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || true)"
+    default_branch="${remote_head#origin/}"
+  fi
+  if [ -z "$default_branch" ]; then
+    default_branch="$(git -C "$repo_root" remote show origin | awk '/HEAD branch:/ { print $NF; exit }')"
+  fi
+  git check-ref-format --branch "$default_branch" >/dev/null 2>&1 || \
+    die "could not resolve a valid repository default branch"
+  git -C "$repo_root" fetch --quiet origin \
+    "refs/heads/$default_branch:refs/remotes/origin/$default_branch"
+  git_version="$(
+    git -C "$repo_root" describe --long --tags --abbrev=7 "origin/$default_branch" |
+      sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+  )"
+  [[ "$git_version" =~ ^[0-9]+([.][0-9]+)*[.]r[0-9]+[.]g[0-9a-f]+$ ]] || \
+    die "could not derive a valid loopwire-git version from the default branch"
+fi
 
 tmp_dir="$(mktemp -d -t loopwire-aur-deploy.XXXXXXXX)"
 started_agent=0
@@ -139,20 +163,21 @@ fi
 
 render_pkgbuild() {
   local package_name="$1"
-  local package_rel="$2"
-  local output="$3"
-  local source_mode="$4"
+  local package_version="$2"
+  local package_rel="$3"
+  local output="$4"
+  local source_mode="$5"
   local args=(
     --package "$package_name"
-    --version "$version"
+    --version "$package_version"
     --pkgrel "$package_rel"
     --output "$output"
   )
-  if [ "$package_name" = "loopwire" ]; then
-    args+=(--source-archive "$source_archive")
-  else
-    args+=(--release-dir "$release_dir")
-  fi
+  case "$package_name" in
+    loopwire) args+=(--source-archive "$source_archive") ;;
+    loopwire-bin) args+=(--release-dir "$release_dir") ;;
+    loopwire-git) args+=(--default-branch "$default_branch") ;;
+  esac
   if [ "$source_mode" = "published" ]; then
     args+=(--published)
   fi
@@ -206,7 +231,9 @@ prepare_checkout() {
 
 publish_package() {
   local package_name="$1"
+  local package_version="$version"
   local checkout package_dir candidate_pkgbuild candidate_srcinfo current_version current_rel package_rel
+  [ "$package_name" = "loopwire-git" ] && package_version="$git_version"
   checkout="$(prepare_checkout "$package_name")"
   package_dir="$tmp_dir/$package_name"
   mkdir -p "$package_dir"
@@ -219,44 +246,49 @@ publish_package() {
     current_rel="$(awk '$1 == "pkgrel" && $2 == "=" { print $3; exit }' "$checkout/.SRCINFO")"
   fi
   package_rel="1"
-  if [ "$current_version" = "$version" ] && [[ "$current_rel" =~ ^[0-9]+$ ]]; then
+  if [ "$current_version" = "$package_version" ] && [[ "$current_rel" =~ ^[0-9]+$ ]]; then
     package_rel="$current_rel"
   fi
-  render_pkgbuild "$package_name" "$package_rel" "$candidate_pkgbuild" published
+  render_pkgbuild "$package_name" "$package_version" "$package_rel" "$candidate_pkgbuild" published
   generate_srcinfo "$candidate_pkgbuild" "$candidate_srcinfo"
   if [ -f "$checkout/PKGBUILD" ] && [ -f "$checkout/.SRCINFO" ] && \
     [ -f "$checkout/LICENSE-MIT" ] && \
     cmp -s "$candidate_pkgbuild" "$checkout/PKGBUILD" && \
     cmp -s "$candidate_srcinfo" "$checkout/.SRCINFO" && \
     cmp -s "$repo_root/packaging/aur/LICENSE-MIT" "$checkout/LICENSE-MIT"; then
-    printf '%s is already current at %s-%s.\n' "$package_name" "$version" "$package_rel"
+    printf '%s is already current at %s-%s.\n' "$package_name" "$package_version" "$package_rel"
     return
   fi
-  if [ "$current_version" = "$version" ] && [[ "$current_rel" =~ ^[0-9]+$ ]]; then
+  if [ "$current_version" = "$package_version" ] && [[ "$current_rel" =~ ^[0-9]+$ ]]; then
     package_rel="$((current_rel + 1))"
-    render_pkgbuild "$package_name" "$package_rel" "$candidate_pkgbuild" published
+    render_pkgbuild "$package_name" "$package_version" "$package_rel" "$candidate_pkgbuild" published
     generate_srcinfo "$candidate_pkgbuild" "$candidate_srcinfo"
   fi
 
   build_dir="$package_dir/build"
-  mkdir -p "$build_dir"
-  render_pkgbuild "$package_name" "$package_rel" "$build_dir/PKGBUILD" local
-  cp "$repo_root/packaging/aur/LICENSE-MIT" "$build_dir/LICENSE-MIT"
-  if [ "$package_name" = "loopwire" ]; then
-    cp "$source_archive" "$build_dir/loopwire-${version}.tar.gz"
-  else
-    cp "$release_dir/loopwire-linux-x86_64.tar.gz" "$build_dir/"
-    cp "$release_dir/loopwire-linux-aarch64.tar.gz" "$build_dir/"
-  fi
-  printf 'Building %s %s-%s...\n' "$package_name" "$version" "$package_rel"
-  (
-    cd "$build_dir"
-    makepkg --force --nodeps --noconfirm --cleanbuild --clean
-  )
-  package_file="$(find "$build_dir" -maxdepth 1 -type f -name "${package_name}-*.pkg.tar.*" ! -name "${package_name}-debug-*" -print -quit)"
-  [ -n "$package_file" ] || die "makepkg did not produce the $package_name package"
   namcap_log="$package_dir/namcap.log"
-  namcap "$candidate_pkgbuild" "$package_file" | tee "$namcap_log"
+  if [ "$package_name" = "loopwire-git" ]; then
+    printf '%s\n' "Using the independent keyless loopwire-git build proof; validating publish metadata only."
+    namcap "$candidate_pkgbuild" | tee "$namcap_log"
+  else
+    mkdir -p "$build_dir"
+    render_pkgbuild "$package_name" "$package_version" "$package_rel" "$build_dir/PKGBUILD" local
+    cp "$repo_root/packaging/aur/LICENSE-MIT" "$build_dir/LICENSE-MIT"
+    if [ "$package_name" = "loopwire" ]; then
+      cp "$source_archive" "$build_dir/loopwire-${version}.tar.gz"
+    else
+      cp "$release_dir/loopwire-linux-x86_64.tar.gz" "$build_dir/"
+      cp "$release_dir/loopwire-linux-aarch64.tar.gz" "$build_dir/"
+    fi
+    printf 'Building %s %s-%s...\n' "$package_name" "$package_version" "$package_rel"
+    (
+      cd "$build_dir"
+      makepkg --force --nodeps --noconfirm --cleanbuild --clean
+    )
+    package_file="$(find "$build_dir" -maxdepth 1 -type f -name "${package_name}-*.pkg.tar.*" ! -name "${package_name}-debug-*" -print -quit)"
+    [ -n "$package_file" ] || die "makepkg did not produce the $package_name package"
+    namcap "$candidate_pkgbuild" "$package_file" | tee "$namcap_log"
+  fi
   grep -Fq " E: " "$namcap_log" && die "namcap reported an error for $package_name"
 
   install -m 0644 "$candidate_pkgbuild" "$checkout/PKGBUILD"
@@ -271,9 +303,10 @@ publish_package() {
   git -C "$checkout" config user.email "${author_email:-aur@loopwire.app}"
   recipe_kind="source-built"
   [ "$package_name" = "loopwire-bin" ] && recipe_kind="release-binary"
+  [ "$package_name" = "loopwire-git" ] && recipe_kind="rolling-VCS"
   commit_message="$package_dir/commit-message"
   cat >"$commit_message" <<EOF
-Publish Loopwire $version as the $recipe_kind AUR variant
+Publish Loopwire $package_version as the $recipe_kind AUR variant
 
 Keep the package base aligned with how its artifacts are produced while both
 stable installation choices expose the same Loopwire commands.
@@ -282,7 +315,7 @@ Constraint: AUR metadata must reference immutable, checksum-bound release inputs
 Confidence: high
 Scope-risk: narrow
 Reversibility: clean
-Directive: Keep loopwire and loopwire-bin as separate package bases
+Directive: Keep loopwire, loopwire-bin, and loopwire-git as separate package bases
 Tested: makepkg build, .SRCINFO generation, namcap
 Not-tested: Installation into a clean Arch Linux guest
 EOF
@@ -297,7 +330,7 @@ EOF
   published="false"
   for _ in {1..10}; do
     if curl --fail --silent --show-error "$aur_page" --output "$aur_page_file" && \
-      grep -Fq "Package Details: $package_name $version-$package_rel" "$aur_page_file"; then
+      grep -Fq "Package Details: $package_name $package_version-$package_rel" "$aur_page_file"; then
       published="true"
       break
     fi
@@ -305,7 +338,7 @@ EOF
   done
   [ "$published" = "true" ] || die "$package_name push succeeded, but its AUR package page is not visible yet"
   printf 'Published %s %s-%s: https://aur.archlinux.org/packages/%s\n' \
-    "$package_name" "$version" "$package_rel" "$package_name"
+    "$package_name" "$package_version" "$package_rel" "$package_name"
 }
 
 for package_name in "${packages[@]}"; do

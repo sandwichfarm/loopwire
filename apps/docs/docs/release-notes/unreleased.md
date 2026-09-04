@@ -12,6 +12,8 @@ These notes describe source-tree progress. They are not a public release announc
 - The AUR now keeps two honest stable recipes: `loopwire` compiles the immutable tagged source archive, while
   `loopwire-bin` continues to consume signed prebuilt release artifacts. Both are built and inspected before a manual,
   environment-protected AUR publication workflow may push their separate package repositories.
+- A third `loopwire-git` AUR recipe follows the protected default branch, derives a monotonic VCS package version, and
+  remains explicitly separate from the stable source and binary package bases.
 
 ## Desktop UI Rebuild
 
