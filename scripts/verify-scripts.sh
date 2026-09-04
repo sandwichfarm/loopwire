@@ -47,6 +47,7 @@ bash -n \
   scripts/collect-vm-evidence-ssh.sh \
   scripts/collect-vm-matrix-evidence.sh \
   scripts/verify-aur-package.sh \
+  scripts/verify-aur-git-package.sh \
   scripts/verify-aur-source-package.sh \
   scripts/verify-packaging.sh \
   scripts/verify-native-packaging.sh \
@@ -102,12 +103,16 @@ bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FI
   echo "verify-scripts: portable builder does not accept the package-script separator" >&2
   exit 1
 }
-bash scripts/deploy-aur-package.sh --help | grep -Fq -- "--package loopwire|loopwire-bin|all" || {
+bash scripts/deploy-aur-package.sh --help | grep -Fq -- "--package loopwire|loopwire-bin|loopwire-git|all" || {
   echo "verify-scripts: AUR deploy helper does not advertise package selection" >&2
   exit 1
 }
 bash scripts/verify-aur-source-package.sh --help | grep -Fq -- "--source-archive FILE" || {
   echo "verify-scripts: AUR source verifier does not advertise local archive input" >&2
+  exit 1
+}
+bash scripts/verify-aur-git-package.sh --help | grep -Fq -- "--version VERSION" || {
+  echo "verify-scripts: AUR git verifier does not advertise deterministic version input" >&2
   exit 1
 }
 bash scripts/build-deb-package.sh -- --help | grep -Fq -- "--target ubuntu-24.04|debian-13" || {

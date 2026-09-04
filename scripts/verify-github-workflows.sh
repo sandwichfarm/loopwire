@@ -121,6 +121,7 @@ assert_contains ".github/workflows/ci.yml" "xauth"
 assert_contains ".github/workflows/ci.yml" "xvfb"
 assert_contains ".github/workflows/ci.yml" "validate-aur-source:"
 assert_contains ".github/workflows/ci.yml" "scripts/verify-aur-source-package.sh"
+assert_contains ".github/workflows/ci.yml" "scripts/verify-aur-git-package.sh"
 assert_contains "package.json" '"verify:tauri": "bash scripts/verify-tauri.sh"'
 assert_contains "package.json" "pnpm verify:tauri"
 
@@ -171,6 +172,7 @@ assert_contains ".github/workflows/publish-aur.yml" "AUR_SSH_PRIVATE_KEY"
 assert_contains ".github/workflows/publish-aur.yml" "scripts/deploy-aur-package.sh"
 assert_contains ".github/workflows/publish-aur.yml" "archlinux@sha256:"
 assert_contains ".github/workflows/publish-aur.yml" "loopwire-bin"
+assert_contains ".github/workflows/publish-aur.yml" "loopwire-git"
 assert_not_contains ".github/workflows/publish-aur.yml" "pull_request:"
 
 assert_contains ".github/workflows/final-release-proof.yml" "workflow_dispatch:"

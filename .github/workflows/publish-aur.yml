@@ -17,6 +17,7 @@ on:
           - all
           - loopwire
           - loopwire-bin
+          - loopwire-git
 
 permissions:
   contents: read
@@ -81,6 +82,7 @@ jobs:
         env:
           LOOPWIRE_AUR_PACKAGE: ${{ inputs.package }}
           LOOPWIRE_AUR_TAG: ${{ inputs.tag }}
+          LOOPWIRE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           checkout_root="$RUNNER_TEMP/aur-checkouts"
@@ -88,6 +90,7 @@ jobs:
           docker run --rm \
             --env LOOPWIRE_AUR_PACKAGE \
             --env LOOPWIRE_AUR_TAG \
+            --env LOOPWIRE_DEFAULT_BRANCH \
             --volume "$GITHUB_WORKSPACE:/workspace:ro" \
             --volume "$RUNNER_TEMP/aur-key:/run/secrets/aur-key:ro" \
             --volume "$checkout_root:/aur" \
@@ -107,6 +110,7 @@ jobs:
                 bash /workspace/scripts/deploy-aur-package.sh \
                   --package "$LOOPWIRE_AUR_PACKAGE" \
                   --tag "$LOOPWIRE_AUR_TAG" \
+                  --default-branch "$LOOPWIRE_DEFAULT_BRANCH" \
                   --checkout-root /aur \
                   --key /home/aur-builder/.ssh/aur
             '

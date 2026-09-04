@@ -24,7 +24,12 @@ require_contains packaging/aur/loopwire/PKGBUILD.in "tauri build --no-bundle"
 require_contains packaging/aur/loopwire/PKGBUILD.in "scripts/package-release.sh"
 require_contains packaging/aur/loopwire/PKGBUILD.in "usr/share/applications/loopwire.desktop"
 require_contains packaging/aur/loopwire/PKGBUILD.in "usr/share/icons/hicolor/scalable/apps/loopwire.svg"
-require_contains scripts/deploy-aur-package.sh "--package loopwire|loopwire-bin|all"
+require_contains packaging/aur/loopwire-git/PKGBUILD.in "pkgname=loopwire-git"
+require_contains packaging/aur/loopwire-git/PKGBUILD.in 'provides=("loopwire=${pkgver}")'
+require_contains packaging/aur/loopwire-git/PKGBUILD.in 'conflicts=("loopwire")'
+require_contains packaging/aur/loopwire-git/PKGBUILD.in '"loopwire::git+${url}.git#branch=@DEFAULT_BRANCH@"'
+require_contains packaging/aur/loopwire-git/PKGBUILD.in "git describe --long --tags"
+require_contains scripts/deploy-aur-package.sh "--package loopwire|loopwire-bin|loopwire-git|all"
 require_contains packaging/aur/known_hosts "aur.archlinux.org ssh-ed25519"
 require_contains packaging/nix/loopwire-bin.nix "loopwire-linux-x86_64.tar.gz"
 require_contains packaging/nix/loopwire-bin.nix "loopwire-linux-aarch64.tar.gz"

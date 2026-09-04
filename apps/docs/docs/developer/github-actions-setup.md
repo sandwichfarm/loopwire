@@ -69,7 +69,8 @@ gh secret set AUR_SSH_PRIVATE_KEY --repo OWNER/REPO --env aur < ~/.ssh/loopwire-
 ```
 
 The environment gate is the authority boundary: pull requests and ordinary pushes only build the recipes, while an
-approved manual dispatch can publish `loopwire`, `loopwire-bin`, or both from an already-public stable release tag.
+approved manual dispatch can publish `loopwire`, `loopwire-bin`, `loopwire-git`, or all three. Stable variants remain
+bound to an already-public release tag; the VCS variant resolves the current protected default branch.
 
 ## Input integrity and secrecy
 

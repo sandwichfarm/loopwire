@@ -61,7 +61,7 @@ jobs:
         run: pnpm check
 
   validate-aur-source:
-    name: Build source AUR package on Arch Linux
+    name: Build source AUR packages on Arch Linux
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -71,12 +71,20 @@ jobs:
           fetch-depth: 0
 
       - name: Build and inspect source package
+        env:
+          LOOPWIRE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           release_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*')"
           export LOOPWIRE_AUR_VERSION="${release_tag#v}"
+          export LOOPWIRE_AUR_GIT_VERSION="$(
+            git describe --long --tags --abbrev=7 "origin/$LOOPWIRE_DEFAULT_BRANCH" |
+              sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+          )"
           docker run --rm \
             --env LOOPWIRE_AUR_VERSION \
+            --env LOOPWIRE_AUR_GIT_VERSION \
+            --env LOOPWIRE_DEFAULT_BRANCH \
             --volume "$GITHUB_WORKSPACE:/workspace:ro" \
             archlinux@sha256:84cd9ef000b3cff245ec028e87965b84724f4bf1cc63fc2741ba927b88515ed6 \
             bash -ceu '
@@ -86,4 +94,8 @@ jobs:
               runuser -u aur-builder -- env HOME=/home/aur-builder \
                 bash /workspace/scripts/verify-aur-source-package.sh \
                   --version "$LOOPWIRE_AUR_VERSION"
+              runuser -u aur-builder -- env HOME=/home/aur-builder \
+                bash /workspace/scripts/verify-aur-git-package.sh \
+                  --version "$LOOPWIRE_AUR_GIT_VERSION" \
+                  --default-branch "$LOOPWIRE_DEFAULT_BRANCH"
             '

@@ -13,9 +13,8 @@ cd loopwire
 makepkg -si
 ```
 
-For the faster prebuilt release-artifact package, use the separate `loopwire-bin` package base instead. The variants
-conflict because they install the same commands; do not install both at once. A future live-VCS package, if added,
-will use the `loopwire-git` name.
+For the faster prebuilt release-artifact package, use `loopwire-bin`. To follow the current default branch, use the
+rolling `loopwire-git` package. The three variants conflict because they install the same commands; install only one.
 
 ## Source Install
 
@@ -90,6 +89,7 @@ Package metadata templates now exist under `packaging/`:
 
 - `packaging/aur/loopwire/PKGBUILD.in` for stable tagged source builds.
 - `packaging/aur/loopwire-bin/PKGBUILD.in` for signed prebuilt release artifacts.
+- `packaging/aur/loopwire-git/PKGBUILD.in` for the rolling default-branch source build.
 - `flake.nix` exposes `packages.<system>.loopwire-bin` from `packaging/nix/loopwire-bin.nix`, currently with fake
   hashes until the first public release provides real artifact hashes.
 - Repository-owned deb recipes for Ubuntu 24.04 and Debian 13, plus RPM recipes for Fedora 44 and openSUSE
