@@ -108,6 +108,11 @@ pnpm setup:github -- --repo OWNER/REPO --scope final --check
 The check does not and cannot read secret values. It verifies required variables through GitHub's variable API and
 required secrets through the names-only secret list.
 
+The production `Deploy Docs` workflow fails before upload when `BUNNY_STORAGE_ZONE` or `BUNNY_ACCESS_KEY` is absent.
+This is intentional: a green workflow run means the static site was uploaded, not merely built. Configure
+`BUNNY_PULL_ZONE_HOSTNAME` as well to make the workflow probe the public HTTPS site after upload; without it, the live
+HTTP verification step is skipped.
+
 ## Recover from a failed write
 
 All local validation and GitHub access preflight happens before mutation, but GitHub does not provide a transaction

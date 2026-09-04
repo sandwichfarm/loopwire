@@ -94,7 +94,7 @@ jobs:
       - name: Verify downloaded static site artifact
         run: pnpm verify:site
 
-      - name: Check Bunny.net secrets
+      - name: Require Bunny.net configuration
         id: bunny
         env:
           BUNNY_STORAGE_ZONE: ${{ vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE }}
@@ -104,14 +104,14 @@ jobs:
           BUNNY_PULL_ZONE_HOSTNAME: ${{ vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME }}
         run: |
           set -euo pipefail
-          if [ -n "${BUNNY_STORAGE_ZONE:-}" ] && [ -n "${BUNNY_ACCESS_KEY:-}" ]; then
-            echo "deploy=true" >>"$GITHUB_OUTPUT"
-          else
-            echo "::notice::Bunny.net secrets are not configured; skipping deployment."
-            echo "::notice::Run the guarded cross-platform setup: pnpm setup:github -- --repo ${GITHUB_REPOSITORY} --scope deploy"
-            echo "::notice::The prompts explain where every Bunny value is found and keep the access key hidden."
-            echo "::notice::Use --scope final before release proof to add the pull-zone hostname and signing key."
-            echo "deploy=false" >>"$GITHUB_OUTPUT"
+          missing=()
+          [ -n "${BUNNY_STORAGE_ZONE:-}" ] || missing+=(BUNNY_STORAGE_ZONE)
+          [ -n "${BUNNY_ACCESS_KEY:-}" ] || missing+=(BUNNY_ACCESS_KEY)
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Bunny.net deployment configuration is missing: ${missing[*]}"
+            echo "::error::Run the guarded cross-platform setup: pnpm setup:github -- --repo ${GITHUB_REPOSITORY} --scope deploy"
+            echo "::error::The prompts explain where every Bunny value is found and keep the access key hidden."
+            exit 1
           fi
           if [ -n "${BUNNY_PULL_ZONE_HOSTNAME:-}" ]; then
             echo "hostname=true" >>"$GITHUB_OUTPUT"
@@ -120,7 +120,6 @@ jobs:
           fi
 
       - name: Upload files to Bunny.net storage
-        if: ${{ steps.bunny.outputs.deploy == 'true' }}
         env:
           BUNNY_STORAGE_ZONE: ${{ vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE }}
           BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
@@ -130,7 +129,6 @@ jobs:
         run: bash scripts/deploy-docs-bunny.sh --dist dist/site
 
       - name: Verify docs deployment manifest
-        if: ${{ steps.bunny.outputs.deploy == 'true' }}
         env:
           BUNNY_STORAGE_ZONE: ${{ vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE }}
           BUNNY_STORAGE_ENDPOINT: ${{ vars.BUNNY_STORAGE_ENDPOINT || secrets.BUNNY_STORAGE_ENDPOINT }}
@@ -146,14 +144,13 @@ jobs:
             --expected-dry-run false
 
       - name: Upload docs deployment manifest
-        if: ${{ steps.bunny.outputs.deploy == 'true' }}
         uses: actions/upload-artifact@v7.0.1
         with:
           name: loopwire-docs-deployment
           path: dist/docs-deployment/deployment-manifest.json
 
       - name: Report pull-zone hostname
-        if: ${{ steps.bunny.outputs.deploy == 'true' && steps.bunny.outputs.hostname == 'true' }}
+        if: ${{ steps.bunny.outputs.hostname == 'true' }}
         env:
           BUNNY_PULL_ZONE_HOSTNAME: ${{ vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME }}
           BUNNY_REMOTE_PREFIX: ${{ vars.BUNNY_REMOTE_PREFIX || secrets.BUNNY_REMOTE_PREFIX }}

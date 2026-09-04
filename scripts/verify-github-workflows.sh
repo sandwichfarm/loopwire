@@ -135,7 +135,12 @@ assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_STORAGE_ZONE"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_ACCESS_KEY"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_STORAGE_ENDPOINT"
 assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_REMOTE_PREFIX"
-assert_contains ".github/workflows/deploy-docs.yml" "Bunny.net secrets are not configured; skipping deployment."
+assert_contains ".github/workflows/deploy-docs.yml" "Bunny.net deployment configuration is missing:"
+assert_contains ".github/workflows/deploy-docs.yml" 'missing+=(BUNNY_STORAGE_ZONE)'
+assert_contains ".github/workflows/deploy-docs.yml" 'missing+=(BUNNY_ACCESS_KEY)'
+assert_contains ".github/workflows/deploy-docs.yml" "exit 1"
+assert_not_contains ".github/workflows/deploy-docs.yml" "skipping deployment"
+assert_not_contains ".github/workflows/deploy-docs.yml" "steps.bunny.outputs.deploy"
 assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE'
 assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_STORAGE_ENDPOINT || secrets.BUNNY_STORAGE_ENDPOINT'
 assert_contains ".github/workflows/deploy-docs.yml" 'vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME'
@@ -144,6 +149,7 @@ assert_contains ".github/workflows/deploy-docs.yml" 'pnpm setup:github -- --repo
 assert_contains ".github/workflows/deploy-docs.yml" "actions/download-artifact@v8.0.1"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/deploy-docs-bunny.sh"
 assert_contains ".github/workflows/deploy-docs.yml" "bash scripts/verify-docs-live.sh"
+assert_contains ".github/workflows/deploy-docs.yml" "steps.bunny.outputs.hostname == 'true'"
 assert_contains ".github/workflows/deploy-docs.yml" '--remote-prefix "$BUNNY_REMOTE_PREFIX"'
 assert_contains ".github/workflows/deploy-docs.yml" 'docs_url="${docs_url}/${prefix}"'
 assert_contains ".github/workflows/deploy-docs.yml" "LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST"
