@@ -26,18 +26,16 @@ pnpm install
 pnpm check
 ```
 
-## Planned Release Installer
+## Signed Release Installer
 
-The release installer is scaffolded and locally smoke-tested in `scripts/install.sh`. Once signed release artifacts
-exist, the public entry point will follow this shape:
+The public installer is deployed from `scripts/install.sh` and installs the signed `v0.1.0` release artifacts:
 
 ```bash
 curl -fsSL https://loopwire.app/install.sh | bash
 ```
 
-The VitePress public asset is a byte-for-byte copy of `scripts/install.sh`, and the combined Astro + VitePress build
-also copies that installer to the site root at `/install.sh`. It is not a release claim until signed GitHub Release
-assets, `SHA256SUMS`, `SHA256SUMS.sig`, and the release public key exist.
+The VitePress public asset and live `/install.sh` are byte-for-byte copies of `scripts/install.sh`. The installer
+requires the published `SHA256SUMS`, `SHA256SUMS.sig`, and release public key before extracting an artifact.
 
 The installer must detect OS and architecture, download a release artifact, verify signed checksums, and avoid
 persistent system changes unless the user explicitly opts in.
@@ -104,16 +102,17 @@ Run the metadata smoke:
 pnpm verify:packaging
 ```
 
-The native package recipes are verified but are not yet a public install channel. Their matching-guest proof command
-boots official, checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
+The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. They are not
+yet served through an APT, DNF/COPR, or OBS repository. Their matching-guest proof command boots official,
+checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
 
 ```bash
 pnpm vm:native-packages -- run-all --version 0.1.0 --release-dir .vm/native-packages/release
 ```
 
 See `packaging/README.md` for release-tarball creation, host prerequisites, exact target names, and evidence paths.
-The review-safe proof snapshot for commit `70eee4e` is under `vm/native-package-proof/`; package publication remains
-blocked until the tagged release ceremony succeeds.
+The review-safe proof snapshot for commit `70eee4e` is under `vm/native-package-proof/`; it backs the published
+direct-download native packages without claiming that a distro package repository exists.
 
 After signed release artifacts exist, render the concrete Nix package expression from the published checksum manifest:
 

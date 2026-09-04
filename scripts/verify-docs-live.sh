@@ -88,7 +88,8 @@ while [ "$#" -gt 0 ]; do
       shift 2
       ;;
     --remote-prefix)
-      remote_prefix="${2:?missing value for --remote-prefix}"
+      [ "$#" -ge 2 ] || fail "missing value for --remote-prefix"
+      remote_prefix="$2"
       shift 2
       ;;
     --expected-installer)
