@@ -163,11 +163,16 @@ printf 'baseline\t%s\t%s\nupgraded\t%s\t%s\n' \
 
 # Verify each distributed RPM against the repository key without changing the guest's system RPM database.
 fixture_rpmdb="/var/tmp/loopwire-fedora-proof-rpmdb-${git_head}"
+server_pid=""
+cleanup() {
+  [ -z "$server_pid" ] || kill "$server_pid" 2>/dev/null || true
+  sudo rm -rf -- "$fixture_rpmdb"
+}
+trap cleanup EXIT
 sudo rm -rf -- "$fixture_rpmdb"
 sudo rpmkeys --dbpath "$fixture_rpmdb" --import "$proof_dir/repository-key.asc"
 sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$baseline_package" >"$proof_dir/packages/baseline-rpm-signature.txt"
 sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$upgrade_package" >"$proof_dir/packages/upgraded-rpm-signature.txt"
-sudo rm -rf -- "$fixture_rpmdb"
 
 # A guest-only CA exercises real TLS verification; no production trust is imported.
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=Loopwire disposable guest CA' \
@@ -212,8 +217,6 @@ PY
 python3 "$fixture_dir/https-server.py" "$fixture_dir/www" "$fixture_dir/tls.crt" "$fixture_dir/tls-key.pem" \
   >"$proof_dir/https-server.log" 2>&1 &
 server_pid=$!
-cleanup() { kill "$server_pid" 2>/dev/null || true; }
-trap cleanup EXIT
 for _attempt in $(seq 1 20); do
   if curl --fail --silent --show-error "$base_url/keys/$fingerprint.asc" >"$proof_dir/https-key.asc"; then break; fi
   sleep 1
