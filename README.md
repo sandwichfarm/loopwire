@@ -10,7 +10,18 @@ transactions. It keeps capability limits visible instead of pretending the host 
 
 ## Install
 
-Current contributor path:
+Install or upgrade with the platform-detecting installer:
+
+```bash
+curl -fsSL https://loopwire.app/install.sh | bash
+```
+
+The installer reports each step, verifies signed release checksums, and selects a matching native package, an
+existing AUR helper, Nix, or a portable user install. It asks before package-manager changes. See the
+[install guide](https://loopwire.app/docs/guide/install.html) for supported distro versions, requirements,
+manual platform commands, upgrades, and a dry-run preview.
+
+Contributors can still build from a checkout:
 
 ```bash
 git clone https://github.com/sandwichfarm/loopwire
@@ -19,14 +30,11 @@ pnpm install
 pnpm check
 ```
 
-The curl installer is release-gated until signed public artifacts and Bunny deployment exist.
-
-Version tags are handled by the protected GitHub Release workflow, which publishes portable tarballs, AppImages,
-verified native packages, signed checksums, and a machine-readable asset inventory. No public release exists yet.
+The public `v0.1.0` release includes portable tarballs, AppImages, native packages, and signed checksums.
 
 ## Basic usage
 
-1. Launch the desktop shell with `pnpm --filter @loopwire/desktop dev`.
+1. Launch `loopwire` (or `pnpm --filter @loopwire/desktop dev` from a source checkout).
 2. Create a new virtual device in the sidebar.
 3. Add sources, an output bus, and a monitor target from the `+` menus.
 4. Drag routes between ports and let Loopwire preview or apply the selected backend safely.
@@ -48,8 +56,7 @@ The default device starts as Pass-Thru -> Channels 1 & 2, so the first route is 
 
 Loopwire `v0.1.0` is the first alpha. PipeWire is the first-class path; PulseAudio and JACK have explicit compatibility
 limits, and ALSA is detection-only. See the [support matrix](https://loopwire.app/docs/guide/support-matrix.html) before
-relying on host apply. The curl installer remains release-gated until signed public artifacts are published and
-smoke-tested.
+relying on host apply. Native packages are direct downloads; APT, DNF/COPR, and OBS repositories are not yet published.
 
 ## Development
 

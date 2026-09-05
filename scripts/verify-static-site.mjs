@@ -19,7 +19,15 @@ assertContains(homepage, ">Loopwire</h1>", "homepage h1");
 assertContains(homepage, "<link rel=\"canonical\" href=\"https://loopwire.app/\">", "homepage canonical");
 assertContains(homepage, "\"@type\":\"SoftwareApplication\"", "JSON-LD software type");
 assertContains(homepage, "PipeWire-first virtual audio routing", "homepage description");
-assertContains(homepage, "Current source install", "homepage install card");
+assertContains(homepage, "curl -fsSL https://loopwire.app/install.sh | bash", "default installer command");
+assertContains(homepage, 'role="tablist"', "platform install tabs");
+for (const platform of ["automatic", "arch", "ubuntu", "debian", "fedora", "opensuse", "nix", "portable", "source"]) {
+  assertContains(homepage, `id="install-tab-${platform}"`, `${platform} install tab`);
+  assertContains(homepage, `id="install-panel-${platform}"`, `${platform} install panel`);
+}
+if (homepage.includes("Signed public artifacts and the curl installer stay gated")) {
+  fail("homepage still describes published releases as gated");
+}
 assertContains(homepage, "href=\"/docs/\"", "docs primary link");
 assertContains(homepage, "https://github.com/sandwichfarm/loopwire", "GitHub link");
 assertContains(homepage, "https://github.com/sandwichfarm/loopwire/releases", "releases link");
