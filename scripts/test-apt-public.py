@@ -68,10 +68,12 @@ class PublicTests(unittest.TestCase):
     def setUp(self):
         self.requests.clear()
         (self.web / "payload").write_bytes(b"expected package bytes")
-        (self.root / "repository-manifest.json").write_text(json.dumps({
+        manifest = json.dumps({
             "revision": "a" * 64,
             "files": [{"path": "payload", "size": 22, "sha256": hashlib.sha256(b"expected package bytes").hexdigest()}],
-        }))
+        })
+        (self.root / "repository-manifest.json").write_text(manifest)
+        (self.web / "repository-manifest.json").write_text(manifest)
         self.output = self.root / "activation.json"
         self.output.unlink(missing_ok=True)
 
@@ -96,7 +98,7 @@ class PublicTests(unittest.TestCase):
 
     def test_verified_bytes_produce_activation_record(self):
         result = self.invoke("--output", str(self.output), "--proof-url", "https://github.com/sandwichfarm/loopwire/actions/runs/123")
-        self.assertEqual(result["files"], 1)
+        self.assertEqual(result["files"], 2)
         record = json.loads(self.output.read_text())
         self.assertEqual(record["status"], "verified")
         self.assertEqual(record["baseUrl"], self.url)
@@ -110,6 +112,11 @@ class PublicTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.invoke("--output", str(self.output), "--proof-url", "https://github.com/sandwichfarm/loopwire/actions/runs/123")
         self.assertEqual(self.output.read_text(), "previous activation")
+
+    def test_public_manifest_tamper_is_rejected(self):
+        (self.web / "repository-manifest.json").write_text("{}")
+        with self.assertRaisesRegex(ValueError, "repository-manifest.json"):
+            self.invoke()
 
     def test_missing_file_fails(self):
         (self.web / "payload").unlink()

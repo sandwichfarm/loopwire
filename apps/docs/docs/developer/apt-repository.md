@@ -15,7 +15,7 @@ Two signatures have different jobs:
 
 1. The existing project **OpenSSL release key** authenticates `SHA256SUMS.sig` over `SHA256SUMS`. The generator checks
    the exact Ubuntu and Debian artifacts against that manifest and their internal package metadata before indexing.
-2. A separate **OpenPGP APT key** signs `InRelease` and `Release.gpg`. APT authenticates metadata and follows its SHA-256
+2. A separate **OpenPGP APT key** signs the clear-signed `InRelease`. APT authenticates metadata and follows its SHA-256
    hashes through `Packages` to each deb. Clients trust that key only for the Loopwire source through `Signed-By`.
 
 The web root contains public packages, indexes, signed release metadata, and public keys. Private signing material,
@@ -33,7 +33,7 @@ contract for repository metadata. The ordinary website deployment remains separa
 
 Configure HTTP caching so clients cannot receive a new index behind stale release metadata:
 
-- `InRelease`, `Release`, `Release.gpg`, and ordinary `Packages`/compressed indexes: `Cache-Control: no-store` or
+- `InRelease`, `Release`, and ordinary `Packages`/compressed indexes: `Cache-Control: no-store` or
   equivalent mandatory revalidation.
 - Content-addressed `by-hash` indexes and immutable package pool paths: long cache lifetime with `immutable`.
 - Public keys and the current manifest: revalidate. Do not cache failures for paths that will soon be published.
@@ -102,7 +102,7 @@ input, or `rollback` with the retained 64-character `revision`. The weekly run s
 
 For a reviewed local rehearsal, the same publisher can operate without SSH. For production, supply all SSH identity
 and host-key arguments. In these examples `APT_ROOT`, `APT_HOST`, and `APT_REVISION` name the provisioned root, host, and
-the current manifest revision. `APT_REVISION` is the empty string for an initial publication only.
+the current manifest revision. Set `APT_REVISION=empty` for an initial publication only.
 
 ```bash
 python3 scripts/publish-package-repository.py fetch \
@@ -246,7 +246,8 @@ pnpm vm:native-packages -- verify-apt --target debian-13
 ```
 
 These boot fresh checksum-pinned distro guests, use HTTPS APT with scoped trust, and exercise package installation,
-reinstall, upgrade, downgrade/rollback, removal, and rejection of untrusted or broken repository state. Record exact
+reinstall, upgrade, downgrade/rollback, and removal. The container regression suite separately proves rejection of
+untrusted or broken repository state. Record exact
 versions, source URLs, key fingerprint, candidate selection, signature results, GUI launch, and provider-command
 checks. A synthetic `+aptfixture1` upgrade reuses the authenticated `0.1.0` payload to test lifecycle behavior; label
 it as fixture evidence, never as a newly released application or public production proof. A package lifecycle pass

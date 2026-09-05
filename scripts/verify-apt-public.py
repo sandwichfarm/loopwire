@@ -57,9 +57,14 @@ def main():
         "--public-key", str(args.public_key), "--fingerprint", fingerprint,
     ], check=True, stdout=subprocess.PIPE)
     manifest = json.loads((args.repository / "repository-manifest.json").read_text())
+    manifest_bytes = (args.repository / "repository-manifest.json").read_bytes()
     context = ssl.create_default_context(cafile=str(args.ca_file) if args.ca_file else None)
     opener = urllib.request.build_opener(NoRedirects(), urllib.request.HTTPSHandler(context=context))
-    for entry in manifest["files"]:
+    public_entries = [*manifest["files"], {
+        "path": "repository-manifest.json", "size": len(manifest_bytes),
+        "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+    }]
+    for entry in public_entries:
         url = base_url + "/" + urllib.parse.quote(entry["path"], safe="/+")
         request = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "User-Agent": "Loopwire-APT-Proof/1"})
         digest, size = hashlib.sha256(), 0
@@ -95,7 +100,7 @@ def main():
             temporary.write("\n")
             temporary_path = Path(temporary.name)
         temporary_path.replace(args.output)
-    print(json.dumps({"status": "verified", "revision": manifest["revision"], "files": len(manifest["files"])}))
+    print(json.dumps({"status": "verified", "revision": manifest["revision"], "files": len(public_entries)}))
 
 
 if __name__ == "__main__":

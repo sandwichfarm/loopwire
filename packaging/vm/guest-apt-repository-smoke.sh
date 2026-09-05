@@ -118,7 +118,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if "If-Modified-Since" in self.headers:
             del self.headers["If-Modified-Since"]
         super().do_GET()
-server = http.server.ThreadingHTTPServer(("127.0.0.1", 8443), functools.partial(Handler, directory=sys.argv[1]))
+class Server(http.server.ThreadingHTTPServer):
+    def shutdown_request(self, request):
+        # Debian's APT rejects peers that close TLS without close_notify.
+        request.settimeout(5)
+        try:
+            request.unwrap()
+        except (OSError, ssl.SSLError):
+            request.close()
+server = Server(("127.0.0.1", 8443), functools.partial(Handler, directory=sys.argv[1]))
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 context.load_cert_chain(sys.argv[2], sys.argv[3])
 server.socket = context.wrap_socket(server.socket, server_side=True)
