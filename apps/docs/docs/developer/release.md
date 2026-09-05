@@ -3,6 +3,20 @@
 Loopwire releases are artifact-first. Every install channel must consume the same tarballs, `SHA256SUMS`, and
 `SHA256SUMS.sig`.
 
+## Signed APT channel
+
+Ubuntu 24.04 and Debian 13 package publication has a separate [APT operations runbook](./apt-repository.md). It covers
+the independent OpenPGP trust anchor, required protected environment and SSH/HTTPS hosting, release publication,
+weekly metadata refresh, retention, rollback, key changes, and client removal. The optional **Publish APT Repository**
+workflow runs after GitHub Release publication when `APT_REPOSITORY_ENABLED=true`; an APT failure leaves the existing
+GitHub Release intact for repair and retry.
+
+Development and public activation are separate gates. Provisioning production infrastructure and signing keys,
+running initial public verification, and reviewing the emitted channel record remain human operations. Until the
+verified record is committed and the site deployed, Ubuntu and Debian homepage tabs retain signed direct-download
+commands. Fixture lifecycle tests do not count as production proof. Follow the runbook's final activation procedure
+before announcing repository availability.
+
 ## Local Artifact Smoke
 
 ```bash

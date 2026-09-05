@@ -1,0 +1,86 @@
+name: Publish APT Repository
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      operation:
+        type: string
+        default: publish
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Publish a stable release, refresh expiry, or roll back to a retained revision
+        type: choice
+        options: [publish, refresh, rollback]
+        default: publish
+      tag:
+        description: Existing stable release tag for publish
+        type: string
+      revision:
+        description: Retained repository revision SHA-256 for rollback
+        type: string
+  schedule:
+    - cron: "37 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apt-repository-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{
+        vars.APT_REPOSITORY_ENABLED == 'true' &&
+        (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+          (github.workflow == 'Release' && startsWith(github.ref, 'refs/tags/v')))
+      }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: packages-production
+    steps:
+      - name: Checkout publisher
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node for release verification
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 22.23.1
+
+      - name: Install repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends apt-utils dpkg-dev gnupg gpgv openssh-client python3
+
+      - name: Build, publish, and verify repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPERATION: ${{ inputs.operation || 'refresh' }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          ROLLBACK_REVISION: ${{ inputs.revision }}
+          APT_REPOSITORY_URL: ${{ vars.APT_REPOSITORY_URL }}
+          APT_REPOSITORY_HOST: ${{ vars.APT_REPOSITORY_HOST }}
+          APT_REPOSITORY_ROOT: ${{ vars.APT_REPOSITORY_ROOT }}
+          APT_SSH_PORT: ${{ vars.APT_SSH_PORT || '22' }}
+          APT_SIGNING_FINGERPRINT: ${{ vars.APT_SIGNING_FINGERPRINT }}
+          APT_SSH_PRIVATE_KEY: ${{ secrets.APT_SSH_PRIVATE_KEY }}
+          APT_SSH_KNOWN_HOSTS: ${{ secrets.APT_SSH_KNOWN_HOSTS }}
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          APT_SIGNING_PASSPHRASE: ${{ secrets.APT_SIGNING_PASSPHRASE }}
+        run: bash scripts/publish-apt-workflow.sh
+
+      - name: Upload public verification and activation record
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-apt-publication-${{ github.run_id }}
+          path: dist/apt-publication
+          if-no-files-found: error
+          retention-days: 90

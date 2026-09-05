@@ -70,7 +70,8 @@ the Tauri shell command bridge.
 | Source checkout | `pnpm check` | Supported for contributors. |
 | Signed curl installer | Local verification plus live `/install.sh` byte comparison | Published for 0.1.0 at `loopwire.app`. |
 | AppImage | Published-artifact and Tauri bundle smoke | Published for 0.1.0 on GitHub Releases. |
-| Ubuntu 24.04 / Debian 13 deb | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads; no APT repository. |
+| Ubuntu 24.04 / Debian 13 deb | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads. |
+| Ubuntu 24.04 / Debian 13 signed APT repository, amd64 | Separate signed-metadata, publication, bootstrap, and clean-guest lifecycle checks | Public activation is gated; see [current channel availability](./apt-repository.md). |
 | Fedora 44 / openSUSE Tumbleweed RPM | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads; no COPR/OBS repository. |
 | AUR `loopwire` | Tagged source build through `pnpm verify:aur:source` | Published for 0.1.0. |
 | AUR `loopwire-bin` | Signed release-artifact build through `pnpm verify:aur` | Published for 0.1.0. |
@@ -80,6 +81,11 @@ the Tauri shell command bridge.
 The flake package output is `packages.<system>.loopwire-bin`; `flake.nix` now pins the signed `v0.1.0` tarball hashes
 for `x86_64-linux` and `aarch64-linux`. Fresh local non-skipped Nix build evidence in this repository currently covers
 `x86_64-linux` only; `aarch64-linux` still needs native proof.
+
+APT lifecycle evidence is separate from the direct-download snapshot. Isolated HTTPS guests and synthetic
+`+aptfixture1` package upgrades demonstrate development behavior with the existing release payload; they do not
+establish a new public release or production channel. Only reviewed production HTTPS verification activates APT
+instructions. Repository support covers the named distro versions on amd64, not derivatives or other architectures.
 
 Native package verification is narrower than audio-backend support. The committed snapshot proves that each official,
 checksum-pinned guest built and installed its target package, ran the packaged background/provider/backend commands,

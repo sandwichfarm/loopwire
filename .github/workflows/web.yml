@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/web.yml"
       - "apps/site/**"
+      - "packaging/repositories/apt-channel.json"
       - "apps/docs/**"
       - "assets/product-screenshot.png"
       - "README.md"
@@ -30,6 +31,7 @@ on:
     paths:
       - ".github/workflows/web.yml"
       - "apps/site/**"
+      - "packaging/repositories/apt-channel.json"
       - "apps/docs/**"
       - "assets/product-screenshot.png"
       - "README.md"
