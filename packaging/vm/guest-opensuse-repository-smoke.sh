@@ -174,12 +174,16 @@ printf 'baseline\t%s\t%s\nupgraded\t%s\t%s\n' \
   "$baseline_package" "$baseline_rpm_sha256" "$upgrade_package" "$upgrade_rpm_sha256" \
   >"$proof_dir/signed-packages.tsv"
 
-fixture_rpmdb="$fixture_dir/rpmdb"
-mkdir -p "$fixture_rpmdb"
-rpm --dbpath "$fixture_rpmdb" --initdb
-rpm --dbpath "$fixture_rpmdb" --import "$proof_dir/repository-key.asc"
-rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$baseline_package" >"$proof_dir/packages/baseline-rpm-signature.txt"
-rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$upgrade_package" >"$proof_dir/packages/upgraded-rpm-signature.txt"
+fixture_rpmdb="/var/lib/loopwire-repository-proof-rpmdb"
+sudo test ! -e "$fixture_rpmdb"
+sudo install -d -m 0700 -o root -g root "$fixture_rpmdb"
+# Tumbleweed's enforcing SELinux policy permits RPM database writes only under
+# the system database label. The database remains isolated and is removed below.
+sudo chcon --reference=/usr/lib/sysimage/rpm "$fixture_rpmdb"
+sudo rpm --dbpath "$fixture_rpmdb" --initdb
+sudo rpm --dbpath "$fixture_rpmdb" --import "$proof_dir/repository-key.asc"
+sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$baseline_package" >"$proof_dir/packages/baseline-rpm-signature.txt"
+sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$upgrade_package" >"$proof_dir/packages/upgraded-rpm-signature.txt"
 
 # A guest-only CA exercises HTTPS trust without introducing a production credential.
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=Loopwire disposable guest CA' \
@@ -266,7 +270,7 @@ PY
   done <"$stage_dir/package-files.txt" >"$stage_dir/installed-files.sha256"
   printf '%s  %s\n' "$(sha256sum "$proof_dir/packages/$package_name" | awk '{ print $1 }')" "$package_name" \
     >"$stage_dir/signed-package.sha256"
-  rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$package_name" >"$stage_dir/rpm-signature.txt"
+  sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$package_name" >"$stage_dir/rpm-signature.txt"
   loopwire --background --help >"$stage_dir/background-help.txt"
   loopwire-dsp-provider --help >"$stage_dir/dsp-provider-help.txt"
   loopwire-jack-ports --help >"$stage_dir/jack-provider-help.txt"
@@ -338,6 +342,8 @@ for removed_file in /usr/bin/loopwire /usr/bin/loopwire-dsp-provider /usr/bin/lo
   printf '%s\tabsent\n' "$removed_file" >>"$proof_dir/removed-files.tsv"
 done
 printf 'remove\t%s\tabsent\n' "$baseline_package_version" >>"$proof_dir/lifecycle.tsv"
+sudo rm -rf -- "$fixture_rpmdb"
+test ! -e "$fixture_rpmdb"
 sudo bash scripts/setup-opensuse-repository.sh --remove >"$proof_dir/source-removal.log" 2>&1
 test ! -e /etc/zypp/repos.d/loopwire.repo
 test ! -e "/etc/zypp/keys/loopwire-repository-$fingerprint.asc"
