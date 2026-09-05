@@ -92,8 +92,20 @@ sudo apt install loopwire
 Loopwire is not in the default Ubuntu or Debian repositories. Until the guide displays a verified public channel,
 use Automatic or the signed manual downloads below. The automatic installer does not configure the APT repository.
 
-The RPM files have no embedded RPM signature. The commands authenticate the download using the signed SHA-256
-manifest first, then permit this local RPM for that install; repository dependency checks remain enabled.
+The [Fedora repository guide](./fedora-repository.md) provides the same gated availability record and one-time setup
+for Fedora 44 on x86_64. Once that page displays a verified public channel, the normal repository install is:
+
+```bash
+sudo dnf install loopwire
+```
+
+This is a third-party Loopwire repository, not a Fedora or COPR repository. Until its guide displays a verified
+production URL and fingerprint, use Automatic or the signed Fedora direct download below. Automatic continues to use
+the direct-download path and does not add the repository.
+
+The `v0.1.0` direct-download RPM files have no embedded RPM signature. The commands authenticate the download using
+the signed SHA-256 manifest first, then permit this local RPM for that install; repository dependency checks remain
+enabled.
 
 ### Ubuntu 24.04
 
@@ -141,8 +153,10 @@ sha256sum --check --ignore-missing SHA256SUMS &&
 sudo dnf --setopt=localpkg_gpgcheck=0 install ./loopwire-0.1.0-1.fc44.x86_64.rpm
 ```
 
-[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/36) tracks signed metadata,
-release publication, clean-guest install/upgrade verification, and updated instructions.
+[Fedora repository setup and availability](./fedora-repository.md) includes the public activation gate, normal DNF
+updates, reinstall, exact-version rollback, removal, and signing-key guidance. Its repository path keeps both package
+and metadata signature checks enabled; the local package exception above applies only to this authenticated direct
+download.
 
 ### openSUSE Tumbleweed
 
@@ -272,8 +286,9 @@ Run the metadata smoke:
 pnpm verify:packaging
 ```
 
-The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. The APT
-repository has a separate [public activation gate](./apt-repository.md); DNF/COPR and OBS repositories remain planned.
+The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. The APT and
+Fedora repositories have separate [APT](./apt-repository.md) and [Fedora](./fedora-repository.md) public activation
+gates; the openSUSE repository remains planned.
 Their matching-guest proof command boots official,
 checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
 

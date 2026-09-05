@@ -103,6 +103,10 @@ node --check scripts/verify-native-package-vm-proof.mjs
 node --check scripts/verify-native-package-proof-snapshot.mjs
 node --check scripts/verify-apt-repository-vm-proof.mjs
 node --check scripts/test-apt-repository-vm-proof.mjs
+node --check scripts/verify-fedora-repository-vm-proof.mjs
+node --check scripts/test-fedora-repository-vm-proof.mjs
+node scripts/test-fedora-repository-vm-proof.mjs
+bash -n packaging/vm/guest-fedora-repository-smoke.sh
 bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
   echo "verify-scripts: portable builder does not accept the package-script separator" >&2
   exit 1

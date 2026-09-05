@@ -513,3 +513,13 @@ jobs:
       tag: ${{ needs.publish-release.outputs.tag }}
       operation: publish
     secrets: inherit
+
+  publish-fedora:
+    name: Publish signed Fedora channel
+    needs: publish-release
+    if: ${{ vars.FEDORA_REPOSITORY_ENABLED == 'true' && !contains(needs.publish-release.outputs.tag, '-') }}
+    uses: ./.github/workflows/publish-fedora.yml
+    with:
+      tag: ${{ needs.publish-release.outputs.tag }}
+      operation: publish
+    secrets: inherit

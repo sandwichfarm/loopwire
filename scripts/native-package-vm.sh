@@ -25,17 +25,20 @@ Usage:
   native-package-vm.sh verify-all [--git-head COMMIT]
   native-package-vm.sh run-apt --target ubuntu-24.04|debian-13 --version VERSION --release-dir DIR
   native-package-vm.sh verify-apt --target ubuntu-24.04|debian-13 [--git-head COMMIT]
+  native-package-vm.sh run-fedora-repo --target fedora-44 --version VERSION --release-dir DIR
+  native-package-vm.sh verify-fedora-repo --target fedora-44 [--git-head COMMIT]
 
 Environment:
   LOOPWIRE_NATIVE_VM_ROOT      Cache/run/evidence root (default: .vm/native-packages)
   LOOPWIRE_APT_VM_ROOT         APT run/evidence root (default: .vm/apt-repository)
+  LOOPWIRE_FEDORA_VM_ROOT      Fedora repository run/evidence root (default: .vm/fedora-repository)
   LOOPWIRE_NATIVE_VM_TARGETS   Target manifest override
   LOOPWIRE_QEMU_IMAGE          Docker QEMU tool image tag
 
 The host needs Docker, OpenSSH, /dev/kvm access, and enough disk for the official
 cloud images. Containers only provide QEMU tools; every proof is collected from
-a separately booted guest kernel. APT proofs use verify-apt-repository-vm-proof.mjs;
-the original native-package proofs use verify-native-package-vm-proof.mjs.
+a separately booted guest kernel. Repository proofs use their matching strict
+VM-proof verifier; the original package proofs use verify-native-package-vm-proof.mjs.
 USAGE
 }
 
@@ -252,6 +255,14 @@ run_target() {
   [ -d "$release_dir" ] || fail "release directory does not exist: $release_dir"
   [ -f "$release_dir/loopwire-linux-x86_64.tar.gz" ] || fail "release tarball is missing"
   [ -f "$release_dir/SHA256SUMS" ] || fail "release checksum manifest is missing"
+  if [ "$proof_kind" = "fedora-repository" ]; then
+    for release_file in \
+      "loopwire-${version}-1.fc44.x86_64.rpm" \
+      SHA256SUMS.sig \
+      release-assets.json; do
+      [ -f "$release_dir/$release_file" ] || fail "Fedora repository release artifact is missing: $release_file"
+    done
+  fi
   require_host
   require_committed_implementation
   download_target "$selected"
@@ -271,6 +282,9 @@ run_target() {
   if [ "$proof_kind" = "apt" ]; then
     container="loopwire-apt-$id"
     port=$((port + 10))
+  elif [ "$proof_kind" = "fedora-repository" ]; then
+    container="loopwire-fedora-repository-$id"
+    port=$((port + 20))
   fi
   key="$(ensure_ssh_key)"
   public_key="$(cat "${key}.pub")"
@@ -283,6 +297,11 @@ run_target() {
   git archive --format=tar HEAD | tar -xf - -C "$target_dir/kit"
   cp "$release_dir/loopwire-linux-x86_64.tar.gz" "$target_dir/kit/release/"
   cp "$release_dir/SHA256SUMS" "$target_dir/kit/release/"
+  if [ "$proof_kind" = "fedora-repository" ]; then
+    cp "$release_dir/loopwire-${version}-1.fc44.x86_64.rpm" "$target_dir/kit/release/"
+    cp "$release_dir/SHA256SUMS.sig" "$target_dir/kit/release/"
+    cp "$release_dir/release-assets.json" "$target_dir/kit/release/"
+  fi
   write_cloud_init "$target_dir" "$public_key" "$id"
 
   docker run --rm -v "$target_dir:/vm" "$qemu_image" \
@@ -321,6 +340,9 @@ run_target() {
   if [ "$proof_kind" = "apt" ]; then
     guest_script="packaging/vm/guest-apt-repository-smoke.sh"
     verifier="scripts/verify-apt-repository-vm-proof.mjs"
+  elif [ "$proof_kind" = "fedora-repository" ]; then
+    guest_script="packaging/vm/guest-fedora-repository-smoke.sh"
+    verifier="scripts/verify-fedora-repository-vm-proof.mjs"
   fi
   local guest_status=0
   # Script paths are fixed and all client-expanded arguments are validated above.
@@ -350,6 +372,7 @@ run_target() {
   trap - EXIT INT TERM
   local proof_label="native package"
   [ "$proof_kind" != "apt" ] || proof_label="APT repository lifecycle"
+  [ "$proof_kind" != "fedora-repository" ] || proof_label="Fedora repository lifecycle"
   echo "Verified $proof_label in matching KVM guest: $id"
   echo "Evidence: $evidence_dir"
 }
@@ -360,6 +383,7 @@ verify_target() {
   [ -n "$git_head" ] || git_head="$(git rev-parse HEAD)"
   local verifier="scripts/verify-native-package-vm-proof.mjs"
   [ "$proof_kind" != "apt" ] || verifier="scripts/verify-apt-repository-vm-proof.mjs"
+  [ "$proof_kind" != "fedora-repository" ] || verifier="scripts/verify-fedora-repository-vm-proof.mjs"
   node "$verifier" \
     --target "$selected" --evidence-dir "$vm_root/evidence/$selected/$git_head" --git-head "$git_head"
 }
@@ -398,6 +422,13 @@ case "$command" in
     [ "$(realpath -m "$vm_root")" != "$(realpath -m "$image_root")" ] ||
       fail "APT VM state must use a different root from native-package state"
     ;;
+  run-fedora-repo | verify-fedora-repo)
+    [ "$selected" = "fedora-44" ] || fail "$command requires the Fedora 44 target"
+    proof_kind="fedora-repository"
+    vm_root="${LOOPWIRE_FEDORA_VM_ROOT:-.vm/fedora-repository}"
+    [ "$(realpath -m "$vm_root")" != "$(realpath -m "$image_root")" ] ||
+      fail "Fedora repository VM state must use a different root from native-package state"
+    ;;
 esac
 
 case "$command" in
@@ -416,7 +447,7 @@ case "$command" in
     require_host
     while read -r id; do download_target "$id"; done < <(target_ids)
     ;;
-  run | run-apt)
+  run | run-apt | run-fedora-repo)
     [ -n "$selected" ] || fail "run requires --target"
     [ -n "$version" ] || fail "run requires --version"
     [ -n "$release_dir" ] || fail "run requires --release-dir"
@@ -427,7 +458,7 @@ case "$command" in
     [ -n "$release_dir" ] || fail "run-all requires --release-dir"
     while read -r id; do run_target "$id" "$version" "$release_dir"; done < <(target_ids)
     ;;
-  verify | verify-apt)
+  verify | verify-apt | verify-fedora-repo)
     [ -n "$selected" ] || fail "verify requires --target"
     verify_target "$selected" "$git_head"
     ;;

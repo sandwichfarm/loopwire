@@ -12,6 +12,7 @@ on:
       - ".github/workflows/deploy-docs.yml"
       - "apps/site/**"
       - "packaging/repositories/apt-channel.json"
+      - "packaging/repositories/fedora-channel.json"
       - "apps/docs/**"
       - "assets/product-screenshot.png"
       - "package.json"
