@@ -4,6 +4,8 @@ set -euo pipefail
 root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 manifest="${LOOPWIRE_NATIVE_VM_TARGETS:-packaging/vm/native-package-targets.tsv}"
 vm_root="${LOOPWIRE_NATIVE_VM_ROOT:-.vm/native-packages}"
+image_root="$vm_root"
+proof_kind="native"
 qemu_image="${LOOPWIRE_QEMU_IMAGE:-loopwire-native-package-qemu:ubuntu-24.04}"
 ssh_user="loopwire"
 active_vm_container=""
@@ -21,15 +23,19 @@ Usage:
   native-package-vm.sh run-all --version VERSION --release-dir DIR
   native-package-vm.sh verify --target TARGET [--git-head COMMIT]
   native-package-vm.sh verify-all [--git-head COMMIT]
+  native-package-vm.sh run-apt --target ubuntu-24.04|debian-13 --version VERSION --release-dir DIR
+  native-package-vm.sh verify-apt --target ubuntu-24.04|debian-13 [--git-head COMMIT]
 
 Environment:
   LOOPWIRE_NATIVE_VM_ROOT      Cache/run/evidence root (default: .vm/native-packages)
+  LOOPWIRE_APT_VM_ROOT         APT run/evidence root (default: .vm/apt-repository)
   LOOPWIRE_NATIVE_VM_TARGETS   Target manifest override
   LOOPWIRE_QEMU_IMAGE          Docker QEMU tool image tag
 
 The host needs Docker, OpenSSH, /dev/kvm access, and enough disk for the official
 cloud images. Containers only provide QEMU tools; every proof is collected from
-a separately booted guest kernel and checked by verify-native-package-vm-proof.mjs.
+a separately booted guest kernel. APT proofs use verify-apt-repository-vm-proof.mjs;
+the original native-package proofs use verify-native-package-vm-proof.mjs.
 USAGE
 }
 
@@ -113,7 +119,7 @@ image_path_for() {
   local id="$1" url="$2"
   local suffix="${url##*.}"
   case "$suffix" in img | qcow2) ;; *) suffix="qcow2" ;; esac
-  printf '%s/images/%s.%s\n' "$vm_root" "$id" "$suffix"
+  printf '%s/images/%s.%s\n' "$image_root" "$id" "$suffix"
 }
 
 download_target() {
@@ -262,6 +268,10 @@ run_target() {
   evidence_parent="$(realpath -m "$vm_root/evidence/$id")"
   evidence_dir="$evidence_parent/$git_head"
   container="loopwire-native-$id"
+  if [ "$proof_kind" = "apt" ]; then
+    container="loopwire-apt-$id"
+    port=$((port + 10))
+  fi
   key="$(ensure_ssh_key)"
   public_key="$(cat "${key}.pub")"
   known_hosts="$target_dir/known_hosts"
@@ -306,8 +316,17 @@ run_target() {
   mapfile -d '' -t ssh_args < <(ssh_args_for "$key" "$port" "$known_hosts")
   ssh "${ssh_args[@]}" "$ssh_user@127.0.0.1" 'rm -rf /home/loopwire/loopwire-native-kit'
   copy_to_guest "$key" "$port" "$known_hosts" "$target_dir/kit" '/home/loopwire/loopwire-native-kit'
+  local guest_script="packaging/vm/guest-native-package-smoke.sh"
+  local verifier="scripts/verify-native-package-vm-proof.mjs"
+  if [ "$proof_kind" = "apt" ]; then
+    guest_script="packaging/vm/guest-apt-repository-smoke.sh"
+    verifier="scripts/verify-apt-repository-vm-proof.mjs"
+  fi
+  local guest_status=0
+  # Script paths are fixed and all client-expanded arguments are validated above.
+  # shellcheck disable=SC2029
   ssh "${ssh_args[@]}" "$ssh_user@127.0.0.1" \
-    "cd /home/loopwire/loopwire-native-kit && bash packaging/vm/guest-native-package-smoke.sh '$id' '$package_target' '$format' '$version' '$git_head' \"\$PWD\""
+    "cd /home/loopwire/loopwire-native-kit && bash '$guest_script' '$id' '$package_target' '$format' '$version' '$git_head' \"\$PWD\"" || guest_status=$?
   mkdir -p "$evidence_dir"
   ssh "${ssh_args[@]}" "$ssh_user@127.0.0.1" \
     'tar -C /home/loopwire/loopwire-native-kit/proof -cf - .' | tar -xf - -C "$evidence_dir"
@@ -322,13 +341,16 @@ run_target() {
     checksum "$checksum" \
     actual_checksum "$(checksum_file "$algorithm" "$image_path")" \
     firmware "$firmware" >"$evidence_dir/image.tsv"
-  node scripts/verify-native-package-vm-proof.mjs \
+  [ "$guest_status" -eq 0 ] || fail "$id guest smoke failed ($guest_status); evidence: $evidence_dir"
+  node "$verifier" \
     --target "$id" --evidence-dir "$evidence_dir" --git-head "$git_head"
   cleanup_active_vm
   active_vm_container=""
   active_vm_console=""
   trap - EXIT INT TERM
-  echo "Verified native package in matching KVM guest: $id"
+  local proof_label="native package"
+  [ "$proof_kind" != "apt" ] || proof_label="APT repository lifecycle"
+  echo "Verified $proof_label in matching KVM guest: $id"
   echo "Evidence: $evidence_dir"
 }
 
@@ -336,7 +358,9 @@ verify_target() {
   local selected="$1" git_head="$2"
   validate_target_value "$selected"
   [ -n "$git_head" ] || git_head="$(git rev-parse HEAD)"
-  node scripts/verify-native-package-vm-proof.mjs \
+  local verifier="scripts/verify-native-package-vm-proof.mjs"
+  [ "$proof_kind" != "apt" ] || verifier="scripts/verify-apt-repository-vm-proof.mjs"
+  node "$verifier" \
     --target "$selected" --evidence-dir "$vm_root/evidence/$selected/$git_head" --git-head "$git_head"
 }
 
@@ -367,6 +391,16 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$command" in
+  run-apt | verify-apt)
+    case "$selected" in ubuntu-24.04 | debian-13) ;; *) fail "$command requires an Ubuntu 24.04 or Debian 13 target" ;; esac
+    proof_kind="apt"
+    vm_root="${LOOPWIRE_APT_VM_ROOT:-.vm/apt-repository}"
+    [ "$(realpath -m "$vm_root")" != "$(realpath -m "$image_root")" ] ||
+      fail "APT VM state must use a different root from native-package state"
+    ;;
+esac
+
+case "$command" in
   list)
     printf '%-22s %-24s %-5s %-5s\n' TARGET DISTRO TYPE PORT
     while IFS=$'\t' read -r id distro _package_target format _url _algorithm _checksum port _firmware; do
@@ -382,7 +416,7 @@ case "$command" in
     require_host
     while read -r id; do download_target "$id"; done < <(target_ids)
     ;;
-  run)
+  run | run-apt)
     [ -n "$selected" ] || fail "run requires --target"
     [ -n "$version" ] || fail "run requires --version"
     [ -n "$release_dir" ] || fail "run requires --release-dir"
@@ -393,7 +427,7 @@ case "$command" in
     [ -n "$release_dir" ] || fail "run-all requires --release-dir"
     while read -r id; do run_target "$id" "$version" "$release_dir"; done < <(target_ids)
     ;;
-  verify)
+  verify | verify-apt)
     [ -n "$selected" ] || fail "verify requires --target"
     verify_target "$selected" "$git_head"
     ;;
