@@ -27,6 +27,13 @@ const variableSpecs = [
     validate: validateStorageEndpoint
   },
   {
+    name: "BUNNY_PULL_ZONE_ID",
+    required: true,
+    source:
+      "Bunny dashboard -> CDN -> Pull Zones -> select the Loopwire zone. Copy its numeric Pull Zone ID, not the Storage Zone ID.",
+    validate: validatePullZoneId
+  },
+  {
     name: "BUNNY_PULL_ZONE_HOSTNAME",
     requiredForFinal: true,
     source:
@@ -48,6 +55,13 @@ const secretSpecs = [
     source:
       "Bunny dashboard -> Storage -> select the Loopwire zone -> FTP & API Access -> Password. This is the storage-zone password, not the account API key.",
     validate: validateSecretLine
+  },
+  {
+    name: "BUNNY_API_KEY",
+    required: true,
+    source:
+      "Bunny account API key: https://dash.bunny.net/account/api-key. This authorizes CDN cache purges; it is not the storage-zone password.",
+    validate: validateSingleLine
   }
 ];
 
@@ -329,13 +343,13 @@ function checkConfiguration(runner, scope) {
 }
 
 function requiredVariableNames(scope) {
-  const names = ["BUNNY_STORAGE_ZONE", "BUNNY_STORAGE_ENDPOINT"];
+  const names = ["BUNNY_STORAGE_ZONE", "BUNNY_STORAGE_ENDPOINT", "BUNNY_PULL_ZONE_ID"];
   if (scope === "final") names.push("BUNNY_PULL_ZONE_HOSTNAME");
   return names;
 }
 
 function requiredSecretNames(scope) {
-  const names = ["BUNNY_ACCESS_KEY"];
+  const names = ["BUNNY_ACCESS_KEY", "BUNNY_API_KEY"];
   if (scope === "final") names.push("LOOPWIRE_RELEASE_PRIVATE_KEY");
   return names;
 }
@@ -555,6 +569,12 @@ function validateHostname(value, name) {
   rejectSurroundingWhitespace(value, name);
   if (!/^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(value)) {
     throw new Error(`${name} must be a hostname without a scheme, port, or path`);
+  }
+}
+
+function validatePullZoneId(value, name) {
+  if (!/^[0-9]+$/.test(value) || BigInt(value) < 1n || BigInt(value) > 9223372036854775807n) {
+    throw new Error(`${name} must be a positive integer no greater than 9223372036854775807`);
   }
 }
 

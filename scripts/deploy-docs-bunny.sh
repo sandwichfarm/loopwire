@@ -4,10 +4,13 @@ set -euo pipefail
 dist_dir="${LOOPWIRE_SITE_DIST:-${LOOPWIRE_DOCS_DIST:-dist/site}}"
 storage_zone="${BUNNY_STORAGE_ZONE:-}"
 access_key="${BUNNY_ACCESS_KEY:-}"
+api_key="${BUNNY_API_KEY:-}"
+pull_zone_id="${BUNNY_PULL_ZONE_ID:-}"
 storage_endpoint="${BUNNY_STORAGE_ENDPOINT:-https://storage.bunnycdn.com}"
 remote_prefix="${BUNNY_REMOTE_PREFIX:-}"
 deployment_manifest="${LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST:-}"
 dry_run="false"
+purge_cache="false"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 
@@ -18,20 +21,23 @@ Deploy the built Loopwire static site directory to Bunny.net Edge Storage.
 Usage:
   deploy-docs-bunny.sh [--dist DIR] [--storage-zone ZONE] [--access-key KEY]
                        [--storage-endpoint URL] [--remote-prefix PATH]
-                       [--deployment-manifest FILE] [--dry-run]
+                       [--deployment-manifest FILE] [--purge-cache] [--dry-run]
 
 Environment:
   LOOPWIRE_SITE_DIST      Built combined site directory, default dist/site
   LOOPWIRE_DOCS_DIST      Legacy fallback for the built site directory
   BUNNY_STORAGE_ZONE      Bunny Edge Storage zone name
   BUNNY_ACCESS_KEY        Storage zone password from Bunny's FTP & API Access panel
+  BUNNY_API_KEY           Account API key for --purge-cache, distinct from the storage password
+  BUNNY_PULL_ZONE_ID      Numeric CDN Pull Zone ID for --purge-cache, not the Storage Zone ID
   BUNNY_STORAGE_ENDPOINT  Regional storage endpoint, default https://storage.bunnycdn.com
   BUNNY_REMOTE_PREFIX     Optional remote path prefix inside the storage zone
   LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST
                            Optional JSON manifest describing uploaded files without secrets
 
-Dry-run mode validates the local build output, prints upload targets, and can write the deployment manifest without
-contacting Bunny.net.
+With --purge-cache, purge the entire CDN Pull Zone after every upload and manifest write succeeds. Existing browser
+caches are unaffected. Dry-run validates the local build output and Pull Zone ID, prints planned uploads/purge, and
+can write the deployment manifest without contacting Bunny.net or requiring credentials.
 USAGE
 }
 
@@ -70,6 +76,10 @@ while [ "$#" -gt 0 ]; do
       dry_run="true"
       shift
       ;;
+    --purge-cache)
+      purge_cache="true"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -87,6 +97,50 @@ reject_unsafe_value() {
   case "$value" in
     *$'\n'* | *$'\r'* | *$'\t'*)
       fail "$label must not contain control separators"
+      ;;
+  esac
+}
+
+validate_purge_configuration() {
+  local LC_ALL=C
+  local significant_id="${pull_zone_id#"${pull_zone_id%%[!0]*}"}"
+
+  # Equal-length decimal strings compare exactly without shell integer overflow.
+  # shellcheck disable=SC2071
+  if [[ ! "$pull_zone_id" =~ ^[0-9]+$ || -z "$significant_id" || ${#significant_id} -gt 19 ||
+    ( ${#significant_id} -eq 19 && "$significant_id" > 9223372036854775807 ) ]]; then
+    fail "BUNNY_PULL_ZONE_ID must be a positive integer no greater than 9223372036854775807"
+  fi
+  if [ "$dry_run" != "true" ]; then
+    [ -n "$api_key" ] || fail "BUNNY_API_KEY is required for --purge-cache outside dry-run mode"
+    if [[ "$api_key" =~ [[:cntrl:]] ]]; then
+      fail "BUNNY_API_KEY must not contain control characters"
+    fi
+  fi
+}
+
+purge_pull_zone_cache() {
+  local status
+  if [ "$dry_run" = "true" ]; then
+    printf 'would purge the entire Bunny CDN Pull Zone %s\n' "$pull_zone_id"
+    return
+  fi
+
+  if ! status="$(printf 'AccessKey: %s\n' "$api_key" | curl --disable --silent --request POST \
+    --header @- --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 --retry-max-time 60 \
+    --output /dev/null --write-out '%{http_code}' \
+    "https://api.bunny.net/pullzone/${pull_zone_id}/purgeCache" 2>/dev/null)"; then
+    fail "Bunny CDN cache purge request failed; uploaded files remain in storage. Check connectivity and retry deployment."
+  fi
+  case "$status" in
+    2[0-9][0-9])
+      printf 'Bunny CDN cache purge accepted for Pull Zone %s.\n' "$pull_zone_id"
+      ;;
+    [0-9][0-9][0-9])
+      fail "Bunny CDN cache purge failed (HTTP ${status}); check the account API key and Pull Zone ID, then retry deployment."
+      ;;
+    *)
+      fail "Bunny CDN cache purge returned an invalid HTTP status; retry deployment."
       ;;
   esac
 }
@@ -220,6 +274,10 @@ case "$storage_zone" in
     ;;
 esac
 
+if [ "$purge_cache" = "true" ]; then
+  validate_purge_configuration
+fi
+
 if [ "$dry_run" != "true" ]; then
   [ -n "$access_key" ] || fail "BUNNY_ACCESS_KEY or --access-key is required outside dry-run mode"
   command -v curl >/dev/null 2>&1 || fail "curl is required"
@@ -262,6 +320,10 @@ done < <(find "$dist_dir" -type f -print0 | sort -z)
 
 if [ -n "$deployment_manifest" ]; then
   write_deployment_manifest "$deployment_manifest" "$uploads_tsv"
+fi
+
+if [ "$purge_cache" = "true" ]; then
+  purge_pull_zone_cache
 fi
 
 if [ "$dry_run" = "true" ]; then
