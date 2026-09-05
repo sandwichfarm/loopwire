@@ -162,12 +162,14 @@ printf 'baseline\t%s\t%s\nupgraded\t%s\t%s\n' \
   >"$proof_dir/signed-packages.tsv"
 
 # Verify each distributed RPM against the repository key without changing the guest's system RPM database.
-fixture_rpmdb="$fixture_dir/rpmdb"
-sudo mkdir -p "$fixture_rpmdb"
+fixture_rpmdb="/var/tmp/loopwire-fedora-proof-rpmdb-${git_head}"
+sudo rm -rf -- "$fixture_rpmdb"
+sudo install -d -m 0700 "$fixture_rpmdb"
 sudo rpm --dbpath "$fixture_rpmdb" --initdb
 sudo rpm --dbpath "$fixture_rpmdb" --import "$proof_dir/repository-key.asc"
 sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$baseline_package" >"$proof_dir/packages/baseline-rpm-signature.txt"
 sudo rpm --dbpath "$fixture_rpmdb" -Kv "$proof_dir/packages/$upgrade_package" >"$proof_dir/packages/upgraded-rpm-signature.txt"
+sudo rm -rf -- "$fixture_rpmdb"
 
 # A guest-only CA exercises real TLS verification; no production trust is imported.
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=Loopwire disposable guest CA' \
