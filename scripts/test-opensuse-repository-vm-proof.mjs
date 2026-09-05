@@ -7,7 +7,7 @@ import path from "node:path";
 import { parseInstalledHashes, parsePayloadRelease, parseReleaseChecksums, verifyReleaseSignature,
   verifyRpmSignature } from "./verify-fedora-repository-vm-proof.mjs";
 import { verifyInstalledStage, verifyLifecycle, verifyPackageEntry, verifyReleaseAssetManifest,
-  verifyZypperSearch, targetManifestRow } from "./verify-opensuse-repository-vm-proof.mjs";
+  verifyZypperInstalledSearch, verifyZypperSearch, targetManifestRow } from "./verify-opensuse-repository-vm-proof.mjs";
 
 const directory = await mkdtemp(path.join(tmpdir(), "loopwire-opensuse-proof-test-"));
 const baseline = "0.1.0-1";
@@ -53,6 +53,7 @@ async function stageFixture() {
     "package-metadata.tsv": `loopwire\t${baseline}\tx86_64\t(none)\n`,
     "zypper-origin.tsv": `loopwire\t${baseline}\tx86_64\tLoopwire for openSUSE Tumbleweed - x86_64\t(none)\n`,
     "zypper-search.xml": zypperXml,
+    "zypper-repository-search.xml": zypperXml.replace('status="installed" ', ''),
     "zypper-info.txt": `Information for package loopwire:\nRepository : loopwire\nName : loopwire\nVersion : ${baseline}\nArch : x86_64\nVendor : (none)\nInstalled : Yes\n`,
     "package-files.txt": `${Object.keys(expectedHashes).join("\n")}\n`,
     "installed-files.sha256": `${Object.entries(expectedHashes).map(([name, hash]) => `${hash}  ${name}`).join("\n")}\n`,
@@ -128,6 +129,9 @@ try {
   await test("wrong portable RELEASE rejected", () => assert.throws(() => parsePayloadRelease(
     releaseText.replace("version=0.1.0", "version=0.2.0"), "0.1.0"), /RELEASE version/));
   await test("exact Zypper origin accepted", () => verifyZypperSearch(zypperXml, baseline));
+  await test("native installed-system Zypper view accepted", () => verifyZypperInstalledSearch(
+    zypperXml.replace('repository="Loopwire for openSUSE Tumbleweed - x86_64"', 'repository="(System Packages)"'),
+    baseline));
   await test("wrong Zypper repository rejected", () => assert.throws(() => verifyZypperSearch(
     zypperXml.replace('repository="Loopwire for openSUSE Tumbleweed - x86_64"', 'repository="@System"'), baseline),
   /Zypper repository/));
@@ -158,7 +162,7 @@ try {
     ["wrong installed version rejected", "package-metadata.tsv", (value) => value.replace(baseline, upgrade), /metadata/],
     ["wrong vendor rejected", "package-metadata.tsv", (value) => value.replace("(none)", "Example Vendor"), /vendor/],
     ["local package origin rejected", "zypper-origin.tsv", (value) => value.replace("\tLoopwire for openSUSE Tumbleweed - x86_64\t(none)", "\t@System\t(none)"), /origin/],
-    ["wrong Zypper XML origin rejected", "zypper-search.xml", (value) => value.replace('repository="Loopwire for openSUSE Tumbleweed - x86_64"', 'repository="other"'), /Zypper repository/],
+    ["wrong Zypper XML origin rejected", "zypper-repository-search.xml", (value) => value.replace('repository="Loopwire for openSUSE Tumbleweed - x86_64"', 'repository="other"'), /Zypper repository/],
     ["wrong signed RPM digest rejected", "signed-package.sha256", (value) => value.replace(packageSha256, "d".repeat(64)), /signed RPM digest/],
     ["failed RPM signature rejected", "rpm-signature.txt", (value) => value.replace(": OK", ": NOKEY"), /signature verification failed/],
     ["unresolved GUI dependency rejected", "gui-ldd.txt", (value) => `${value}libmissing.so => not found\n`, /linkage/],

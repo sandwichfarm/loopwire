@@ -135,12 +135,22 @@ function xmlAttributes(value) {
 
 export function verifyZypperSearch(value, version) {
   const records = [...value.matchAll(/<solvable\b([^>]*)\/>/g)].map((match) => xmlAttributes(match[1]))
+    .filter((entry) => entry.name === "loopwire" && entry.edition === version);
+  equal(records.length, 1, "Zypper repository candidate result count");
+  for (const [key, expected] of Object.entries({ name: "loopwire", edition: version, arch: "x86_64",
+    repository: "Loopwire for openSUSE Tumbleweed - x86_64" })) {
+    equal(records[0][key], expected, `Zypper ${key}`);
+  }
+}
+
+export function verifyZypperInstalledSearch(value, version) {
+  const records = [...value.matchAll(/<solvable\b([^>]*)\/>/g)].map((match) => xmlAttributes(match[1]))
     .filter((entry) => entry.name === "loopwire");
   equal(records.length, 1, "Zypper installed package result count");
   for (const [key, expected] of Object.entries({ status: "installed", name: "loopwire", edition: version,
-    arch: "x86_64", repository: "Loopwire for openSUSE Tumbleweed - x86_64" })) {
-    equal(records[0][key], expected, `Zypper ${key}`);
-  }
+    arch: "x86_64" })) equal(records[0][key], expected, `installed Zypper ${key}`);
+  requireThat(["Loopwire for openSUSE Tumbleweed - x86_64", "(System Packages)"].includes(records[0].repository),
+    "installed Zypper repository is neither the active candidate nor the native system view");
 }
 
 export async function verifyInstalledStage(directory, stage, version, fingerprint, packageName, packageSha256, payloadHashes) {
@@ -150,9 +160,10 @@ export async function verifyInstalledStage(directory, stage, version, fingerprin
   equal((await text(directory, `${prefix}zypper-origin.tsv`)).trim(),
     `loopwire\t${version}\tx86_64\tLoopwire for openSUSE Tumbleweed - x86_64\t(none)`,
     `${stage} repository origin/vendor`);
-  verifyZypperSearch(await text(directory, `${prefix}zypper-search.xml`), version);
+  verifyZypperInstalledSearch(await text(directory, `${prefix}zypper-search.xml`), version);
+  verifyZypperSearch(await text(directory, `${prefix}zypper-repository-search.xml`), version);
   const info = await text(directory, `${prefix}zypper-info.txt`);
-  requireThat(/^Repository\s*:\s*loopwire$/m.test(info) && /^Name\s*:\s*loopwire$/m.test(info) &&
+  requireThat(/^Name\s*:\s*loopwire$/m.test(info) &&
     new RegExp(`^Version\\s*:\\s*${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m").test(info),
   `${stage} Zypper package info lacks repository/version`);
   const files = (await text(directory, `${prefix}package-files.txt`)).trim().split("\n");
@@ -328,6 +339,9 @@ export async function verifyEvidence({ target, evidenceDir, gitHead, targetManif
       signed.get(fixtureStage).sha256, payloadHashes[expectedVersion]);
     const log = await text(evidenceDir, `${stage}.log`);
     requireThat(log.includes("loopwire") && log.includes(expectedVersion), `${stage} lacks Zypper operation/version log`);
+    requireThat(log.includes(
+      `Retrieving: loopwire-${expectedVersion}.x86_64 (Loopwire for openSUSE Tumbleweed - x86_64)`),
+    `${stage} operation log lacks authenticated repository origin`);
   }
   const commands = await text(evidenceDir, "commands.log");
   for (const needle of ["zypper --non-interactive install --from loopwire", "--force --no-allow-vendor-change --no-allow-arch-change",

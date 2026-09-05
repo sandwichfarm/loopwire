@@ -253,15 +253,26 @@ smoke_installed() {
   [ "$(rpm -q --qf '%{VERSION}-%{RELEASE}' loopwire)" = "$expected_version" ]
   [ "$(rpm -q --qf '%{VENDOR}' loopwire)" = '(none)' ]
   zypper --no-refresh --xmlout search --installed-only --details --match-exact loopwire >"$stage_dir/zypper-search.xml"
-  python3 - "$stage_dir/zypper-search.xml" "$expected_version" >"$stage_dir/zypper-origin.tsv" <<'PY'
-import sys, xml.etree.ElementTree as ET
-root, version = ET.parse(sys.argv[1]).getroot(), sys.argv[2]
+  zypper --no-refresh --xmlout search --details --repo loopwire --match-exact loopwire \
+    >"$stage_dir/zypper-repository-search.xml"
+  python3 - "$stage_dir/zypper-search.xml" "$stage_dir/zypper-repository-search.xml" \
+    "$proof_dir/$stage.log" "$expected_version" >"$stage_dir/zypper-origin.tsv" <<'PY'
+import pathlib, sys, xml.etree.ElementTree as ET
+installed_path, repository_path, log_path, version = sys.argv[1:]
+root = ET.parse(installed_path).getroot()
 items = [item for item in root.iter("solvable") if item.attrib.get("name") == "loopwire"]
 assert len(items) == 1
 item = items[0]
 assert item.attrib.get("status") == "installed" and item.attrib.get("edition") == version
 repository = "Loopwire for openSUSE Tumbleweed - x86_64"
-assert item.attrib.get("arch") == "x86_64" and item.attrib.get("repository") == repository
+assert item.attrib.get("arch") == "x86_64"
+assert item.attrib.get("repository") in (repository, "(System Packages)")
+candidates = [item for item in ET.parse(repository_path).getroot().iter("solvable")
+              if item.attrib.get("name") == "loopwire" and item.attrib.get("edition") == version]
+assert len(candidates) == 1 and candidates[0].attrib.get("arch") == "x86_64"
+assert candidates[0].attrib.get("repository") == repository
+log = pathlib.Path(log_path).read_text()
+assert f"Retrieving: loopwire-{version}.x86_64 ({repository})" in log
 print("loopwire\t%s\tx86_64\t%s\t(none)" % (version, repository))
 PY
   zypper --no-refresh info loopwire >"$stage_dir/zypper-info.txt"
