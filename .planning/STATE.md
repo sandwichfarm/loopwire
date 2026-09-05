@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: GitHub Operator Setup
 status: Ready for Review
-last_updated: "2026-09-02T20:11:53.793Z"
-last_activity: 2026-09-02
+last_updated: "2026-09-05T10:10:16.085Z"
+last_activity: 2026-09-05
 progress:
   total_phases: 1
   completed_phases: 1
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 19 of 19 complete
 Plan: 19.1 — Hardened GitHub Actions Setup
 Status: Ready for review in PR #9
-Last activity: 2026-09-02 — completed quick task 260902-tfw: fail docs deployment when Bunny configuration is absent
+Last activity: 2026-09-05 - completed quick task 260905-fld: default platform installer and homepage tabs
 
 
 ## Blockers / Concerns
@@ -90,6 +90,7 @@ Last activity: 2026-09-02 — completed quick task 260902-tfw: fail docs deploym
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260902-tfw | Fail docs deployment when Bunny configuration is absent | 2026-09-02 | 2d1e697 | [260902-tfw-make-docs-deployment-fail-when-bunny-con](./quick/260902-tfw-make-docs-deployment-fail-when-bunny-con/) |
+| 260905-fld | Default platform installer and homepage tabs; native install/reinstall proof | 2026-09-05 | c415386 | [260905-fld-homepage-platform-installer](./quick/260905-fld-homepage-platform-installer/) |
 
 ## Accumulated Context
 
