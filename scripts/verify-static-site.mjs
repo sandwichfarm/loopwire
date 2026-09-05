@@ -15,7 +15,8 @@ const robots = readRequired("robots.txt");
 const sitemap = readRequired("sitemap.xml");
 const installer = readRequired("install.sh");
 
-assertContains(homepage, ">Loopwire</h1>", "homepage h1");
+assertContains(homepage, "Sound,", "homepage headline");
+assertContains(homepage, 'aria-label="Loopwire home"', "homepage wordmark");
 assertContains(homepage, "<link rel=\"canonical\" href=\"https://loopwire.app/\">", "homepage canonical");
 assertContains(homepage, "\"@type\":\"SoftwareApplication\"", "JSON-LD software type");
 assertContains(homepage, "PipeWire-first virtual audio routing", "homepage description");
@@ -32,7 +33,8 @@ assertContains(homepage, "href=\"/docs/\"", "docs primary link");
 assertContains(homepage, "https://github.com/sandwichfarm/loopwire", "GitHub link");
 assertContains(homepage, "https://github.com/sandwichfarm/loopwire/releases", "releases link");
 assertContains(homepage, "Loopwire desktop shell showing one saved device", "homepage screenshot alt");
-assertContains(homepage, "Diagnostics and hardware discovery", "ALSA capability label");
+assertContains(homepage, 'id="signal-field"', "interactive signal background");
+if (homepage.includes('class="capability-row"')) fail("obsolete capability cards remain on the homepage");
 
 assertContains(docsIndex, "Loopwire Docs", "docs title");
 assertContains(docsIndex, "/docs/guide/install.html", "docs install link");

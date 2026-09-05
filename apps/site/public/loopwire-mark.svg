@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">Loopwire mark</title>
-  <rect width="64" height="64" rx="14" fill="#101113"/>
-  <path d="M18 38c0-9 6-15 14-15h13" fill="none" stroke="#bde84f" stroke-width="7" stroke-linecap="round"/>
-  <path d="M46 26c0 9-6 15-14 15H19" fill="none" stroke="#e85b36" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="18" cy="38" r="5" fill="#42cfc2"/>
-  <circle cx="46" cy="26" r="5" fill="#f7b74a"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 40" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Loopwire signal paths</title>
+  <style>path{stroke:#203b33}@media(prefers-color-scheme:dark){path{stroke:#b6dac6}}</style>
+  <g stroke-width="2.4">
+    <path d="M2 20h10c8 0 8-13 16-13a13 13 0 0 1 0 26c-8 0-8-13-16-13H2"/>
+    <path d="M46 20H36c-8 0-8 13-16 13a13 13 0 0 1 0-26c8 0 8 13 16 13h10"/>
+  </g>
 </svg>
