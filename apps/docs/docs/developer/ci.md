@@ -63,10 +63,10 @@ It inspects the successful CI run's `Validate workspace` job and `Run workspace 
 failed job/step is rejected. If a future release commit was filtered out, deliberately run CI at that release ref:
 
 ```sh
-gh workflow run ci.yml --repo sandwichfarm/loopwire --ref <release-tag>
+gh workflow run ci.yml --repo sandwichfarm/loopwire --ref vX.Y.Z
 ```
 
-Wait for the run to finish before repeating the release audit. Existing successful legacy CI runs still qualify.
+Replace `vX.Y.Z` with the release tag, then wait for completion before repeating the release audit. Existing successful legacy CI runs still qualify.
 The Release workflow continues to run the full `pnpm check` independently; path filtering does not bypass it.
 
 No branch protection or rulesets were changed. The live repository had neither configured when this change was
