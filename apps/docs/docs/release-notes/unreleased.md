@@ -30,6 +30,20 @@ These notes describe source-tree progress. They are not a public release announc
 - Added [Fedora user setup and rollback guidance](../guide/fedora-repository.md) and the
   [maintainer operations runbook](../developer/fedora-repository.md).
 
+## Signed openSUSE repository development
+
+- Selected a project-owned repository over OBS to retain authenticated release-input identity, signing, atomic
+  metadata promotion, indefinite retention, and recovery under the existing release workflow.
+- Added the Tumbleweed x86_64 target with authenticated metadata and embedded RPM signatures, protected publication,
+  repeat-safe setup/removal, and a dedicated clean-guest lifecycle. Failed later-snapshot checks block activation
+  until compatibility is repaired and the lifecycle reruns.
+- The openSUSE homepage switches to `sudo zypper install loopwire` only with a complete reviewed public verification
+  record. Production provisioning and initial activation remain human work; direct downloads and Automatic stay
+  functional while the channel is pending.
+- Added [openSUSE user setup and recovery](../guide/opensuse-repository.md) and the
+  [maintainer runbook](../developer/opensuse-repository.md), including priority/vendor behavior, key changes, downgrade,
+  and rolling-snapshot policy.
+
 ## Other distribution updates
 
 - Root-level Bunny deployments now pass the post-upload live-site check when `BUNNY_REMOTE_PREFIX` is intentionally

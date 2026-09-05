@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Publish a verified Fedora RPM repository to a POSIX origin.
+"""Publish verified Fedora and openSUSE RPM repositories to a POSIX origin.
 
-ROOT/public is the HTTP document root.  The supported DNF base URL is
-ROOT/public/fedora/44/x86_64.  ROOT/snapshots and ROOT/state are private.
-Package, key, and checksum-named repodata URLs are immutable and retained.
+ROOT/public is the HTTP document root. Supported base URLs are
+ROOT/public/fedora/44/x86_64 and ROOT/public/opensuse/tumbleweed/x86_64.
+Fedora keeps its existing private ROOT/state and ROOT/snapshots paths. openSUSE
+uses ROOT/channels/opensuse-tumbleweed-x86_64/{state,snapshots} so locks, journals,
+revisions, and rollback inputs remain independent. Package, key, and
+checksum-named repodata URLs are immutable and retained within each namespace.
 
 RPM metadata uses a fail-closed commit protocol: repomd.xml.asc is replaced
 first and repomd.xml is replaced atomically last.  A client crossing that
@@ -39,15 +42,43 @@ import time
 
 MANIFEST = "repository-manifest.json"
 SCHEMA = "loopwire.rpm-repository.v1"
-TARGET = {"distribution": "fedora", "release": "44", "architecture": "x86_64"}
-PUBLIC_PREFIX = Path("fedora/44/x86_64")
+DEFAULT_TARGET = "fedora-44-x86_64"
+TARGETS = {
+    DEFAULT_TARGET: {
+        "manifest": {"distribution": "fedora", "release": "44", "architecture": "x86_64"},
+        "publicPrefix": Path("fedora/44/x86_64"),
+        "packageRelease": "1.fc44",
+        "sourceRevision": False,
+        "packagePattern": re.compile(
+            r"packages/loopwire-{version}-1\.fc44\.x86_64\.rpm\Z"
+        ),
+        "label": "Fedora 44 x86_64",
+        "client": "DNF",
+    },
+    "opensuse-tumbleweed-x86_64": {
+        "manifest": {
+            "distribution": "opensuse", "release": "tumbleweed", "architecture": "x86_64",
+        },
+        "publicPrefix": Path("opensuse/tumbleweed/x86_64"),
+        "packageRelease": "1",
+        "sourceRevision": True,
+        "packagePattern": re.compile(
+            r"packages/loopwire-{version}-1\.x86_64\.rpm\Z"
+        ),
+        "label": "openSUSE Tumbleweed x86_64",
+        "client": "Zypper/libzypp",
+    },
+}
 REVISION = re.compile(r"[0-9a-f]{64}\Z")
 FINGERPRINT = re.compile(r"(?:[A-F0-9]{40}|[A-F0-9]{64})\Z")
 VERSION = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:\+[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?"
-PACKAGE_PATH = re.compile(rf"packages/loopwire-{VERSION}-1\.fc44\.x86_64\.rpm\Z")
 REPODATA_PATH = re.compile(
     r"repodata/[0-9a-f]{64}-(?:primary|filelists|other)\.xml\.gz\Z"
 )
+# Compatibility aliases for existing Fedora callers and tests.
+TARGET = TARGETS[DEFAULT_TARGET]["manifest"]
+PUBLIC_PREFIX = TARGETS[DEFAULT_TARGET]["publicPrefix"]
+PACKAGE_PATH = re.compile(rf"packages/loopwire-{VERSION}-1\.fc44\.x86_64\.rpm\Z")
 MANIFEST_FIELDS = {
     "schema", "schemaVersion", "revision", "signingFingerprint",
     "createdAt", "validUntil", "target", "packages", "files",
@@ -70,6 +101,14 @@ class EmptyRepository(PublicationError):
 def require(condition, message):
     if not condition:
         raise PublicationError(message)
+
+
+def target_config(target=DEFAULT_TARGET):
+    require(isinstance(target, str) and target in TARGETS,
+            "unsupported RPM repository target")
+    config = TARGETS[target]
+    pattern = config["packagePattern"].pattern.format(version=VERSION)
+    return target, config, re.compile(pattern)
 
 
 def canonical(value):
@@ -104,10 +143,11 @@ def safe_path(value):
     return path
 
 
-def classify(path):
+def classify(path, target=DEFAULT_TARGET):
     """Derive URL mutability from the protocol, never from manifest input."""
     safe_path(path)
-    if PACKAGE_PATH.fullmatch(path):
+    _target, _config, package_path = target_config(target)
+    if package_path.fullmatch(path):
         return "immutable"
     if re.fullmatch(r"keys/(?:[A-F0-9]{40}|[A-F0-9]{64})\.asc", path):
         return "immutable"
@@ -115,7 +155,7 @@ def classify(path):
         return "immutable"
     if path in ("repodata/repomd.xml", "repodata/repomd.xml.asc"):
         return "metadata"
-    raise PublicationError("inventory contains a path outside the Fedora RPM protocol")
+    raise PublicationError("inventory contains a path outside the selected RPM protocol")
 
 
 def plain_path(path, directory=False, missing=False):
@@ -161,7 +201,8 @@ def read_json(path):
         raise PublicationError("invalid repository JSON") from error
 
 
-def inventory(root, fingerprint):
+def inventory(root, fingerprint, target=DEFAULT_TARGET):
+    target, config, package_path = target_config(target)
     root = plain_path(root, directory=True)
     actual = tree_files(root)
     require(MANIFEST in actual, "candidate is missing its manifest")
@@ -178,8 +219,8 @@ def inventory(root, fingerprint):
     require(isinstance(fingerprint, str) and FINGERPRINT.fullmatch(fingerprint)
             and manifest.get("signingFingerprint") == fingerprint,
             "candidate signing fingerprint differs")
-    require(manifest.get("target") == TARGET,
-            "candidate must target Fedora 44 x86_64")
+    require(manifest.get("target") == config["manifest"],
+            f"candidate must target {config['label']}")
     require(type(manifest.get("createdAt")) is int and type(manifest.get("validUntil")) is int
             and manifest["validUntil"] > manifest["createdAt"],
             "candidate validity interval is invalid")
@@ -193,16 +234,16 @@ def inventory(root, fingerprint):
         require(isinstance(entry, dict), "invalid candidate file entry")
         require(set(entry) == FILE_FIELDS, "invalid candidate file fields")
         path = entry.get("path")
-        kind = classify(path)
+        kind = classify(path, target)
         require(path not in expected and entry.get("kind") == kind,
                 "duplicate file or incorrect inventory kind")
         require(type(entry.get("size")) is int and entry["size"] >= 0,
                 "invalid inventory file size")
         require(isinstance(entry.get("sha256"), str) and REVISION.fullmatch(entry["sha256"]),
                 "invalid inventory digest")
-        target = root / path
-        require(path in actual and target.stat().st_size == entry["size"]
-                and digest(target) == entry["sha256"],
+        candidate_file = root / path
+        require(path in actual and candidate_file.stat().st_size == entry["size"]
+                and digest(candidate_file) == entry["sha256"],
                 "candidate file checksum or size differs")
         expected.add(path)
         indexed[path] = entry
@@ -214,21 +255,24 @@ def inventory(root, fingerprint):
             "candidate is missing signed repository metadata")
     require(f"keys/{fingerprint}.asc" in indexed,
             "candidate is missing its pinned public key")
-    require(all(isinstance(item, dict) and set(item) == PACKAGE_FIELDS
+    expected_package_fields = (PACKAGE_FIELDS | {"sourceRevision"}
+                               if config["sourceRevision"] else PACKAGE_FIELDS)
+    require(all(isinstance(item, dict) and set(item) == expected_package_fields
                 for item in manifest["packages"]), "invalid package record fields")
     package_paths = {item.get("path") for item in manifest["packages"]}
-    require(package_paths and all(PACKAGE_PATH.fullmatch(path or "") for path in package_paths),
+    require(package_paths and all(package_path.fullmatch(path or "") for path in package_paths),
             "candidate has an invalid package record")
     require(len(package_paths) == len(manifest["packages"]),
             "candidate has duplicate package records")
-    require(package_paths == {path for path in indexed if PACKAGE_PATH.fullmatch(path)},
+    require(package_paths == {path for path in indexed if package_path.fullmatch(path)},
             "package records and file inventory differ")
     for package in manifest["packages"]:
-        require(package["name"] == "loopwire" and package["release"] == "1.fc44"
+        require(package["name"] == "loopwire"
+                and package["release"] == config["packageRelease"]
                 and package["architecture"] == "x86_64"
                 and re.fullmatch(VERSION, package["version"])
                 and package["path"] == (
-                    f"packages/loopwire-{package['version']}-1.fc44.x86_64.rpm"
+                    f"packages/loopwire-{package['version']}-{config['packageRelease']}.x86_64.rpm"
                 ), "candidate package identity is invalid")
         require(isinstance(package["sourceReleaseSha256"], str)
                 and REVISION.fullmatch(package["sourceReleaseSha256"])
@@ -236,6 +280,10 @@ def inventory(root, fingerprint):
                 and REVISION.fullmatch(package["distributedSha256"])
                 and type(package["size"]) is int and package["size"] >= 0,
                 "candidate package hash or size is invalid")
+        if config["sourceRevision"]:
+            require(isinstance(package["sourceRevision"], str)
+                    and re.fullmatch(r"[0-9a-f]{40}", package["sourceRevision"]),
+                    "candidate source revision is invalid")
         entry = indexed[package["path"]]
         require(entry["sha256"] == package["distributedSha256"]
                 and entry["size"] == package["size"],
@@ -243,12 +291,14 @@ def inventory(root, fingerprint):
     return manifest
 
 
-def verify_signed(root, key, fingerprint, historical=False):
-    manifest = inventory(root, fingerprint)
+def verify_signed(root, key, fingerprint, historical=False, target=DEFAULT_TARGET):
+    manifest = inventory(root, fingerprint, target)
     verifier = Path(__file__).resolve().with_name("rpm-repository.py")
     require(verifier.is_file(), "rpm-repository.py verifier is missing")
     command = [sys.executable, str(verifier), "verify", "--repository", str(root),
                "--public-key", str(key), "--fingerprint", fingerprint]
+    if target != DEFAULT_TARGET:
+        command += ["--target", target]
     if historical:
         command += ["--now", str(manifest["createdAt"])]
     result = subprocess.run(command, capture_output=True, text=True, check=False)
@@ -308,20 +358,31 @@ def root_path(value):
     return plain_path(path, directory=True, missing=True)
 
 
-def public_channel(root):
-    return root / "public" / PUBLIC_PREFIX
+def public_channel(root, target=DEFAULT_TARGET):
+    _target, config, _package_path = target_config(target)
+    return root / "public" / config["publicPrefix"]
+
+
+def private_channel(root, target=DEFAULT_TARGET):
+    target, _config, _package_path = target_config(target)
+    return root if target == DEFAULT_TARGET else root / "channels" / target
 
 
 @contextlib.contextmanager
-def locked(root, create=False):
+def locked(root, create=False, target=DEFAULT_TARGET):
+    target, _config, _package_path = target_config(target)
+    private = private_channel(root, target)
     if create:
         make_directory(root)
-    if not root.exists():
+        if target != DEFAULT_TARGET:
+            make_directory(private.parent, mode=0o700)
+            make_directory(private, mode=0o700)
+    if not root.exists() or not private.exists():
         raise EmptyRepository("repository has no committed snapshot")
-    lock = root / ".publish.lock"
+    lock = private / ".publish.lock"
     plain_path(lock, missing=True)
     if not create and not lock.exists():
-        require(not (root / "state").exists() and not public_channel(root).exists(),
+        require(not (private / "state").exists() and not public_channel(root, target).exists(),
                 "repository state exists without its publication lock")
         raise EmptyRepository("repository has no committed snapshot")
     flags = os.O_NOFOLLOW | (os.O_RDWR | os.O_CREAT if create else os.O_RDONLY)
@@ -340,8 +401,8 @@ def locked(root, create=False):
         os.close(descriptor)
 
 
-def state(root, name):
-    path = root / "state" / f"{name}.json"
+def state(root, name, target=DEFAULT_TARGET):
+    path = private_channel(root, target) / "state" / f"{name}.json"
     plain_path(path, missing=True)
     if not path.exists():
         return None
@@ -366,18 +427,18 @@ def _checkpoint(label):
     """No-op hook for process-interruption tests; never environment-controlled."""
 
 
-def check_public(root, manifest, immutable_only=False):
-    channel = public_channel(root)
+def check_public(root, manifest, immutable_only=False, target=DEFAULT_TARGET):
+    channel = public_channel(root, target)
     for entry in manifest["files"]:
         if immutable_only and entry["kind"] != "immutable":
             continue
-        target = channel / entry["path"]
-        plain_path(target, missing=True)
-        if target.exists():
-            info = target.stat()
+        public_file = channel / entry["path"]
+        plain_path(public_file, missing=True)
+        if public_file.exists():
+            info = public_file.stat()
             require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
                     "public target is not a standalone regular file")
-            require(info.st_size == entry["size"] and digest(target) == entry["sha256"],
+            require(info.st_size == entry["size"] and digest(public_file) == entry["sha256"],
                     "immutable URL collision" if immutable_only
                     else "committed public repository has drifted")
         elif not immutable_only:
@@ -390,13 +451,13 @@ def check_public(root, manifest, immutable_only=False):
                 "committed public repository manifest has drifted")
 
 
-def save_snapshot(root, repository, manifest):
-    snapshots = root / "snapshots"
+def save_snapshot(root, repository, manifest, target=DEFAULT_TARGET):
+    snapshots = private_channel(root, target) / "snapshots"
     make_directory(snapshots, mode=0o700)
     snapshot = snapshots / manifest["revision"]
     plain_path(snapshot, directory=True, missing=True)
     if snapshot.exists():
-        require(inventory(snapshot, manifest["signingFingerprint"]) == manifest,
+        require(inventory(snapshot, manifest["signingFingerprint"], target) == manifest,
                 "retained snapshot differs from candidate")
         return snapshot
     temporary = Path(tempfile.mkdtemp(prefix=".staging-", dir=snapshots))
@@ -407,7 +468,7 @@ def save_snapshot(root, repository, manifest):
                          mode=0o600, directory_mode=0o700)
         atomic_write(temporary / MANIFEST, source=repository / MANIFEST,
                      mode=0o600, directory_mode=0o700)
-        inventory(temporary, manifest["signingFingerprint"])
+        inventory(temporary, manifest["signingFingerprint"], target)
         fsync_directory(temporary)
         os.replace(temporary, snapshot)
         fsync_directory(snapshots)
@@ -417,20 +478,21 @@ def save_snapshot(root, repository, manifest):
     return snapshot
 
 
-def promote(root, snapshot, manifest):
+def promote(root, snapshot, manifest, target=DEFAULT_TARGET):
     """Publish immutable data, signature, then atomic repomd.xml commit."""
-    channel = public_channel(root)
+    private = private_channel(root, target)
+    channel = public_channel(root, target)
     make_directory(channel)
     devices = {path.stat().st_dev for path in
-               (root, channel, root / "state", root / "snapshots")}
+               (root, channel, private / "state", private / "snapshots")}
     require(len(devices) == 1,
             "origin public, snapshot, and state paths must share one filesystem")
-    check_public(root, manifest, immutable_only=True)
+    check_public(root, manifest, immutable_only=True, target=target)
     for entry in manifest["files"]:
         if entry["kind"] == "immutable":
-            target = channel / entry["path"]
-            if not target.exists():
-                atomic_write(target, source=snapshot / entry["path"])
+            public_file = channel / entry["path"]
+            if not public_file.exists():
+                atomic_write(public_file, source=snapshot / entry["path"])
     _checkpoint("immutable")
     signature = "repodata/repomd.xml.asc"
     atomic_write(channel / signature, source=snapshot / signature)
@@ -439,22 +501,25 @@ def promote(root, snapshot, manifest):
     atomic_write(channel / metadata, source=snapshot / metadata)
     _checkpoint("committed")
     atomic_write(channel / MANIFEST, source=snapshot / MANIFEST)
-    check_public(root, manifest)
+    check_public(root, manifest, target=target)
     _checkpoint("manifest")
-    atomic_write(root / "state" / "current.json",
+    atomic_write(private / "state" / "current.json",
                  data=canonical({"revision": manifest["revision"]}) + b"\n", mode=0o600)
     _checkpoint("current")
-    (root / "state" / "pending.json").unlink()
-    fsync_directory(root / "state")
+    (private / "state" / "pending.json").unlink()
+    fsync_directory(private / "state")
+    _target, config, _package_path = target_config(target)
     return {"status": "published", "revision": manifest["revision"],
-            "target": TARGET.copy()}
+            "target": config["manifest"].copy()}
 
 
-def publish_at(root, repository, fingerprint, expected):
-    manifest = inventory(repository, fingerprint)
-    with locked(root, create=True):
-        current = state(root, "current")
-        pending = state(root, "pending")
+def publish_at(root, repository, fingerprint, expected, target=DEFAULT_TARGET):
+    target, config, _package_path = target_config(target)
+    private = private_channel(root, target)
+    manifest = inventory(repository, fingerprint, target)
+    with locked(root, create=True, target=target):
+        current = state(root, "current", target)
+        pending = state(root, "pending", target)
         revision = current["revision"] if current else "empty"
         if pending:
             require(pending["revision"] == manifest["revision"],
@@ -463,48 +528,51 @@ def publish_at(root, repository, fingerprint, expected):
                     "expected revision differs from interrupted publication")
             require(revision in (pending["previousRevision"], pending["revision"]),
                     "current revision conflicts with pending journal")
-            snapshot = root / "snapshots" / pending["revision"]
-            require(inventory(snapshot, fingerprint) == manifest,
+            snapshot = private / "snapshots" / pending["revision"]
+            require(inventory(snapshot, fingerprint, target) == manifest,
                     "pending snapshot differs from candidate")
-            return promote(root, snapshot, manifest)
+            return promote(root, snapshot, manifest, target)
         if revision == manifest["revision"]:
-            check_public(root, manifest)
+            check_public(root, manifest, target=target)
             return {"status": "unchanged", "revision": revision,
-                    "target": TARGET.copy()}
+                    "target": config["manifest"].copy()}
         require(expected == revision,
                 "expected revision differs from current publication (compare-and-swap failed)")
         if current is None:
-            channel = public_channel(root)
+            channel = public_channel(root, target)
             plain_path(channel, directory=True, missing=True)
             require(not channel.exists() or not any(channel.iterdir()),
-                    "refusing to adopt an unmanaged public Fedora repository")
-        check_public(root, manifest, immutable_only=True)
-        snapshot = save_snapshot(root, repository, manifest)
-        make_directory(root / "state", mode=0o700)
-        atomic_write(root / "state" / "pending.json", data=canonical({
+                    "refusing to adopt an unmanaged public RPM repository")
+        check_public(root, manifest, immutable_only=True, target=target)
+        snapshot = save_snapshot(root, repository, manifest, target)
+        make_directory(private / "state", mode=0o700)
+        atomic_write(private / "state" / "pending.json", data=canonical({
             "revision": manifest["revision"], "previousRevision": revision,
         }) + b"\n", mode=0o600)
         _checkpoint("journal")
-        return promote(root, snapshot, manifest)
+        return promote(root, snapshot, manifest, target)
 
 
-def recover_at(root, fingerprint, revision):
-    with locked(root, create=True):
-        pending = state(root, "pending")
+def recover_at(root, fingerprint, revision, target=DEFAULT_TARGET):
+    private = private_channel(root, target)
+    with locked(root, create=True, target=target):
+        pending = state(root, "pending", target)
         require(pending is not None and pending["revision"] == revision,
                 "pending publication changed; fetch and verify it again before recovery")
-        current = state(root, "current")
+        current = state(root, "current", target)
         require((current["revision"] if current else "empty")
                 in (pending.get("previousRevision"), revision),
                 "current revision conflicts with pending journal")
-        snapshot = root / "snapshots" / revision
-        return promote(root, snapshot, inventory(snapshot, fingerprint))
+        snapshot = private / "snapshots" / revision
+        return promote(root, snapshot, inventory(snapshot, fingerprint, target), target)
 
 
 @contextlib.contextmanager
-def selected_snapshot(root, fingerprint, revision=None, pending_only=False):
-    with locked(root):
-        pending = state(root, "pending")
+def selected_snapshot(root, fingerprint, revision=None, pending_only=False,
+                      target=DEFAULT_TARGET):
+    private = private_channel(root, target)
+    with locked(root, target=target):
+        pending = state(root, "pending", target)
         if pending_only:
             if not pending:
                 raise EmptyRepository("repository has no pending publication")
@@ -513,12 +581,12 @@ def selected_snapshot(root, fingerprint, revision=None, pending_only=False):
             require(pending is None,
                     "interrupted publication pending; recover before fetching snapshots")
             if revision is None:
-                current = state(root, "current")
+                current = state(root, "current", target)
                 if not current:
                     raise EmptyRepository("repository has no committed snapshot")
                 revision = current["revision"]
-        snapshot = root / "snapshots" / revision
-        manifest = inventory(snapshot, fingerprint)
+        snapshot = private / "snapshots" / revision
+        manifest = inventory(snapshot, fingerprint, target)
         require(manifest["revision"] == revision,
                 "snapshot does not match selected revision")
         yield snapshot, manifest
@@ -530,20 +598,20 @@ def write_archive(repository, output):
             archive.add(repository / relative, arcname=relative, recursive=False)
 
 
-def read_archive(source, output):
+def read_archive(source, output, target=DEFAULT_TARGET):
     seen = set()
     with tarfile.open(fileobj=source, mode="r|*") as archive:
         for member in archive:
             safe_path(member.name)
-            require(member.name == MANIFEST or classify(member.name),
+            require(member.name == MANIFEST or classify(member.name, target),
                     "unexpected archive path")
             require(member.isfile() and not member.issym() and not member.islnk()
                     and member.name not in seen,
                     "archive contains a link, special file, or duplicate")
             seen.add(member.name)
-            target = output / member.name
-            make_directory(target.parent)
-            with archive.extractfile(member) as incoming, target.open("xb") as destination:
+            destination_file = output / member.name
+            make_directory(destination_file.parent)
+            with archive.extractfile(member) as incoming, destination_file.open("xb") as destination:
                 shutil.copyfileobj(incoming, destination, 1024 * 1024)
 
 
@@ -594,7 +662,7 @@ def remote_call(args, request, repository=None, output=None):
                 "SSH repository operation failed; check pinned host key, identity, connectivity, remote Python, and publisher state")
         outgoing.seek(0)
         if output:
-            read_archive(outgoing, output)
+            read_archive(outgoing, output, request.get("target", DEFAULT_TARGET))
             return None
         try:
             return json.load(outgoing)
@@ -604,6 +672,9 @@ def remote_call(args, request, repository=None, output=None):
 
 def serve(request):
     root = root_path(request["root"])
+    target, _config, _package_path = target_config(
+        request.get("target", DEFAULT_TARGET)
+    )
     fingerprint = request["fingerprint"]
     require(FINGERPRINT.fullmatch(fingerprint), "invalid signing fingerprint")
     action = request["action"]
@@ -612,35 +683,38 @@ def serve(request):
                 "invalid expected revision")
         with tempfile.TemporaryDirectory(prefix="loopwire-rpm-upload-") as directory:
             repository = Path(directory)
-            read_archive(sys.stdin.buffer, repository)
-            return publish_at(root, repository, fingerprint, request["expected"])
+            read_archive(sys.stdin.buffer, repository, target)
+            return publish_at(root, repository, fingerprint, request["expected"], target)
     if action == "recover":
         require(REVISION.fullmatch(request["revision"]), "invalid recovery revision")
-        return recover_at(root, fingerprint, request["revision"])
+        return recover_at(root, fingerprint, request["revision"], target)
     require(action in ("fetch", "fetch-pending"), "unknown remote operation")
     revision = request.get("revision")
     require(revision is None or REVISION.fullmatch(revision), "invalid fetch revision")
     with selected_snapshot(root, fingerprint, revision,
-                           action == "fetch-pending") as (snapshot, _):
+                           action == "fetch-pending", target) as (snapshot, _):
         write_archive(snapshot, sys.stdout.buffer)
     return None
 
 
 def fetch_into(args, output, pending_only=False):
+    target = getattr(args, "target", DEFAULT_TARGET)
     if args.ssh:
         remote_call(args, {
             "action": "fetch-pending" if pending_only else "fetch",
             "root": args.root,
+            "target": target,
             "fingerprint": args.fingerprint,
             "revision": getattr(args, "revision", None),
         }, output=output)
     else:
         with selected_snapshot(root_path(args.root), args.fingerprint,
                                getattr(args, "revision", None),
-                               pending_only) as (snapshot, _):
+                               pending_only, target) as (snapshot, _):
             shutil.copytree(snapshot, output, dirs_exist_ok=True)
     historical = not pending_only or getattr(args, "allow_expired", False)
-    return verify_signed(output, args.public_key, args.fingerprint, historical=historical)
+    return verify_signed(output, args.public_key, args.fingerprint,
+                         historical=historical, target=target)
 
 
 def parser():
@@ -653,6 +727,8 @@ def parser():
                             help="absolute origin root; HTTP serves ROOT/public")
         action.add_argument("--public-key", required=True, type=Path)
         action.add_argument("--fingerprint", required=True)
+        action.add_argument("--target", choices=tuple(TARGETS), default=DEFAULT_TARGET,
+                            help="isolated repository target (defaults to Fedora 44 x86_64)")
         action.add_argument("--ssh", metavar="USER@HOST",
                             help="omit for a local POSIX origin")
         action.add_argument("--ssh-port", type=int)
@@ -680,6 +756,9 @@ def parser():
 
 
 def run(args):
+    target, config, _package_path = target_config(
+        getattr(args, "target", DEFAULT_TARGET)
+    )
     if args.ssh:
         requested_root = Path(args.root)
         require(requested_root.is_absolute() and args.root != "/"
@@ -704,23 +783,26 @@ def run(args):
     if args.action == "publish":
         require(args.expected_revision == "empty" or REVISION.fullmatch(args.expected_revision),
                 "invalid expected revision")
-        manifest = verify_signed(args.repository, args.public_key, args.fingerprint)
+        manifest = verify_signed(args.repository, args.public_key, args.fingerprint,
+                                 target=target)
         if args.dry_run:
             return {"status": "validated", "revision": manifest["revision"],
                     "originChecked": False}
         with tempfile.TemporaryDirectory(prefix="loopwire-rpm-candidate-") as directory:
             candidate = Path(directory) / "repository"
             shutil.copytree(args.repository, candidate, symlinks=True)
-            require(verify_signed(candidate, args.public_key, args.fingerprint) == manifest,
+            require(verify_signed(candidate, args.public_key, args.fingerprint,
+                                  target=target) == manifest,
                     "candidate changed during verification")
             if args.ssh:
                 return remote_call(args, {
                     "action": "publish", "root": args.root,
+                    "target": target,
                     "fingerprint": args.fingerprint,
                     "expected": args.expected_revision,
                 }, repository=candidate)
             return publish_at(root_path(args.root), candidate, args.fingerprint,
-                              args.expected_revision)
+                              args.expected_revision, target)
     if args.action == "fetch":
         require(args.revision is None or REVISION.fullmatch(args.revision),
                 "invalid selected revision")
@@ -744,16 +826,18 @@ def run(args):
         if args.ssh:
             result = remote_call(args, {
                 "action": "recover", "root": args.root,
+                "target": target,
                 "fingerprint": args.fingerprint, "revision": manifest["revision"],
             })
         else:
             result = recover_at(root_path(args.root), args.fingerprint,
-                                manifest["revision"])
+                                manifest["revision"], target)
         result["requiresRefresh"] = needs_refresh
         if needs_refresh:
             result["nextAction"] = (
                 "Immediately fetch, rebuild, sign, and publish fresh metadata; "
-                "the project verifier rejects the expired snapshot. DNF signature checks do not enforce this project deadline."
+                f"the project verifier rejects the expired snapshot. {config['client']} "
+                "signature checks do not enforce this project deadline."
             )
         return result
 

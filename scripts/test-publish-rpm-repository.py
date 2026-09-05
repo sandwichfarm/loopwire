@@ -12,7 +12,9 @@ host keys. No production host, credentials, keyring, or repository is touched.
 import argparse
 import base64
 import fcntl
+import functools
 import hashlib
+import http.server
 import importlib.util
 import io
 import json
@@ -25,6 +27,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 import unittest
 import urllib.error
@@ -35,6 +38,7 @@ from unittest import mock
 SCRIPT = Path(__file__).with_name("publish-rpm-repository.py")
 WITH_SSH = False
 FPR = "A" * 40
+SUSE = "opensuse-tumbleweed-x86_64"
 
 
 def load(name, path):
@@ -47,6 +51,11 @@ def load(name, path):
 publisher = load("rpm_publisher", SCRIPT)
 
 
+class QuietHttpHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *_args):
+        pass
+
+
 def write_manifest(root, manifest):
     manifest.pop("revision", None)
     manifest["revision"] = hashlib.sha256(publisher.canonical(manifest)).hexdigest()
@@ -54,9 +63,11 @@ def write_manifest(root, manifest):
     return manifest
 
 
-def fixture(root, version="1.0.0", created=1, package_bytes=None):
+def fixture(root, version="1.0.0", created=1, package_bytes=None,
+            target=publisher.DEFAULT_TARGET):
+    target, config, _package_path = publisher.target_config(target)
     root.mkdir()
-    package = f"packages/loopwire-{version}-1.fc44.x86_64.rpm"
+    package = f"packages/loopwire-{version}-{config['packageRelease']}.x86_64.rpm"
     files = {
         package: package_bytes or f"rpm package {version}".encode(),
         f"keys/{FPR}.asc": b"synthetic public key",
@@ -68,33 +79,36 @@ def fixture(root, version="1.0.0", created=1, package_bytes=None):
         files[f"repodata/{hashlib.sha256(data).hexdigest()}-{kind}.xml.gz"] = data
     entries = []
     for path, data in sorted(files.items()):
-        target = root / path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
+        candidate_file = root / path
+        candidate_file.parent.mkdir(parents=True, exist_ok=True)
+        candidate_file.write_bytes(data)
         entries.append({
             "path": path,
-            "kind": publisher.classify(path),
+            "kind": publisher.classify(path, target),
             "size": len(data),
             "sha256": hashlib.sha256(data).hexdigest(),
         })
     package_data = files[package]
+    package_record = {
+        "name": "loopwire",
+        "version": version,
+        "release": config["packageRelease"],
+        "architecture": "x86_64",
+        "path": package,
+        "sourceReleaseSha256": "1" * 64,
+        "distributedSha256": hashlib.sha256(package_data).hexdigest(),
+        "size": len(package_data),
+    }
+    if config["sourceRevision"]:
+        package_record["sourceRevision"] = "2" * 40
     manifest = {
         "schema": publisher.SCHEMA,
         "schemaVersion": 1,
         "createdAt": created,
         "validUntil": created + 2592000,
         "signingFingerprint": FPR,
-        "target": publisher.TARGET.copy(),
-        "packages": [{
-            "name": "loopwire",
-            "version": version,
-            "release": "1.fc44",
-            "architecture": "x86_64",
-            "path": package,
-            "sourceReleaseSha256": "1" * 64,
-            "distributedSha256": hashlib.sha256(package_data).hexdigest(),
-            "size": len(package_data),
-        }],
+        "target": config["manifest"].copy(),
+        "packages": [package_record],
         "files": entries,
     }
     return json.loads(json.dumps(write_manifest(root, manifest)))
@@ -405,7 +419,7 @@ class PublicationTests(unittest.TestCase):
                                   known_hosts=None, action="recover", dry_run=True,
                                   allow_expired=False)
 
-        def verify(_root, _key, _fingerprint, historical=False):
+        def verify(_root, _key, _fingerprint, historical=False, target=publisher.DEFAULT_TARGET):
             if not historical:
                 raise publisher.PublicationError("expired repository")
             return manifest
@@ -420,6 +434,209 @@ class PublicationTests(unittest.TestCase):
             completed = publisher.run(base)
             self.assertTrue(completed["requiresRefresh"])
             self.assertIn("Immediately", completed["nextAction"])
+            self.assertIn("DNF", completed["nextAction"])
+
+
+class TargetIsolationTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="loopwire-rpm-target-tests-")
+        self.directory = Path(self.temporary.name)
+        self.root = self.directory / "origin"
+        self.fedora = self.directory / "fedora"
+        self.opensuse = self.directory / "opensuse"
+        self.opensuse_upgrade = self.directory / "opensuse-upgrade"
+        self.fedora_manifest = fixture(self.fedora)
+        self.opensuse_manifest = fixture(self.opensuse, target=SUSE)
+        self.opensuse_upgrade_manifest = fixture(
+            self.opensuse_upgrade, "1.1.0", 2, target=SUSE,
+        )
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def test_target_validation_happens_before_origin_write(self):
+        with self.assertRaisesRegex(publisher.PublicationError, "Fedora 44"):
+            publisher.publish_at(self.root, self.opensuse, FPR, "empty")
+        self.assertFalse(self.root.exists())
+        with self.assertRaisesRegex(publisher.PublicationError, "openSUSE"):
+            publisher.publish_at(self.root, self.fedora, FPR, "empty", SUSE)
+        self.assertFalse(self.root.exists())
+        manifest = json.loads((self.opensuse / publisher.MANIFEST).read_text())
+        manifest["packages"][0]["sourceRevision"] = "not-a-commit"
+        write_manifest(self.opensuse, manifest)
+        with self.assertRaisesRegex(publisher.PublicationError, "source revision"):
+            publisher.publish_at(self.root, self.opensuse, FPR, "empty", SUSE)
+        self.assertFalse(self.root.exists())
+
+    def test_independent_public_state_snapshot_lock_cas_and_idempotence(self):
+        publisher.publish_at(self.root, self.fedora, FPR, "empty")
+        result = publisher.publish_at(self.root, self.opensuse, FPR, "empty", SUSE)
+        self.assertEqual(result["target"], publisher.TARGETS[SUSE]["manifest"])
+        self.assertEqual(
+            publisher.state(self.root, "current")["revision"],
+            self.fedora_manifest["revision"],
+        )
+        self.assertEqual(
+            publisher.state(self.root, "current", SUSE)["revision"],
+            self.opensuse_manifest["revision"],
+        )
+        self.assertTrue((self.root / "snapshots" / self.fedora_manifest["revision"]).is_dir())
+        self.assertTrue((publisher.private_channel(self.root, SUSE) / "snapshots"
+                         / self.opensuse_manifest["revision"]).is_dir())
+        self.assertTrue((publisher.public_channel(self.root) / "repodata/repomd.xml").is_file())
+        self.assertTrue((publisher.public_channel(self.root, SUSE)
+                         / "repodata/repomd.xml").is_file())
+        self.assertEqual(
+            publisher.publish_at(self.root, self.opensuse, FPR, "empty", SUSE)["status"],
+            "unchanged",
+        )
+        with self.assertRaisesRegex(publisher.PublicationError, "compare-and-swap"):
+            publisher.publish_at(
+                self.root, self.opensuse_upgrade, FPR,
+                self.fedora_manifest["revision"], SUSE,
+            )
+        self.assertEqual(
+            publisher.state(self.root, "current", SUSE)["revision"],
+            self.opensuse_manifest["revision"],
+        )
+
+        # A held Fedora writer lock does not serialize the disjoint openSUSE
+        # namespace; openSUSE still uses its own exclusive writer lock.
+        with publisher.locked(self.root, create=True):
+            publisher.publish_at(
+                self.root, self.opensuse_upgrade, FPR,
+                self.opensuse_manifest["revision"], SUSE,
+            )
+        with publisher.locked(self.root, create=True, target=SUSE):
+            with self.assertRaisesRegex(publisher.PublicationError, "locked"):
+                publisher.publish_at(
+                    self.root, self.opensuse, FPR,
+                    self.opensuse_upgrade_manifest["revision"], SUSE,
+                )
+
+    def test_empty_opensuse_fetch_does_not_create_state_beside_fedora(self):
+        publisher.publish_at(self.root, self.fedora, FPR, "empty")
+        with self.assertRaises(publisher.EmptyRepository):
+            with publisher.selected_snapshot(
+                    self.root, FPR, target=SUSE):
+                pass
+        self.assertFalse(publisher.private_channel(self.root, SUSE).exists())
+        self.assertEqual(
+            publisher.state(self.root, "current")["revision"],
+            self.fedora_manifest["revision"],
+        )
+
+    def test_opensuse_retention_collision_and_explicit_rollback(self):
+        publisher.publish_at(self.root, self.opensuse, FPR, "empty", SUSE)
+        publisher.publish_at(
+            self.root, self.opensuse_upgrade, FPR,
+            self.opensuse_manifest["revision"], SUSE,
+        )
+        channel = publisher.public_channel(self.root, SUSE)
+        old_package = self.opensuse_manifest["packages"][0]["path"]
+        new_package = self.opensuse_upgrade_manifest["packages"][0]["path"]
+        self.assertTrue((channel / old_package).is_file())
+        self.assertTrue((channel / new_package).is_file())
+
+        collision = self.directory / "collision"
+        collision_manifest = fixture(
+            collision, "1.1.0", 3, b"changed bytes at an immutable openSUSE URL",
+            target=SUSE,
+        )
+        with self.assertRaisesRegex(publisher.PublicationError, "immutable URL collision"):
+            publisher.publish_at(
+                self.root, collision, FPR,
+                self.opensuse_upgrade_manifest["revision"], SUSE,
+            )
+        self.assertFalse((publisher.private_channel(self.root, SUSE) / "snapshots"
+                          / collision_manifest["revision"]).exists())
+
+        rollback = self.directory / "rollback"
+        rollback_manifest = fixture(rollback, "1.0.0", 4, target=SUSE)
+        publisher.publish_at(
+            self.root, rollback, FPR,
+            self.opensuse_upgrade_manifest["revision"], SUSE,
+        )
+        self.assertEqual(
+            publisher.state(self.root, "current", SUSE)["revision"],
+            rollback_manifest["revision"],
+        )
+        self.assertTrue((channel / new_package).is_file(),
+                        "rollback must retain newer immutable package URLs")
+
+    def test_every_opensuse_checkpoint_recovers_without_fedora_state(self):
+        checkpoints = ("journal", "immutable", "signature", "committed", "manifest", "current")
+        for index, checkpoint in enumerate(checkpoints):
+            with self.subTest(checkpoint=checkpoint):
+                root = self.directory / f"interrupted-{index}"
+
+                def interrupt(label):
+                    if label == checkpoint:
+                        raise InterruptedError("openSUSE publication interrupted")
+
+                with mock.patch.object(publisher, "_checkpoint", side_effect=interrupt):
+                    with self.assertRaises(InterruptedError):
+                        publisher.publish_at(root, self.opensuse, FPR, "empty", SUSE)
+                self.assertIsNone(publisher.state(root, "current"))
+                self.assertEqual(
+                    publisher.state(root, "pending", SUSE)["revision"],
+                    self.opensuse_manifest["revision"],
+                )
+                publisher.recover_at(root, FPR, self.opensuse_manifest["revision"], SUSE)
+                self.assertEqual(
+                    publisher.state(root, "current", SUSE)["revision"],
+                    self.opensuse_manifest["revision"],
+                )
+                self.assertIsNone(publisher.state(root, "pending", SUSE))
+
+    def test_opensuse_private_paths_ignore_restrictive_umask(self):
+        previous_umask = os.umask(0o077)
+        try:
+            publisher.publish_at(self.root, self.opensuse, FPR, "empty", SUSE)
+        finally:
+            os.umask(previous_umask)
+        private = publisher.private_channel(self.root, SUSE)
+        self.assertEqual(stat.S_IMODE((self.root / "channels").stat().st_mode), 0o700)
+        for path in (private, *private.rglob("*")):
+            expected = 0o700 if path.is_dir() else 0o600
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), expected, str(path))
+        public = publisher.public_channel(self.root, SUSE)
+        for path in (public, *public.rglob("*")):
+            expected = 0o755 if path.is_dir() else 0o644
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), expected, str(path))
+
+    def test_expired_opensuse_recovery_names_zypper_refresh_boundary(self):
+        expired = self.directory / "opensuse-expired"
+        manifest = fixture(
+            expired, "2.0.0", int(time.time()) - 2592001, target=SUSE,
+        )
+
+        def interrupt(label):
+            if label == "journal":
+                raise InterruptedError("expired openSUSE pending journal")
+
+        with mock.patch.object(publisher, "_checkpoint", side_effect=interrupt):
+            with self.assertRaises(InterruptedError):
+                publisher.publish_at(self.root, expired, FPR, "empty", SUSE)
+        key = self.directory / "opensuse-key.asc"
+        key.write_text("synthetic", encoding="utf-8")
+        args = argparse.Namespace(
+            root=str(self.root), public_key=key, fingerprint=FPR,
+            target=SUSE, ssh=None, ssh_port=None, identity_file=None,
+            known_hosts=None, action="recover", dry_run=False,
+            allow_expired=True,
+        )
+
+        def verify(_root, _key, _fingerprint, historical=False, target=None):
+            self.assertEqual(target, SUSE)
+            self.assertTrue(historical)
+            return manifest
+
+        with mock.patch.object(publisher, "verify_signed", side_effect=verify):
+            completed = publisher.run(args)
+        self.assertTrue(completed["requiresRefresh"])
+        self.assertIn("Zypper/libzypp", completed["nextAction"])
+        self.assertNotIn("DNF", completed["nextAction"])
 
 
 class SignedDnfCommitTests(unittest.TestCase):
@@ -613,6 +830,190 @@ class SignedDnfCommitTests(unittest.TestCase):
                          (self.first / publisher.MANIFEST).read_bytes())
 
 
+class SignedZypperCommitTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if not WITH_SSH:
+            raise unittest.SkipTest("runs with --with-ssh in the pinned openSUSE tools container")
+        fixtures = load(
+            "opensuse_repository_test_fixtures",
+            SCRIPT.with_name("test-rpm-repository.py"),
+        ).OpenSUSERepositoryTests
+        fixtures.setUpClass()
+        cls.fixtures = fixtures
+        cls.directory = fixtures.root / "publisher-integration"
+        cls.directory.mkdir()
+        cls.gnupg = fixtures.gnupg
+        cls.fingerprint = fixtures.fingerprint
+        cls.public_key = fixtures.key
+        cls.date = fixtures.date
+        cls.first = fixtures.base
+        cls.second = cls.directory / "candidate-opensuse-1.1.0"
+        fixtures.build(
+            fixtures.release2, "1.1.0", cls.second,
+            "--previous", cls.first, "--date", str(cls.date + 1),
+        )
+        cls.rollback = cls.directory / "candidate-rollback"
+        cls.shell(
+            sys.executable, SCRIPT.with_name("rpm-repository.py"), "rollback",
+            "--repository", cls.first, "--target", SUSE,
+            "--output", cls.rollback, "--signing-key", cls.fingerprint,
+            "--gnupg-home", cls.gnupg, "--date", str(cls.date + 2),
+            "--valid-for-days", "30",
+        )
+        cls.one = json.loads((cls.first / publisher.MANIFEST).read_text(encoding="utf-8"))
+        cls.two = json.loads((cls.second / publisher.MANIFEST).read_text(encoding="utf-8"))
+        cls.rolled = json.loads((cls.rollback / publisher.MANIFEST).read_text(encoding="utf-8"))
+
+    @classmethod
+    def tearDownClass(cls):
+        if hasattr(cls, "fixtures"):
+            cls.fixtures.tearDownClass()
+
+    @classmethod
+    def shell(cls, *command, cwd=None, ok=True):
+        result = subprocess.run(
+            list(map(str, command)), cwd=cwd, capture_output=True,
+            text=True, check=False,
+        )
+        if ok and result.returncode != 0:
+            raise AssertionError(
+                "command failed: " + " ".join(map(str, command))
+                + "\n" + result.stdout + result.stderr
+            )
+        return result
+
+    def setUp(self):
+        self.case_dir = self.directory / self.id().split(".")[-1]
+        self.case_dir.mkdir()
+        self.root = self.case_dir / "origin"
+
+    def publisher_cli(self, action, *extra, ok=True):
+        result = self.shell(
+            sys.executable, SCRIPT, action, "--target", SUSE,
+            "--root", self.root, "--public-key", self.public_key,
+            "--fingerprint", self.fingerprint, *extra, ok=False,
+        )
+        if ok:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
+
+    def zypper(self, label, command, base_url=None):
+        state = self.case_dir / f"zypper-{label}"
+        repos = state / "repos"
+        for path in (state, repos, state / "cache", state / "raw", state / "solv", state / "packages"):
+            path.mkdir(exist_ok=True)
+        channel = publisher.public_channel(self.root, SUSE)
+        base_url = base_url or f"file://{channel}/"
+        key_url = base_url + f"keys/{self.fingerprint}.asc"
+        (repos / "loopwire.repo").write_text(
+            "[loopwire]\nname=Loopwire test\nenabled=1\nautorefresh=0\ntype=rpm-md\n"
+            f"baseurl={base_url}\n"
+            f"gpgkey={key_url}\n"
+            "gpgcheck=1\nrepo_gpgcheck=1\npkg_gpgcheck=1\n",
+            encoding="utf-8",
+        )
+        args = [
+            "zypper", "--non-interactive", "--gpg-auto-import-keys",
+            "--disable-system-resolvables", "--reposd-dir", repos,
+            "--cache-dir", state / "cache", "--raw-cache-dir", state / "raw",
+            "--solv-cache-dir", state / "solv", "--pkg-cache-dir", state / "packages",
+        ]
+        return self.shell(*args, *command, ok=False)
+
+    def test_signed_cli_publish_fetch_upgrade_retention_and_rollback(self):
+        dry = self.publisher_cli(
+            "publish", "--repository", self.first,
+            "--expected-revision", "empty", "--dry-run",
+        )
+        self.assertEqual(json.loads(dry.stdout)["status"], "validated")
+        self.assertFalse(self.root.exists())
+        self.publisher_cli(
+            "publish", "--repository", self.first, "--expected-revision", "empty",
+        )
+        fetched = self.case_dir / "fetched"
+        self.publisher_cli("fetch", "--output", fetched)
+        self.assertEqual((fetched / publisher.MANIFEST).read_bytes(),
+                         (self.first / publisher.MANIFEST).read_bytes())
+        self.publisher_cli(
+            "publish", "--repository", self.second,
+            "--expected-revision", self.one["revision"],
+        )
+        self.publisher_cli(
+            "publish", "--repository", self.rollback,
+            "--expected-revision", self.two["revision"],
+        )
+        channel = publisher.public_channel(self.root, SUSE)
+        for manifest in (self.one, self.two):
+            for package in manifest["packages"]:
+                self.assertTrue((channel / package["path"]).is_file())
+        self.assertEqual(
+            publisher.state(self.root, "current", SUSE)["revision"],
+            self.rolled["revision"],
+        )
+
+    def test_real_zypper_rejects_mixed_metadata_then_accepts_recovery_and_rollback(self):
+        publisher.publish_at(self.root, self.first, self.fingerprint, "empty", SUSE)
+        handler = functools.partial(
+            QuietHttpHandler, directory=str(self.root / "public"),
+        )
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        base_url = (
+            f"http://127.0.0.1:{server.server_port}/opensuse/tumbleweed/x86_64/"
+        )
+        try:
+            refreshed = self.zypper("initial", ["refresh"], base_url)
+            self.assertEqual(refreshed.returncode, 0, refreshed.stdout + refreshed.stderr)
+            searched = self.zypper(
+                "initial-search", ["search", "--details", "loopwire"], base_url,
+            )
+            self.assertEqual(searched.returncode, 0, searched.stdout + searched.stderr)
+            self.assertIn("1.0.0", searched.stdout)
+
+            def interrupt(label):
+                if label == "signature":
+                    raise InterruptedError("leave new signature with old repomd.xml")
+
+            with mock.patch.object(publisher, "_checkpoint", side_effect=interrupt):
+                with self.assertRaises(InterruptedError):
+                    publisher.publish_at(
+                        self.root, self.second, self.fingerprint,
+                        self.one["revision"], SUSE,
+                    )
+            mixed = self.zypper("mixed", ["refresh"], base_url)
+            self.assertNotEqual(mixed.returncode, 0, mixed.stdout + mixed.stderr)
+            self.assertRegex(
+                mixed.stdout + mixed.stderr,
+                r"(?i)(signature|verification).*(fail|invalid)",
+            )
+
+            publisher.recover_at(self.root, self.fingerprint, self.two["revision"], SUSE)
+            recovered = self.zypper("recovered", ["refresh"], base_url)
+            self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+            searched = self.zypper(
+                "recovered-search", ["search", "--details", "loopwire"], base_url,
+            )
+            self.assertIn("1.1.0", searched.stdout)
+
+            publisher.publish_at(
+                self.root, self.rollback, self.fingerprint,
+                self.two["revision"], SUSE,
+            )
+            rolled = self.zypper("rollback", ["refresh"], base_url)
+            self.assertEqual(rolled.returncode, 0, rolled.stdout + rolled.stderr)
+            searched = self.zypper(
+                "rollback-search", ["search", "--details", "loopwire"], base_url,
+            )
+            self.assertIn("1.0.0", searched.stdout)
+            self.assertNotIn("1.1.0", searched.stdout)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
+
 class SshPublicationTests(unittest.TestCase):
     def test_actual_ssh_publish_fetch_and_recover_without_remote_gpg(self):
         if not WITH_SSH:
@@ -633,6 +1034,10 @@ class SshPublicationTests(unittest.TestCase):
             second = directory / "second"
             one = fixture(first)
             two = fixture(second, "1.1.0", 2)
+            opensuse_first = directory / "opensuse-first"
+            opensuse_second = directory / "opensuse-second"
+            opensuse_one = fixture(opensuse_first, target=SUSE)
+            opensuse_two = fixture(opensuse_second, "1.1.0", 2, target=SUSE)
             origin = directory / "origin"
             identity = directory / "identity"
             host_key = directory / "host-key"
@@ -647,13 +1052,20 @@ class SshPublicationTests(unittest.TestCase):
             remote_bin = directory / "remote-bin"
             remote_bin.mkdir()
             (remote_bin / "python3").symlink_to(sys.executable)
+            force_command = directory / "force-command"
+            force_command.write_text(
+                "#!/bin/sh\n"
+                f"PATH={remote_bin} exec /bin/sh -c \"$SSH_ORIGINAL_COMMAND\"\n",
+                encoding="utf-8",
+            )
+            force_command.chmod(0o700)
             configuration = directory / "sshd.conf"
             configuration.write_text(
                 f"Port {port}\nListenAddress 127.0.0.1\nHostKey {host_key}\n"
                 f"PidFile {directory / 'sshd.pid'}\nAuthorizedKeysFile {identity}.pub\n"
                 "PermitRootLogin prohibit-password\nPasswordAuthentication no\n"
                 "KbdInteractiveAuthentication no\nUsePAM no\nStrictModes no\nAllowUsers root\n"
-                f"LogLevel ERROR\nSetEnv PATH={remote_bin}\n")
+                f"LogLevel ERROR\nForceCommand {force_command}\n")
             Path("/run/sshd").mkdir(exist_ok=True)
             with (directory / "sshd.log").open("wb") as log:
                 server = subprocess.Popen([sshd, "-D", "-e", "-f", str(configuration)],
@@ -708,6 +1120,44 @@ class SshPublicationTests(unittest.TestCase):
                     })
                     self.assertEqual(result["revision"], two["revision"])
                     self.assertIsNone(publisher.state(origin, "pending"))
+
+                    result = publisher.remote_call(connection, {
+                        "action": "publish", "root": str(origin), "target": SUSE,
+                        "fingerprint": FPR, "expected": "empty",
+                    }, repository=opensuse_first)
+                    self.assertEqual(result["revision"], opensuse_one["revision"])
+                    opensuse_fetched = directory / "opensuse-fetched"
+                    opensuse_fetched.mkdir()
+                    publisher.remote_call(connection, {
+                        "action": "fetch", "root": str(origin), "target": SUSE,
+                        "fingerprint": FPR, "revision": None,
+                    }, output=opensuse_fetched)
+                    self.assertEqual(
+                        (opensuse_fetched / publisher.MANIFEST).read_bytes(),
+                        (opensuse_first / publisher.MANIFEST).read_bytes(),
+                    )
+                    with mock.patch.object(publisher, "_checkpoint", side_effect=interrupt):
+                        with self.assertRaises(InterruptedError):
+                            publisher.publish_at(
+                                origin, opensuse_second, FPR,
+                                opensuse_one["revision"], SUSE,
+                            )
+                    opensuse_pending = directory / "opensuse-pending"
+                    opensuse_pending.mkdir()
+                    publisher.remote_call(connection, {
+                        "action": "fetch-pending", "root": str(origin), "target": SUSE,
+                        "fingerprint": FPR, "revision": None,
+                    }, output=opensuse_pending)
+                    result = publisher.remote_call(connection, {
+                        "action": "recover", "root": str(origin), "target": SUSE,
+                        "fingerprint": FPR, "revision": opensuse_two["revision"],
+                    })
+                    self.assertEqual(result["revision"], opensuse_two["revision"])
+                    self.assertIsNone(publisher.state(origin, "pending", SUSE))
+                    self.assertEqual(
+                        publisher.state(origin, "current")["revision"], two["revision"],
+                        "openSUSE SSH operations must not alter Fedora state",
+                    )
                     known.write_text("", encoding="utf-8")
                     with self.assertRaisesRegex(publisher.PublicationError, "SSH"):
                         publisher.remote_call(connection, {
@@ -731,7 +1181,10 @@ class NginxPublicTests(unittest.TestCase):
             origin = directory / "origin"
             candidate = directory / "candidate"
             manifest = fixture(candidate)
+            opensuse_candidate = directory / "opensuse-candidate"
+            opensuse_manifest = fixture(opensuse_candidate, target=SUSE)
             publisher.publish_at(origin, candidate, FPR, "empty")
+            publisher.publish_at(origin, opensuse_candidate, FPR, "empty", SUSE)
             snippet = directory / "nginx-rpm.conf"
             snippet.write_text(
                 snippet_path.read_text(encoding="utf-8").replace(
@@ -753,7 +1206,8 @@ class NginxPublicTests(unittest.TestCase):
                                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                                       text=True)
             try:
-                base = f"http://127.0.0.1:{port}/fedora/44/x86_64/"
+                host = f"http://127.0.0.1:{port}/"
+                base = host + "fedora/44/x86_64/"
                 for _ in range(100):
                     try:
                         urllib.request.urlopen(base + "repodata/repomd.xml", timeout=0.1).close()
@@ -763,24 +1217,48 @@ class NginxPublicTests(unittest.TestCase):
                             self.fail(server.stderr.read())
                         time.sleep(0.02)
 
-                def headers(path):
-                    with urllib.request.urlopen(base + path, timeout=2) as response:
+                def headers(base_url, path):
+                    with urllib.request.urlopen(base_url + path, timeout=2) as response:
                         self.assertEqual(response.status, 200)
                         return response.headers
 
-                self.assertIn("no-store", headers("repodata/repomd.xml")["Cache-Control"])
-                self.assertIn("no-store", headers("repodata/repomd.xml.asc")["Cache-Control"])
+                self.assertIn("no-store", headers(base, "repodata/repomd.xml")["Cache-Control"])
+                self.assertIn("no-store", headers(base, "repodata/repomd.xml.asc")["Cache-Control"])
                 package = manifest["packages"][0]["path"]
-                self.assertIn("immutable", headers(package)["Cache-Control"])
+                self.assertIn("immutable", headers(base, package)["Cache-Control"])
                 hashed = next(entry["path"] for entry in manifest["files"]
                               if entry["path"].endswith("primary.xml.gz"))
-                self.assertIn("immutable", headers(hashed)["Cache-Control"])
+                self.assertIn("immutable", headers(base, hashed)["Cache-Control"])
                 with self.assertRaises(urllib.error.HTTPError) as missing:
                     urllib.request.urlopen(base +
                         "packages/loopwire-9.9.9-1.fc44.x86_64.rpm", timeout=2)
                 self.assertEqual(missing.exception.code, 404)
                 self.assertIn("no-store", missing.exception.headers["Cache-Control"])
                 missing.exception.close()
+
+                opensuse_base = host + "opensuse/tumbleweed/x86_64/"
+                self.assertIn("no-store", headers(
+                    opensuse_base, "repodata/repomd.xml")["Cache-Control"])
+                self.assertIn("no-store", headers(
+                    opensuse_base, "repodata/repomd.xml.asc")["Cache-Control"])
+                self.assertIn("immutable", headers(
+                    opensuse_base,
+                    opensuse_manifest["packages"][0]["path"],
+                )["Cache-Control"])
+                opensuse_hashed = next(
+                    entry["path"] for entry in opensuse_manifest["files"]
+                    if entry["path"].endswith("primary.xml.gz")
+                )
+                self.assertIn("immutable", headers(
+                    opensuse_base, opensuse_hashed)["Cache-Control"])
+                with self.assertRaises(urllib.error.HTTPError) as opensuse_missing:
+                    urllib.request.urlopen(
+                        opensuse_base + "packages/loopwire-9.9.9-1.x86_64.rpm",
+                        timeout=2,
+                    )
+                self.assertEqual(opensuse_missing.exception.code, 404)
+                self.assertIn("no-store", opensuse_missing.exception.headers["Cache-Control"])
+                opensuse_missing.exception.close()
             finally:
                 server.terminate()
                 server.wait(timeout=10)

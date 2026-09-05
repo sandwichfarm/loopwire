@@ -172,8 +172,17 @@ sha256sum --check --ignore-missing SHA256SUMS &&
 sudo zypper install --allow-unsigned-rpm ./loopwire-0.1.0-1.x86_64.rpm
 ```
 
-[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/37) tracks signed metadata,
-release publication, clean-guest install/upgrade verification, and updated instructions.
+[openSUSE repository setup and availability](./opensuse-repository.md) covers the one-time key/source setup, normal
+updates, vendor and priority behavior, rollback, removal, and Tumbleweed snapshot compatibility. Once that page shows
+a verified public channel, complete setup and refresh before using:
+
+```bash
+sudo zypper install loopwire
+```
+
+This is a third-party project repository for Tumbleweed x86_64, not default-distro availability. Until activation,
+use Automatic or the authenticated direct download above. Its local-RPM signature exception never applies to the
+repository path, which requires both signed metadata and embedded RPM signatures.
 
 ## Nix / NixOS
 
@@ -286,9 +295,9 @@ Run the metadata smoke:
 pnpm verify:packaging
 ```
 
-The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. The APT and
-Fedora repositories have separate [APT](./apt-repository.md) and [Fedora](./fedora-repository.md) public activation
-gates; the openSUSE repository remains planned.
+The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. The project
+repositories have separate [APT](./apt-repository.md), [Fedora](./fedora-repository.md), and
+[openSUSE](./opensuse-repository.md) public activation gates.
 Their matching-guest proof command boots official,
 checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
 

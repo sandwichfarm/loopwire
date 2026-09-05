@@ -1,0 +1,84 @@
+name: Publish openSUSE Repository
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      operation:
+        type: string
+        default: publish
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Publish a stable release, refresh expiry, or roll back to a retained revision
+        type: choice
+        options: [publish, refresh, rollback]
+        default: publish
+      tag:
+        description: Existing stable release tag for publish
+        type: string
+      revision:
+        description: Retained repository revision SHA-256 for rollback
+        type: string
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opensuse-repository-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{
+        vars.OPENSUSE_REPOSITORY_ENABLED == 'true' &&
+        (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+          (github.workflow == 'Release' && startsWith(github.ref, 'refs/tags/v')))
+      }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: packages-production
+    container:
+      image: opensuse/tumbleweed@sha256:b6821dbfad5422b663e0eeae8241a30ef2976e1e9ae4a2f827641c0eecf7e4fd
+    steps:
+      - name: Install repository and workflow tools
+        run: >-
+          zypper --non-interactive --gpg-auto-import-keys refresh &&
+          zypper --non-interactive install
+          createrepo_c gh git gpg2 nodejs24 openssh openssl python3 rpm-build
+
+      - name: Checkout publisher
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build, publish, and verify repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPERATION: ${{ inputs.operation || 'refresh' }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          ROLLBACK_REVISION: ${{ inputs.revision }}
+          OPENSUSE_REPOSITORY_URL: ${{ vars.OPENSUSE_REPOSITORY_URL }}
+          OPENSUSE_REPOSITORY_HOST: ${{ vars.OPENSUSE_REPOSITORY_HOST }}
+          OPENSUSE_REPOSITORY_ROOT: ${{ vars.OPENSUSE_REPOSITORY_ROOT }}
+          OPENSUSE_SSH_PORT: ${{ vars.OPENSUSE_SSH_PORT || '22' }}
+          OPENSUSE_SIGNING_FINGERPRINT: ${{ vars.OPENSUSE_SIGNING_FINGERPRINT }}
+          OPENSUSE_SSH_PRIVATE_KEY: ${{ secrets.OPENSUSE_SSH_PRIVATE_KEY }}
+          OPENSUSE_SSH_KNOWN_HOSTS: ${{ secrets.OPENSUSE_SSH_KNOWN_HOSTS }}
+          OPENSUSE_SIGNING_KEY: ${{ secrets.OPENSUSE_SIGNING_KEY }}
+          OPENSUSE_SIGNING_PASSPHRASE: ${{ secrets.OPENSUSE_SIGNING_PASSPHRASE }}
+        run: bash scripts/publish-opensuse-workflow.sh
+
+      - name: Upload public verification and activation record
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-opensuse-publication-${{ github.run_id }}
+          path: dist/opensuse-publication
+          if-no-files-found: error
+          retention-days: 90

@@ -35,6 +35,21 @@ The Fedora homepage tab remains on its signed direct-download RPM while
 tab to `sudo dnf install loopwire` and links the separate one-time setup procedure. The automatic installer continues
 to work through the direct-download path, and fixture lifecycle evidence cannot activate the production channel.
 
+## Signed openSUSE channel
+
+Tumbleweed x86_64 publication has a separate [openSUSE operations runbook](./opensuse-repository.md). It selects a
+project-owned repository over OBS to preserve authenticated release-input provenance and the existing signing,
+retention, revision-check, and recovery contract. It requires both embedded RPM and repository-metadata signatures.
+
+The optional **Publish openSUSE Repository** workflow runs after GitHub Release publication only when
+`OPENSUSE_REPOSITORY_ENABLED=true`, using `packages-production`. Production hosting, signing/environment setup, first
+public verification, and reviewed channel activation remain human operations. Until then the openSUSE homepage keeps
+the authenticated direct-RPM fallback. Fedora and APT have independent gates.
+
+Record the Tumbleweed snapshot in lifecycle evidence. A later-snapshot failure blocks activation and must be resolved
+through a package repair or explicit compatibility correction followed by a full clean-guest lifecycle rerun. Do not
+promote synthetic upgrades or older snapshot evidence into a new public compatibility claim.
+
 ## Local Artifact Smoke
 
 ```bash

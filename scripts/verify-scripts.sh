@@ -56,8 +56,13 @@ bash -n \
   scripts/build-native-packages.sh \
   scripts/build-portable-linux-binary.sh \
   scripts/native-package-vm.sh \
+  scripts/setup-opensuse-repository.sh \
+  scripts/publish-opensuse-workflow.sh \
+  scripts/with-opensuse-rpm-tools.sh \
+  scripts/verify-opensuse-repository.sh \
   scripts/promote-native-package-vm-proof.sh \
   packaging/vm/guest-native-package-smoke.sh \
+  packaging/vm/guest-opensuse-repository-smoke.sh \
   scripts/verify-requirements.sh \
   scripts/verify-docs.sh
 
@@ -106,6 +111,9 @@ node --check scripts/test-apt-repository-vm-proof.mjs
 node --check scripts/verify-fedora-repository-vm-proof.mjs
 node --check scripts/test-fedora-repository-vm-proof.mjs
 node scripts/test-fedora-repository-vm-proof.mjs
+node --check scripts/verify-opensuse-repository-vm-proof.mjs
+node --check scripts/test-opensuse-repository-vm-proof.mjs
+node scripts/test-opensuse-repository-vm-proof.mjs
 bash -n packaging/vm/guest-fedora-repository-smoke.sh
 bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
   echo "verify-scripts: portable builder does not accept the package-script separator" >&2
