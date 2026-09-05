@@ -88,3 +88,7 @@ Checks cover the automatic default, every platform tab, keyboard navigation/focu
 mobile overflow, shell command syntax, agreement with the install guide, and the no-JavaScript fallback. It also
 rejects the obsolete pre-release deployment notice. This browser check does not execute installation commands or
 modify host packages/audio. Run `pnpm verify:install` for isolated signed-installer and package-manager fixtures.
+
+The root page also checks its [signal-path design and GSAP reactions](./landing-page.md), including real canvas
+pixel changes, tab palettes, idle stability, reduced-motion preferences and unavailable-canvas fallback. To capture
+review proofs, run `pnpm e2e:site --screenshots <output-directory>` after the combined web build.

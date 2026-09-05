@@ -7,6 +7,13 @@ These notes describe source-tree progress. They are not a public release announc
 - The signed installer is now live at `https://loopwire.app/install.sh`; AppImage, deb, and RPM artifacts are available
   from the `v0.1.0` GitHub Release, with native files documented as direct downloads rather than distro repositories.
 
+## Landing page
+
+- The root page now uses a flat Sora wordmark and signal-path identity, with the product screenshot integrated into
+  the main composition. Decorative panels, capability cards, pill controls, shadows and glow have been removed.
+- A GSAP background responds to pointer movement, clicks, platform tabs and successful copying. Reduced motion
+  keeps the linework static and changes palettes immediately. Existing installation commands remain unchanged.
+
 ## Installation
 
 - The homepage defaults to a one-command installer with accessible platform tabs, selected-command copying, and
