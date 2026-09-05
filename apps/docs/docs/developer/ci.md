@@ -44,6 +44,15 @@ The parser uses Ruby's existing YAML support and standard library, with no new a
 Current workflow patterns use literal paths, `*`, `**` and ordered `!` exclusions. More elaborate patterns need a
 matching helper/test update; unsupported syntax conservatively runs validation instead of silently skipping it.
 
+Native package proof freshness uses the same application projection when comparing `pnpm-lock.yaml` with the
+recorded VM-tested commit. The snapshot verifier still checks every recorded result, commit ancestry and all other
+package/proof inputs exactly. Website-only dependencies can change without invalidating the recorded native proof;
+root tools, application dependencies, shared/transitive metadata and global lock settings must remain equivalent.
+Unsupported lock data, missing history or a missing Ruby runtime reject verification. This comparison requires Ruby
+and its standard YAML library for standalone snapshot verification as well as for CI; it does not rerun the VMs or
+change the recorded tested commit. The helper's strict `--verify-lockfile` mode returns a failure on uncertainty and
+never writes workflow outputs.
+
 Deploy Docs retains a conservative shared-lockfile trigger because both deployment jobs install the workspace.
 Its existing workflow-wide cancellation/production serialization is preserved. Workflows with an impact selector
 apply concurrency only to selected validation jobs, so an unrelated lockfile check cannot cancel an active relevant build.
@@ -77,16 +86,19 @@ for skipped-check behavior and hosted diff-size limits.
 
 ## Verification
 
-`pnpm verify:workflows` runs the YAML/workflow contracts and the two routing suites:
+`pnpm verify:workflows` runs the YAML/workflow contracts, routing suites and native-proof freshness regressions:
 
 ```sh
 ruby scripts/test-ci-impact.rb
 ruby scripts/test-ci-workflow-paths.rb
+node scripts/test-native-package-proof-snapshot.mjs
 ```
 
 The first uses temporary Git repositories and real event-shaped payloads to exercise dependency changes, moving
 base branches, initial pushes, deletions/renames and conservative fallbacks. The second checks the committed YAML's
 path/event routing, helper outputs, job guards, concurrency, retained operator entrypoints and web-only setup.
+The native-proof suite uses isolated Git repositories and copied evidence to verify that website-only lock changes
+remain acceptable while relevant dependencies, critical source changes, malformed input and invalid evidence fail.
 
 The actual changes from merged PR #40 were replayed through the selector: native application work was false,
 AUR work was false, and web validation was true. This CI-scoping PR itself changes native/AUR workflow definitions,

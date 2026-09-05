@@ -202,6 +202,12 @@ class LockProjection
   end
 end
 
+def lock_inputs_equal?(surface, before, after)
+  previous = LockProjection.new(git_output('show', "#{before}:pnpm-lock.yaml"), surface).projection
+  current = LockProjection.new(git_output('show', "#{after}:pnpm-lock.yaml"), surface).projection
+  previous == current
+end
+
 def decide_impact(surface, workflow_path, env)
   raise UncertainImpact, 'surface must be application or web' unless %w[application web].include?(surface)
 
@@ -223,9 +229,7 @@ def decide_impact(surface, workflow_path, env)
 
   raise UncertainImpact, 'initial push has no previous lockfile' unless before
 
-  previous = LockProjection.new(git_output('show', "#{before}:pnpm-lock.yaml"), surface).projection
-  current = LockProjection.new(git_output('show', "#{after}:pnpm-lock.yaml"), surface).projection
-  if previous == current
+  if lock_inputs_equal?(surface, before, after)
     [false, "shared lockfile changed outside the #{surface} dependency graph"]
   else
     [true, "shared lockfile changed the #{surface} dependency graph"]
@@ -233,6 +237,25 @@ def decide_impact(surface, workflow_path, env)
 end
 
 if $PROGRAM_NAME == __FILE__
+  # Proof verification must reject uncertainty; workflow selection below instead runs extra checks.
+  if ARGV.first == '--verify-lockfile'
+    begin
+      unless ARGV.length == 4 && %w[application web].include?(ARGV[1])
+        raise UncertainImpact, 'usage: ruby scripts/ci-impact.rb --verify-lockfile application|web <before-sha> <after-sha>'
+      end
+      before, after = ARGV.drop(2).map { |value| commit_sha(value) }
+      unless lock_inputs_equal?(ARGV[1], before, after)
+        warn "ci-impact: #{ARGV[1]} lockfile inputs changed"
+        exit 1
+      end
+      puts "ci-impact: #{ARGV[1]} lockfile inputs are unchanged"
+      exit 0
+    rescue StandardError => error
+      warn "ci-impact: cannot verify lockfile inputs (#{error.message.gsub(/[\r\n]/, ' ')})"
+      exit 2
+    end
+  end
+
   begin
     raise UncertainImpact, 'usage: ruby scripts/ci-impact.rb application|web <workflow.yml>' unless ARGV.length == 2
 

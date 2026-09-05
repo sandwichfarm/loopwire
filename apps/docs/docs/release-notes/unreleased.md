@@ -16,6 +16,8 @@ These notes describe source-tree progress. They are not a public release announc
 - Release auditing now checks the actual successful workspace job and check step, rejecting scope-only or skipped CI
   success and explaining how to request a full run at the release ref.
 - Packaging README assertions moved to lightweight docs validation. The full local `pnpm check` command is unchanged.
+- Native proof freshness now compares application lockfile inputs, so website-only dependencies do not invalidate
+  recorded package evidence. Relevant or unverifiable dependency changes still fail the check.
 
 ## Landing page
 

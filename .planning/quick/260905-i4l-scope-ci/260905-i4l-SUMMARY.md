@@ -60,7 +60,35 @@ The full local `pnpm check` entrypoint remains unchanged.
 
 ## Limits and operator notes
 
-Native/AUR builds were not rerun locally because their execution steps are unchanged. GitHub event routing is
+At initial delivery, native/AUR builds were not rerun locally because their execution steps were unchanged. GitHub event routing is
 covered by actual-revision replay and fixture tests; hosted runs will exercise the published workflow definitions.
 This CI-definition change itself legitimately selects native/AUR checks. No release, deployment or merge was performed.
 GitHub path-diff limits still apply, and globally required path-filtered checks need an appropriate aggregate policy.
+
+## Native proof freshness correction
+
+The full workspace job in [run 33964723801](https://github.com/sandwichfarm/loopwire/actions/runs/33964723801)
+exposed a native snapshot freshness failure inherited from master. Comparing the verifier's critical inputs with
+the recorded VM-tested commit `70eee4ec433bb7d967931357cf77bd0c28056a35` found only nine added lockfile lines for
+the website's GSAP dependency. The application projection was identical; the web projection differed.
+
+The snapshot verifier now delegates only the lockfile comparison to the existing application dependency projection.
+The helper's explicit `--verify-lockfile` mode returns 0 for equal inputs, 1 for changed inputs and 2 for uncertainty,
+and never writes GitHub workflow outputs. Every other critical-path comparison, snapshot check and ancestry check
+is retained. The original proof files and tested commit are unchanged; this does not represent a new VM execution.
+Standalone snapshot verification now explicitly requires the existing Ruby/YAML tooling.
+
+Validation of the correction:
+
+- The production snapshot check reproduced the original failure, then verified all four targets after the fix.
+- The new 27-case suite runs the real verifier against isolated Git fixtures. The committed old verifier failed its
+  GSAP case; the repaired verifier passes. Native/root/shared/transitive dependencies, global settings, unknown or
+  malformed locks, missing history, source changes and corrupted/unrelated evidence remain rejected.
+- Strict CLI cases verify exit codes and that absent/prefilled `GITHUB_OUTPUT` files remain untouched.
+- Existing 38 impact scenarios and the expanded 84 workflow path/event cases pass. The native-proof test and verifier
+  are explicit Workflow Contracts inputs, and the suite runs under `pnpm verify:workflows`.
+- `pnpm verify:packaging` passes, including native fixture packages and the previously failing snapshot check.
+- Node/Ruby syntax, actionlint and whitespace checks pass. A separate review found no path that accepts uncertainty.
+
+The PR records the subsequent full workspace and hosted validation results. No application, recipe or dependency
+versions changed, and no stored VM evidence was regenerated or relabeled.
