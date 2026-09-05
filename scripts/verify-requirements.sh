@@ -124,9 +124,10 @@ done
 
 assert_script "package.json" "check" "pnpm check:verify && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm verify:site"
 assert_script "package.json" "check:verify" \
-  "pnpm verify:requirements && pnpm verify:docs && pnpm test:setup-github && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri && pnpm verify:apt && pnpm verify:rpm-repository"
+  "pnpm verify:requirements && pnpm verify:docs && pnpm test:setup-github && pnpm verify:scripts && pnpm verify:workflows && pnpm verify:runtime && pnpm verify:tauri && pnpm verify:apt && pnpm verify:rpm-repository && pnpm verify:opensuse-repository"
 assert_script "package.json" "verify:apt" "bash scripts/verify-apt-repository.sh"
 assert_script "package.json" "verify:rpm-repository" "bash scripts/verify-rpm-repository.sh"
+assert_script "package.json" "verify:opensuse-repository" "bash scripts/verify-opensuse-repository.sh"
 assert_script "package.json" "verify:requirements" "bash scripts/verify-requirements.sh"
 assert_script "package.json" "setup:github" "node scripts/setup-github-actions.mjs"
 assert_script "package.json" "test:setup-github" "node scripts/test-setup-github-actions.mjs"

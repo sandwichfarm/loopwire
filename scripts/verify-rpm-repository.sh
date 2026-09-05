@@ -17,4 +17,5 @@ python3 scripts/test-rpm-public.py
 python3 scripts/test-fedora-workflow-preflight.py
 node scripts/test-fedora-repository-vm-proof.mjs
 node --test apps/site/src/lib/rpmChannel.test.mjs
+node --test apps/site/src/lib/opensuseChannel.test.mjs
 echo 'Fedora repository development verification passed.'

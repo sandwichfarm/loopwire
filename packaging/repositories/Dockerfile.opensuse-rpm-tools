@@ -1,0 +1,9 @@
+FROM opensuse/tumbleweed@sha256:b6821dbfad5422b663e0eeae8241a30ef2976e1e9ae4a2f827641c0eecf7e4fd
+
+RUN zypper --non-interactive refresh \
+    && zypper --non-interactive install --no-recommends \
+      cpio createrepo_c gh git gpg2 nginx nodejs24 openssh openssl python3 rpm-build ruby ShellCheck zypper \
+    && zypper clean --all
+
+ENV PYTHONDONTWRITEBYTECODE=1
+WORKDIR /workspace

@@ -190,6 +190,42 @@ fingerprint from the [gated Fedora repository guide](../apps/docs/docs/guide/fed
 placeholder. See the [maintainer runbook](../apps/docs/docs/developer/fedora-repository.md) for the provider decision,
 production layout, protected configuration, publication/recovery, rollback, caching, key rotation, and activation.
 
+## Signed openSUSE repository
+
+The project-owned openSUSE channel targets Tumbleweed x86_64 at `/opensuse/tumbleweed/x86_64/`. It authenticates the
+existing release RPM with the project's OpenSSL-signed checksum manifest, signs a staged copy with a dedicated
+OpenPGP repository key, and publishes authenticated RPM metadata. The original GitHub Release file stays unchanged;
+the manifest records source and distributed hashes. This approach was selected over OBS to preserve the current
+release identity and publication/recovery proof. It does not provision or advertise an OBS project.
+
+The input directory needs the signed release checksum manifest plus `release-assets.json`, the x86_64 portable
+archive, and the exact openSUSE RPM. Their authenticated inventory binds the release tag, full source commit, and
+source/build hashes; a lone RPM and checksum entry do not satisfy the openSUSE provenance contract.
+
+Use the explicit command-line target for the shared repository generator and publisher:
+
+```bash
+python3 scripts/rpm-repository.py build --target opensuse-tumbleweed-x86_64 \
+  --release-dir dist/release --version 0.1.0 --output dist/opensuse-repository \
+  --signing-key "$RPM_FPR" --gnupg-home "$RPM_GNUPG_HOME" \
+  --release-public-key packaging/release-signing-public.pem
+python3 scripts/rpm-repository.py verify --target opensuse-tumbleweed-x86_64 \
+  --repository dist/opensuse-repository --public-key rpm-public.asc --fingerprint "$RPM_FPR"
+```
+
+The publisher keeps this target's private state under `ROOT/channels/opensuse-tumbleweed-x86_64` and its served
+objects under `ROOT/public/opensuse/tumbleweed/x86_64`. The protected workflow uses `OPENSUSE_REPOSITORY_ENABLED` and
+the `packages-production` environment. Origin, signing key, credentials, public proof, and first activation remain
+human operations. The checked-in `packaging/repositories/opensuse-channel.json` stays pending until its reviewed
+production proof record exists.
+
+The helper writes only the managed Zypper source and fingerprint-named key, verifies the complete fingerprint before
+refresh, and preserves `gpgcheck=1`, `repo_gpgcheck=1`, `pkg_gpgcheck=1`, priority 99, and normal vendor protection.
+User instructions come from the [gated openSUSE guide](../apps/docs/docs/guide/opensuse-repository.md). The
+[operator runbook](../apps/docs/docs/developer/opensuse-repository.md) covers publishing, rollback, retained snapshots,
+rotation, removal, and the required newer-snapshot compatibility rerun. A failed newer Tumbleweed snapshot blocks
+activation; one passing snapshot does not establish support for all future rolling updates.
+
 ## Native deb and RPM packages
 
 The native package recipes install the complete canonical payload: GUI, background restore, DSP and JACK provider
