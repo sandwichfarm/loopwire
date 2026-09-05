@@ -625,12 +625,56 @@ check_published_release_evidence_archive() {
     --require-no-release-blockers
 }
 
+check_ci_workspace_validation() {
+  local run_id
+  local jobs
+  run_id="$(workflow_run_id_from_json "$1")"
+  if [[ ! "$run_id" =~ ^[1-9][0-9]*$ ]]; then
+    echo "CI run is missing a valid databaseId for workspace validation lookup" >&2
+    return 1
+  fi
+  if ! jobs="$(gh run view "$run_id" --repo "$repo" --json jobs 2>&1)"; then
+    echo "Could not inspect CI workspace validation jobs:" >&2
+    printf '%s\n' "$jobs" | indent >&2
+    return 1
+  fi
+
+  node - "$jobs" <<'NODE'
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+let parsed;
+try {
+  parsed = JSON.parse(process.argv[2]);
+} catch (error) {
+  fail(`CI jobs lookup did not return JSON: ${error.message}`);
+}
+const job = Array.isArray(parsed?.jobs)
+  ? parsed.jobs.find((entry) => entry?.name === "Validate workspace")
+  : undefined;
+if (!job) fail("CI run is missing the Validate workspace job.");
+if (job.status !== "completed" || job.conclusion !== "success") {
+  fail(`CI Validate workspace job did not complete successfully: status=${job.status ?? "unknown"}, conclusion=${job.conclusion ?? "unknown"}.`);
+}
+const step = Array.isArray(job.steps)
+  ? job.steps.find((entry) => entry?.name === "Run workspace checks")
+  : undefined;
+if (!step) fail("CI Validate workspace job is missing the Run workspace checks step.");
+if (step.status !== "completed" || step.conclusion !== "success") {
+  fail(`CI Run workspace checks step did not complete successfully: status=${step.status ?? "unknown"}, conclusion=${step.conclusion ?? "unknown"}.`);
+}
+console.log("workspace validation job and checks step verified");
+NODE
+}
+
 run_workflow_probe() {
   local label="$1"
   local expected_head="$2"
   shift 2
   local output
   local validation
+  local workspace_validation
 
   if [ "$skip_gh" = "true" ]; then
     echo "==> $label"
@@ -715,6 +759,17 @@ NODE
     [ -z "$output" ] || printf '%s\n' "$output" | indent >&2
     echo >&2
     return 1
+  fi
+
+  if [ "$label" = "commit-scoped CI workflow run" ]; then
+    if ! workspace_validation="$(check_ci_workspace_validation "$output" 2>&1)"; then
+      echo "blocked: $label" >&2
+      [ -z "$workspace_validation" ] || printf '%s\n' "$workspace_validation" | indent >&2
+      printf 'next: dispatch full CI at the release ref: gh workflow run ci.yml --repo %q --ref %q\n' "$repo" "$tag" >&2
+      echo >&2
+      return 1
+    fi
+    printf '%s\n' "$workspace_validation" | indent
   fi
 
   echo "ok: $label"

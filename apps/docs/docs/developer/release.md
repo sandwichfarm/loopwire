@@ -898,3 +898,11 @@ bash scripts/setup-github-secrets.sh \
   --remote-prefix loopwire \
   --dry-run
 ```
+
+## Scoped CI evidence
+
+[CI path selection](./ci.md) can omit native checks for documentation or website changes. The release audit therefore
+checks that the commit-scoped CI run actually completed `Validate workspace` and its `Run workspace checks` step;
+a successful impact-check-only run is insufficient. Follow the audit's manual `ci.yml` dispatch command at the
+release tag when a full run is missing, wait for completion, and repeat the audit. Legacy successful full CI runs
+remain valid. Release builds themselves still run the full workspace checks regardless of ordinary path filters.

@@ -7,6 +7,18 @@ These notes describe source-tree progress. They are not a public release announc
 - The signed installer is now live at `https://loopwire.app/install.sh`; AppImage, deb, and RPM artifacts are available
   from the `v0.1.0` GitHub Release, with native files documented as direct downloads rather than distro repositories.
 
+## CI selection
+
+- Automatic checks now follow application, AUR, web/docs and workflow-contract path scopes. Site, documentation
+  and README changes avoid unrelated native builds; a dependency-aware lockfile check handles shared pnpm inputs.
+- Docs deployment now has explicit web/build/deploy path filters while retaining manual and release-tag runs.
+  Scheduled diagnostics and operator release workflows retain their entrypoints.
+- Release auditing now checks the actual successful workspace job and check step, rejecting scope-only or skipped CI
+  success and explaining how to request a full run at the release ref.
+- Packaging README assertions moved to lightweight docs validation. The full local `pnpm check` command is unchanged.
+- Native proof freshness now compares application lockfile inputs, so website-only dependencies do not invalidate
+  recorded package evidence. Relevant or unverifiable dependency changes still fail the check.
+
 ## Landing page
 
 - The root page now uses a flat Sora wordmark and signal-path identity, with the product screenshot integrated into

@@ -8,6 +8,26 @@ on:
       - main
     tags:
       - "v*"
+    paths:
+      - ".github/workflows/deploy-docs.yml"
+      - "apps/site/**"
+      - "apps/docs/**"
+      - "assets/product-screenshot.png"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - ".npmrc"
+      - "scripts/install.sh"
+      - "scripts/build-static-site.mjs"
+      - "scripts/verify-static-site.mjs"
+      - "scripts/verify-docs.sh"
+      - "scripts/verify-support-matrix.mjs"
+      - "scripts/verify-vm-evidence.sh"
+      - "vm/targets.tsv"
+      - "scripts/deploy-docs-bunny.sh"
+      - "scripts/verify-docs-deployment-manifest.mjs"
+      - "scripts/verify-docs-live.sh"
 
 permissions:
   contents: read
@@ -60,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: docs-production
-    if: >
+    if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
         github.ref == 'refs/heads/main' ||

@@ -118,3 +118,5 @@ Current host mutation primitive:
   `pactl unload-module`, `pactl list short sinks`, `pactl list sink-inputs`, `pactl move-sink-input`,
   `pactl set-sink-input-volume`, `pactl set-sink-input-mute`, and `pactl load-module module-loopback` through an
   injected command runner.
+
+See [CI by affected files](./ci.md) for workflow ownership, shared-lockfile handling and validation commands.

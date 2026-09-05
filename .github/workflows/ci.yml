@@ -2,21 +2,86 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "apps/desktop/**"
+      - "packages/**"
+      - "packaging/**"
+      - "scripts/**"
+      - "vm/**"
+      - "flake.nix"
+      - "flake.lock"
+      - ".cargo/**"
+      - "rust-toolchain*"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - ".npmrc"
+      - "!**/*.md"
+      - "!scripts/*docs*"
+      - "!scripts/build-static-site.mjs"
+      - "!scripts/verify-static-site.mjs"
+      - "!scripts/e2e-site-install.mjs"
+      - "!scripts/verify-github-workflows.sh"
+      - "!scripts/verify-requirements.sh"
+      - "!scripts/setup-github-actions.mjs"
+      - "!scripts/test-setup-github-actions.mjs"
   push:
-    branches:
-      - master
-      - main
+    branches: [master, main]
+    paths:
+      - ".github/workflows/ci.yml"
+      - "apps/desktop/**"
+      - "packages/**"
+      - "packaging/**"
+      - "scripts/**"
+      - "vm/**"
+      - "flake.nix"
+      - "flake.lock"
+      - ".cargo/**"
+      - "rust-toolchain*"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - ".npmrc"
+      - "!**/*.md"
+      - "!scripts/*docs*"
+      - "!scripts/build-static-site.mjs"
+      - "!scripts/verify-static-site.mjs"
+      - "!scripts/e2e-site-install.mjs"
+      - "!scripts/verify-github-workflows.sh"
+      - "!scripts/verify-requirements.sh"
+      - "!scripts/setup-github-actions.mjs"
+      - "!scripts/test-setup-github-actions.mjs"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
+  changes:
+    name: Check affected inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.scope.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        name: Check paths and dependency impact
+        run: ruby scripts/ci-impact.rb application .github/workflows/ci.yml
+
   validate:
     name: Validate workspace
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -59,43 +124,3 @@ jobs:
 
       - name: Run workspace checks
         run: pnpm check
-
-  validate-aur-source:
-    name: Build source AUR packages on Arch Linux
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Build and inspect source package
-        env:
-          LOOPWIRE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          set -euo pipefail
-          release_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*')"
-          export LOOPWIRE_AUR_VERSION="${release_tag#v}"
-          export LOOPWIRE_AUR_GIT_VERSION="$(
-            git describe --long --tags --abbrev=7 "origin/$LOOPWIRE_DEFAULT_BRANCH" |
-              sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
-          )"
-          docker run --rm \
-            --env LOOPWIRE_AUR_VERSION \
-            --env LOOPWIRE_AUR_GIT_VERSION \
-            --env LOOPWIRE_DEFAULT_BRANCH \
-            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
-            archlinux@sha256:84cd9ef000b3cff245ec028e87965b84724f4bf1cc63fc2741ba927b88515ed6 \
-            bash -ceu '
-              pacman -Syu --noconfirm --needed \
-                curl git namcap nodejs pipewire pnpm rust webkit2gtk-4.1 wireplumber
-              useradd --create-home aur-builder
-              runuser -u aur-builder -- env HOME=/home/aur-builder \
-                bash /workspace/scripts/verify-aur-source-package.sh \
-                  --version "$LOOPWIRE_AUR_VERSION"
-              runuser -u aur-builder -- env HOME=/home/aur-builder \
-                bash /workspace/scripts/verify-aur-git-package.sh \
-                  --version "$LOOPWIRE_AUR_GIT_VERSION" \
-                  --default-branch "$LOOPWIRE_DEFAULT_BRANCH"
-            '

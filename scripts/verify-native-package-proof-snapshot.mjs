@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 function fail(message) {
   console.error(`verify-native-package-proof-snapshot: ${message}`);
@@ -153,7 +154,6 @@ const proofCriticalPaths = [
   "packaging/vm/Dockerfile.qemu",
   "packaging/vm/guest-native-package-smoke.sh",
   "packaging/vm/native-package-targets.tsv",
-  "pnpm-lock.yaml",
   "scripts/build-deb-package.sh",
   "scripts/build-portable-linux-binary.sh",
   "scripts/build-rpm-package.sh",
@@ -168,6 +168,20 @@ try {
   });
 } catch {
   fail(`package or proof-critical inputs changed after tested commit: ${sharedCommit}`);
+}
+
+// Web-only lockfile changes do not alter the native artifact's dependency inputs.
+// The shared projection rejects unknown formats, missing history, and relevant dependency changes.
+try {
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  execFileSync("ruby", [
+    fileURLToPath(new URL("./ci-impact.rb", import.meta.url)),
+    "--verify-lockfile", "application", sharedCommit, head,
+  ], { stdio: ["ignore", "ignore", "pipe"] });
+} catch (error) {
+  if (error.code === "ENOENT") fail("ruby is required to verify native dependency inputs");
+  if (error.stderr) process.stderr.write(error.stderr);
+  fail(`native dependency inputs changed or could not be verified after tested commit: ${sharedCommit}`);
 }
 
 console.log(`Native package proof snapshot verified: ${manifest.length} targets at ${sharedCommit}`);
