@@ -138,7 +138,9 @@ export function verifyZypperSearch(value, version) {
     .filter((entry) => entry.name === "loopwire");
   equal(records.length, 1, "Zypper installed package result count");
   for (const [key, expected] of Object.entries({ status: "installed", name: "loopwire", edition: version,
-    arch: "x86_64", repository: "loopwire" })) equal(records[0][key], expected, `Zypper ${key}`);
+    arch: "x86_64", repository: "Loopwire for openSUSE Tumbleweed - x86_64" })) {
+    equal(records[0][key], expected, `Zypper ${key}`);
+  }
 }
 
 export async function verifyInstalledStage(directory, stage, version, fingerprint, packageName, packageSha256, payloadHashes) {
@@ -146,7 +148,8 @@ export async function verifyInstalledStage(directory, stage, version, fingerprin
   equal((await text(directory, `${prefix}package-metadata.tsv`)).trim(),
     `loopwire\t${version}\tx86_64\t(none)`, `${stage} package metadata/vendor`);
   equal((await text(directory, `${prefix}zypper-origin.tsv`)).trim(),
-    `loopwire\t${version}\tx86_64\tloopwire\t(none)`, `${stage} repository origin/vendor`);
+    `loopwire\t${version}\tx86_64\tLoopwire for openSUSE Tumbleweed - x86_64\t(none)`,
+    `${stage} repository origin/vendor`);
   verifyZypperSearch(await text(directory, `${prefix}zypper-search.xml`), version);
   const info = await text(directory, `${prefix}zypper-info.txt`);
   requireThat(/^Repository\s*:\s*loopwire$/m.test(info) && /^Name\s*:\s*loopwire$/m.test(info) &&

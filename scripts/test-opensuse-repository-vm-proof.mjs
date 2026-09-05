@@ -38,7 +38,7 @@ const releaseManifest = {
 };
 const releaseExpected = { version: "0.1.0", rpmName: packageName, rpmBytes: 123, rpmSha256: sourceSha256,
   tarBytes: 456, tarSha256: "d".repeat(64) };
-const zypperXml = `<?xml version='1.0'?><stream><search-result><solvable-list><solvable status="installed" name="loopwire" kind="package" edition="${baseline}" arch="x86_64" repository="loopwire"/></solvable-list></search-result></stream>\n`;
+const zypperXml = `<?xml version='1.0'?><stream><search-result><solvable-list><solvable status="installed" name="loopwire" kind="package" edition="${baseline}" arch="x86_64" repository="Loopwire for openSUSE Tumbleweed - x86_64"/></solvable-list></search-result></stream>\n`;
 let passed = 0;
 
 async function test(name, action) {
@@ -51,7 +51,7 @@ async function stageFixture() {
   await mkdir(path.join(directory, "install"), { recursive: true });
   const files = {
     "package-metadata.tsv": `loopwire\t${baseline}\tx86_64\t(none)\n`,
-    "zypper-origin.tsv": `loopwire\t${baseline}\tx86_64\tloopwire\t(none)\n`,
+    "zypper-origin.tsv": `loopwire\t${baseline}\tx86_64\tLoopwire for openSUSE Tumbleweed - x86_64\t(none)\n`,
     "zypper-search.xml": zypperXml,
     "zypper-info.txt": `Information for package loopwire:\nRepository : loopwire\nName : loopwire\nVersion : ${baseline}\nArch : x86_64\nVendor : (none)\nInstalled : Yes\n`,
     "package-files.txt": `${Object.keys(expectedHashes).join("\n")}\n`,
@@ -129,7 +129,8 @@ try {
     releaseText.replace("version=0.1.0", "version=0.2.0"), "0.1.0"), /RELEASE version/));
   await test("exact Zypper origin accepted", () => verifyZypperSearch(zypperXml, baseline));
   await test("wrong Zypper repository rejected", () => assert.throws(() => verifyZypperSearch(
-    zypperXml.replace('repository="loopwire"', 'repository="@System"'), baseline), /Zypper repository/));
+    zypperXml.replace('repository="Loopwire for openSUSE Tumbleweed - x86_64"', 'repository="@System"'), baseline),
+  /Zypper repository/));
   await test("valid RPM signature accepted", () => verifyRpmSignature(signature, fingerprint, packageName));
   await test("unsigned RPM rejected", () => assert.throws(() => verifyRpmSignature(
     `${packageName}: digests OK\n`, fingerprint, packageName), /lacks/));
@@ -156,8 +157,8 @@ try {
     ["changed installed bytes rejected", "installed-files.sha256", (value) => value.replace("a".repeat(64), "d".repeat(64)), /signed repository RPM payload/],
     ["wrong installed version rejected", "package-metadata.tsv", (value) => value.replace(baseline, upgrade), /metadata/],
     ["wrong vendor rejected", "package-metadata.tsv", (value) => value.replace("(none)", "Example Vendor"), /vendor/],
-    ["local package origin rejected", "zypper-origin.tsv", (value) => value.replace("\tloopwire\t(none)", "\t@System\t(none)"), /origin/],
-    ["wrong Zypper XML origin rejected", "zypper-search.xml", (value) => value.replace('repository="loopwire"', 'repository="other"'), /Zypper repository/],
+    ["local package origin rejected", "zypper-origin.tsv", (value) => value.replace("\tLoopwire for openSUSE Tumbleweed - x86_64\t(none)", "\t@System\t(none)"), /origin/],
+    ["wrong Zypper XML origin rejected", "zypper-search.xml", (value) => value.replace('repository="Loopwire for openSUSE Tumbleweed - x86_64"', 'repository="other"'), /Zypper repository/],
     ["wrong signed RPM digest rejected", "signed-package.sha256", (value) => value.replace(packageSha256, "d".repeat(64)), /signed RPM digest/],
     ["failed RPM signature rejected", "rpm-signature.txt", (value) => value.replace(": OK", ": NOKEY"), /signature verification failed/],
     ["unresolved GUI dependency rejected", "gui-ldd.txt", (value) => `${value}libmissing.so => not found\n`, /linkage/],

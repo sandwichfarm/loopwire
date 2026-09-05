@@ -260,8 +260,9 @@ items = [item for item in root.iter("solvable") if item.attrib.get("name") == "l
 assert len(items) == 1
 item = items[0]
 assert item.attrib.get("status") == "installed" and item.attrib.get("edition") == version
-assert item.attrib.get("arch") == "x86_64" and item.attrib.get("repository") == "loopwire"
-print("loopwire\t%s\tx86_64\tloopwire\t(none)" % version)
+repository = "Loopwire for openSUSE Tumbleweed - x86_64"
+assert item.attrib.get("arch") == "x86_64" and item.attrib.get("repository") == repository
+print("loopwire\t%s\tx86_64\t%s\t(none)" % (version, repository))
 PY
   zypper --no-refresh info loopwire >"$stage_dir/zypper-info.txt"
   rpm -ql loopwire | sort >"$stage_dir/package-files.txt"
