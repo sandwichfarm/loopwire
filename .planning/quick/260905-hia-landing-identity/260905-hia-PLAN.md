@@ -1,5 +1,5 @@
 ---
-status: ready_for_pr
+status: complete
 ---
 
 # A compact signal-path identity for Loopwire

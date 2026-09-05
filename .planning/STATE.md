@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: GitHub Operator Setup
 status: Ready for Review
-last_updated: "2026-09-05T10:10:16.085Z"
+last_updated: "2026-09-05T10:59:12.430Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 1
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 Phase: 19 of 19 complete
 Plan: 19.1 — Hardened GitHub Actions Setup
 Status: Ready for review in PR #9
-Last activity: 2026-09-05 - completed quick task 260905-fld: default platform installer and homepage tabs
+Last activity: 2026-09-05 - completed quick task 260905-hia: minimal landing identity and GSAP reactions, PR #40
 
 
 ## Blockers / Concerns
@@ -91,6 +91,7 @@ Last activity: 2026-09-05 - completed quick task 260905-fld: default platform in
 |---|-------------|------|--------|-----------|
 | 260902-tfw | Fail docs deployment when Bunny configuration is absent | 2026-09-02 | 2d1e697 | [260902-tfw-make-docs-deployment-fail-when-bunny-con](./quick/260902-tfw-make-docs-deployment-fail-when-bunny-con/) |
 | 260905-fld | Default platform installer and homepage tabs; native install/reinstall proof | 2026-09-05 | c415386 | [260905-fld-homepage-platform-installer](./quick/260905-fld-homepage-platform-installer/) |
+| 260905-hia | Minimal landing identity, GSAP reactions and screenshot proofs in PR #40 | 2026-09-05 | 6e84a9a | [260905-hia-landing-identity](./quick/260905-hia-landing-identity/) |
 
 ## Accumulated Context
 
