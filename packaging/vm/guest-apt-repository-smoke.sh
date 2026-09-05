@@ -47,7 +47,7 @@ tar -xOf "$kit_dir/release/loopwire-linux-x86_64.tar.gz" RELEASE >"$proof_dir/pa
 
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  apt-utils ca-certificates curl dpkg-dev gnupg nodejs openssl python3 xdotool xz-utils xvfb
+  apt-utils ca-certificates curl dpkg-dev gnupg gpgv nodejs openssl python3 xdotool xz-utils xvfb
 
 # Signing material is generated inside this disposable guest and never copied into evidence.
 gnupg_home="$fixture_dir/gnupg"
