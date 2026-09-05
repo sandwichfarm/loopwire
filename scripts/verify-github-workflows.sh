@@ -95,6 +95,9 @@ fi
 
 workflows=(
   ".github/workflows/ci.yml"
+  ".github/workflows/web.yml"
+  ".github/workflows/aur.yml"
+  ".github/workflows/workflow-checks.yml"
   ".github/workflows/continuous-tests.yml"
   ".github/workflows/deploy-docs.yml"
   ".github/workflows/final-release-proof.yml"
@@ -119,9 +122,9 @@ assert_contains ".github/workflows/ci.yml" "fetch-depth: 0"
 assert_contains ".github/workflows/ci.yml" "libwebkit2gtk-4.1-dev"
 assert_contains ".github/workflows/ci.yml" "xauth"
 assert_contains ".github/workflows/ci.yml" "xvfb"
-assert_contains ".github/workflows/ci.yml" "validate-aur-source:"
-assert_contains ".github/workflows/ci.yml" "scripts/verify-aur-source-package.sh"
-assert_contains ".github/workflows/ci.yml" "scripts/verify-aur-git-package.sh"
+assert_contains ".github/workflows/aur.yml" "validate-aur-source:"
+assert_contains ".github/workflows/aur.yml" "scripts/verify-aur-source-package.sh"
+assert_contains ".github/workflows/aur.yml" "scripts/verify-aur-git-package.sh"
 assert_contains "package.json" '"verify:tauri": "bash scripts/verify-tauri.sh"'
 assert_contains "package.json" "pnpm verify:tauri"
 
@@ -324,5 +327,8 @@ assert_contains ".github/workflows/vm-matrix.yml" "scripts/vm-matrix.sh plan"
 assert_contains ".github/workflows/vm-matrix.yml" "scripts/verify-support-matrix.mjs"
 assert_contains ".github/workflows/vm-matrix.yml" "node scripts/verify-support-matrix.mjs"
 assert_contains ".github/workflows/vm-matrix.yml" "apps/docs/docs/guide/support-matrix.md"
+
+ruby "$root/scripts/test-ci-impact.rb"
+ruby "$root/scripts/test-ci-workflow-paths.rb"
 
 echo "GitHub workflow contract verification passed."

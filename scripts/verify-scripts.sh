@@ -1379,6 +1379,12 @@ case "${1:-}" in
         esac
         ;;
       view)
+        if [ "${3:-}" = "111" ] && [ "${*: -1}" = "jobs" ]; then
+          printf '%s\n' \
+            '{"jobs":[{"name":"Validate workspace","status":"completed","conclusion":"success",' \
+            '"steps":[{"name":"Run workspace checks","status":"completed","conclusion":"success"}]}]}'
+          exit 0
+        fi
         [ "${3:-}" = "222" ] || {
           echo "unexpected run view id: ${3:-}" >&2
           exit 1
@@ -6065,9 +6071,13 @@ NODE
   "run view")
     run_id="${3:?missing fake run id}"
     shift 3
+    json_fields=""
     while [ "$#" -gt 0 ]; do
       case "$1" in
         --repo | --json)
+          if [ "$1" = "--json" ]; then
+            json_fields="${2:?missing fake json fields}"
+          fi
           shift 2
           ;;
         *)
@@ -6076,6 +6086,47 @@ NODE
           ;;
       esac
     done
+    if [ "$json_fields" = "jobs" ]; then
+      [ "$run_id" = "123456" ] || exit 64
+      if [ -n "${LOOPWIRE_FAKE_GH_TRACE:-}" ]; then
+        printf '%s\t%s\t%s\n' "run view" "$run_id" "$json_fields" >>"$LOOPWIRE_FAKE_GH_TRACE"
+      fi
+      if [ "${LOOPWIRE_FAKE_GH_CI_JOBS_MODE:-legacy}" = "lookup-failed" ]; then
+        echo "CI jobs lookup denied" >&2
+        exit 42
+      fi
+      node - "${LOOPWIRE_FAKE_GH_CI_JOBS_MODE:-legacy}" <<'NODE'
+const mode = process.argv[2];
+const workspace = {
+  name: "Validate workspace",
+  status: "completed",
+  conclusion: "success",
+  steps: [{ name: "Run workspace checks", status: "completed", conclusion: "success" }]
+};
+let jobs = [workspace];
+switch (mode) {
+  case "legacy": break;
+  case "native":
+    jobs.unshift({ name: "Check affected inputs", status: "completed", conclusion: "success", steps: [] });
+    jobs.push({ name: "Build source AUR packages on Arch Linux", status: "completed", conclusion: "skipped", steps: [] });
+    break;
+  case "scope-only":
+    workspace.conclusion = "skipped";
+    workspace.steps = [];
+    jobs.unshift({ name: "Check affected inputs", status: "completed", conclusion: "success", steps: [] });
+    break;
+  case "missing-job": jobs = []; break;
+  case "failed-job": workspace.conclusion = "failure"; break;
+  case "unfinished-job": workspace.status = "in_progress"; break;
+  case "missing-step": workspace.steps = []; break;
+  case "skipped-step": workspace.steps[0].conclusion = "skipped"; break;
+  case "failed-step": workspace.steps[0].conclusion = "failure"; break;
+  default: throw new Error(`unexpected CI jobs mode: ${mode}`);
+}
+console.log(JSON.stringify({ jobs }));
+NODE
+      exit 0
+    fi
     case "${LOOPWIRE_FAKE_GH_RUN_MODE:-empty}" in
       empty)
         exit 1
@@ -7265,6 +7316,44 @@ grep -F "commit-scoped CI workflow run commit-scoped completed run did not succe
     echo "verify-scripts: release status did not block a failed CI workflow run" >&2
     exit 1
   }
+for ci_jobs_mode in scope-only missing-job failed-job unfinished-job missing-step skipped-step failed-step lookup-failed legacy native; do
+  release_status_ci_jobs_log="$tmp_dir/release-status-ci-jobs-${ci_jobs_mode}.log"
+  release_status_ci_jobs_trace="$tmp_dir/release-status-ci-jobs-${ci_jobs_mode}.trace"
+  LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
+    LOOPWIRE_FAKE_GH_RUN_MODE=success \
+    LOOPWIRE_FAKE_GH_CI_JOBS_MODE="$ci_jobs_mode" \
+    LOOPWIRE_FAKE_GH_TRACE="$release_status_ci_jobs_trace" \
+    PATH="$fake_gh_dir:$PATH" \
+    bash scripts/audit-final-release-state.sh \
+      --repo sandwichfarm/loopwire \
+      --tag v0.1.0 \
+      --git-head 0123456789abcdef0123456789abcdef01234567 \
+      --secret-list-file "$secret_list_all_final" >"$release_status_ci_jobs_log" 2>&1 || true
+  case "$ci_jobs_mode" in
+    legacy | native)
+      grep -F "ok: commit-scoped CI workflow run" "$release_status_ci_jobs_log" >/dev/null &&
+        grep -F "workspace validation job and checks step verified" "$release_status_ci_jobs_log" >/dev/null || {
+          echo "verify-scripts: release status rejected completed workspace checks: $ci_jobs_mode" >&2
+          exit 1
+        }
+      ;;
+    *)
+      if grep -F "ok: commit-scoped CI workflow run" "$release_status_ci_jobs_log" >/dev/null; then
+        echo "verify-scripts: release status accepted unverified workspace checks: $ci_jobs_mode" >&2
+        exit 1
+      fi
+      grep -F "blocked: commit-scoped CI workflow run" "$release_status_ci_jobs_log" >/dev/null &&
+        grep -F "gh workflow run ci.yml --repo sandwichfarm/loopwire --ref v0.1.0" "$release_status_ci_jobs_log" >/dev/null || {
+          echo "verify-scripts: release status did not explain how to rerun full CI: $ci_jobs_mode" >&2
+          exit 1
+        }
+      ;;
+  esac
+  grep -F $'run view\t123456\tjobs' "$release_status_ci_jobs_trace" >/dev/null || {
+    echo "verify-scripts: release status did not inspect the verified CI run jobs: $ci_jobs_mode" >&2
+    exit 1
+  }
+done
 release_status_stale_workflow_log="$tmp_dir/release-status-stale-workflow.log"
 if LOOPWIRE_FAKE_GH_RELEASE_MODE=ok \
   LOOPWIRE_FAKE_GH_RUN_MODE=success \

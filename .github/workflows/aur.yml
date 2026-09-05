@@ -1,0 +1,102 @@
+name: AUR Checks
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aur.yml"
+      - "packaging/aur/**"
+      - "scripts/render-aur-pkgbuild.sh"
+      - "scripts/verify-aur-source-package.sh"
+      - "scripts/verify-aur-git-package.sh"
+      - "scripts/ci-impact.rb"
+      - "scripts/test-ci-impact.rb"
+      - "scripts/test-ci-workflow-paths.rb"
+      - "!**/*.md"
+  push:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/aur.yml"
+      - "packaging/aur/**"
+      - "scripts/render-aur-pkgbuild.sh"
+      - "scripts/verify-aur-source-package.sh"
+      - "scripts/verify-aur-git-package.sh"
+      - "scripts/ci-impact.rb"
+      - "scripts/test-ci-impact.rb"
+      - "scripts/test-ci-workflow-paths.rb"
+      - "apps/desktop/**"
+      - "packages/**"
+      - "packaging/common/**"
+      - "scripts/package-release.sh"
+      - "scripts/restore-background.mjs"
+      - "scripts/detect-audio-backends.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - ".npmrc"
+      - "!**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Check affected inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.scope.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        name: Check paths and dependency impact
+        run: ruby scripts/ci-impact.rb application .github/workflows/aur.yml
+
+  validate-aur-source:
+    name: Build source AUR packages on Arch Linux
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    concurrency:
+      group: aur-checks-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Build and inspect source package
+        env:
+          LOOPWIRE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          release_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*')"
+          export LOOPWIRE_AUR_VERSION="${release_tag#v}"
+          export LOOPWIRE_AUR_GIT_VERSION="$(
+            git describe --long --tags --abbrev=7 "origin/$LOOPWIRE_DEFAULT_BRANCH" |
+              sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+          )"
+          docker run --rm \
+            --env LOOPWIRE_AUR_VERSION \
+            --env LOOPWIRE_AUR_GIT_VERSION \
+            --env LOOPWIRE_DEFAULT_BRANCH \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            archlinux@sha256:84cd9ef000b3cff245ec028e87965b84724f4bf1cc63fc2741ba927b88515ed6 \
+            bash -ceu '
+              pacman -Syu --noconfirm --needed \
+                curl git namcap nodejs pipewire pnpm rust webkit2gtk-4.1 wireplumber
+              useradd --create-home aur-builder
+              runuser -u aur-builder -- env HOME=/home/aur-builder \
+                bash /workspace/scripts/verify-aur-source-package.sh \
+                  --version "$LOOPWIRE_AUR_VERSION"
+              runuser -u aur-builder -- env HOME=/home/aur-builder \
+                bash /workspace/scripts/verify-aur-git-package.sh \
+                  --version "$LOOPWIRE_AUR_GIT_VERSION" \
+                  --default-branch "$LOOPWIRE_DEFAULT_BRANCH"
+            '
