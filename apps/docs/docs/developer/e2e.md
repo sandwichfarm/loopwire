@@ -76,3 +76,15 @@ The real-shell path only runs where all of these exist:
 
 The script checks each precondition and refuses to fake a result when one is
 missing.
+
+## Homepage installation tabs
+
+Run `pnpm build:web` followed by `pnpm e2e:site` to check the published-site output locally. This uses an existing
+Playwright installation with Chromium, as the desktop UI harness does. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
+if you need a system Chromium executable instead of a cached browser. The harness creates its own loopback server
+on an available port and closes it after testing.
+
+Checks cover the automatic default, every platform tab, keyboard navigation/focus, clipboard success and failure,
+mobile overflow, shell command syntax, agreement with the install guide, and the no-JavaScript fallback. It also
+rejects the obsolete pre-release deployment notice. This browser check does not execute installation commands or
+modify host packages/audio. Run `pnpm verify:install` for isolated signed-installer and package-manager fixtures.

@@ -1,11 +1,73 @@
 # Install
 
-Loopwire 0.1.0 is published for early testers. Arch users can choose the stable source-built `loopwire` package or
-the prebuilt `loopwire-bin` package; contributors can still work directly from a source checkout.
+Install or upgrade Loopwire with one command:
+
+```bash
+curl -fsSL https://loopwire.app/install.sh | bash
+```
+
+Loopwire `v0.1.0` is published for early testers. Run the installer as your regular user. It names each step,
+prints the selected package-manager command before running it, and asks before package-manager changes. It does
+not enable startup services or change audio routing. Read [the installer](https://loopwire.app/install.sh) before running it if you
+want to inspect what it does.
+
+The release downloader needs Bash, curl, OpenSSL, and standard GNU tools including `awk`, `sha256sum`, and `tar`.
+Minimal images may need these prerequisites installed first. Missing tools produce a named-step error before the
+installer changes an existing installation.
+
+## Automatic platform selection
+
+| Platform | Default installation path |
+| --- | --- |
+| Ubuntu 24.04, x86_64 | Signed release deb through APT |
+| Debian 13, x86_64 | Signed release deb through APT |
+| Fedora 44, x86_64 | Signed release RPM through DNF |
+| openSUSE Tumbleweed, x86_64 | Signed release RPM through Zypper |
+| Arch Linux, x86_64 or ARM64 | `loopwire-bin` through an existing yay or paru; portable fallback without a helper |
+| NixOS | Release-bound Nix package in your user profile |
+| Other Linux or unmatched native target | Signed portable archive for x86_64 or ARM64 |
+
+Automatic preserves an existing portable installation when its launcher and support directory are present under
+`~/.local`: it upgrades that copy in place so an old command on `PATH` cannot shadow a new system package. An explicit
+switch to native/AUR/Nix stops with migration guidance while that portable copy exists; the installer does not delete it.
+On NixOS, reconcile the old portable launcher before installing through Nix, since a generic portable binary is not
+supported there.
+
+Native package selection is limited to the published distro versions. Portable fallback is not a claim that every
+Linux distribution has compatible runtime libraries. Non-Linux systems and unsupported architectures are rejected.
+
+The VitePress public asset and `/install.sh` in the combined website are byte-for-byte copies of `scripts/install.sh`.
+The default release downloader verifies `SHA256SUMS.sig` using the embedded release public key, then checks the selected
+artifact checksum before installation. AUR and Nix use their existing package verification paths. No separate key
+file or source checkout is needed. For a private/local release, pass `--public-key FILE`; `--skip-signature` is limited
+to explicitly unsigned portable development installs.
+
+Preview the selected path without downloads or writes:
+
+```bash
+curl -fsSL https://loopwire.app/install.sh | bash -s -- --dry-run
+```
+
+Run the same automatic command again to install the current release or upgrade an existing installation. Package
+managers own their installed files; portable installs replace owned files and support data, including obsolete
+files from earlier versions. Failed download or verification leaves the installed copy intact. Keep your old
+version tag if you need to reinstall a previous portable release with `--version vX.Y.Z`.
+
+Use `--yes` only when you want unattended package-manager changes. It requires root or usable noninteractive sudo;
+normal interactive installs read confirmation from the terminal even when the script is piped into Bash. The
+installer never adds package repositories, installs AUR helpers, or edits shell configuration.
 
 ## Arch User Repository
 
-Build the stable tagged source package:
+With an existing yay helper:
+
+```bash
+yay -S --needed loopwire-bin
+```
+
+With paru, replace `yay` with `paru`. Without a helper, Automatic uses a portable archive. The AUR stable source-built
+`loopwire`, prebuilt `loopwire-bin`, and rolling `loopwire-git` variants conflict because they install the same commands;
+install only one. To build the stable tagged source package manually:
 
 ```bash
 git clone https://aur.archlinux.org/loopwire.git
@@ -13,10 +75,117 @@ cd loopwire
 makepkg -si
 ```
 
-For the faster prebuilt release-artifact package, use `loopwire-bin`. To follow the current default branch, use the
-rolling `loopwire-git` package. The three variants conflict because they install the same commands; install only one.
+## Native packages
 
-## Source Install
+Automatic performs the download and verification steps for you. For manual installation, run the matching block
+below together in an empty directory. Commands are connected with `&&` so failed downloads or checks stop the install.
+These are direct `v0.1.0` downloads, not distro repositories. Use Automatic to select the latest available release.
+
+The RPM files have no embedded RPM signature. The commands authenticate the download using the signed SHA-256
+manifest first, then permit this local RPM for that install; repository dependency checks remain enabled.
+
+### Ubuntu 24.04
+
+x86_64 only.
+
+```bash
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/loopwire_0.1.0-1ubuntu24.04_amd64.deb &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS.sig &&
+curl -fsSL https://raw.githubusercontent.com/sandwichfarm/loopwire/7e0c6b17a5b12efc9f62df9a314781ad9fbb20ec/packaging/release-signing-public.pem -o loopwire-release-key.pem &&
+openssl dgst -sha256 -verify loopwire-release-key.pem -signature SHA256SUMS.sig SHA256SUMS &&
+sha256sum --check --ignore-missing SHA256SUMS &&
+sudo apt install ./loopwire_0.1.0-1ubuntu24.04_amd64.deb
+```
+
+[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/35) tracks signed metadata,
+release publication, clean-guest install/upgrade verification, and updated instructions.
+
+### Debian 13
+
+x86_64 only.
+
+```bash
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/loopwire_0.1.0-1debian13_amd64.deb &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS.sig &&
+curl -fsSL https://raw.githubusercontent.com/sandwichfarm/loopwire/7e0c6b17a5b12efc9f62df9a314781ad9fbb20ec/packaging/release-signing-public.pem -o loopwire-release-key.pem &&
+openssl dgst -sha256 -verify loopwire-release-key.pem -signature SHA256SUMS.sig SHA256SUMS &&
+sha256sum --check --ignore-missing SHA256SUMS &&
+sudo apt install ./loopwire_0.1.0-1debian13_amd64.deb
+```
+
+[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/35) tracks signed metadata,
+release publication, clean-guest install/upgrade verification, and updated instructions.
+
+### Fedora 44
+
+x86_64 only.
+
+```bash
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/loopwire-0.1.0-1.fc44.x86_64.rpm &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS.sig &&
+curl -fsSL https://raw.githubusercontent.com/sandwichfarm/loopwire/7e0c6b17a5b12efc9f62df9a314781ad9fbb20ec/packaging/release-signing-public.pem -o loopwire-release-key.pem &&
+openssl dgst -sha256 -verify loopwire-release-key.pem -signature SHA256SUMS.sig SHA256SUMS &&
+sha256sum --check --ignore-missing SHA256SUMS &&
+sudo dnf --setopt=localpkg_gpgcheck=0 install ./loopwire-0.1.0-1.fc44.x86_64.rpm
+```
+
+[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/36) tracks signed metadata,
+release publication, clean-guest install/upgrade verification, and updated instructions.
+
+### openSUSE Tumbleweed
+
+x86_64 only.
+
+```bash
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/loopwire-0.1.0-1.x86_64.rpm &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS &&
+curl -fSLO https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0/SHA256SUMS.sig &&
+curl -fsSL https://raw.githubusercontent.com/sandwichfarm/loopwire/7e0c6b17a5b12efc9f62df9a314781ad9fbb20ec/packaging/release-signing-public.pem -o loopwire-release-key.pem &&
+openssl dgst -sha256 -verify loopwire-release-key.pem -signature SHA256SUMS.sig SHA256SUMS &&
+sha256sum --check --ignore-missing SHA256SUMS &&
+sudo zypper install --allow-unsigned-rpm ./loopwire-0.1.0-1.x86_64.rpm
+```
+
+[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/37) tracks signed metadata,
+release publication, clean-guest install/upgrade verification, and updated instructions.
+
+## Nix / NixOS
+
+With Nix already installed, add the release-bound package to your user profile:
+
+```bash
+nix --extra-experimental-features "nix-command flakes" profile install github:sandwichfarm/loopwire#loopwire-bin
+```
+
+This enables the required experimental features for this command only. Use Automatic for repeated installs and
+upgrades; it detects an existing matching profile entry. On another Linux distribution with Nix installed, choose
+Nix explicitly with `curl -fsSL https://loopwire.app/install.sh | bash -s -- --method nix`.
+For declarative NixOS setups, add the package to your configuration rather than managing the same package twice.
+The flake pins the release version: `--version` applies to native/portable downloads and is rejected for Nix.
+If a matching package already uses a different pinned flake reference, the installer stops without changing your
+profile; inspect `nix profile list` and intentionally reconcile that entry before switching references.
+
+## Portable Linux
+
+Choose the user-scoped archive on a compatible glibc desktop:
+
+```bash
+curl -fsSL https://loopwire.app/install.sh | bash -s -- --method portable
+```
+
+Commands are installed under `~/.local/bin` and support files under `~/.local/lib/loopwire`. If the bin directory is
+not on `PATH`, launch `~/.local/bin/loopwire`; the installer prints guidance without editing your shell files.
+The GUI requires GTK 3 and WebKitGTK 4.1 runtime libraries. The portable path does not install missing system
+libraries. Use the Nix path on NixOS instead of a generic Linux executable.
+
+Pass `--prefix DIR` to choose a different bin directory (support files go in its sibling `lib/loopwire`). A custom
+prefix or release `--base-url` selects the portable path by default for compatibility with local release tests.
+Reruns replace the owned commands and support files without duplicating them or changing your saved routing state.
+
+## Source install
 
 ```bash
 git clone https://github.com/sandwichfarm/loopwire
@@ -25,19 +194,11 @@ pnpm install
 pnpm check
 ```
 
-## Signed Release Installer
+This contributor path needs Node.js 22.12+, pnpm 11.3+, and the development prerequisites documented in the
+[developer guide](../developer/architecture.md). It installs workspace dependencies and verifies the project;
+launch the development shell with `pnpm --filter @loopwire/desktop dev`.
 
-The public installer is deployed from `scripts/install.sh` and installs the signed `v0.1.0` release artifacts:
-
-```bash
-curl -fsSL https://loopwire.app/install.sh | bash
-```
-
-The VitePress public asset and live `/install.sh` are byte-for-byte copies of `scripts/install.sh`. The installer
-requires the published `SHA256SUMS`, `SHA256SUMS.sig`, and release public key before extracting an artifact.
-
-The installer must detect OS and architecture, download a release artifact, verify signed checksums, and avoid
-persistent system changes unless the user explicitly opts in.
+## Installer verification
 
 Current installer verification:
 

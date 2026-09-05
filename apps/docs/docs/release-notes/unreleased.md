@@ -7,6 +7,17 @@ These notes describe source-tree progress. They are not a public release announc
 - The signed installer is now live at `https://loopwire.app/install.sh`; AppImage, deb, and RPM artifacts are available
   from the `v0.1.0` GitHub Release, with native files documented as direct downloads rather than distro repositories.
 
+## Installation
+
+- The homepage defaults to a one-command installer with accessible platform tabs, selected-command copying, and
+  a separate source-build option. The obsolete pre-release gating notice has been removed.
+- The signed installer detects supported distributions and architectures, reports each operation, embeds the
+  release verification key, and handles repeat installs and upgrades. Portable installs stage and verify files before
+  replacing existing files; native packages use the distro package manager. Automatic preserves earlier portable
+  installations, and incomplete rollback retains recovery backups with explicit restoration paths.
+- Multi-step manual package instructions link to repository work for [APT](https://github.com/sandwichfarm/loopwire/issues/35),
+  [Fedora](https://github.com/sandwichfarm/loopwire/issues/36), and [openSUSE](https://github.com/sandwichfarm/loopwire/issues/37).
+
 ## Packaging
 
 - The AUR now keeps two honest stable recipes: `loopwire` compiles the immutable tagged source archive, while

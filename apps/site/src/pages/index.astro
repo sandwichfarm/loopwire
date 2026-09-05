@@ -12,6 +12,93 @@ const sourceInstall = `git clone https://github.com/sandwichfarm/loopwire
 cd loopwire
 pnpm install
 pnpm check`;
+const releaseBase = "https://github.com/sandwichfarm/loopwire/releases/download/v0.1.0";
+const releaseKey =
+  "https://raw.githubusercontent.com/sandwichfarm/loopwire/7e0c6b17a5b12efc9f62df9a314781ad9fbb20ec/packaging/release-signing-public.pem";
+const installer = "curl -fsSL https://loopwire.app/install.sh | bash";
+function nativeInstall(asset: string, command: string) {
+  return [
+    `curl -fSLO ${releaseBase}/${asset}`,
+    `curl -fSLO ${releaseBase}/SHA256SUMS`,
+    `curl -fSLO ${releaseBase}/SHA256SUMS.sig`,
+    `curl -fsSL ${releaseKey} -o loopwire-release-key.pem`,
+    "openssl dgst -sha256 -verify loopwire-release-key.pem -signature SHA256SUMS.sig SHA256SUMS",
+    "sha256sum --check --ignore-missing SHA256SUMS",
+    command
+  ].join(" &&\n");
+}
+const installOptions = [
+  {
+    id: "automatic", label: "Automatic", heading: "Install Loopwire", command: installer,
+    note: "Recommended. Detects your Linux distribution and architecture, verifies the release, and installs or " +
+      "upgrades Loopwire. Shows each step before it runs.",
+    detail: "Uses a matching native package, an existing AUR helper, or Nix; otherwise a portable install. Requests " +
+      "approval for package-manager changes.",
+    href: "/install.sh", link: "Read the installer"
+  },
+  {
+    id: "arch", label: "Arch", heading: "Arch Linux · AUR", command: "yay -S --needed loopwire-bin",
+    note: "Prebuilt stable release for x86_64 and ARM64. Requires yay; if you use paru, replace yay with paru. " +
+      "Review the package build when prompted.",
+    detail: "No AUR helper? Use Automatic for a portable install. The loopwire, loopwire-bin, and loopwire-git packages conflict; choose one.",
+    href: "https://aur.archlinux.org/packages/loopwire-bin", link: "View AUR package"
+  },
+  {
+    id: "ubuntu", label: "Ubuntu", heading: "Ubuntu 24.04 · x86_64",
+    command: nativeInstall("loopwire_0.1.0-1ubuntu24.04_amd64.deb", "sudo apt install ./loopwire_0.1.0-1ubuntu24.04_amd64.deb"),
+    note: "Manual signed v0.1.0 package. Run these steps together in an empty folder; a failed check stops the " +
+      "install. Automatic handles these steps for you.",
+    detail: "Other Ubuntu versions and ARM64 use the portable path. A native APT repository is planned to shorten this setup.",
+    href: "https://github.com/sandwichfarm/loopwire/issues/35", link: "Track simpler APT installs"
+  },
+  {
+    id: "debian", label: "Debian", heading: "Debian 13 · x86_64",
+    command: nativeInstall("loopwire_0.1.0-1debian13_amd64.deb", "sudo apt install ./loopwire_0.1.0-1debian13_amd64.deb"),
+    note: "Manual signed v0.1.0 package. Run these steps together in an empty folder; a failed check stops the " +
+      "install. Automatic handles these steps for you.",
+    detail: "Other Debian versions and ARM64 use the portable path. A native APT repository is planned to shorten this setup.",
+    href: "https://github.com/sandwichfarm/loopwire/issues/35", link: "Track simpler APT installs"
+  },
+  {
+    id: "fedora", label: "Fedora", heading: "Fedora 44 · x86_64",
+    command: nativeInstall("loopwire-0.1.0-1.fc44.x86_64.rpm", "sudo dnf --setopt=localpkg_gpgcheck=0 install ./loopwire-0.1.0-1.fc44.x86_64.rpm"),
+    note: "Manual signed v0.1.0 download. Run these steps together in an empty folder. The signed checksum " +
+      "authenticates the RPM before DNF installs it.",
+    detail: "The RPM has no embedded signature; the signature exception applies only to local packages. Automatic " +
+      "handles verification for you. A signed DNF repository is planned.",
+    href: "https://github.com/sandwichfarm/loopwire/issues/36", link: "Track simpler Fedora installs"
+  },
+  {
+    id: "opensuse", label: "openSUSE", heading: "openSUSE Tumbleweed · x86_64",
+    command: nativeInstall("loopwire-0.1.0-1.x86_64.rpm", "sudo zypper install --allow-unsigned-rpm ./loopwire-0.1.0-1.x86_64.rpm"),
+    note: "Manual signed v0.1.0 download. Run these steps together in an empty folder. The signed checksum " +
+      "authenticates the RPM before Zypper installs it.",
+    detail: "The RPM has no embedded signature; the exception applies to this verified file. Automatic handles " +
+      "verification for you. A signed repository is planned.",
+    href: "https://github.com/sandwichfarm/loopwire/issues/37", link: "Track simpler openSUSE installs"
+  },
+  {
+    id: "nix", label: "Nix / NixOS", heading: "Nix · user profile",
+    command: 'nix --extra-experimental-features "nix-command flakes" profile install github:sandwichfarm/loopwire#loopwire-bin',
+    note: "Install the release-bound package into your user profile. Requires Nix; the command enables flakes for this invocation only.",
+    detail: "For repeat installs and upgrades, use Automatic. Published hashes cover x86_64 and ARM64; native build proof currently covers x86_64.",
+    href: "/docs/guide/install.html#nix-nixos", link: "Nix install details"
+  },
+  {
+    id: "portable", label: "Other Linux", heading: "Portable Linux · user install",
+    command: `${installer} -s -- --method portable`,
+    note: "Signed x86_64 or ARM64 archive, installed under ~/.local. Run it again to upgrade. Does not need sudo or change your audio configuration.",
+    detail: "Requires a compatible glibc desktop with GTK/WebKitGTK libraries. Node.js is needed for background " +
+      "restore and provider commands. On NixOS, use the Nix tab.",
+    href: "/docs/guide/install.html#portable-linux", link: "Requirements and upgrade details"
+  },
+  {
+    id: "source", label: "Source", heading: "Build from source", command: sourceInstall,
+    note: "Contributor checkout. Requires Git, Node.js 22.12+, and pnpm 11.3+. This installs workspace dependencies and runs the project checks.",
+    detail: "For a native desktop build, follow the developer guide for Rust and Linux build dependencies.",
+    href: "/docs/developer/architecture.html", link: "Developer guide"
+  }
+];
 const capabilities = [
   ["PipeWire", "First-class routing path"],
   ["PulseAudio", "Compatibility adapter"],
@@ -56,18 +143,28 @@ const applicationJsonLd = {
         <a class="link" href="https://github.com/sandwichfarm/loopwire/releases">Releases</a>
       </nav>
 
-      <div class="install-card" aria-labelledby="source-install-heading">
-        <div class="install-copy">
-          <div>
-            <p id="source-install-heading" class="install-label">Current source install</p>
-            <p class="install-note">Pre-release today. Signed public artifacts and the curl installer stay gated until the release workflow, Bunny deploy, and VM proof pass.</p>
-          </div>
-          <button type="button" class="copy-button" data-copy-install>
-            Copy command
-          </button>
+      <div class="install-card" aria-label="Install Loopwire">
+        <div class="install-tabs" role="tablist" aria-label="Installation platform" hidden>
+          {installOptions.map((option, index) => (
+            <button type="button" role="tab" id={`install-tab-${option.id}`}
+              aria-controls={`install-panel-${option.id}`} aria-selected={index === 0 ? "true" : "false"}
+              tabindex={index === 0 ? 0 : -1}>{option.label}</button>
+          ))}
         </div>
-        <pre><code id="source-install-command">{sourceInstall}</code></pre>
-        <p id="copy-status" class="sr-only" aria-live="polite"></p>
+        {installOptions.map((option, index) => (
+          <section class="install-panel" id={`install-panel-${option.id}`} role="tabpanel"
+            aria-labelledby={`install-tab-${option.id}`} tabindex="0" hidden={index !== 0}>
+            <p class="install-label">{option.heading}</p>
+            <p class="install-note">{option.note}</p>
+            <pre><code>{option.command}</code></pre>
+            <p class="install-detail">{option.detail} <a href={option.href}>{option.link}</a></p>
+          </section>
+        ))}
+        <div class="install-copy">
+          <button type="button" class="copy-button" data-copy-install hidden>Copy command</button>
+          <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+        </div>
+        <noscript><p class="install-note">See <a href="/docs/guide/install.html">all platform instructions</a> in the install guide.</p></noscript>
       </div>
 
       <ul class="capability-row" aria-label="Current capability status">
@@ -87,33 +184,67 @@ const applicationJsonLd = {
         src={screenshot.src}
         width={screenshot.width}
         height={screenshot.height}
-        alt="Loopwire desktop shell showing one saved device, browser and microphone sources, output channels, and monitor destinations connected by visible routes."
+        alt={
+          "Loopwire desktop shell showing one saved device, browser and microphone sources, output channels, and " +
+          "monitor destinations connected by visible routes."
+        }
       />
       <figcaption>Current desktop shell: saved device, visible routes, source cards, outputs, and monitors.</figcaption>
     </figure>
   </main>
 
   <script is:inline>
+    const tablist = document.querySelector('[role="tablist"]');
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
     const copyButton = document.querySelector("[data-copy-install]");
     const copyStatus = document.querySelector("#copy-status");
-    const copyCommand = document.querySelector("#source-install-command");
+    let selected = 0;
+    let copyTimer;
 
-    if (copyButton instanceof HTMLButtonElement && copyStatus instanceof HTMLElement && copyCommand instanceof HTMLElement) {
-      copyButton.addEventListener("click", async () => {
-        const text = copyCommand.textContent?.trim() ?? "";
-
-        try {
-          await navigator.clipboard.writeText(text);
-          copyButton.textContent = "Copied";
-          copyStatus.textContent = "Source install command copied to clipboard.";
-          window.setTimeout(() => {
-            copyButton.textContent = "Copy command";
-          }, 1800);
-        } catch {
-          copyStatus.textContent = "Clipboard copy is unavailable in this browser.";
-        }
+    function selectTab(index) {
+      selected = index;
+      tabs.forEach((tab, tabIndex) => {
+        tab.setAttribute("aria-selected", String(tabIndex === index));
+        tab.tabIndex = tabIndex === index ? 0 : -1;
+        panels[tabIndex].hidden = tabIndex !== index;
       });
+      window.clearTimeout(copyTimer);
+      copyButton.textContent = "Copy command";
+      copyStatus.textContent = "";
     }
+
+    tablist.hidden = false;
+    copyButton.hidden = false;
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => selectTab(index));
+      tab.addEventListener("keydown", (event) => {
+        const targets = {
+          ArrowRight: (index + 1) % tabs.length,
+          ArrowLeft: (index + tabs.length - 1) % tabs.length,
+          Home: 0,
+          End: tabs.length - 1
+        };
+        if (!(event.key in targets)) return;
+        event.preventDefault();
+        const target = targets[event.key];
+        selectTab(target);
+        tabs[target].focus();
+      });
+    });
+    copyButton.addEventListener("click", async () => {
+      const copiedIndex = selected;
+      const text = panels[copiedIndex].querySelector("code").textContent.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        if (selected !== copiedIndex) return;
+        copyButton.textContent = "Copied";
+        copyStatus.textContent = `${tabs[copiedIndex].textContent} install command copied.`;
+        copyTimer = window.setTimeout(() => { copyButton.textContent = "Copy command"; }, 1800);
+      } catch {
+        if (selected === copiedIndex) copyStatus.textContent = "Copy unavailable. Select the command above and copy it manually.";
+      }
+    });
   </script>
 </SiteLayout>
 
@@ -213,6 +344,8 @@ const applicationJsonLd = {
 
   .install-card {
     width: min(780px, 100%);
+    min-width: 0;
+    box-sizing: border-box;
     margin: 28px 0 0;
     padding: 18px;
     text-align: left;
@@ -220,6 +353,51 @@ const applicationJsonLd = {
     border-radius: 22px;
     background: var(--panel-bg);
   }
+
+  .install-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  [hidden] { display: none !important; }
+
+  .install-tabs button {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-faint);
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+
+  .install-tabs button:hover { color: var(--text-main); }
+  .install-tabs button[aria-selected="true"] {
+    color: var(--accent);
+    border-color: var(--panel-border-strong);
+    background: rgba(127, 227, 231, 0.08);
+  }
+
+  .install-card :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .install-detail, .copy-status {
+    color: var(--text-faint);
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .install-detail { margin: 14px 0; }
+  .install-card a { color: var(--accent); text-underline-offset: 3px; }
+  .copy-status { margin: 0; }
 
   .install-copy {
     display: flex;

@@ -136,3 +136,4 @@ grep -F "Release artifact contains a parent path component" "$unsafe_log" >/dev/
 }
 
 echo "Installer local artifact smoke passed."
+bash scripts/test-install-platforms.sh
