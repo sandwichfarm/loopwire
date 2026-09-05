@@ -16,6 +16,20 @@ These notes describe source-tree progress. They are not a public release announc
 - Added [user setup and recovery guidance](../guide/apt-repository.md) and the
   [maintainer publication runbook](../developer/apt-repository.md).
 
+## Signed Fedora repository development
+
+- Selected a project-owned Fedora repository over COPR so the project can control exact release artifacts, RPM and
+  metadata signing, atomic promotion, retained snapshots, and rollback verification.
+- Added Fedora 44 x86_64 signed-RPM and repository-metadata generation, guarded SSH/POSIX publication, recovery,
+  public HTTPS verification, and clean-guest lifecycle proof surfaces.
+- Added a repeat-safe setup/removal helper that verifies the complete OpenPGP fingerprint and keeps both `gpgcheck=1`
+  and `repo_gpgcheck=1`. The repository never uses the local direct-download RPM signature exception.
+- The Fedora homepage tab switches to `sudo dnf install loopwire` only after a complete public verification record is
+  reviewed and committed. Production hosting, signing key/environment setup, and first activation remain human
+  operations; the automatic installer and signed direct-download path remain available.
+- Added [Fedora user setup and rollback guidance](../guide/fedora-repository.md) and the
+  [maintainer operations runbook](../developer/fedora-repository.md).
+
 ## Other distribution updates
 
 - Root-level Bunny deployments now pass the post-upload live-site check when `BUNNY_REMOTE_PREFIX` is intentionally
@@ -50,8 +64,9 @@ These notes describe source-tree progress. They are not a public release announc
   release verification key, and handles repeat installs and upgrades. Portable installs stage and verify files before
   replacing existing files; native packages use the distro package manager. Automatic preserves earlier portable
   installations, and incomplete rollback retains recovery backups with explicit restoration paths.
-- Multi-step manual package instructions link to repository work for [APT](https://github.com/sandwichfarm/loopwire/issues/35),
-  [Fedora](https://github.com/sandwichfarm/loopwire/issues/36), and [openSUSE](https://github.com/sandwichfarm/loopwire/issues/37).
+- Multi-step manual package instructions link to gated repository setup for
+  [APT](../guide/apt-repository.md) and [Fedora](../guide/fedora-repository.md), while
+  [openSUSE repository work](https://github.com/sandwichfarm/loopwire/issues/37) remains tracked separately.
 
 ## Packaging
 

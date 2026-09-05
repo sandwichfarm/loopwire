@@ -29,6 +29,7 @@ cases = {
   'apps/site/src/pages/index.astro' => [%w[web], %w[deploy web]],
   'apps/site/package.json' => [%w[web], %w[deploy web]],
   'packaging/repositories/apt-channel.json' => [%w[web], %w[deploy web]],
+  'packaging/repositories/fedora-channel.json' => [%w[web], %w[deploy web]],
   'apps/docs/docs/guide/install.md' => [%w[web], %w[deploy web]],
   'README.md' => [%w[web], %w[web]],
   'packaging/README.md' => [%w[web], %w[web]],
@@ -107,7 +108,7 @@ check(parsed['deploy'].dig('concurrency', 'group') == 'deploy-docs', 'preserve s
 check(parsed['deploy'].dig('jobs', 'deploy-bunny', 'environment') == 'docs-production', 'preserve deployment environment')
 condition = parsed['deploy'].dig('jobs', 'deploy-bunny', 'if')
 check(condition == condition.strip, 'deployment condition must not become an always-true string with trailing whitespace')
-%w[release final-release-proof publish-aur publish-apt continuous-tests].each do |name|
+%w[release final-release-proof publish-aur publish-apt publish-fedora continuous-tests].each do |name|
   workflow = YAML.safe_load_file(File.join(ROOT, '.github/workflows', "#{name}.yml"))
   events = workflow['on'] || workflow[true]
   check(!events.key?('pull_request'), "#{name}: deliberate operator workflows must not gain PR triggers")

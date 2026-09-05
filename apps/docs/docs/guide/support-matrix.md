@@ -72,7 +72,9 @@ the Tauri shell command bridge.
 | AppImage | Published-artifact and Tauri bundle smoke | Published for 0.1.0 on GitHub Releases. |
 | Ubuntu 24.04 / Debian 13 deb | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads. |
 | Ubuntu 24.04 / Debian 13 signed APT repository, amd64 | Separate signed-metadata, publication, bootstrap, and clean-guest lifecycle checks | Public activation is gated; see [current channel availability](./apt-repository.md). |
-| Fedora 44 / openSUSE Tumbleweed RPM | Verified in matching KVM guests at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as direct downloads; no COPR/OBS repository. |
+| Fedora 44 RPM | Verified in a matching KVM guest at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as a direct download. |
+| Fedora 44 signed project repository, x86_64 | Signed-RPM/metadata, publication, bootstrap, and clean-guest lifecycle checks | Public activation is gated; see [current channel availability](./fedora-repository.md). |
+| openSUSE Tumbleweed RPM | Verified in a matching KVM guest at commit `70eee4e`; review snapshot in `vm/native-package-proof/` | Published as a direct download; no OBS repository. |
 | AUR `loopwire` | Tagged source build through `pnpm verify:aur:source` | Published for 0.1.0. |
 | AUR `loopwire-bin` | Signed release-artifact build through `pnpm verify:aur` | Published for 0.1.0. |
 | AUR `loopwire-git` | Rolling default-branch build through `pnpm verify:aur:git` | Published; development snapshots are not stable releases. |
@@ -86,6 +88,11 @@ APT lifecycle evidence is separate from the direct-download snapshot. Isolated H
 `+aptfixture1` package upgrades demonstrate development behavior with the existing release payload; they do not
 establish a new public release or production channel. Only reviewed production HTTPS verification activates APT
 instructions. Repository support covers the named distro versions on amd64, not derivatives or other architectures.
+
+Fedora repository lifecycle evidence is separate too. It proves signed RPM and repository-metadata handling,
+publication recovery, and install/reinstall/upgrade/downgrade/removal behavior on a clean Fedora 44 x86_64 guest.
+Synthetic versions and local HTTPS fixtures are development evidence. They do not prove the production URL is live or
+promote Fedora desktop/audio support. Only a reviewed production verification record activates the short DNF command.
 
 Native package verification is narrower than audio-backend support. The committed snapshot proves that each official,
 checksum-pinned guest built and installed its target package, ran the packaged background/provider/backend commands,

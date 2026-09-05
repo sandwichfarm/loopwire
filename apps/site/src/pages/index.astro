@@ -2,7 +2,9 @@
 import SiteLayout from "../layouts/SiteLayout.astro";
 import screenshot from "../../../../assets/product-screenshot.png";
 import aptChannel from "../../../../packaging/repositories/apt-channel.json";
+import fedoraChannel from "../../../../packaging/repositories/fedora-channel.json";
 import { aptInstallOption } from "../lib/aptChannel.mjs";
+import { fedoraInstallOption } from "../lib/rpmChannel.mjs";
 
 const title = "Loopwire | Linux virtual audio routing";
 const description =
@@ -61,15 +63,15 @@ const installOptions = [
     detail: "Other Debian versions and ARM64 use the portable path.",
     href: "/docs/guide/apt-repository.html", link: "APT repository setup and availability"
   }),
-  {
+  fedoraInstallOption(fedoraChannel, {
     id: "fedora", label: "Fedora", heading: "Fedora 44 · x86_64",
     command: nativeInstall("loopwire-0.1.0-1.fc44.x86_64.rpm", "sudo dnf --setopt=localpkg_gpgcheck=0 install ./loopwire-0.1.0-1.fc44.x86_64.rpm"),
     note: "Manual signed v0.1.0 download. Run these steps together in an empty folder. The signed checksum " +
       "authenticates the RPM before DNF installs it.",
     detail: "The RPM has no embedded signature; the signature exception applies only to local packages. Automatic " +
-      "handles verification for you. A signed DNF repository is planned.",
-    href: "https://github.com/sandwichfarm/loopwire/issues/36", link: "Track simpler Fedora installs"
-  },
+      "handles verification for you. The signed DNF repository is pending public verification.",
+    href: "/docs/guide/fedora-repository.html", link: "Fedora repository setup and availability"
+  }),
   {
     id: "opensuse", label: "openSUSE", heading: "openSUSE Tumbleweed · x86_64",
     command: nativeInstall("loopwire-0.1.0-1.x86_64.rpm", "sudo zypper install --allow-unsigned-rpm ./loopwire-0.1.0-1.x86_64.rpm"),

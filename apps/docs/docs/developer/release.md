@@ -17,6 +17,24 @@ verified record is committed and the site deployed, Ubuntu and Debian homepage t
 commands. Fixture lifecycle tests do not count as production proof. Follow the runbook's final activation procedure
 before announcing repository availability.
 
+## Signed Fedora channel
+
+Fedora 44 x86_64 publication has a separate
+[Fedora repository operations runbook](./fedora-repository.md). The selected provider is a project-owned HTTPS
+repository: this keeps control of the exact release artifact, RPM and metadata signing, atomic promotion, indefinite
+retention, and rollback proof. COPR would produce provider-built RPMs that need a separate build-ID and
+exact-provider-output proof path, while its retention and promotion behavior remain service-owned.
+
+The optional **Publish Fedora Repository** workflow runs after GitHub Release publication only when
+`FEDORA_REPOSITORY_ENABLED=true` in the protected `packages-production` environment. A repository failure leaves the
+published GitHub Release and previous Fedora revision intact for repair and retry. Production origin/signing
+provisioning and first activation remain human tasks.
+
+The Fedora homepage tab remains on its signed direct-download RPM while
+`packaging/repositories/fedora-channel.json` is pending. Only a complete public HTTPS verification record changes that
+tab to `sudo dnf install loopwire` and links the separate one-time setup procedure. The automatic installer continues
+to work through the direct-download path, and fixture lifecycle evidence cannot activate the production channel.
+
 ## Local Artifact Smoke
 
 ```bash
