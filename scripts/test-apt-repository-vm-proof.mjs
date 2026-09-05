@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { parseInstalledHashes, verifyInstalledStage, verifyLifecycle } from "./verify-apt-repository-vm-proof.mjs";
+import { spawnSync } from "node:child_process";
+import { debPayload, parseInstalledHashes, verifyInstalledStage, verifyLifecycle } from "./verify-apt-repository-vm-proof.mjs";
 
 const directory = await mkdtemp(path.join(tmpdir(), "loopwire-apt-proof-test-"));
 const baseline = "0.1.0-1ubuntu24.04";
@@ -49,6 +50,22 @@ async function change(name, transform) {
   await writeFile(file, transform(await readFile(file, "utf8")));
 }
 try {
+  await test("Zstandard deb payloads are read through dpkg-deb", async () => {
+    const packageRoot = path.join(directory, "zstd-package");
+    await mkdir(path.join(packageRoot, "DEBIAN"), { recursive: true });
+    await mkdir(path.join(packageRoot, "usr/bin"), { recursive: true });
+    await writeFile(path.join(packageRoot, "DEBIAN/control"),
+      "Package: loopwire\nVersion: 0.1.0-1ubuntu24.04\nArchitecture: amd64\nMaintainer: Test <test@example.invalid>\nDescription: fixture\n");
+    await writeFile(path.join(packageRoot, "usr/bin/loopwire"), "#!/bin/sh\necho fixture\n");
+    await chmod(path.join(packageRoot, "usr/bin/loopwire"), 0o755);
+    const packageFile = path.join(directory, "loopwire-zstd.deb");
+    const built = spawnSync("dpkg-deb", ["-Zzstd", "--root-owner-group", "--build", packageRoot, packageFile],
+      { encoding: "utf8" });
+    assert.equal(built.status, 0, built.stderr);
+    assert.deepEqual(debPayload(packageFile), {
+      "/usr/bin/loopwire": "6ecf06f6dbbab6a920b5b208bc7c4069ca266b150d6c00533a00b5975a8417ca"
+    });
+  });
   await test("complete ordered lifecycle accepted", () => verifyLifecycle(transitions, baseline, upgrade));
   await test("missing reinstall rejected", () => assert.throws(() => verifyLifecycle(transitions.split("\n").filter((line) => !line.startsWith("reinstall")).join("\n"), baseline, upgrade), /lifecycle transitions/));
   await test("rollback remaining at new version rejected", () => assert.throws(() => verifyLifecycle(transitions.replace(`rollback\t${baseline}`, `rollback\t${upgrade}`), baseline, upgrade), /lifecycle transitions/));

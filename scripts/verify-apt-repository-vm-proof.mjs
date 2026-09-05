@@ -61,27 +61,16 @@ export function parseInstalledHashes(value) {
 }
 
 export function debPayload(packageFile) {
-  // Read the signed .deb payload without extracting or executing package content.
-  return JSON.parse(command("python3", ["-c", `
-import hashlib, io, json, pathlib, sys, tarfile
-raw = pathlib.Path(sys.argv[1]).read_bytes()
-assert raw[:8] == b'!<arch>\\n', 'invalid deb archive'
-position = 8
-payload = None
-while position < len(raw):
-    header = raw[position:position + 60]
-    assert len(header) == 60 and header[58:60] == b'\\x60\\n', 'invalid ar header'
-    size = int(header[48:58].decode().strip())
-    assert size >= 0 and position + 60 + size <= len(raw), 'truncated ar member'
-    name = header[:16].decode().strip().rstrip('/')
-    content = raw[position + 60:position + 60 + size]
-    if name.startswith('data.tar'):
-        assert payload is None, 'multiple package payloads'
-        payload = content
-    position += 60 + size + size % 2
-assert payload is not None, 'missing package payload'
+  // dpkg-deb handles the package's xz/zstd member. Python receives a plain tar
+  // stream so this works on Ubuntu 24.04's Python 3.12 as well as newer hosts.
+  const mount = path.dirname(packageFile);
+  return JSON.parse(command("bash", [path.join(repositoryRoot, "scripts/with-apt-tools.sh"),
+    "--read-only-path", mount, "python3", "-c", `
+import hashlib, json, pathlib, subprocess, sys, tarfile
+package = pathlib.Path(sys.argv[1])
+process = subprocess.Popen(['dpkg-deb', '--fsys-tarfile', package], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 files = {}
-with tarfile.open(fileobj=io.BytesIO(payload), mode='r:*') as archive:
+with tarfile.open(fileobj=process.stdout, mode='r|') as archive:
     for member in archive:
         if not member.isfile():
             continue
@@ -90,6 +79,8 @@ with tarfile.open(fileobj=io.BytesIO(payload), mode='r:*') as archive:
         name = '/' + str(relative)
         assert name.startswith('/usr/') and name not in files, 'unexpected package path'
         files[name] = hashlib.sha256(archive.extractfile(member).read()).hexdigest()
+stderr = process.stderr.read().decode('utf-8', errors='replace')
+assert process.wait() == 0, stderr
 print(json.dumps(files))
 `, packageFile]));
 }
@@ -202,7 +193,7 @@ export async function verifyEvidence({ target, evidenceDir, gitHead }) {
     const served = JSON.parse(await text(evidenceDir, `repositories/${stage}-public-verification.json`));
     equal(served.status, "verified", `${stage} HTTPS verification`);
     equal(served.revision, snapshot.revision, `${stage} HTTPS revision`);
-    equal(served.files, snapshot.files.length, `${stage} HTTPS file count`);
+    equal(served.files, snapshot.files.length + 1, `${stage} HTTPS file count including manifest`);
     const packages = (await text(directory, `dists/${target}/main/binary-amd64/Packages`)).trim().split(/\n\n+/).map((block) => {
       return new Map(block.split("\n").filter((line) => /^[^ :]+:/.test(line)).map((line) => {
         const separator = line.indexOf(":");
