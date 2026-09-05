@@ -822,16 +822,22 @@ The docs deployment workflow builds the Astro homepage plus the VitePress docs t
 artifact, and deploys to Bunny.net only on explicit workflow dispatch, `main`, `master`, or `v*` tags. The deploy job is assigned to the `docs-production` GitHub
 environment so repository protection rules can require manual review or protected branches.
 
-If Bunny.net secrets are missing, the deploy job emits a notice and skips upload instead of failing unrelated CI. The
-notice prints the safe local recovery sequence: create `/secure/loopwire-release-secrets.env` with
-`--write-env-template`, fill it locally, then run the same helper with the local env file:
+The deploy job fails before upload when `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`, `BUNNY_API_KEY`, or
+`BUNNY_PULL_ZONE_ID` is missing. Use the guarded repository-level setup command:
 
 ```bash
-bash scripts/setup-github-secrets.sh --repo <owner/repo> --scope deploy --env-file /secure/loopwire-release-secrets.env
+pnpm setup:github -- --repo OWNER/REPO --scope deploy
 ```
 
-For final release proof, include `BUNNY_PULL_ZONE_HOSTNAME` in that env file so the live-docs smoke can run against the
-Bunny pull-zone URL after upload.
+Alternatively, add `BUNNY_API_KEY` as an environment secret and `BUNNY_PULL_ZONE_ID` as an environment variable in
+Settings → Environments → docs-production. The API key comes from the
+[Bunny account API Keys page](https://dash.bunny.net/account/api-key); the ID is the numeric CDN Pull Zone ID,
+not the Storage Zone ID. The guided helper's `--check` reads repository-level settings only, and environment values
+override matching repository values. See [GitHub Actions setup](./github-actions-setup.md#cdn-purge-configuration).
+
+The legacy `scripts/setup-github-secrets.sh` and `.env.example` still describe storage-upload and release-signing
+configuration only. They do not configure or check the new CDN purge settings; add those separately or use the
+guided helper. For final release proof, configure `BUNNY_PULL_ZONE_HOSTNAME` so live smoke can probe the public site.
 
 Deployment uses `scripts/deploy-docs-bunny.sh`, which uploads raw files with Bunny Edge Storage's `PUT` endpoint and
 the storage-zone password in the `AccessKey` header. The script defaults to `https://storage.bunnycdn.com`, and
@@ -840,7 +846,19 @@ zone is not in Bunny's default region. `BUNNY_REMOTE_PREFIX` can deploy the site
 which is useful when one zone serves multiple preview or product directories. The helper rejects unsafe `.` or `..`
 remote-prefix segments before upload planning.
 
-Preview the upload plan without contacting Bunny.net:
+The workflow passes `--purge-cache` to this uploader. After every file upload and deployment-manifest write succeeds,
+the helper sends `POST https://api.bunny.net/pullzone/{id}/purgeCache` with the account API key in a private stdin
+header. It disables curl configuration-file loading, follows no redirects, discards the response body, and bounds
+connection time, request time, and retries. Only HTTP 2xx is accepted; authentication, HTTP, or transport failures
+fail the deployment without printing the account key. Failed uploads or manifest writes never trigger a purge.
+
+This purges the **entire CDN Pull Zone**, including other prefixes served by that zone. An accepted request does
+not clear browser caches or prove immediate refresh at every edge. If purge fails after upload, the new storage
+objects remain in place; correct the error and rerun deployment. The local CLI remains upload-only unless
+`--purge-cache` is supplied. See Bunny's [purge API documentation](https://bunny.net/docs/cdn/purge-cache).
+
+Preview the upload and purge plan without contacting Bunny.net or supplying either credential; use the real CDN
+Pull Zone ID in `BUNNY_PULL_ZONE_ID` so the target can be validated:
 
 ```bash
 pnpm build:web
@@ -850,6 +868,7 @@ bash scripts/deploy-docs-bunny.sh \
   --storage-endpoint https://ny.storage.bunnycdn.com \
   --remote-prefix loopwire \
   --deployment-manifest dist/docs-deployment/deployment-manifest.json \
+  --purge-cache \
   --dry-run
 ```
 
@@ -864,7 +883,7 @@ inventory, rejects checksum drift, checks the remote-prefix mapping, rejects sou
 secret-like manifest keys.
 When `BUNNY_PULL_ZONE_HOSTNAME` is configured, the deploy workflow also runs
 `scripts/verify-docs-live.sh --hostname "$BUNNY_PULL_ZONE_HOSTNAME" --remote-prefix "$BUNNY_REMOTE_PREFIX"` after
-upload. The smoke uses the same pull-zone prefix used for upload. It fetches the deployed homepage, `/docs/`, the
+upload and purge acceptance. The smoke uses the same pull-zone prefix used for upload. It fetches the deployed homepage, `/docs/`, the
 basic-usage guide, and `/install.sh`, then checks the installer parses as shell and matches the local public installer.
 
 Final release proof must be tied to the same deployment run. Pass the deploy-docs workflow run id that uploaded

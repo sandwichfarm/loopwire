@@ -51,10 +51,35 @@ repository, variable, and secret preflight. Review the displayed names and type 
 | `BUNNY_PULL_ZONE_HOSTNAME` | Actions variable | Final; optional for deploy smoke | Bunny dashboard → CDN → Pull Zones → select the Loopwire zone → Hostnames. Copy only the hostname, without a scheme or path. Skipping it in deploy scope leaves existing configuration unchanged. |
 | `BUNNY_REMOTE_PREFIX` | Actions variable | Optional | Choose a relative storage subdirectory only when the site should not deploy at the storage-zone root. Skipping it leaves existing configuration unchanged; an unset value means the root. |
 | `BUNNY_ACCESS_KEY` | Actions secret | Deploy and final | Bunny dashboard → Storage → select the Loopwire zone → FTP & API Access → Password. Use the storage-zone password, not the account API key. |
+| `BUNNY_PULL_ZONE_ID` | Actions variable | Deploy and final | Numeric CDN Pull Zone ID; see below. |
+| `BUNNY_API_KEY` | Actions secret | Deploy and final | Bunny account API key for CDN purges; see below. |
 | `LOOPWIRE_RELEASE_PRIVATE_KEY` | Actions secret | Final | Generate the local PEM with `pnpm release:prepare-key`. At the prompt, enter its file path; do not paste it into a shell argument. |
 
 Public configuration uses the GitHub `vars` context. Credentials and signing material use the `secrets` context. During
 migration, workflows still fall back to older repository secrets when the matching Actions variable is absent.
+
+### CDN purge configuration
+
+Get `BUNNY_API_KEY` from the [Bunny account API Keys page](https://dash.bunny.net/account/api-key).
+This is the account API key used by Bunny's [CDN purge API](https://bunny.net/docs/cdn/purge-cache).
+Keep `BUNNY_ACCESS_KEY` as the separate storage-zone password; it cannot authorize the CDN management request.
+
+Find `BUNNY_PULL_ZONE_ID` under Bunny dashboard → CDN → Pull Zones → select the zone serving the site.
+Copy the numeric Pull Zone ID, not the Storage Zone ID or hostname. The helper accepts decimal digits representing
+an integer from 1 through 9223372036854775807 and preserves entered digits. API keys must be a single header line
+without ASCII control characters, including tabs, carriage returns, and newlines.
+
+The guided helper writes **repository-level** Actions variables and secrets; its `--check` checks that scope only.
+The `Deploy Docs` job runs in the **docs-production** environment. To configure just the two new settings there, open
+repository Settings → Environments → docs-production. Add `BUNNY_API_KEY` under **Environment secrets** and
+`BUNNY_PULL_ZONE_ID` under **Environment variables**. Existing storage settings remain in their current scope.
+Environment settings take precedence over matching repository settings, so update stale environment values there
+instead of relying on a repository-level setup run to replace them.
+
+Production deployment requests a full Pull Zone purge after all uploads and manifest generation succeed.
+This includes every path in that CDN zone, even when `BUNNY_REMOTE_PREFIX` selects a storage subdirectory.
+Acceptance by the purge API does not invalidate copies already cached in browsers or prove immediate refresh on
+every CDN edge. Browser caches continue to follow the site's HTTP cache headers.
 
 ## AUR publication environment
 
@@ -109,10 +134,12 @@ pnpm setup:github -- --repo OWNER/REPO --scope final --check
 The check does not and cannot read secret values. It verifies required variables through GitHub's variable API and
 required secrets through the names-only secret list.
 
-The production `Deploy Docs` workflow fails before upload when `BUNNY_STORAGE_ZONE` or `BUNNY_ACCESS_KEY` is absent.
-This is intentional: a green workflow run means the static site was uploaded, not merely built. Configure
-`BUNNY_PULL_ZONE_HOSTNAME` as well to make the workflow probe the public HTTPS site after upload; without it, the live
-HTTP verification step is skipped.
+The production `Deploy Docs` workflow fails before upload when `BUNNY_STORAGE_ZONE`, `BUNNY_ACCESS_KEY`,
+`BUNNY_API_KEY`, or `BUNNY_PULL_ZONE_ID` is absent. Malformed purge settings also fail before any upload.
+A successful deployment requires every upload and acceptance of the CDN purge request. Configure
+`BUNNY_PULL_ZONE_HOSTNAME` as well to make the workflow probe the public HTTPS site afterward; without it, the live
+HTTP verification step is skipped. A failed purge leaves uploaded storage objects in place; correct the API key,
+zone ID, or connectivity problem and rerun the deployment.
 
 ## Recover from a failed write
 

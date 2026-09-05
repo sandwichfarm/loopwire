@@ -139,6 +139,11 @@ assert_contains ".github/workflows/deploy-docs.yml" "BUNNY_REMOTE_PREFIX"
 assert_contains ".github/workflows/deploy-docs.yml" "Bunny.net deployment configuration is missing:"
 assert_contains ".github/workflows/deploy-docs.yml" 'missing+=(BUNNY_STORAGE_ZONE)'
 assert_contains ".github/workflows/deploy-docs.yml" 'missing+=(BUNNY_ACCESS_KEY)'
+assert_contains ".github/workflows/deploy-docs.yml" 'missing+=(BUNNY_API_KEY)'
+assert_contains ".github/workflows/deploy-docs.yml" 'missing+=(BUNNY_PULL_ZONE_ID)'
+assert_occurrences ".github/workflows/deploy-docs.yml" 'BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}' "2"
+assert_occurrences ".github/workflows/deploy-docs.yml" 'BUNNY_PULL_ZONE_ID: ${{ vars.BUNNY_PULL_ZONE_ID || secrets.BUNNY_PULL_ZONE_ID }}' "2"
+assert_contains ".github/workflows/deploy-docs.yml" 'bash scripts/deploy-docs-bunny.sh --dist dist/site --purge-cache'
 assert_contains ".github/workflows/deploy-docs.yml" "exit 1"
 assert_not_contains ".github/workflows/deploy-docs.yml" "skipping deployment"
 assert_not_contains ".github/workflows/deploy-docs.yml" "steps.bunny.outputs.deploy"

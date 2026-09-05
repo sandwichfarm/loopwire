@@ -91,6 +91,8 @@ node --check scripts/describe-dsp-provider.mjs
 node --check scripts/promote-vm-evidence.mjs
 node --check scripts/restore-background.mjs
 node --check scripts/verify-docs-deployment-manifest.mjs
+node --check scripts/test-docs-cache-purge.mjs
+node scripts/test-docs-cache-purge.mjs
 node --check scripts/verify-desktop-preview.mjs
 node --check scripts/e2e-desktop-ui.mjs
 node --check scripts/e2e-desktop-shell.mjs

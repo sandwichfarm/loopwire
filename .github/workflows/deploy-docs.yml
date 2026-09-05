@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: docs-production
-    if: >
+    if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
         github.ref == 'refs/heads/main' ||
@@ -99,6 +99,8 @@ jobs:
         env:
           BUNNY_STORAGE_ZONE: ${{ vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE }}
           BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
+          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+          BUNNY_PULL_ZONE_ID: ${{ vars.BUNNY_PULL_ZONE_ID || secrets.BUNNY_PULL_ZONE_ID }}
           BUNNY_STORAGE_ENDPOINT: ${{ vars.BUNNY_STORAGE_ENDPOINT || secrets.BUNNY_STORAGE_ENDPOINT }}
           BUNNY_REMOTE_PREFIX: ${{ vars.BUNNY_REMOTE_PREFIX || secrets.BUNNY_REMOTE_PREFIX }}
           BUNNY_PULL_ZONE_HOSTNAME: ${{ vars.BUNNY_PULL_ZONE_HOSTNAME || secrets.BUNNY_PULL_ZONE_HOSTNAME }}
@@ -107,10 +109,12 @@ jobs:
           missing=()
           [ -n "${BUNNY_STORAGE_ZONE:-}" ] || missing+=(BUNNY_STORAGE_ZONE)
           [ -n "${BUNNY_ACCESS_KEY:-}" ] || missing+=(BUNNY_ACCESS_KEY)
+          [ -n "${BUNNY_API_KEY:-}" ] || missing+=(BUNNY_API_KEY)
+          [ -n "${BUNNY_PULL_ZONE_ID:-}" ] || missing+=(BUNNY_PULL_ZONE_ID)
           if [ "${#missing[@]}" -gt 0 ]; then
             echo "::error::Bunny.net deployment configuration is missing: ${missing[*]}"
             echo "::error::Run the guarded cross-platform setup: pnpm setup:github -- --repo ${GITHUB_REPOSITORY} --scope deploy"
-            echo "::error::The prompts explain where every Bunny value is found and keep the access key hidden."
+            echo "::error::The prompts explain where every Bunny value is found and keep credentials hidden."
             exit 1
           fi
           if [ -n "${BUNNY_PULL_ZONE_HOSTNAME:-}" ]; then
@@ -119,14 +123,16 @@ jobs:
             echo "hostname=false" >>"$GITHUB_OUTPUT"
           fi
 
-      - name: Upload files to Bunny.net storage
+      - name: Upload files and purge Bunny.net CDN cache
         env:
           BUNNY_STORAGE_ZONE: ${{ vars.BUNNY_STORAGE_ZONE || secrets.BUNNY_STORAGE_ZONE }}
           BUNNY_ACCESS_KEY: ${{ secrets.BUNNY_ACCESS_KEY }}
+          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+          BUNNY_PULL_ZONE_ID: ${{ vars.BUNNY_PULL_ZONE_ID || secrets.BUNNY_PULL_ZONE_ID }}
           BUNNY_STORAGE_ENDPOINT: ${{ vars.BUNNY_STORAGE_ENDPOINT || secrets.BUNNY_STORAGE_ENDPOINT }}
           BUNNY_REMOTE_PREFIX: ${{ vars.BUNNY_REMOTE_PREFIX || secrets.BUNNY_REMOTE_PREFIX }}
           LOOPWIRE_DOCS_DEPLOYMENT_MANIFEST: dist/docs-deployment/deployment-manifest.json
-        run: bash scripts/deploy-docs-bunny.sh --dist dist/site
+        run: bash scripts/deploy-docs-bunny.sh --dist dist/site --purge-cache
 
       - name: Verify docs deployment manifest
         env:

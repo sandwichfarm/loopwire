@@ -719,9 +719,13 @@ assert_contains "apps/docs/docs/developer/release.md" "--write-env-template /sec
 assert_contains "apps/docs/docs/developer/release.md" 'no-value template with `0600`'
 assert_contains "apps/docs/docs/developer/release.md" "prints the same template to stdout"
 assert_contains "apps/docs/docs/developer/release.md" "--write-env-template <secret-env-file>"
-assert_contains "apps/docs/docs/developer/release.md" "Bunny.net secrets are missing, the deploy job emits a notice"
-assert_contains "apps/docs/docs/developer/release.md" "bash scripts/setup-github-secrets.sh --repo <owner/repo> --scope deploy --env-file /secure/loopwire-release-secrets.env"
-assert_contains "apps/docs/docs/developer/release.md" 'include `BUNNY_PULL_ZONE_HOSTNAME` in that env file'
+assert_contains "apps/docs/docs/developer/release.md" 'The deploy job fails before upload when'
+assert_contains "apps/docs/docs/developer/release.md" 'pnpm setup:github -- --repo OWNER/REPO --scope deploy'
+assert_contains "apps/docs/docs/developer/release.md" 'configure `BUNNY_PULL_ZONE_HOSTNAME` so live smoke'
+assert_contains "apps/docs/docs/developer/release.md" 'POST https://api.bunny.net/pullzone/{id}/purgeCache'
+assert_contains "apps/docs/docs/developer/github-actions-setup.md" 'Add `BUNNY_API_KEY` under **Environment secrets**'
+assert_contains "apps/docs/docs/developer/github-actions-setup.md" '`BUNNY_PULL_ZONE_ID` under **Environment variables**'
+assert_contains "apps/docs/docs/developer/github-actions-setup.md" 'does not invalidate copies already cached in browsers'
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "The Deploy Docs workflow now prints the same safe"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" "--env-file /secure/loopwire-release-secrets.env"
 assert_contains "apps/docs/docs/release-notes/unreleased.md" 'the `BUNNY_PULL_ZONE_HOSTNAME` reminder'

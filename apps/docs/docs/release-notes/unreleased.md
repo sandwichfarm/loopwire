@@ -33,6 +33,13 @@ These notes describe source-tree progress. They are not a public release announc
 - A third `loopwire-git` AUR recipe follows the protected default branch, derives a monotonic VCS package version, and
   remains explicitly separate from the stable source and binary package bases.
 
+## Docs deployment
+
+- Docs deployment now requests a full Bunny CDN Pull Zone purge after all uploads and manifest generation succeed.
+  Configure the separate `BUNNY_API_KEY` account secret and numeric `BUNNY_PULL_ZONE_ID` variable; the guided setup
+  checks both. Upload, manifest, and purge failures fail the deployment, while dry-run makes no requests.
+  Purges invalidate the CDN zone's paths; copies already cached in browsers continue to follow HTTP cache headers.
+
 ## Desktop UI Rebuild
 
 - GitHub Actions setup now has a cross-platform guided command that separates public variables from secrets, explains
