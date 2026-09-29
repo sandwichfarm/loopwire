@@ -45,6 +45,7 @@ export default defineConfig({
           { text: "Install", link: "/guide/install" },
           { text: "APT Repository", link: "/guide/apt-repository" },
           { text: "Fedora Repository", link: "/guide/fedora-repository" },
+          { text: "openSUSE Repository", link: "/guide/opensuse-repository" },
           { text: "Basic Usage", link: "/guide/basic-usage" },
           { text: "Configurations", link: "/guide/configurations" },
           { text: "Audio Backends", link: "/guide/backends" },
@@ -64,6 +65,7 @@ export default defineConfig({
           { text: "Release", link: "/developer/release" },
           { text: "APT Repository Operations", link: "/developer/apt-repository" },
           { text: "Fedora Repository Operations", link: "/developer/fedora-repository" },
+          { text: "openSUSE Repository Operations", link: "/developer/opensuse-repository" },
           { text: "Release Notes", link: "/developer/release-notes" }
         ]
       },

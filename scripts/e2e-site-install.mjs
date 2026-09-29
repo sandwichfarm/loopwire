@@ -6,11 +6,13 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { extname, resolve, sep } from "node:path";
+import { verifiedOpenSuseChannel } from "../apps/site/src/lib/rpmChannel.mjs";
 
 const root = resolve("dist/site");
 const guide = readFileSync("apps/docs/docs/guide/install.md", "utf8");
 const platforms = ["automatic", "arch", "ubuntu", "debian", "fedora", "opensuse", "nix", "portable", "source"];
 const automatic = "curl -fsSL https://loopwire.app/install.sh | bash";
+const opensuseChannel = verifiedOpenSuseChannel(JSON.parse(readFileSync("packaging/repositories/opensuse-channel.json", "utf8")));
 const proofIndex = process.argv.indexOf("--screenshots");
 const proofDir = proofIndex < 0 ? undefined : process.argv[proofIndex + 1];
 assert.ok(proofIndex < 0 || proofDir, "--screenshots requires an output directory");
@@ -26,8 +28,9 @@ const server = createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     const file = resolve(root, `.${path.endsWith("/") ? `${path}index.html` : path}`);
     if (!file.startsWith(`${root}${sep}`)) { response.writeHead(403).end(); return; }
+    const content = readFileSync(file);
     response.writeHead(200, { "content-type": mime[extname(file)] ?? "application/octet-stream" });
-    response.end(readFileSync(file));
+    response.end(content);
   } catch { response.writeHead(404).end(); }
 });
 await new Promise((done) => server.listen(0, "127.0.0.1", done));
@@ -76,6 +79,35 @@ try {
   }
   assert.equal(paletteColors.size, platforms.length, "every tab selects a distinct background palette");
   console.log("PASS: all nine panels, shell command syntax, guide parity and selected-command clipboard");
+
+  const opensuse = await context.newPage();
+  opensuse.on("pageerror", (error) => errors.push(error.message));
+  await opensuse.goto(url);
+  await opensuse.locator("#install-tab-opensuse").click();
+  const opensuseCommand = await opensuse.locator("#install-panel-opensuse code").textContent();
+  const opensuseLink = opensuse.locator("#install-panel-opensuse .install-notes a");
+  if (opensuseChannel) {
+    assert.equal(opensuseCommand, "sudo zypper install loopwire");
+    assert.equal(await opensuseLink.getAttribute("href"), "/docs/guide/opensuse-repository.html#one-time-setup");
+  } else {
+    assert.match(opensuseCommand, /openssl dgst -sha256 -verify/);
+    assert.match(opensuseCommand, /sudo zypper install --allow-unsigned-rpm \.\/loopwire-0\.1\.0-1\.x86_64\.rpm/);
+  }
+  await opensuse.goto(`${url}/docs/guide/opensuse-repository.html`);
+  const setupCommands = (await opensuse.locator("pre code").allTextContents())
+    .filter((command) => command.startsWith("sudo bash setup-opensuse-repository.sh --base-url"));
+  if (opensuseChannel) {
+    assert.equal(setupCommands.length, 1);
+    assert.equal(setupCommands[0], `sudo bash setup-opensuse-repository.sh --base-url '${opensuseChannel.baseUrl}' --fingerprint ${opensuseChannel.signingFingerprint}`);
+    execFileSync("bash", ["-n"], { input: setupCommands[0] });
+    assert.equal(await opensuse.getByText("Public channel pending", { exact: true }).count(), 0);
+    assert.ok(await opensuse.getByText("Verified public channel", { exact: true }).isVisible());
+  } else {
+    assert.deepEqual(setupCommands, []);
+    assert.ok(await opensuse.getByText("Public channel pending", { exact: true }).isVisible());
+  }
+  await opensuse.close();
+  console.log(`PASS: openSUSE ${opensuseChannel ? "verified" : "pending"} homepage and separate bootstrap guide`);
 
   await page.locator("#install-tab-source").focus();
   for (const [key, platform] of [["ArrowRight", "automatic"], ["ArrowLeft", "source"], ["Home", "automatic"], ["End", "source"]]) {
@@ -223,6 +255,9 @@ try {
     await proof.locator('#signal-field[data-motion="interactive"]').waitFor();
     await proof.evaluate(() => document.fonts.ready);
     await proof.screenshot({ path: resolve(proofDir, "desktop.png"), fullPage: true });
+    await proof.locator("#install-tab-opensuse").click();
+    await proof.waitForTimeout(1000);
+    await proof.screenshot({ path: resolve(proofDir, "opensuse-desktop.png"), fullPage: true });
     await proof.locator("#install-tab-ubuntu").click();
     await proof.waitForTimeout(1000);
     await proof.screenshot({ path: resolve(proofDir, "ubuntu-palette.png"), fullPage: true });
@@ -237,6 +272,11 @@ try {
     await mobile.goto(url);
     await mobile.locator('#signal-field[data-motion="interactive"]').waitFor();
     await mobile.evaluate(() => document.fonts.ready);
+    await mobile.locator("#install-tab-opensuse").click();
+    await mobile.waitForTimeout(1000);
+    await mobile.screenshot({ path: resolve(proofDir, "opensuse-mobile.png"), fullPage: true });
+    await mobile.locator("#install-tab-automatic").click();
+    await mobile.waitForTimeout(1000);
     await mobile.screenshot({ path: resolve(proofDir, "mobile.png"), fullPage: true });
     console.log(`Screenshot proofs written to ${proofDir}`);
   }

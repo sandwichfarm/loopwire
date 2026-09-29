@@ -523,3 +523,13 @@ jobs:
       tag: ${{ needs.publish-release.outputs.tag }}
       operation: publish
     secrets: inherit
+
+  publish-opensuse:
+    name: Publish signed openSUSE channel
+    needs: publish-release
+    if: ${{ vars.OPENSUSE_REPOSITORY_ENABLED == 'true' && !contains(needs.publish-release.outputs.tag, '-') }}
+    uses: ./.github/workflows/publish-opensuse.yml
+    with:
+      tag: ${{ needs.publish-release.outputs.tag }}
+      operation: publish
+    secrets: inherit

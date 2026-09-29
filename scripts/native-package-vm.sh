@@ -27,11 +27,14 @@ Usage:
   native-package-vm.sh verify-apt --target ubuntu-24.04|debian-13 [--git-head COMMIT]
   native-package-vm.sh run-fedora-repo --target fedora-44 --version VERSION --release-dir DIR
   native-package-vm.sh verify-fedora-repo --target fedora-44 [--git-head COMMIT]
+  native-package-vm.sh run-opensuse-repo --target opensuse-tumbleweed --version VERSION --release-dir DIR
+  native-package-vm.sh verify-opensuse-repo --target opensuse-tumbleweed [--git-head COMMIT]
 
 Environment:
   LOOPWIRE_NATIVE_VM_ROOT      Cache/run/evidence root (default: .vm/native-packages)
   LOOPWIRE_APT_VM_ROOT         APT run/evidence root (default: .vm/apt-repository)
   LOOPWIRE_FEDORA_VM_ROOT      Fedora repository run/evidence root (default: .vm/fedora-repository)
+  LOOPWIRE_OPENSUSE_VM_ROOT    openSUSE repository run/evidence root (default: .vm/opensuse-repository)
   LOOPWIRE_NATIVE_VM_TARGETS   Target manifest override
   LOOPWIRE_QEMU_IMAGE          Docker QEMU tool image tag
 
@@ -262,6 +265,13 @@ run_target() {
       release-assets.json; do
       [ -f "$release_dir/$release_file" ] || fail "Fedora repository release artifact is missing: $release_file"
     done
+  elif [ "$proof_kind" = "opensuse-repository" ]; then
+    for release_file in \
+      "loopwire-${version}-1.x86_64.rpm" \
+      SHA256SUMS.sig \
+      release-assets.json; do
+      [ -f "$release_dir/$release_file" ] || fail "openSUSE repository release artifact is missing: $release_file"
+    done
   fi
   require_host
   require_committed_implementation
@@ -285,6 +295,9 @@ run_target() {
   elif [ "$proof_kind" = "fedora-repository" ]; then
     container="loopwire-fedora-repository-$id"
     port=$((port + 20))
+  elif [ "$proof_kind" = "opensuse-repository" ]; then
+    container="loopwire-opensuse-repository-$id"
+    port=$((port + 30))
   fi
   key="$(ensure_ssh_key)"
   public_key="$(cat "${key}.pub")"
@@ -299,6 +312,10 @@ run_target() {
   cp "$release_dir/SHA256SUMS" "$target_dir/kit/release/"
   if [ "$proof_kind" = "fedora-repository" ]; then
     cp "$release_dir/loopwire-${version}-1.fc44.x86_64.rpm" "$target_dir/kit/release/"
+    cp "$release_dir/SHA256SUMS.sig" "$target_dir/kit/release/"
+    cp "$release_dir/release-assets.json" "$target_dir/kit/release/"
+  elif [ "$proof_kind" = "opensuse-repository" ]; then
+    cp "$release_dir/loopwire-${version}-1.x86_64.rpm" "$target_dir/kit/release/"
     cp "$release_dir/SHA256SUMS.sig" "$target_dir/kit/release/"
     cp "$release_dir/release-assets.json" "$target_dir/kit/release/"
   fi
@@ -343,6 +360,9 @@ run_target() {
   elif [ "$proof_kind" = "fedora-repository" ]; then
     guest_script="packaging/vm/guest-fedora-repository-smoke.sh"
     verifier="scripts/verify-fedora-repository-vm-proof.mjs"
+  elif [ "$proof_kind" = "opensuse-repository" ]; then
+    guest_script="packaging/vm/guest-opensuse-repository-smoke.sh"
+    verifier="scripts/verify-opensuse-repository-vm-proof.mjs"
   fi
   local guest_status=0
   # Script paths are fixed and all client-expanded arguments are validated above.
@@ -364,8 +384,11 @@ run_target() {
     actual_checksum "$(checksum_file "$algorithm" "$image_path")" \
     firmware "$firmware" >"$evidence_dir/image.tsv"
   [ "$guest_status" -eq 0 ] || fail "$id guest smoke failed ($guest_status); evidence: $evidence_dir"
-  node "$verifier" \
-    --target "$id" --evidence-dir "$evidence_dir" --git-head "$git_head"
+  local -a verifier_args=(--target "$id" --evidence-dir "$evidence_dir" --git-head "$git_head")
+  if [ "$proof_kind" = "opensuse-repository" ]; then
+    verifier_args+=(--target-manifest "$manifest")
+  fi
+  node "$verifier" "${verifier_args[@]}"
   cleanup_active_vm
   active_vm_container=""
   active_vm_console=""
@@ -373,6 +396,7 @@ run_target() {
   local proof_label="native package"
   [ "$proof_kind" != "apt" ] || proof_label="APT repository lifecycle"
   [ "$proof_kind" != "fedora-repository" ] || proof_label="Fedora repository lifecycle"
+  [ "$proof_kind" != "opensuse-repository" ] || proof_label="openSUSE repository lifecycle"
   echo "Verified $proof_label in matching KVM guest: $id"
   echo "Evidence: $evidence_dir"
 }
@@ -384,8 +408,13 @@ verify_target() {
   local verifier="scripts/verify-native-package-vm-proof.mjs"
   [ "$proof_kind" != "apt" ] || verifier="scripts/verify-apt-repository-vm-proof.mjs"
   [ "$proof_kind" != "fedora-repository" ] || verifier="scripts/verify-fedora-repository-vm-proof.mjs"
-  node "$verifier" \
-    --target "$selected" --evidence-dir "$vm_root/evidence/$selected/$git_head" --git-head "$git_head"
+  [ "$proof_kind" != "opensuse-repository" ] || verifier="scripts/verify-opensuse-repository-vm-proof.mjs"
+  local -a verifier_args=(--target "$selected" --evidence-dir "$vm_root/evidence/$selected/$git_head"
+    --git-head "$git_head")
+  if [ "$proof_kind" = "opensuse-repository" ]; then
+    verifier_args+=(--target-manifest "$manifest")
+  fi
+  node "$verifier" "${verifier_args[@]}"
 }
 
 [ -n "$root" ] || fail "run from inside the Loopwire git repository"
@@ -429,6 +458,13 @@ case "$command" in
     [ "$(realpath -m "$vm_root")" != "$(realpath -m "$image_root")" ] ||
       fail "Fedora repository VM state must use a different root from native-package state"
     ;;
+  run-opensuse-repo | verify-opensuse-repo)
+    [ "$selected" = "opensuse-tumbleweed" ] || fail "$command requires the openSUSE Tumbleweed target"
+    proof_kind="opensuse-repository"
+    vm_root="${LOOPWIRE_OPENSUSE_VM_ROOT:-.vm/opensuse-repository}"
+    [ "$(realpath -m "$vm_root")" != "$(realpath -m "$image_root")" ] ||
+      fail "openSUSE repository VM state must use a different root from native-package state"
+    ;;
 esac
 
 case "$command" in
@@ -447,7 +483,7 @@ case "$command" in
     require_host
     while read -r id; do download_target "$id"; done < <(target_ids)
     ;;
-  run | run-apt | run-fedora-repo)
+  run | run-apt | run-fedora-repo | run-opensuse-repo)
     [ -n "$selected" ] || fail "run requires --target"
     [ -n "$version" ] || fail "run requires --version"
     [ -n "$release_dir" ] || fail "run requires --release-dir"
@@ -458,7 +494,7 @@ case "$command" in
     [ -n "$release_dir" ] || fail "run-all requires --release-dir"
     while read -r id; do run_target "$id" "$version" "$release_dir"; done < <(target_ids)
     ;;
-  verify | verify-apt | verify-fedora-repo)
+  verify | verify-apt | verify-fedora-repo | verify-opensuse-repo)
     [ -n "$selected" ] || fail "verify requires --target"
     verify_target "$selected" "$git_head"
     ;;

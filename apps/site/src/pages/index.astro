@@ -3,8 +3,9 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import screenshot from "../../../../assets/product-screenshot.png";
 import aptChannel from "../../../../packaging/repositories/apt-channel.json";
 import fedoraChannel from "../../../../packaging/repositories/fedora-channel.json";
+import opensuseChannel from "../../../../packaging/repositories/opensuse-channel.json";
 import { aptInstallOption } from "../lib/aptChannel.mjs";
-import { fedoraInstallOption } from "../lib/rpmChannel.mjs";
+import { fedoraInstallOption, opensuseInstallOption } from "../lib/rpmChannel.mjs";
 
 const title = "Loopwire | Linux virtual audio routing";
 const description =
@@ -72,15 +73,15 @@ const installOptions = [
       "handles verification for you. The signed DNF repository is pending public verification.",
     href: "/docs/guide/fedora-repository.html", link: "Fedora repository setup and availability"
   }),
-  {
+  opensuseInstallOption(opensuseChannel, {
     id: "opensuse", label: "openSUSE", heading: "openSUSE Tumbleweed · x86_64",
     command: nativeInstall("loopwire-0.1.0-1.x86_64.rpm", "sudo zypper install --allow-unsigned-rpm ./loopwire-0.1.0-1.x86_64.rpm"),
     note: "Manual signed v0.1.0 download. Run these steps together in an empty folder. The signed checksum " +
       "authenticates the RPM before Zypper installs it.",
     detail: "The RPM has no embedded signature; the exception applies to this verified file. Automatic handles " +
-      "verification for you. A signed repository is planned.",
-    href: "https://github.com/sandwichfarm/loopwire/issues/37", link: "Track simpler openSUSE installs"
-  },
+      "verification for you.",
+    href: "/docs/guide/opensuse-repository.html", link: "openSUSE repository setup and availability"
+  }),
   {
     id: "nix", label: "Nix / NixOS", heading: "Nix · user profile",
     command: 'nix --extra-experimental-features "nix-command flakes" profile install github:sandwichfarm/loopwire#loopwire-bin',

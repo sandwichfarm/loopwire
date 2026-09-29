@@ -97,6 +97,7 @@ workflows=(
   ".github/workflows/ci.yml"
   ".github/workflows/publish-apt.yml"
   ".github/workflows/publish-fedora.yml"
+  ".github/workflows/publish-opensuse.yml"
   ".github/workflows/web.yml"
   ".github/workflows/aur.yml"
   ".github/workflows/workflow-checks.yml"
@@ -129,6 +130,10 @@ assert_contains ".github/workflows/aur.yml" "scripts/verify-aur-source-package.s
 assert_contains ".github/workflows/aur.yml" "scripts/verify-aur-git-package.sh"
 assert_contains "package.json" '"verify:tauri": "bash scripts/verify-tauri.sh"'
 assert_contains "package.json" "pnpm verify:tauri"
+assert_contains ".github/workflows/publish-opensuse.yml" "OPENSUSE_REPOSITORY_ENABLED"
+assert_contains ".github/workflows/publish-opensuse.yml" "environment: packages-production"
+assert_contains ".github/workflows/publish-opensuse.yml" "bash scripts/publish-opensuse-workflow.sh"
+assert_contains ".github/workflows/release.yml" "publish-opensuse:"
 
 assert_contains ".github/workflows/continuous-tests.yml" "schedule:"
 assert_contains ".github/workflows/continuous-tests.yml" "scripts/ct-host-check.sh"
@@ -339,6 +344,7 @@ ruby "$root/scripts/test-ci-impact.rb"
 ruby "$root/scripts/test-ci-workflow-paths.rb"
 ruby "$root/scripts/test-apt-workflow.rb"
 ruby "$root/scripts/test-fedora-workflow.rb"
+ruby "$root/scripts/test-opensuse-workflow.rb"
 node "$root/scripts/test-native-package-proof-snapshot.mjs"
 
 echo "GitHub workflow contract verification passed."

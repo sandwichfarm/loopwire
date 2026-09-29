@@ -1,13 +1,23 @@
 /**
- * Fedora repository instructions are advertised only after the complete public
+ * RPM repository instructions are advertised only after the complete public
  * verification record for the supported target has been reviewed and committed.
  * Invalid or incomplete records preserve the signed direct-download option.
  * @param {unknown} value
  */
 export function verifiedFedoraChannel(value) {
+  return verifiedRpmChannel(value, "fedora-44");
+}
+
+/** @param {unknown} value */
+export function verifiedOpenSuseChannel(value) {
+  return verifiedRpmChannel(value, "opensuse-tumbleweed");
+}
+
+/** @param {unknown} value @param {string} target */
+function verifiedRpmChannel(value, target) {
   if (!value || typeof value !== "object") return null;
   const channel = /** @type {Record<string, unknown>} */ (value);
-  if (channel.schemaVersion !== 1 || channel.status !== "verified" || channel.target !== "fedora-44" ||
+  if (channel.schemaVersion !== 1 || channel.status !== "verified" || channel.target !== target ||
       typeof channel.baseUrl !== "string" || !validBaseUrl(channel.baseUrl) ||
       typeof channel.signingFingerprint !== "string" || !/^[A-F0-9]{40}$/.test(channel.signingFingerprint) ||
       typeof channel.revision !== "string" || !/^[a-f0-9]{64}$/.test(channel.revision) ||
@@ -61,5 +71,23 @@ export function fedoraInstallOption(channel, manual) {
     detail: "Fedora 44 on x86_64 is supported. Other releases and architectures use the portable path.",
     href: "/docs/guide/fedora-repository.html#one-time-setup",
     link: "Set up the Fedora repository"
+  };
+}
+
+/**
+ * @template {{command: string, note: string, detail: string, href: string, link: string}} T
+ * @param {unknown} channel
+ * @param {T} manual
+ * @returns {T}
+ */
+export function opensuseInstallOption(channel, manual) {
+  if (!verifiedOpenSuseChannel(channel)) return manual;
+  return {
+    ...manual,
+    command: "sudo zypper install loopwire",
+    note: "After one-time setup, install and update Loopwire through its signed openSUSE repository.",
+    detail: "For openSUSE Tumbleweed on x86_64. Check the guide for rolling-release compatibility.",
+    href: "/docs/guide/opensuse-repository.html#one-time-setup",
+    link: "Set up the openSUSE repository"
   };
 }
