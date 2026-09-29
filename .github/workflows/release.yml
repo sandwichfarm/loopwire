@@ -207,6 +207,8 @@ jobs:
     needs: build-linux
     runs-on: ubuntu-22.04
     timeout-minutes: 45
+    outputs:
+      tag: ${{ steps.verified-tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.0
@@ -497,3 +499,17 @@ jobs:
             ${{ env.LOOPWIRE_RELEASE_EVIDENCE_ARCHIVE }}
           if-no-files-found: error
           retention-days: 90
+
+      - name: Export verified release tag
+        id: verified-tag
+        run: printf 'tag=%s\n' "$LOOPWIRE_RELEASE_TAG" >>"$GITHUB_OUTPUT"
+
+  publish-apt:
+    name: Publish signed APT channel
+    needs: publish-release
+    if: ${{ vars.APT_REPOSITORY_ENABLED == 'true' && !contains(needs.publish-release.outputs.tag, '-') }}
+    uses: ./.github/workflows/publish-apt.yml
+    with:
+      tag: ${{ needs.publish-release.outputs.tag }}
+      operation: publish
+    secrets: inherit

@@ -19,8 +19,8 @@ installer changes an existing installation.
 
 | Platform | Default installation path |
 | --- | --- |
-| Ubuntu 24.04, x86_64 | Signed release deb through APT |
-| Debian 13, x86_64 | Signed release deb through APT |
+| Ubuntu 24.04, x86_64 | Signed direct-download deb installed by APT |
+| Debian 13, x86_64 | Signed direct-download deb installed by APT |
 | Fedora 44, x86_64 | Signed release RPM through DNF |
 | openSUSE Tumbleweed, x86_64 | Signed release RPM through Zypper |
 | Arch Linux, x86_64 or ARM64 | `loopwire-bin` through an existing yay or paru; portable fallback without a helper |
@@ -81,6 +81,17 @@ Automatic performs the download and verification steps for you. For manual insta
 below together in an empty directory. Commands are connected with `&&` so failed downloads or checks stop the install.
 These are direct `v0.1.0` downloads, not distro repositories. Use Automatic to select the latest available release.
 
+The [APT repository guide](./apt-repository.md) shows channel availability, the verified URL and key when activated,
+and one-time setup for Ubuntu 24.04 and Debian 13 on x86_64. After that setup and a successful `sudo apt update`, the
+repository install command is:
+
+```bash
+sudo apt install loopwire
+```
+
+Loopwire is not in the default Ubuntu or Debian repositories. Until the guide displays a verified public channel,
+use Automatic or the signed manual downloads below. The automatic installer does not configure the APT repository.
+
 The RPM files have no embedded RPM signature. The commands authenticate the download using the signed SHA-256
 manifest first, then permit this local RPM for that install; repository dependency checks remain enabled.
 
@@ -98,8 +109,7 @@ sha256sum --check --ignore-missing SHA256SUMS &&
 sudo apt install ./loopwire_0.1.0-1ubuntu24.04_amd64.deb
 ```
 
-[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/35) tracks signed metadata,
-release publication, clean-guest install/upgrade verification, and updated instructions.
+[APT repository setup and availability](./apt-repository.md) includes upgrade, rollback, removal, and key guidance.
 
 ### Debian 13
 
@@ -115,8 +125,7 @@ sha256sum --check --ignore-missing SHA256SUMS &&
 sudo apt install ./loopwire_0.1.0-1debian13_amd64.deb
 ```
 
-[Repository work to shorten this setup](https://github.com/sandwichfarm/loopwire/issues/35) tracks signed metadata,
-release publication, clean-guest install/upgrade verification, and updated instructions.
+[APT repository setup and availability](./apt-repository.md) includes upgrade, rollback, removal, and key guidance.
 
 ### Fedora 44
 
@@ -263,8 +272,9 @@ Run the metadata smoke:
 pnpm verify:packaging
 ```
 
-The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. They are not
-yet served through an APT, DNF/COPR, or OBS repository. Their matching-guest proof command boots official,
+The AppImages and native deb/RPM files are published as direct downloads on the `v0.1.0` GitHub Release. The APT
+repository has a separate [public activation gate](./apt-repository.md); DNF/COPR and OBS repositories remain planned.
+Their matching-guest proof command boots official,
 checksum-pinned cloud images under KVM and stores local evidence without changing host audio:
 
 ```bash

@@ -95,6 +95,7 @@ fi
 
 workflows=(
   ".github/workflows/ci.yml"
+  ".github/workflows/publish-apt.yml"
   ".github/workflows/web.yml"
   ".github/workflows/aur.yml"
   ".github/workflows/workflow-checks.yml"
@@ -335,6 +336,7 @@ assert_contains ".github/workflows/vm-matrix.yml" "apps/docs/docs/guide/support-
 
 ruby "$root/scripts/test-ci-impact.rb"
 ruby "$root/scripts/test-ci-workflow-paths.rb"
+ruby "$root/scripts/test-apt-workflow.rb"
 node "$root/scripts/test-native-package-proof-snapshot.mjs"
 
 echo "GitHub workflow contract verification passed."

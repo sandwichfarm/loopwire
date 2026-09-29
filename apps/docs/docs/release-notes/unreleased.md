@@ -2,6 +2,22 @@
 
 These notes describe source-tree progress. They are not a public release announcement.
 
+## Signed APT repository development
+
+- Added signed APT metadata generation and verification for Ubuntu 24.04 and Debian 13 on amd64, consuming the
+  existing authenticated native release artifacts with a separate OpenPGP repository key.
+- Added guarded SSH publication, retained snapshots and immutable package/index paths, fresh-metadata rollback,
+  protected release publication, and weekly metadata refresh.
+- Added scoped repository bootstrap/removal and dedicated clean-guest APT lifecycle verification. Synthetic
+  `+aptfixture1` upgrades test the existing `0.1.0` payload; they are development evidence, not a new application release.
+- Ubuntu and Debian homepage tabs switch to the short APT command only after a complete public verification record
+  is reviewed and committed. Production hosting, key/environment provisioning, and first public activation remain
+  separate human operations. Existing automatic and signed direct-download installation paths remain available.
+- Added [user setup and recovery guidance](../guide/apt-repository.md) and the
+  [maintainer publication runbook](../developer/apt-repository.md).
+
+## Other distribution updates
+
 - Root-level Bunny deployments now pass the post-upload live-site check when `BUNNY_REMOTE_PREFIX` is intentionally
   empty, while an omitted command argument remains an error.
 - The signed installer is now live at `https://loopwire.app/install.sh`; AppImage, deb, and RPM artifacts are available

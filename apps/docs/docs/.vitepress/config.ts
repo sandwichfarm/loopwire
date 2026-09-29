@@ -43,6 +43,7 @@ export default defineConfig({
         text: "Guide",
         items: [
           { text: "Install", link: "/guide/install" },
+          { text: "APT Repository", link: "/guide/apt-repository" },
           { text: "Basic Usage", link: "/guide/basic-usage" },
           { text: "Configurations", link: "/guide/configurations" },
           { text: "Audio Backends", link: "/guide/backends" },
@@ -60,6 +61,7 @@ export default defineConfig({
           { text: "GitHub Actions Setup", link: "/developer/github-actions-setup" },
           { text: "VM Matrix", link: "/developer/vm-matrix" },
           { text: "Release", link: "/developer/release" },
+          { text: "APT Repository Operations", link: "/developer/apt-repository" },
           { text: "Release Notes", link: "/developer/release-notes" }
         ]
       },

@@ -1,6 +1,8 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
 import screenshot from "../../../../assets/product-screenshot.png";
+import aptChannel from "../../../../packaging/repositories/apt-channel.json";
+import { aptInstallOption } from "../lib/aptChannel.mjs";
 
 const title = "Loopwire | Linux virtual audio routing";
 const description =
@@ -43,22 +45,22 @@ const installOptions = [
     detail: "No AUR helper? Use Automatic for a portable install. The loopwire, loopwire-bin, and loopwire-git packages conflict; choose one.",
     href: "https://aur.archlinux.org/packages/loopwire-bin", link: "View AUR package"
   },
-  {
+  aptInstallOption(aptChannel, {
     id: "ubuntu", label: "Ubuntu", heading: "Ubuntu 24.04 · x86_64",
     command: nativeInstall("loopwire_0.1.0-1ubuntu24.04_amd64.deb", "sudo apt install ./loopwire_0.1.0-1ubuntu24.04_amd64.deb"),
     note: "Manual signed v0.1.0 package. Run these steps together in an empty folder; a failed check stops the " +
       "install. Automatic handles these steps for you.",
-    detail: "Other Ubuntu versions and ARM64 use the portable path. A native APT repository is planned to shorten this setup.",
-    href: "https://github.com/sandwichfarm/loopwire/issues/35", link: "Track simpler APT installs"
-  },
-  {
+    detail: "Other Ubuntu versions and ARM64 use the portable path.",
+    href: "/docs/guide/apt-repository.html", link: "APT repository setup and availability"
+  }),
+  aptInstallOption(aptChannel, {
     id: "debian", label: "Debian", heading: "Debian 13 · x86_64",
     command: nativeInstall("loopwire_0.1.0-1debian13_amd64.deb", "sudo apt install ./loopwire_0.1.0-1debian13_amd64.deb"),
     note: "Manual signed v0.1.0 package. Run these steps together in an empty folder; a failed check stops the " +
       "install. Automatic handles these steps for you.",
-    detail: "Other Debian versions and ARM64 use the portable path. A native APT repository is planned to shorten this setup.",
-    href: "https://github.com/sandwichfarm/loopwire/issues/35", link: "Track simpler APT installs"
-  },
+    detail: "Other Debian versions and ARM64 use the portable path.",
+    href: "/docs/guide/apt-repository.html", link: "APT repository setup and availability"
+  }),
   {
     id: "fedora", label: "Fedora", heading: "Fedora 44 · x86_64",
     command: nativeInstall("loopwire-0.1.0-1.fc44.x86_64.rpm", "sudo dnf --setopt=localpkg_gpgcheck=0 install ./loopwire-0.1.0-1.fc44.x86_64.rpm"),

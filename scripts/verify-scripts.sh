@@ -101,6 +101,8 @@ node --check scripts/verify-vm-evidence-archive-manifest.mjs
 node --check scripts/release-asset-manifest.mjs
 node --check scripts/verify-native-package-vm-proof.mjs
 node --check scripts/verify-native-package-proof-snapshot.mjs
+node --check scripts/verify-apt-repository-vm-proof.mjs
+node --check scripts/test-apt-repository-vm-proof.mjs
 bash scripts/build-portable-linux-binary.sh -- --help | grep -Fq -- "--output FILE" || {
   echo "verify-scripts: portable builder does not accept the package-script separator" >&2
   exit 1
