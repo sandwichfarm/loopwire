@@ -145,6 +145,51 @@ pnpm verify:nix-release -- \
 
 Render-only mode proves manifest parsing and expression generation. It never proves the package builds.
 
+## Signed Fedora repository
+
+The project-owned Fedora channel serves only Fedora 44 x86_64. It reuses the native Fedora recipe below, verifies the
+exact RPM against the OpenSSL-signed GitHub Release checksum manifest, signs a staging copy with a dedicated OpenPGP
+repository key, and generates signed DNF metadata. The original GitHub Release asset stays unchanged. This path was
+selected over COPR to preserve exact release-artifact control, atomic promotion, indefinite retention, and local/CI
+proof; maintainers accept responsibility for the SSH/POSIX origin and signing-key lifecycle.
+
+Build and verify a candidate with the pinned RPM tools image or the equivalent host tools:
+
+```bash
+python3 scripts/rpm-repository.py build \
+  --release-dir dist/release --version 0.1.0 --output dist/rpm-repository \
+  --signing-key "$RPM_FPR" --gnupg-home "$RPM_GNUPG_HOME" \
+  --release-public-key packaging/release-signing-public.pem
+python3 scripts/rpm-repository.py verify \
+  --repository dist/rpm-repository --public-key rpm-public.asc --fingerprint "$RPM_FPR"
+```
+
+The public target is `/fedora/44/x86_64/`. Package RPMs, fingerprint-named public keys, checksum-named metadata, and
+private snapshots are retained. The SSH publisher installs immutable objects first, writes the new detached
+`repomd.xml.asc`, and atomically replaces `repomd.xml` as the metadata commit point. Compare-and-swap revision checks,
+a server lock, and a recovery journal prevent stale or incomplete promotion from being treated as success.
+
+Production publication uses `.github/workflows/publish-fedora.yml` and the protected `packages-production`
+environment. `FEDORA_REPOSITORY_ENABLED` remains false until the origin, SSH host pins, dedicated signing identity,
+approval policy, and public verification are ready. The checked-in `packaging/repositories/fedora-channel.json`
+therefore remains pending and the homepage keeps the existing signed direct-download command.
+
+The client helper writes only `/etc/yum.repos.d/loopwire.repo` and a fingerprint-named public key under
+`/etc/pki/rpm-gpg/`. It keeps `gpgcheck=1` and `repo_gpgcheck=1`; repository installation never uses the local-RPM
+signature exception:
+
+```bash
+sudo bash scripts/setup-fedora-repository.sh \
+  --base-url 'https://HOST/fedora/44/x86_64' --fingerprint "$RPM_FPR"
+sudo dnf makecache --refresh
+sudo dnf install loopwire
+```
+
+These commands are illustrative until the channel record is verified. User instructions must take the URL and full
+fingerprint from the [gated Fedora repository guide](../apps/docs/docs/guide/fedora-repository.md), not a source-tree
+placeholder. See the [maintainer runbook](../apps/docs/docs/developer/fedora-repository.md) for the provider decision,
+production layout, protected configuration, publication/recovery, rollback, caching, key rotation, and activation.
+
 ## Native deb and RPM packages
 
 The native package recipes install the complete canonical payload: GUI, background restore, DSP and JACK provider
@@ -217,6 +262,8 @@ pnpm verify:release
 pnpm verify:aur
 pnpm verify:nix-release -- --version 0.1.0 --release-dir dist/release --render-only
 pnpm verify:packaging
+bash scripts/with-rpm-tools.sh --container python3 scripts/test-rpm-repository.py
+node --test apps/site/src/lib/rpmChannel.test.mjs
 ```
 
 `verify:install` creates a local fake release artifact, signs and verifies `SHA256SUMS`, installs it into a temp prefix,

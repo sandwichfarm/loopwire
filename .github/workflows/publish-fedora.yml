@@ -1,0 +1,83 @@
+name: Publish Fedora Repository
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      operation:
+        type: string
+        default: publish
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Publish a stable release, refresh expiry, or roll back to a retained revision
+        type: choice
+        options: [publish, refresh, rollback]
+        default: publish
+      tag:
+        description: Existing stable release tag for publish
+        type: string
+      revision:
+        description: Retained repository revision SHA-256 for rollback
+        type: string
+  schedule:
+    - cron: "53 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fedora-repository-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{
+        vars.FEDORA_REPOSITORY_ENABLED == 'true' &&
+        (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+          (github.workflow == 'Release' && startsWith(github.ref, 'refs/tags/v')))
+      }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: packages-production
+    container:
+      image: fedora:44@sha256:be9d65e2344d805cc11114319c685ecaa96b6d9b4350a0a6460cdb931babbd19
+    steps:
+      - name: Install repository and workflow tools
+        run: >-
+          dnf install -y
+          createrepo_c dnf git gh gnupg2 nodejs openssh-clients openssl python3 rpm-build rpm-sign
+
+      - name: Checkout publisher
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build, publish, and verify repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPERATION: ${{ inputs.operation || 'refresh' }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          ROLLBACK_REVISION: ${{ inputs.revision }}
+          FEDORA_REPOSITORY_URL: ${{ vars.FEDORA_REPOSITORY_URL }}
+          FEDORA_REPOSITORY_HOST: ${{ vars.FEDORA_REPOSITORY_HOST }}
+          FEDORA_REPOSITORY_ROOT: ${{ vars.FEDORA_REPOSITORY_ROOT }}
+          FEDORA_SSH_PORT: ${{ vars.FEDORA_SSH_PORT || '22' }}
+          FEDORA_SIGNING_FINGERPRINT: ${{ vars.FEDORA_SIGNING_FINGERPRINT }}
+          FEDORA_SSH_PRIVATE_KEY: ${{ secrets.FEDORA_SSH_PRIVATE_KEY }}
+          FEDORA_SSH_KNOWN_HOSTS: ${{ secrets.FEDORA_SSH_KNOWN_HOSTS }}
+          FEDORA_SIGNING_KEY: ${{ secrets.FEDORA_SIGNING_KEY }}
+          FEDORA_SIGNING_PASSPHRASE: ${{ secrets.FEDORA_SIGNING_PASSPHRASE }}
+        run: bash scripts/publish-fedora-workflow.sh
+
+      - name: Upload public verification and activation record
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: loopwire-fedora-publication-${{ github.run_id }}
+          path: dist/fedora-publication
+          if-no-files-found: error
+          retention-days: 90

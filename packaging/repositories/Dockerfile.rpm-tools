@@ -1,0 +1,9 @@
+FROM fedora:44@sha256:be9d65e2344d805cc11114319c685ecaa96b6d9b4350a0a6460cdb931babbd19
+
+RUN dnf -y install \
+      cpio createrepo_c dnf dnf5-plugins gh git gnupg2 nginx nodejs openssh-clients openssh-server \
+      openssl python3 rpm rpm-build rpm-sign \
+    && dnf clean all
+
+ENV PYTHONDONTWRITEBYTECODE=1
+WORKDIR /workspace
